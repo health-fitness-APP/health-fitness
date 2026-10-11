@@ -9,8 +9,8 @@
 (function(){ try{ var t=localStorage.getItem("hf:theme")||"", p=localStorage.getItem("hf:palette")||"alba", r=document.documentElement;
   if(t) r.setAttribute("data-theme",t); if(p&&p!=="alba") r.setAttribute("data-palette",p); }catch(e){} })();
 </script>
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png?v=17">
+<link rel="apple-touch-icon" href="icon-192.png?v=17">
 <title>HealthFit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -311,8 +311,8 @@ input.tp-in{cursor:pointer}
 .status.ok{color:var(--basil);font-weight:600;background:var(--basil-soft);padding:10px 12px;border-radius:12px}
 .grab{width:42px;height:5px;border-radius:5px;background:var(--line);margin:4px auto 12px}
 .sheet h3{margin:0 0 12px;font-size:1.3rem}
-.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px}
-.tabs button{border:0;background:none;padding:10px;border-radius:11px;font-weight:600;color:var(--muted)}
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px}
+.tabs button{min-width:0;overflow-wrap:anywhere;line-height:1.2;border:0;background:none;padding:10px 4px;border-radius:11px;font-weight:600;color:var(--muted)}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .photo-drop{display:grid;place-items:center;text-align:center;gap:8px;border:2px dashed var(--line);border-radius:20px;padding:24px 16px;background:var(--surface2)}
 .photo-drop .cam{font-size:2.2rem}
@@ -324,7 +324,11 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .results li button{width:100%;text-align:left;display:flex;justify-content:space-between;gap:10px;padding:11px 4px;border:0;border-bottom:1px solid var(--line);background:none}
 .results small{color:var(--muted)}
 .results li.row2{display:flex;align-items:center;gap:4px}
-.results li.row2>button:first-child{flex:1}
+.results li.row2{border-bottom:1px solid var(--line)}
+.results li.row2>button:first-child{flex:1;min-width:0;width:auto;border-bottom:0;align-items:center}
+.results li.row2>button:first-child>span{flex:1;min-width:0;overflow-wrap:break-word}
+.results li.row2>button:first-child>small{flex:none;white-space:nowrap;text-align:right}
+.results li.row2>button.star{width:auto;flex:none;border-bottom:0;padding:8px 6px}
 .star{border:0;background:none;font-size:1.25rem;line-height:1;padding:6px;color:#D99A1E;cursor:pointer;flex:none}
 .rq-h{font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 4px;font-weight:600}
 .scan{display:grid;gap:10px;margin:10px 0}
@@ -943,7 +947,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.17 (testo grande: niente tagli)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.20 (foto più veloci + screenshot valori)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -992,7 +996,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button role="tab" id="tabSuggest" aria-selected="false">Consigliami</button>
     </div>
     <div id="paneQuick" hidden>
-      <button class="btn ghost" id="quickScan">▥ Scansiona codice a barre</button>
+      <div class="two"><button class="btn ghost" id="quickScan">▥ Codice a barre</button><button class="btn ghost" id="quickMan">✎ Solo valori</button></div>
       <div id="quickBody"></div>
       <div id="quickPickedBox" hidden>
         <p class="rq-h">Da aggiungere</p>
@@ -1005,7 +1009,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <input type="file" id="galleryInput" accept="image/*" hidden>
       <div id="photoStart" class="photo-drop">
         <div class="cam" aria-hidden="true">📷</div>
-        <div>Scatta o scegli una foto del piatto: riconosco gli alimenti e stimo porzioni e valori.</div>
+        <div>Scatta o scegli una foto del piatto: riconosco gli alimenti e stimo porzioni e valori. Puoi caricare anche uno <b>screenshot con i valori nutrizionali</b> (es. da Samsung Health) o un'etichetta: li leggo così come sono.</div>
         <button class="btn" id="pickPhoto" style="max-width:260px">📷 Scatta una foto</button>
         <button class="btn ghost" id="pickGallery" style="max-width:260px">🖼️ Scegli dalla galleria</button>
       </div>
@@ -1033,7 +1037,17 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="labelBtn" hidden>📷 Fotografa la tabella nutrizionale</button>
       <ul class="results" id="results"></ul>
       <button class="btn ghost" id="aiSearch">Calcola con l'AI quello che hai scritto</button>
-      <button class="linkbtn" id="newFoodBtn" style="margin-top:6px">+ Crea un nuovo alimento</button>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px">
+        <button class="linkbtn" id="manBtn">✎ Aggiungi solo i valori</button>
+        <button class="linkbtn" id="newFoodBtn">+ Crea un nuovo alimento</button>
+      </div>
+      <div class="form" id="manBox" hidden style="margin-top:8px">
+        <p class="note" style="margin:0">Inserisci direttamente calorie e macro del pasto: non viene salvato nessun alimento.</p>
+        <label>Descrizione (facoltativa)<input class="field" id="mnName" placeholder="Es. Pranzo al ristorante"></label>
+        <div class="two"><label>Kcal<input class="field" id="mnK" inputmode="decimal" placeholder="se vuoto le calcolo"></label><label>Proteine g<input class="field" id="mnP" inputmode="decimal"></label></div>
+        <div class="two"><label>Carboidrati g<input class="field" id="mnC" inputmode="decimal"></label><label>Grassi g<input class="field" id="mnF" inputmode="decimal"></label></div>
+        <button class="btn" id="mnSave">Aggiungi al pasto</button>
+      </div>
       <div class="form" id="newFoodBox" hidden style="margin-top:8px">
         <label>Nome<input class="field" id="nfName" placeholder="Es. Pane di segale del forno sotto casa"></label>
         <p class="note" style="margin:0">Valori per 100 g (li trovi sull'etichetta). Se non li sai, lascia vuoto e li calcolo con l'AI.</p>
@@ -1119,7 +1133,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   const status=msg=>{ try{ window.dispatchEvent(new CustomEvent("hf-ai-status",{detail:msg})); }catch{} };
   async function once(model,key,contents,json,signal){
     const tc=thinkCfg(model);
-    const gc={temperature:json?0.3:0.7,...(json?{responseMimeType:"application/json"}:{}),...(tc?{thinkingConfig:tc}:{})};
+    const gc={temperature:json?0.3:0.7,...(json?{responseMimeType:"application/json"}:{}),...(tc?{thinkingConfig:tc}:{}),...(once.maxTokens?{maxOutputTokens:once.maxTokens}:{})};
     const ctl=new AbortController(), t=setTimeout(()=>ctl.abort("timeout"),35000);
     if(signal) signal.addEventListener("abort",()=>ctl.abort("user"),{once:true});
     let res;
@@ -1148,7 +1162,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     let lastErr=null;
     for(let mi=0; mi<chain.length; mi++){
       for(let attempt=0; attempt<2; attempt++){
-        try{ const text=await once(chain[mi],key,contents,json,opts.signal); if(opts.onText) opts.onText({text,done:true}); return text; }
+        try{ once.maxTokens=opts.maxTokens||0; const text=await once(chain[mi],key,contents,json,opts.signal); if(opts.onText) opts.onText({text,done:true}); return text; }
         catch(e){
           lastErr=e; if(!e.retry) throw e;
           if(attempt===0 && e.code!=="timeout"){ status("Server di Google occupato, riprovo…"); await sleep(e.code==="rate_limited"?3000:1200); continue; }
@@ -1466,10 +1480,10 @@ function renderDiary(){
       const ul=el("ul","items");
       items.forEach(it=>{
         const li=el("li"); const tx=el("div","t");
-        tx.append(el("div","a",it.name), el("div","b",`${r(it.grams)} g · P ${r(it.p)} · C ${r(it.c)} · G ${r(it.f)}`));
+        tx.append(el("div","a",it.name), el("div","b",`${it.manual?"valori inseriti":r(it.grams)+" g"} · P ${r(it.p)} · C ${r(it.c)} · G ${r(it.f)}`));
         const del=el("button","del","×"); del.setAttribute("aria-label","Rimuovi "+it.name);
         del.onclick=()=>{ state.day.meals[m.id]=items.filter(x=>x.id!==it.id); saveDay(); renderAll(); };
-        li.append(tx, el("span","k",r(it.kcal)+" kcal"), starBtn(it), del); ul.appendChild(li);
+        li.append(tx, el("span","k",r(it.kcal)+" kcal"), it.manual? el("span") : starBtn(it), del); ul.appendChild(li);
       });
       sec.appendChild(ul);
       const tools=el("div","meal-tools"), sv=el("button","linkbtn","⭐ Salva come pasto preferito");
@@ -1585,26 +1599,35 @@ $("pickGallery").onclick=()=>$("galleryInput").click();
 $("retake").onclick=()=>resetPhoto();
 $("galleryInput").onchange=e=>{ const f=e.target.files[0]; $("galleryInput").value=""; if(f) handleMealPhoto(f); };
 $("photoInput").onchange=e=>{ const f=e.target.files[0]; if(f) handleMealPhoto(f); };
+function imgSize(file){ return new Promise(res=>{ const im=new Image(); im.onload=()=>res({w:im.width,h:im.height}); im.onerror=()=>res({w:1,h:1}); im.src=URL.createObjectURL(file); }); }
 async function handleMealPhoto(file){
   $("photoStart").hidden=true; $("preview").src=URL.createObjectURL(file); $("preview").hidden=false;
-  setStatus("photoStatus","Sto riconoscendo gli alimenti…");
+  const t0=Date.now(); setStatus("photoStatus","Sto analizzando la foto…");
+  const tick=setInterval(()=>setStatus("photoStatus",`Sto analizzando la foto… ${Math.round((Date.now()-t0)/1000)} s`),1000);
   try{
-    const blob=await shrinkFile(file,1024);
+    const sz=await imgSize(file), tall=sz.h/Math.max(1,sz.w)>1.45;   // screenshot del telefono: serve più risoluzione per leggere il testo
+    const blob=await shrinkFile(file, tall? 1280 : 768);
     const res=await sample.json(
-`Sei un nutrizionista. Analizza la foto di questo pasto. Identifica ogni alimento visibile, stima il peso in grammi della porzione (usa piatto e posate come riferimento, includi condimenti probabili come l'olio) e calcola i valori per la porzione con le tabelle italiane CREA.
-Rispondi SOLO con JSON valido, nomi in italiano:
-{"items":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}],"note":"una frase breve su cosa è più incerto"}
-p = proteine g, c = carboidrati g, f = grassi g. Se non c'è cibo: {"items":[],"note":"motivo"}.`,
-      {images:[blob], modelTier:"default"});
+`Analizza l'immagine. Può essere:
+A) la foto di un piatto o di un pasto;
+B) uno screenshot o una foto con valori nutrizionali scritti (app come Samsung Health o MyFitnessPal, etichetta, elenco di alimenti con grammi/kcal/macro).
+Se A: elenca ogni alimento visibile, stima i grammi (piatto e posate come riferimento, includi i condimenti probabili come l'olio) e calcola i valori con le tabelle CREA.
+Se B: NON stimare, riporta esattamente i valori scritti. Se ci sono alimenti elencati, uno per alimento con i suoi valori. Se ci sono solo i totali, restituisci un solo elemento "Valori da screenshot" con quei totali (se mancano le kcal calcolale: 4 per g di proteine e carboidrati, 9 per g di grassi). Numeri all'italiana: virgola = decimali, punto = migliaia. Ignora percentuali e valori "consigliati" o obiettivi.
+Rispondi SOLO con JSON, nomi in italiano: {"kind":"photo"|"values","items":[{"name":"string","grams":number|null,"kcal":number,"p":number,"c":number,"f":number}],"note":"frase breve"}
+p=proteine g, c=carboidrati g, f=grassi g. Se non c'è cibo né valori: {"kind":"none","items":[],"note":"motivo"}.`,
+      {images:[blob], modelTier:"quick", maxTokens:900});
     const items=(res&&Array.isArray(res.items))?res.items:[];
     $("photoActions").hidden=false;
-    if(!items.length){ setStatus("photoStatus",(res&&res.note)||"Non trovo cibo nella foto. Riprova con il piatto ben inquadrato."); $("confirmFound").hidden=true; return; }
-    photoItems=items.map(normItem);
-    setStatus("photoStatus","Ecco cosa ho trovato. Correggi i grammi se serve: i valori si aggiornano.");
+    if(!items.length){ setStatus("photoStatus",(res&&res.note)||"Non trovo cibo né valori nella foto. Riprova con un'immagine più nitida."); $("confirmFound").hidden=true; return; }
+    const isVals=res.kind==="values";
+    photoItems=items.map(x=>{ if(isVals&&!(+x.grams>0)){ const p=+x.p||0,c=+x.c||0,f=+x.f||0; const k=+x.kcal||Math.round(p*4+c*4+f*9); return {id:uid(),name:String(x.name||"Valori da screenshot").slice(0,80),grams:1,kcal:k,p,c,f,manual:true,per:{kcal:k,p,c,f}}; } return normItem(x); });
+    const secs=Math.round((Date.now()-t0)/1000);
+    setStatus("photoStatus",(isVals? "Ho letto i valori dall'immagine." : "Ecco cosa ho trovato. Correggi i grammi se serve: i valori si aggiornano.")+` (${secs} s)`);
     renderFound($("found"),photoItems);
     if(res.note){ $("foundNote").textContent=res.note; $("foundNote").hidden=false; }
     $("confirmFound").hidden=false;
   }catch(err){ setStatus("photoStatus",errCopy(err)+(err&&err.code&&!/^(api_50\d|timeout|network|quota|rate_limited|no_key|bad_key)$/.test(err.code)?` [${err.code}${err.message?": "+String(err.message).slice(0,140):""}]`:""),true); $("photoActions").hidden=false; $("confirmFound").hidden=true; }
+  finally{ clearInterval(tick); }
 }
 $("confirmFound").onclick=()=>addItems(photoItems);
 
@@ -1622,7 +1645,7 @@ function renderFound(ul,list){
     const mac=el("span","mac");
     const upd=()=>{ mac.textContent=`${r(it.kcal)} kcal · P ${r(it.p)} g · C ${r(it.c)} g · G ${r(it.f)} g`; };
     inp.oninput=()=>{ const g=Math.max(0,+inp.value||0); it.grams=g; it.kcal=it.per.kcal*g; it.p=it.per.p*g; it.c=it.per.c*g; it.f=it.per.f*g; upd(); };
-    upd(); li.append(el("span","nm",it.name), lab, starBtn(it), mac); ul.appendChild(li);
+    upd(); if(it.manual) li.append(el("span","nm",it.name), el("span","note","valori letti"), el("span"), mac); else li.append(el("span","nm",it.name), lab, starBtn(it), mac); ul.appendChild(li);
   });
 }
 function addItems(list, mealId=currentMeal, quiet){
@@ -1631,7 +1654,7 @@ function addItems(list, mealId=currentMeal, quiet){
   state.day.meals[mealId]=[...(state.day.meals[mealId]||[]),...clean];
   saveDay(); renderAll(); closeSheets();
   if(!quiet) toast("Aggiunto: "+r(clean.reduce((a,b)=>a+b.kcal,0))+" kcal");
-  consumePantry(clean); queueProgress(); addRecents(clean);
+  const real=clean.filter(x=>!x.manual); consumePantry(real); queueProgress(); addRecents(real);
 }
 async function consumePantry(eaten){
   if(!sample||!pantry.items.length||!eaten.length) return;
@@ -1652,7 +1675,7 @@ Rispondi SOLO con JSON: {"remove":["id"],"update":[{"id":"string","qty":"string"
     toast("Dispensa aggiornata"+(res.reply? ": "+res.reply : ""));
   }catch(e){ console.warn("dispensa",e); }
 }
-function resetSearch(){ $("q").value=""; setStatus("searchStatus",""); pickedItems=[]; $("pickedBox").hidden=true; showResults(""); }
+function resetSearch(){ if($("manBox")) $("manBox").hidden=true; $("q").value=""; setStatus("searchStatus",""); pickedItems=[]; $("pickedBox").hidden=true; showResults(""); }
 function showResults(q){
   const ul=$("results"); ul.innerHTML=""; const s=q.trim().toLowerCase();
   const mine=[...foods.favs,...foods.custom.filter(x=>!isFav(x.name)),...foods.recents.filter(x=>!isFav(x.name)&&!foods.custom.some(c=>c.key===x.key))].filter(e=>!s||e.key.includes(s)).slice(0,s?6:5);
@@ -1669,7 +1692,17 @@ function showResults(q){
   if(s&&!list.length&&!mine.length){ const li=el("li"); li.appendChild(el("small",null,"Non è nell'elenco: usa il calcolo con l'AI qui sotto.")); ul.appendChild(li); }
 }
 $("q").oninput=e=>showResults(e.target.value);
-$("newFoodBtn").onclick=()=>{ const b=$("newFoodBox"); b.hidden=!b.hidden; if(!b.hidden){ if(!$("nfName").value) $("nfName").value=$("q").value.trim(); $("nfName").focus(); } };
+$("manBtn").onclick=()=>{ const b=$("manBox"); b.hidden=!b.hidden; $("newFoodBox").hidden=true; if(!b.hidden) setTimeout(()=>$("mnK").focus(),50); };
+$("mnSave").onclick=()=>{
+  const num=id=>{ const v=String($(id).value).replace(",",".").trim(); return v===""? null : Math.max(0,+v||0); };
+  const p=num("mnP")||0, c=num("mnC")||0, f=num("mnF")||0; let k=num("mnK");
+  if(k==null) k=Math.round(p*4+c*4+f*9);
+  if(!k&&!p&&!c&&!f){ setStatus("searchStatus","Inserisci almeno le kcal o un macronutriente.",true); return; }
+  const name=$("mnName").value.trim()||"Valori inseriti a mano";
+  ["mnName","mnK","mnP","mnC","mnF"].forEach(id=>$(id).value=""); $("manBox").hidden=true;
+  addItems([{name:name.slice(0,80),grams:1,kcal:k,p,c,f,manual:true}]);
+};
+$("newFoodBtn").onclick=()=>{ $("manBox").hidden=true; const b=$("newFoodBox"); b.hidden=!b.hidden; if(!b.hidden){ if(!$("nfName").value) $("nfName").value=$("q").value.trim(); $("nfName").focus(); } };
 $("nfSave").onclick=async()=>{
   const name=$("nfName").value.trim(); if(!name){ setStatus("searchStatus","Scrivi il nome dell'alimento.",true); return; }
   const num=id=>{ const v=String($(id).value).replace(",","."); return v===""? null : +v; };
@@ -1771,6 +1804,7 @@ function renderQuick(){
 $("tabQuick").onclick=()=>{ renderQuick(); setTab("quick"); };
 $("confirmQuick").onclick=()=>addItems(quickPicked);
 $("quickScan").onclick=()=>{ setTab("search"); startScan(); };
+$("quickMan").onclick=()=>{ setTab("search"); $("manBox").hidden=false; $("newFoodBox").hidden=true; setTimeout(()=>{ $("manBox").scrollIntoView({block:"nearest"}); $("mnK").focus(); },60); };
 
 /* ----- codice a barre (Open Food Facts) ----- */
 let scanStream=null, scanTimer=null, zxReader=null, scanBusy=false;
