@@ -58,7 +58,9 @@ main>*{min-width:0;max-width:100%}
 #ciboBody{grid-template-columns:minmax(0,1fr)}
 #ciboBody>*{min-width:0}
 .seg,.seg2{grid-auto-columns:minmax(0,1fr)!important}
-.seg button,.seg2 button{min-width:0;overflow-wrap:anywhere;line-height:1.2}
+.seg{display:flex!important}
+.seg button{flex:1 1 auto;padding-left:6px!important;padding-right:6px!important;text-overflow:clip!important}
+.seg button,.seg2 button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;font-size:clamp(.72rem,3.4vw,.92rem)!important;padding-left:2px!important;padding-right:2px!important}
 .meal-head{flex-wrap:wrap;row-gap:8px}
 .meal-head h2{min-width:0;overflow-wrap:break-word}
 .eq .row{gap:8px}
@@ -432,6 +434,22 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .run-how{margin-top:12px;background:var(--surface);border:1px solid var(--glass-b);border-radius:18px;padding:12px 14px}
 .run-how .btn{margin-top:8px}
 .run-man{margin-top:10px}
+.chips2{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.rchip{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;font-size:.78rem;font-weight:600;color:var(--ink)}
+.gd-et .prog,.sx-prog{font-size:.82rem;margin-top:6px;line-height:1.35;color:var(--muted)}
+.gd-et .prog.up,.sx-prog.up{color:var(--basil);font-weight:600}
+.gd-et .prog.down,.sx-prog.down{color:var(--warn);font-weight:600}
+.sx-prog{margin:0 4px}
+.btn.danger{color:var(--warn);border-color:var(--warn);margin-top:10px}
+.mealrow{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:16px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+#meals>.mealrow:first-child{margin-top:0}
+.mealrow .mi{flex:none;width:46px;height:46px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+.mealrow .mt{flex:1;min-width:0;display:flex;flex-direction:column}
+.mealrow b{font-size:1.12rem}
+.mealrow .ms{font-size:.82rem;color:var(--muted);margin-top:2px}
+.mealrow .mk{font-weight:700;white-space:nowrap}
+.mealrow .chev{color:var(--muted);font-size:1.4rem}
+.aipause{position:sticky;top:env(safe-area-inset-top,0px);z-index:16;margin:6px 12px 0;padding:8px 12px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:.85rem;font-weight:600;text-align:center}
 .plan-meal{border-top:1px solid var(--line);padding:12px 0}
 .plan-meal:first-child{border-top:0;padding-top:4px}
 .plan-meal .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
@@ -601,6 +619,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 <div class="wrap">
 
 <!-- ================= DIARIO ================= -->
+<div class="aipause" id="aiPauseBar" hidden></div>
 <main id="view-diario">
   <section class="card" id="keyBanner" hidden style="border:2px solid var(--basil)">
     <h2>Collega l'intelligenza artificiale</h2>
@@ -668,6 +687,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="out" id="coachOut" aria-live="polite"></div>
   </section>
   <div id="meals"></div>
+</main>
+
+<!-- ================= PASTO ================= -->
+<main id="view-pasto" hidden>
+  <header class="cibo-top"><button class="icon-btn" id="mpBack" aria-label="Indietro">‹</button><h1 id="mpTitle">Pasto</h1></header>
+  <p class="sub" id="mpDay" style="margin:-2px 4px 10px"></p>
+  <div id="mpBody"></div>
 </main>
 
 <!-- ================= CIBO (dettaglio) ================= -->
@@ -865,6 +891,11 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </div>
 
   <div id="w-oggi">
+    <div class="daynav" style="justify-content:center;margin:2px 0 12px">
+      <button class="icon-btn" id="rPrev" aria-label="Giorno precedente">‹</button>
+      <button class="daypick" id="rDayPick" aria-label="Scegli il giorno dal calendario"><h1 id="rDayLabel">Oggi</h1></button>
+      <button class="icon-btn" id="rNext" aria-label="Giorno successivo">›</button>
+    </div>
     <section class="card">
       <h2 id="wDayTitle">Allenamenti di oggi</h2>
       <p class="sub" id="wDaySub">Le calorie bruciate si aggiungono al fabbisogno del giorno nel diario.</p>
@@ -1072,6 +1103,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <div class="form">
     <label>Note (facoltative)<textarea id="logNotes" placeholder="Es. spalla ok, ultima serie di panca molto dura"></textarea></label>
     <button class="btn" id="logSave">Termina e salva l'allenamento</button>
+    <button class="btn ghost danger" id="sesCancel" type="button">Annulla l'allenamento (non salvare)</button>
   </div>
   <div class="ses-bar"><button class="ses-all" id="sesAll" type="button"><span>☑</span><b>TUTTI</b></button><button class="btn" id="sesNext" type="button">REGISTRA SERIE SUCCESSIVA</button></div>
 </main>
@@ -1239,7 +1271,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.37 (allenamenti di corsa)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.43 (dieta su allenamento, corpo e obiettivo)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -1409,7 +1441,17 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   const LS=k=>{ try{ return localStorage.getItem("hf:"+k)||""; }catch{ return ""; } };
   const blobToB64=b=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=()=>rej({code:"bad_image"}); r.readAsDataURL(b); });
   function err(status,body){ const msg=(body&&body.error&&body.error.message)||"";
-    if(status===429) return /quota|exhaust/i.test(msg)? {code:"quota",message:msg} : {code:"rate_limited",message:msg};
+    if(status===429){
+      const det=(body&&body.error&&Array.isArray(body.error.details))? body.error.details : [];
+      let retrySec=null, daily=false;
+      det.forEach(d=>{ const t=String(d["@type"]||"");
+        if(/RetryInfo/.test(t)&&d.retryDelay){ const m=String(d.retryDelay).match(/([\d.]+)s/); if(m) retrySec=Math.ceil(+m[1]); }
+        if(/QuotaFailure/.test(t)&&Array.isArray(d.violations)) d.violations.forEach(v=>{ if(/PerDay|per day|daily/i.test(String(v.quotaId||v.quotaMetric||""))) daily=true; }); });
+      if(!retrySec){ const m=msg.match(/retry in ([\d.]+)\s*s/i); if(m) retrySec=Math.ceil(+m[1]); }
+      if(/per ?day|daily/i.test(msg)) daily=true;
+      const quota=/quota|exhaust/i.test(msg)||daily;
+      return {code: quota? "quota" : "rate_limited", message:msg, retrySec, daily, at:Date.now()};
+    }
     if(status===400&&/API key/i.test(msg)) return {code:"bad_key",message:msg};
     if(status===401||status===403) return {code:"bad_key",message:msg};
     return {code:"api_"+status,message:msg.slice(0,160)}; }
@@ -1451,9 +1493,10 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     let lastErr=null;
     for(let mi=0; mi<chain.length; mi++){
       for(let attempt=0; attempt<2; attempt++){
-        try{ once.maxTokens=opts.maxTokens||0; const text=await once(chain[mi],key,contents,json,opts.signal); if(opts.onText) opts.onText({text,done:true}); return text; }
+        try{ once.maxTokens=opts.maxTokens||0; const text=await once(chain[mi],key,contents,json,opts.signal); try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{} if(opts.onText) opts.onText({text,done:true}); return text; }
         catch(e){
-          lastErr=e; if(!e.retry) throw e;
+          lastErr=e; if(e.code==="quota"&&mi+1<chain.length){ status("Richieste esaurite su questo modello: provo con l'altro…"); break; }
+          if(!e.retry) throw e;
           if(attempt===0 && e.code!=="timeout"){ status("Server di Google occupato, riprovo…"); await sleep(e.code==="rate_limited"?3000:1200); continue; }
           break;   // passa al modello di riserva
         }
@@ -1594,15 +1637,38 @@ const saveDay = () => save("day-"+state.date, state.day);
 
 /* ---------- calcoli ---------- */
 function goalOf(p){ return GOALS.find(g=>g.id===(p&&p.goal)) || null; }
+/* fabbisogno: usa i dati corporei reali (metabolismo misurato dalla bilancia o massa magra) quando ci sono */
+function bodyNow(){ try{ const lb=latestBody(), lim=shiftDate(todayISO(),-90), ok=o=>o&&o.date>=lim? +o.v : null;
+  return {fat:ok(lb.fat), bmr:ok(lb.bmr), muscle:ok(lb.muscle), waist:ok(lb.waist)}; }catch{ return {}; } }
 function targets(p){
   const g=goalOf(p); if(!p||!g||!(p.age&&p.height&&p.weight)) return null;
-  const bmr = 10*p.weight + 6.25*p.height - 5*p.age + (p.sex==="m"?5:-161);
+  const b=bodyNow(), w=+p.weight, lbm= b.fat? w*(1-b.fat/100) : null;
+  let bmr, bmrSrc;
+  if(b.bmr&&b.bmr>900&&b.bmr<3500){ bmr=b.bmr; bmrSrc="misurato dalla bilancia"; }
+  else if(lbm){ bmr=370+21.6*lbm; bmrSrc="calcolato dalla tua massa magra"; }
+  else { bmr=10*w + 6.25*p.height - 5*p.age + (p.sex==="m"?5:-161); bmrSrc="stimato da peso, altezza ed età"; }
   const tdee = bmr*p.activity;
   const floor = p.sex==="m"?1500:1200;
   const kcal = Math.max(floor, tdee*g.mult + (+p.kcalAdjust||0));
-  const prot = p.weight*g.prot, fat = p.weight*0.9;
+  const prot = lbm? Math.min(w*g.prot, lbm*g.prot*1.15) : w*g.prot, fat = w*0.9;
   const carb = Math.max(0,(kcal-prot*4-fat*9)/4);
-  return {bmr,tdee,kcal,prot,fat,carb,floored:tdee*g.mult<floor};
+  return {bmr,bmrSrc,lbm,fatPct:b.fat||null,tdee,kcal,prot,fat,carb,floored:tdee*g.mult<floor};
+}
+/* che allenamento è previsto in un giorno della settimana: prima il programma, poi gli orari del profilo */
+function dayPlanFor(wd){
+  const p=state.profile||{}, w=+p.weight||70;
+  const ses=trainOf(p).sessions.filter(x=>x.days.includes(wd)), when=ses.map(x=>x.start?(x.start+(x.end?"-"+x.end:"")):"").filter(Boolean).join(", ");
+  const sesMin=ses.reduce((a,x)=>a+(minsBetween(x.start,x.end)||60),0);
+  let a=null; try{ a=activeProg(); }catch{}
+  const pr=a&&a.pr, di= pr&&pr.weekMap? pr.weekMap[wd] : null, d= di!=null&&pr.days? pr.days[di] : null;
+  if(d&&d.kind==="run"){ const rp=runPlan(d), lv=Math.max(1,Math.min(5,+d.intensity||2)), MET=[0,6,8,9.5,11,12.5][lv];
+    const kcal= rp.km? rp.km*w*(0.95+0.05*lv) : (rp.min||sesMin||45)*MET*w/60;
+    return {kind:"run", label:`Corsa – ${d.runType||"corsa"}${rp.km?" "+fmt(rp.km)+" km":""}${rp.min?" ("+rp.min+" min)":""}`, minutes:rp.min||sesMin||45, kcal, when, intensity:lv}; }
+  if(d){ const min=+d.minutes||sesMin||60, rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*w/60;
+    return {kind:"strength", label:`Forza – ${String(d.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"")} (${min} min)`, minutes:min, kcal:kpm*min, when}; }
+  if(pr&&pr.weekMap&&di==null&&!ses.length) return {kind:"rest",label:"riposo",minutes:0,kcal:0,when:""};
+  if(sesMin){ const rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*w/60; return {kind:"strength",label:`Allenamento (${sesMin} min)`,minutes:sesMin,kcal:kpm*sesMin,when}; }
+  return {kind:"rest",label:"riposo",minutes:0,kcal:0,when:""};
 }
 function workoutKcal(){ return (state.day.workouts||[]).reduce((a,w)=>a+(+w.kcal||0),0) + (+state.day.burned||0); }
 function totals(){
@@ -1637,7 +1703,8 @@ function plannedBurn(){
   if(state.date<todayISO()) return null;              // giorni passati: contano solo gli allenamenti registrati
   if(workoutKcal()>0) return null;                     // già registrato: si usa il dato reale
   const ev=(state.day.event||{}).type||""; if(ev==="Riposo") return null;
-  const wd=new Date(state.date+"T12:00:00").getDay();
+  const wd=new Date(state.date+"T12:00:00").getDay(), dp=dayPlanFor(wd);
+  if(dp.kind!=="rest"&&!EV_TRAIN[ev]){ const rb=realBurnRate(); return {kcal:Math.round(dp.kcal/10)*10, minutes:dp.minutes, real:rb.n>=3, n:rb.n, label:dp.label}; }
   const ses=trainOf(state.profile).sessions.filter(x=>x.days.includes(wd));
   let minutes=ses.reduce((a,x)=>a+(minsBetween(x.start,x.end)||60),0);
   const et=EV_TRAIN[ev];
@@ -1705,12 +1772,12 @@ let view="diario";
 function go(v,fromHistory){
   if(!fromHistory && v!==view){
     if(v==="diario"){ if(history.state&&history.state.v&&history.state.v!=="diario"&&!sheetStack.length){ history.back(); return; } }
-    else if(["cibo","attivita","attrezzatura","giorno","sessione"].includes(v)||!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
+    else if(["cibo","pasto","attivita","attrezzatura","giorno","sessione"].includes(v)||!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
   }
   if(v!=="diario"&&typeof editMode!=="undefined"&&editMode) setEdit(false);
   view=v;
-  ["diario","cibo","attivita","attrezzatura","giorno","sessione","dieta","allenamento","corpo","profilo"].forEach(x=>$("view-"+x).hidden = x!==v);
-  document.querySelectorAll("nav.tabbar button").forEach(b=> b.dataset.v===((v==="cibo"||v==="attivita")?"diario":v==="attrezzatura"?"profilo":(v==="giorno"||v==="sessione")?"allenamento":v) ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
+  ["diario","cibo","pasto","attivita","attrezzatura","giorno","sessione","dieta","allenamento","corpo","profilo"].forEach(x=>$("view-"+x).hidden = x!==v);
+  document.querySelectorAll("nav.tabbar button").forEach(b=> b.dataset.v===((v==="cibo"||v==="attivita"||v==="pasto")?"diario":v==="attrezzatura"?"profilo":(v==="giorno"||v==="sessione")?"allenamento":v) ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
   window.scrollTo(0,0);
   if(v==="profilo") fillProfile();
   renderAll();
@@ -1722,8 +1789,8 @@ $("goWorkout").onclick=()=>{ go("allenamento"); setW("oggi"); };
 function renderDiary(){
   const today=todayISO();
   $("dayLabel").textContent = state.date===today?"Oggi": state.date===shiftDate(today,-1)?"Ieri":
-    new Date(state.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"}); if($("cDayLabel")) $("cDayLabel").textContent=$("dayLabel").textContent; if($("aDayLabel")) $("aDayLabel").textContent=$("dayLabel").textContent;
-  $("next").disabled = state.date>=today; if($("cNext")) $("cNext").disabled = state.date>=today;
+    new Date(state.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"}); if($("cDayLabel")) $("cDayLabel").textContent=$("dayLabel").textContent; if($("aDayLabel")) $("aDayLabel").textContent=$("dayLabel").textContent; if($("rDayLabel")) $("rDayLabel").textContent=$("dayLabel").textContent;
+  $("next").disabled = state.date>=today; if($("cNext")) $("cNext").disabled = state.date>=today; if($("rNext")) $("rNext").disabled = state.date>=today;
   const dt=dayTargets(), t=totals();
   const g=goalOf(state.profile); $("goalName").textContent = upActive()? "Segui la dieta caricata (allenamenti non sommati)" : g? "Obiettivo: "+(state.profile.customGoal&&state.profile.customGoal.active? state.profile.customGoal.title : g.t.toLowerCase()) : "";
   $("eqTarget").textContent = dt? r(dt.kcal):"–";
@@ -1760,6 +1827,24 @@ function renderDiary(){
   const list=[...mealList()];
   Object.keys(state.day.meals||{}).forEach(k=>{ if(!list.find(m=>m.id===k) && (state.day.meals[k]||[]).length) list.push({id:k,name:k.charAt(0).toUpperCase()+k.slice(1)}); });
   list.forEach(m=>{
+    const items=state.day.meals[m.id]||[], kc=items.reduce((a,b)=>a+b.kcal,0), mt=items.reduce((a,b)=>({p:a.p+(+b.p||0),c:a.c+(+b.c||0),f:a.f+(+b.f||0)}),{p:0,c:0,f:0});
+    const row=el("button","card mealrow"); row.type="button";
+    row.innerHTML=`<span class="mi"></span><span class="mt"><b></b><span class="ms"></span></span><span class="mk">${items.length? r(kc)+" kcal" : ""}</span><span class="chev">›</span>`;
+    row.querySelector(".mi").textContent=mealIcon(m); row.querySelector("b").textContent=m.name;
+    row.querySelector(".ms").textContent= items.length? `${items.length} ${items.length===1?"alimento":"alimenti"} · P ${r(mt.p)} · C ${r(mt.c)} · G ${r(mt.f)}` : "Tocca per aggiungere";
+    row.onclick=()=>{ mealPageId=m.id; go("pasto"); renderMealPage(); };
+    box.appendChild(row);
+  });
+}
+let mealPageId=null;
+function mealIcon(m){ const n=(m.name||m.id||"").toLowerCase(); return /colaz/.test(n)?"☕":/pranzo/.test(n)?"🍝":/cena/.test(n)?"🍽️":/spunt|merend/.test(n)?"🍎":/pre/.test(n)?"⚡":/post/.test(n)?"🥤":"🍴"; }
+function renderMealPage(){
+  if(mealPageId==null) return;
+  const list=[...mealList()]; Object.keys(state.day.meals||{}).forEach(k=>{ if(!list.find(m=>m.id===k)) list.push({id:k,name:k.charAt(0).toUpperCase()+k.slice(1)}); });
+  const m=list.find(x=>x.id===mealPageId)||{id:mealPageId,name:mealPageId};
+  $("mpTitle").textContent=mealIcon(m)+" "+m.name; $("mpDay").textContent=$("dayLabel").textContent;
+  const box=$("mpBody"); box.innerHTML="";
+  [m].forEach(m=>{
     const items=state.day.meals[m.id]||[], kc=items.reduce((a,b)=>a+b.kcal,0);
     const sec=el("section","card");
     const head=el("div","meal-head"); const h=el("h2",null,m.name); h.appendChild(el("span","kc",items.length? r(kc)+" kcal":""));
@@ -2320,11 +2405,9 @@ function weekTargets(){
   const tg=targets(state.profile); if(!tg) return null;
   const p=state.profile, rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*((+p.weight)||70)/60;
   return WD_ORDER.map(wd=>{
-    const ses=trainOf(p).sessions.filter(x=>x.days.includes(wd));
-    const min=ses.reduce((a,x)=>a+(minsBetween(x.start,x.end)||60),0);
-    const burn=Math.round(kpm*min/10)*10, goal=tg.kcal+burn;
-    const when=ses.map(x=>x.start?(x.start+(x.end?"-"+x.end:"")):"").filter(Boolean).join(", ");
-    return {wd, name:WD_NAME[wd], train:min>0, min, when, kcal:Math.round(goal), p:Math.round(tg.prot), c:Math.round(tg.carb+burn*0.85/4), f:Math.round(tg.fat+burn*0.15/9)};   // le kcal in più vanno soprattutto in carboidrati
+    const dp=dayPlanFor(wd), min=dp.minutes, when=dp.when;
+    const burn=Math.round(dp.kcal/10)*10, goal=tg.kcal+burn;
+    return {wd, name:WD_NAME[wd], train:dp.kind!=="rest", kind:dp.kind, label:dp.label, min, when, kcal:Math.round(goal), p:Math.round(tg.prot), c:Math.round(tg.carb+burn*0.85/4), f:Math.round(tg.fat+burn*0.15/9)};   // le kcal in più vanno soprattutto in carboidrati
   });
 }
 function planDays(plan){
@@ -2335,7 +2418,7 @@ function planDays(plan){
 const sumMeals=meals=>(meals||[]).reduce((a,m)=>{ const t=sumFoods(m.foods); return {kcal:a.kcal+t.kcal,p:a.p+t.p,c:a.c+t.c,f:a.f+t.f}; },{kcal:0,p:0,c:0,f:0});
 function renderDietAI(){
   const tg=targets(state.profile), wt=weekTargets();
-  $("dietTargets").textContent = tg? `Obiettivo ${goalOf(state.profile).t.toLowerCase()}: ${r(tg.kcal)} kcal nei giorni di riposo${wt&&wt.some(d=>d.train)? `, di più nei giorni di allenamento (${wt.filter(d=>d.train).map(d=>d.name.toLowerCase()).join(", ")})`:""}, con circa ${r(tg.prot)} g di proteine. Preparo 7 giorni sui tuoi ${mealList().length} pasti.` : "Completa prima il profilo con obiettivo e dati: la dieta si basa su quelli.";
+  $("dietTargets").textContent = tg? `Calcolata su di te: metabolismo basale ${r(tg.bmr)} kcal (${tg.bmrSrc})${tg.fatPct?`, grasso ${fmt(tg.fatPct)}% e massa magra ${fmt(tg.lbm)} kg`:""}. Obiettivo ${goalOf(state.profile).t.toLowerCase()}: ${r(tg.kcal)} kcal nei giorni di riposo${wt&&wt.some(d=>d.train)? `, di più nei giorni di allenamento (${wt.filter(d=>d.train).map(d=>`${d.name.toLowerCase()} ${d.kind==="run"?"🏃":"🏋️"} +${r(d.kcal-tg.kcal)}`).join(", ")})`:""}, con circa ${r(tg.prot)} g di proteine. Preparo 7 giorni sui tuoi ${mealList().length} pasti.` : "Completa prima il profilo con obiettivo e dati: la dieta si basa su quelli.";
   $("makeDiet").disabled = !tg || !sample;
   if(document.activeElement!==$("dietPrefs") && !$("dietPrefs").value) $("dietPrefs").value = (state.diet&&state.diet.prefs) || (state.profile&&state.profile.foodPrefs) || "";
   const plan=state.diet&&state.diet.plan, days=planDays(plan);
@@ -2355,7 +2438,7 @@ function renderDietAI(){
   const d=days[dietDayIdx], t=sumMeals(d.meals), tt=tgtOf(d), name=d.label||WD_NAME[d.weekday]||"Giorno";
   const bar=(v,tv,col)=>`<div class="bar"><i style="width:${tv?Math.min(100,v/tv*100):0}%;background:${col}"></i></div>`;
   const ds=$("dietDay"); ds.innerHTML=`<div class="dsum">
-    <div class="top"><span class="day"></span><span class="kind">${tt&&tt.train? "🏋️ giorno di allenamento"+(tt.when?" ("+tt.when+")":"") : "giorno di riposo"}</span></div>
+    <div class="top"><span class="day"></span><span class="kind">${tt&&tt.train? (tt.kind==="run"?"🏃 ":"🏋️ ")+(tt.label||"giorno di allenamento")+(tt.when?" · "+tt.when:"") : "giorno di riposo"}</span></div>
     <div class="kc num">${r(t.kcal).toLocaleString("it-IT")}<small>/ ${tt? r(tt.kcal).toLocaleString("it-IT") : "–"} kcal previste</small></div>
     <div class="mac">
       <div><div class="n">Proteine</div><div class="v">${r(t.p)} / ${tt?r(tt.p):"–"} g</div>${bar(t.p,tt&&tt.p,"var(--pro)")}</div>
@@ -2388,7 +2471,9 @@ function dietPrompt(prefs, request, prevPlan){
 Persona: ${p.sex==="m"?"uomo":"donna"}, ${p.age} anni, ${p.height} cm, ${p.weight} kg. Obiettivo: ${goalOf(p).t} (${goalOf(p).d}).
 Profilo completo: ${profileSummary()}.
 Obiettivi per ciascun giorno (rispettali con tolleranza ±5% su kcal e proteine):
-${wt.map(d=>`- ${d.name} (weekday ${d.wd})${d.train?` – ALLENAMENTO ${d.min} min${d.when?" alle "+d.when:""}`:" – riposo"}: ${d.kcal} kcal, proteine ${d.p} g, carboidrati ${d.c} g, grassi ${d.f} g`).join("\n")}
+${wt.map(d=>`- ${d.name} (weekday ${d.wd}) – ${d.train? d.label.toUpperCase()+(d.when?" alle "+d.when:"") : "riposo"}: ${d.kcal} kcal, proteine ${d.p} g, carboidrati ${d.c} g, grassi ${d.f} g`).join("\n")}
+Composizione corporea e metabolismo: peso ${p.weight} kg${tg.fatPct?`, grasso ${fmt(tg.fatPct)}%, massa magra ${fmt(tg.lbm)} kg`:""}; metabolismo basale ${r(tg.bmr)} kcal (${tg.bmrSrc}); fabbisogno senza allenamenti ${r(tg.tdee)} kcal. Obiettivo: ${goalOf(p).t} → ${goalOf(p).mult<1?"deficit":"surplus"} del ${Math.round(Math.abs(1-goalOf(p).mult)*100)}% nei giorni di riposo.
+Adatta i pasti al tipo di allenamento: prima di corse lunghe o intense carboidrati facili (colazione o spuntino 1-3 ore prima) e cena precedente ricca di carboidrati; dopo la forza un pasto con almeno 30-40 g di proteine; nei giorni di riposo meno carboidrati e più verdure, proteine stabili.
 Pasti di ogni giorno, con questi id esatti: ${JSON.stringify(mealList().map(m=>({id:m.id,name:m.name})))}.
 Preferenze: ${prefs||"nessuna"}.
 Nei giorni di allenamento organizza i pasti intorno all'orario (pre e post allenamento, più carboidrati); se si allena al mattino a digiuno, prevedi una colazione di recupero ricca di proteine e carboidrati.
@@ -2555,6 +2640,39 @@ function lastFor(name){ const n=String(name||"").toLowerCase().trim();
 function lastText(name){ const l=lastFor(name); if(!l) return "";
   const sets=(l.ex.sets||[]).map(s=>s.text? s.text : (s.kg? fmt(s.kg)+" kg × ":"")+(s.reps||"?")).join(", ");
   return "Ultima volta ("+new Date(l.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"})+"): "+sets; }
+/* ----- recupero consigliato e progressione dei carichi ----- */
+function repRange(r){ const m=String(r||"").match(/(\d+)\s*[-–/a]\s*(\d+)/); if(m) return [+m[1],+m[2]]; const n=+firstNum(r); return n? [n,n] : null; }
+function isTimed(x){ return /\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||"")); }
+function restFor(x){ if(x.rest) return x.rest; const rr=repRange(x.reps), hi=rr? rr[1] : 10, n=(x.name||"").toLowerCase();
+  const compound=/squat|stacco|deadlift|panca|bench|press|trazion|rematore|row|military|lento|hip thrust|leg press/.test(n);
+  if(hi<=5) return "3 min"; if(hi<=8) return compound? "2-3 min" : "90 s"; if(hi<=12) return compound? "90 s" : "60-90 s"; return "45-60 s"; }
+function kgStep(name){ const n=(name||"").toLowerCase();
+  if(/leg press|hack/.test(n)) return 10;
+  if(/(squat|stacco|deadlift|hip thrust|rumeno|good morning|buongiorno)/.test(n)&&!/manubr|goblet|kettlebell/.test(n)) return 5;
+  if(/manubr|dumbbell|kettlebell/.test(n)) return /curl|alzat|croci|french|kick|laterali|frontali/.test(n)? 1 : 2;
+  if(/curl|alzat|croci|french|push.?down|extension|calf|cavi|pulley/.test(n)) return 2.5;
+  return 2.5; }
+const r25=v=>Math.round(v/0.5)*0.5;
+function progFor(x){
+  if(x.detail&&!x.sets||isTimed(x)) return null;
+  const n=String(x.name||"").toLowerCase().trim(), hist2=[];
+  for(let i=tlog.sessions.length-1;i>=0&&hist2.length<3;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>String(e.name).toLowerCase().trim()===n); if(ex&&ex.sets&&ex.sets.length&&!ex.sets[0].text) hist2.push({date:tlog.sessions[i].date,sets:ex.sets}); }
+  if(!hist2.length) return {kind:"new",text:"Prima volta: scegli un peso che ti lasci 1-2 ripetizioni di margine a fine serie."};
+  const rr=repRange(x.reps)||[8,12], [lo,hi]=rr, last=hist2[0], kgs=last.sets.map(s=>+s.kg||0), top=Math.max(...kgs);
+  const target=+x.sets||last.sets.length, work=last.sets.filter(s=>(+s.kg||0)===top), reps=work.map(s=>+s.reps||0);
+  const step=kgStep(x.name);
+  if(!top){ // corpo libero
+    const all=reps.length>=target&&reps.every(v=>v>=hi);
+    return all? {kind:"up",text:`Hai chiuso tutte le serie a ${hi} ripetizioni: aggiungi 1-2 ripetizioni o una zavorra leggera.`} : {kind:"hold",text:`Punta a ${target}×${hi} ripetizioni, poi passa a una variante più difficile.`}; }
+  const allTop= work.length>=target && reps.every(v=>v>=hi), anyLow=reps.filter(v=>v<lo).length;
+  const sumR=h=>h.sets.reduce((a,z)=>a+(+z.reps||0),0);
+  const stalled= hist2.length>=3 && hist2.every(h=>Math.max(...h.sets.map(s=>+s.kg||0))===top) && !allTop && sumR(hist2[0])<=sumR(hist2[2]);
+  const when=new Date(last.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
+  if(allTop) return {kind:"up",kg:r25(top+step),text:`Aumenta a ${fmt(r25(top+step))} kg (+${fmt(step)} kg): nell'ultima seduta (${when}) hai chiuso ${work.length}×${Math.min(...reps)} a ${fmt(top)} kg. Riparti da ${lo} ripetizioni e risali fino a ${hi}.`};
+  if(stalled) return {kind:"down",kg:r25(top*0.9),text:`Fermo a ${fmt(top)} kg da 3 sedute: scarica a ${fmt(r25(top*0.9))} kg per una settimana, poi riprendi a salire.`};
+  if(anyLow>=2) return {kind:"hold",kg:top,text:`Resta a ${fmt(top)} kg: alcune serie sono finite sotto le ${lo} ripetizioni. Se succede di nuovo, togli ${fmt(step)} kg.`};
+  return {kind:"hold",kg:top,text:`Resta a ${fmt(top)} kg e punta a ${target}×${hi}: quando ci arrivi in tutte le serie, aumenti di ${fmt(step)} kg.`};
+}
 function renderProgram(){
   const box=$("progOut"); box.innerHTML="";
   const a=activeProg(), hasImp=!!(imported&&Array.isArray(imported.days));
@@ -2810,9 +2928,11 @@ function renderDayPage(){
   sub.innerHTML=`<b>${n} ${n===1?"esercizio":"esercizi"}</b><span>${[d.minutes?`circa ${d.minutes} minuti`:"", origin, done?"✓ fatto questa settimana":""].filter(Boolean).join(" · ")}</span>`; box.appendChild(sub);
   (d.exercises||[]).forEach(x=>{
     const c=el("div","gd-ex"), eq=exEquip(x);
-    c.innerHTML=`<div class="gd-ef">${muscleSVG(exMuscles(x),78)}</div><div class="gd-et"><b></b><div class="d"></div><div class="last"></div></div><button class="gd-help" type="button" aria-label="Come si fa?">?</button>`;
+    const pg0=progFor(x);
+    c.innerHTML=`<div class="gd-ef">${muscleSVG(exMuscles(x),78)}</div><div class="gd-et"><b></b><div class="d"></div><div class="chips2"><span class="rchip">⏱ recupero ${restFor(x)}</span></div><div class="last"></div><div class="prog ${pg0?pg0.kind:""}"></div></div><button class="gd-help" type="button" aria-label="Come si fa?">?</button>`;
+    if(pg0) c.querySelector(".prog").textContent=(pg0.kind==="up"?"📈 ":pg0.kind==="down"?"📉 ":pg0.kind==="new"?"💡 ":"🎯 ")+pg0.text;
     const eqShow= eq && !(x.name||"").toLowerCase().includes(eq.toLowerCase().replace(/i$/,"")); c.querySelector("b").textContent=x.name+(eqShow?" · "+eq:"");
-    c.querySelector(".d").textContent=exTarget(x);
+    c.querySelector(".d").textContent=x.detail? x.detail : (x.sets? x.sets+" serie × "+(x.reps||"?") : "");
     const lt=lastText(x.name); c.querySelector(".last").textContent=lt||"";
     if(x.tip) c.title=x.tip;
     c.querySelector(".gd-help").onclick=()=>{ go("allenamento"); setW("coach"); $("cEx").value=x.name; window.scrollTo(0,0); };
@@ -2844,7 +2964,7 @@ Giorno: "${d.title}" (focus: ${focus}), circa ${d.minutes||60} minuti. Esercizi 
 Altri giorni del programma (evita di ripetere gli stessi esercizi e bilancia i gruppi muscolari): ${others||"nessuno"}.
 Programma: ${pr.name||""}. ${pr.summary||""}
 Profilo completo (rispetta attrezzatura disponibile, infortuni, livello e obiettivo): ${profileSummary()}.
-Rispondi SOLO con JSON: {"title":"${String(d.title||"").replace(/"/g,"'")}","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"string","tip":"consiglio breve","equip":"attrezzo principale o corpo libero","muscles":["muscoli principali tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}],"reply":"una frase su cosa hai cambiato"}`,{modelTier:"default"});
+Rispondi SOLO con JSON: {"title":"${String(d.title||"").replace(/"/g,"'")}","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"recupero tra le serie, es. 90 s o 2-3 min","tip":"consiglio breve","equip":"attrezzo principale o corpo libero","muscles":["muscoli principali tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}],"reply":"una frase su cosa hai cambiato"}`,{modelTier:"default"});
     const ex=(res&&Array.isArray(res.exercises)?res.exercises:[]).filter(x=>x&&x.name);
     if(!ex.length) throw {code:"bad_output"};
     d.exercises=ex; if(+res.minutes) d.minutes=+res.minutes; d.editedByMe=false; d.regenAt=todayISO();
@@ -2863,8 +2983,10 @@ function openLogger(a,di){
       exercises:(d.exercises||[]).map(x=>{ const last=lastFor(x.name);
         if(x.detail&&!x.sets) return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:x.rest||"",cardio:true,sets:[{text:last&&last.ex.sets[0]&&last.ex.sets[0].text||"",done:false}]};
         const n=Math.max(1,Math.min(10,+x.sets||3)), timed=/\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||""));
-        return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:x.rest||"",timed,repsLabel:timed? String(x.reps).trim() : "",
-          sets:Array.from({length:n},(_,i)=>{ const ls=last&&last.ex.sets[i]; return {kg:ls&&ls.kg!=null? ls.kg:"", reps: timed? String(x.reps).trim() : (ls&&ls.reps? ls.reps : firstNum(x.reps)), done:false}; })};
+        const pg=progFor(x), rr=repRange(x.reps);
+        return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),timed,repsLabel:timed? String(x.reps).trim() : "",prog:pg,
+          sets:Array.from({length:n},(_,i)=>{ const ls=last&&last.ex.sets[i]; const kg= pg&&pg.kg!=null&&pg.kind!=="hold"? pg.kg : (ls&&ls.kg!=null? ls.kg:"");
+            const reps= timed? String(x.reps).trim() : (pg&&pg.kind==="up"&&rr? rr[0] : (ls&&ls.reps? ls.reps : firstNum(x.reps))); return {kg, reps, done:false}; })};
       })};
   }
   $("logTitle").textContent=logCtx.title; $("logNotes").value=logCtx.notes||""; saveLive(); go("sessione"); renderLogger(); startSesTimer();
@@ -2907,6 +3029,7 @@ function renderLogger(){
     h.append(el("span","chev","⌃"),fig,tt,more); h.onclick=()=>{ x.closed=!x.closed; renderLogger(); }; card.appendChild(h);
     const body=el("div","sx-body");
     const lt=lastText(x.name); if(lt&&!x.custom) body.appendChild(el("div","sx-last",lt));
+    if(x.prog&&!x.custom&&x.prog.kind!=="new") body.appendChild(el("div","sx-prog "+x.prog.kind,(x.prog.kind==="up"?"📈 ":x.prog.kind==="down"?"📉 ":"🎯 ")+x.prog.text));
     x.sets.forEach((st,si)=>{
       const row=el("div","srow"+(st.done?" done":"")+(nx&&nx.xi===xi&&nx.si===si?" next":"")+(x.cardio?" cardio":""));
       const dot=el("button","dot","✓"); dot.type="button"; dot.setAttribute("aria-label",`Serie ${si+1} ${st.done?"fatta":"da fare"}`); dot.onclick=()=>markSet(xi,si);
@@ -2930,7 +3053,12 @@ $("sesTimeEdit").onclick=()=>{ const d0=new Date(logCtx.startedAt), cur=String(d
   const v=prompt("A che ora hai iniziato? (HH:MM)",cur); if(!v||!/^\d{1,2}:\d{2}$/.test(v.trim())) return; const [hh,mm]=v.trim().split(":").map(Number);
   const nd=new Date(); nd.setHours(hh,mm,0,0); if(nd.getTime()>Date.now()) nd.setDate(nd.getDate()-1); logCtx.startedAt=nd.getTime(); saveLive(); startSesTimer(); };
 $("logNotes").addEventListener("input",()=>{ if(logCtx){ logCtx.notes=$("logNotes").value; saveLive(); } });
-$("sesEnd").onclick=()=>$("logSave").click();
+$("sesEnd").onclick=()=>{ const n=logCtx? logCtx.exercises.reduce((a,x)=>a+x.sets.filter(z=>z.done).length,0) : 0;
+  if(!n){ if(confirm("Non hai segnato nessuna serie. Vuoi annullare l'allenamento senza salvarlo?")) cancelSession(); return; }
+  if(confirm(`Terminare e salvare l'allenamento? (${n} ${n===1?"serie fatta":"serie fatte"}, ${hmsSec((Date.now()-logCtx.startedAt)/1000)})\n\nPremi Annulla per continuare ad allenarti.`)) $("logSave").click(); };
+function cancelSession(){ if(!logCtx) return; logCtx.live=false; clearInterval(sesTick); restEnd=0; try{ localStorage.removeItem("hf:live"); }catch{} renderLiveBanner();
+  toast("Allenamento annullato: non è stato salvato niente"); if(history.state&&history.state.v==="sessione") history.back(); else go("allenamento"); renderProgram(); }
+$("sesCancel").onclick=()=>{ if(confirm("Annullare questo allenamento? Serie, pesi e tempo non verranno salvati.")) cancelSession(); };
 $("sesBack").onclick=()=>{ toast("L'allenamento resta in corso: lo riprendi da Allenamento"); if(history.state&&history.state.v==="sessione") history.back(); else go("allenamento"); };
 $("logAddEx").onclick=()=>{ logCtx.exercises.push({name:"",custom:true,target:"",rest:"90s",muscles:[],sets:[{kg:"",reps:"",done:false},{kg:"",reps:"",done:false},{kg:"",reps:"",done:false}]}); saveLive(); renderLogger(); setTimeout(()=>{ const ins=document.querySelectorAll(".sx-tt input"); if(ins.length) ins[ins.length-1].focus(); },50); };
 $("logSave").onclick=()=>{
@@ -2948,7 +3076,8 @@ $("logSave").onclick=()=>{
   const startT=new Date(logCtx.startedAt), hhmm=d=>String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
   addWorkout({name:logCtx.title, minutes:min, intensity:"scheda", kcal:5*w*min/60, details:summary.slice(0,600), start:hhmm(startT), end:hhmm(new Date())});
   logCtx.live=false; clearInterval(sesTick); restEnd=0; try{ localStorage.removeItem("hf:live"); }catch{} renderLiveBanner();
-  toast(`Allenamento salvato: ${min} minuti ✓`);
+  const ready=exs.filter(e=>{ const pg=progFor({name:e.name,sets:e.sets.length,reps:(logCtx.exercises.find(z=>z.name===e.name)||{}).repsLabel||String(Math.max(...e.sets.map(z=>+z.reps||0)))}); return pg&&pg.kind==="up"; }).length;
+  toast(`Allenamento salvato: ${min} minuti ✓`+(ready?` · ${ready} ${ready===1?"esercizio pronto":"esercizi pronti"} ad aumentare il peso la prossima volta 📈`:""));
   if(history.state&&history.state.v==="sessione") history.back(); else go("allenamento"); renderProgram();
 };
 /* ----- importa scheda ----- */
@@ -2992,7 +3121,7 @@ Storico recente dei carichi: ${tlog.sessions.slice(-3).map(s=>s.title+": "+s.exe
 Allenamenti a settimana: ${days}. Disponibilità indicata nel profilo: ${trainText(p)}. Se i giorni sono indicati, assegna ogni seduta a un giorno preciso (scrivilo nel titolo) distribuendo bene i recuperi; se si allena al mattino a digiuno, adatta l'intensità e aggiungi un consiglio pratico nel summary. Dove: ${place}. Livello: ${level}. Obiettivo specifico: ${spec||"nessuno"}. Note: ${notes||"nessuna"}.
 Rendi il programma adatto agli obiettivi (più forte: fondamentali pesanti a basse ripetizioni con progressione; massa: ipertrofia 6-12 ripetizioni con volume crescente; snello e definito: forza a ripetizioni medie, circuiti e cardio; ridurre il peso: forza + cardio e attività quotidiana; salute e benessere: allenamento completo e sostenibile con mobilità e cardio moderato; prestazioni sportive: preparazione specifica per lo sport indicato con forza, potenza e condizionamento). Se l'obiettivo specifico è una gara di corsa (es. maratona) costruisci una settimana tipo da runner (lento, ripetute o tempo run, lungo, eventuale forza complementare) e spiega in "progression" come aumentare volume e lungo settimana dopo settimana, con scarico e tapering prima della gara.
 Rispondi SOLO con JSON valido, in italiano:
-{"name":"string","summary":"2 frasi sulla logica del programma","progression":"come progredire nelle prossime settimane","days":[{"title":"Giorno A – focus","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"string","tip":"consiglio breve","equip":"attrezzo principale o corpo libero","muscles":["muscoli principali tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}]}]}
+{"name":"string","summary":"2 frasi sulla logica del programma","progression":"come progredire nelle prossime settimane","days":[{"title":"Giorno A – focus","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"recupero tra le serie, es. 90 s o 2-3 min","tip":"consiglio breve","equip":"attrezzo principale o corpo libero","muscles":["muscoli principali tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}]}]}
 Se l'obiettivo specifico o il profilo riguardano la corsa (gara, 10 km, mezza, maratona, trail) o la persona corre regolarmente, includi le sedute di corsa necessarie con una progressione realistica rispetto alle corse recenti: ${runsRecent()}. Le sedute di CORSA vanno come giorni a sé con questi campi in più: "kind":"run","runType":"Jogging|Corsa lenta|Lungo|Fartlek|Ripetute|Corsa in soglia|Progressivo|Recupero attivo","distanceKm":number|null,"minutes":number,"pace":"m:ss ritmo medio al km o null","intensity":1-5,"description":"1-2 frasi sull'obiettivo della seduta","segments":[{"kind":"warmup|work|recovery|cooldown","label":"es. Jogging leggero di 5 minuti","km":number|null,"minutes":number|null,"pace":"m:ss o null","hr":"es. fino a 115 bpm o vuoto"}] ed "exercises":[]. Per fartlek e ripetute alterna segmenti work e recovery. Per brevi parti di cardio dentro una seduta di forza usa invece il campo "detail" (es. "15 minuti di tapis roulant"). Esattamente ${days} giorni; le sedute di forza con 3-7 esercizi.`,{modelTier:"default"});
     if(!res||!Array.isArray(res.days)) throw {code:"bad_output"};
     state.program={...res,settings:{days,place,level,notes,spec}}; save("program",state.program);
@@ -3048,18 +3177,57 @@ function proposalCard(turn){
   row.append(ok,no); box.appendChild(row); return box;
 }
 function splitReply(text){
-  const i=text.indexOf("<<PROFILO"); if(i<0) return {visible:text,changes:null};
-  const visible=text.slice(0,i).trim(); let changes=null;
-  const m=text.slice(i).match(/<<PROFILO\s*([\s\S]*?)>>/);
-  if(m){ try{ changes=cleanChanges(JSON.parse(m[1])); }catch{} }
-  return {visible,changes};
+  const ip=text.indexOf("<<PROFILO"), is=text.indexOf("<<SCHEDA"), cut=[ip,is].filter(i=>i>=0);
+  const visible= cut.length? text.slice(0,Math.min(...cut)).trim() : text;
+  let changes=null, sched=null;
+  if(ip>=0){ const m=text.slice(ip).match(/<<PROFILO\s*([\s\S]*?)>>/); if(m){ try{ changes=cleanChanges(JSON.parse(m[1])); }catch{} } }
+  if(is>=0){ const rest=text.slice(is+8), end=rest.lastIndexOf(">>"); if(end>0){ try{ sched=cleanSched(JSON.parse(rest.slice(0,end).trim())); }catch{} } }
+  return {visible,changes,sched};
+}
+function cleanSched(o){
+  if(!o||!o.program||!Array.isArray(o.program.days)||!o.program.days.length) return null;
+  const days=o.program.days.filter(d=>d&&(Array.isArray(d.exercises)||d.kind==="run")).slice(0,7).map(d=>({...d,exercises:Array.isArray(d.exercises)? d.exercises.filter(x=>x&&x.name).slice(0,15) : []}));
+  if(!days.length) return null;
+  let wm=null; if(o.program.weekMap&&typeof o.program.weekMap==="object"){ wm={}; [0,1,2,3,4,5,6].forEach(w=>{ const v=o.program.weekMap[w]; wm[w]= v==null||v===""? null : (+v>=0&&+v<days.length? +v : null); }); }
+  return {mode:o.mode==="coach"?"coach":"user", summary:String(o.summary||"").slice(0,300), program:{name:String(o.program.name||"Il mio programma").slice(0,80),summary:String(o.program.summary||""),progression:String(o.program.progression||""),days,weekMap:wm}};
+}
+function applySched(turn){
+  const sc=turn.sched; if(!sc||sc.status==="applied") return;
+  const a=activeProg(), useImported= a&&a.kind==="imported"&&sc.mode==="user";
+  const prev= useImported? JSON.parse(JSON.stringify(imported)) : (state.program? JSON.parse(JSON.stringify(state.program)) : null);
+  const target= useImported? imported : (state.program||{});
+  const oldMap=target.weekMap, sameLen= target.days&&target.days.length===sc.program.days.length;
+  const today=todayISO();
+  const days=sc.program.days.map(d=>({...d, editedByMe: sc.mode==="user", regenAt: sc.mode==="coach"? today : null}));
+  const next={...target, name:sc.program.name||target.name, summary:sc.program.summary||target.summary, progression:sc.program.progression||target.progression, days,
+    weekMap: sc.program.weekMap || (sameLen? oldMap : null), runResults: sameLen? target.runResults : {}};
+  if(useImported){ imported=Object.assign(imported,next); save("programImported",imported); sc.where="imported"; }
+  else { state.program=next; save("program",state.program); if(imported&&imported.active){ imported.active=false; save("programImported",imported); } sc.where="ai"; }
+  sc.prev=prev; sc.status="applied"; save("coach",chat);
+  try{ renderProgram(); }catch{}
+}
+function undoSched(turn){
+  const sc=turn.sched; if(!sc||sc.status!=="applied") return;
+  if(sc.where==="imported"&&sc.prev){ imported=sc.prev; save("programImported",imported); }
+  else { state.program=sc.prev; save("program",state.program||null); if(sc.prev==null&&imported){ imported.active=true; save("programImported",imported); } }
+  sc.status="undone"; save("coach",chat); try{ renderProgram(); }catch{} renderChat(); toast("Scheda ripristinata com'era prima");
+}
+function schedCard(turn){
+  const sc=turn.sched, box=el("div","propose sched");
+  if(sc.status==="undone"){ box.appendChild(el("div","done","↩︎ Modifica alla scheda annullata.")); return box; }
+  box.appendChild(el("h4",null, sc.mode==="user"? "✓ Scheda aggiornata con quello che fai" : "✓ Il coach ha preparato la tua scheda"));
+  if(sc.summary) box.appendChild(el("p","sub",sc.summary));
+  const row=el("div","row2"), see=el("button","btn","Vedi la scheda"), un=el("button","btn ghost","Annulla modifica");
+  see.onclick=()=>{ setW("programma"); window.scrollTo(0,0); };
+  un.onclick=()=>undoSched(turn);
+  row.append(see,un); box.appendChild(row); return box;
 }
 $("profByChat").onclick=()=>{ go("allenamento"); setW("chat"); if(!sample){ toast("Il coach non è disponibile qui"); return; }
   $("chatIn").value=state.profile? "Rivediamo insieme il mio profilo: chiedimi cosa manca o cosa vuoi aggiornare." : "Aiutami a compilare il mio profilo: fammi tu le domande, una alla volta."; $("chatSend").click(); };
 function renderChat(){
   const log=$("chatLog"); log.innerHTML="";
   if(!chat.turns.length) log.appendChild(el("div","bubble ai","Ciao! Sono il tuo coach. Dimmi cosa vuoi ottenere: una gara, un fisico diverso, più forza. Se vuoi, allega una foto e ti do un parere sul punto di partenza."));
-  chat.turns.forEach(t=>{ log.appendChild(el("div","bubble "+(t.role==="user"?"me":"ai"), t.content + (t.imgs? "\n📎 "+t.imgs+" foto":""))); if(t.proposal) log.appendChild(proposalCard(t)); });
+  chat.turns.forEach(t=>{ log.appendChild(el("div","bubble "+(t.role==="user"?"me":"ai"), t.content + (t.imgs? "\n📎 "+t.imgs+" foto":""))); if(t.proposal) log.appendChild(proposalCard(t)); if(t.sched) log.appendChild(schedCard(t)); });
   if(!sample) log.appendChild(el("div","bubble ai err","⚠️ Il coach non è disponibile in questa visualizzazione. Apri HealthFit dall'app Claude (o da claude.ai) con il tuo account e, quando te lo chiede, consenti l'uso di Claude."));
   if(chatErr){ const b=el("div","bubble ai err","⚠️ Il messaggio non è stato inviato. "+chatErr.msg+"\nIl tuo testo è rimasto nel campo qui sotto: tocca Invia per riprovare.\n(codice: "+chatErr.code+(chatErr.detail?" – "+chatErr.detail:"")+")"); log.appendChild(b); }
   log.scrollTop=log.scrollHeight;
@@ -3078,7 +3246,13 @@ Misure più recenti: ${Object.entries(latestBody()).map(([k,o])=>{ const m=METRI
 ${upActive()? "Segue una dieta del nutrizionista caricata nell'app (circa "+r(upDayTotals(upDayFor(state.date)).kcal)+" kcal oggi): non contraddirla, al massimo suggerisci di parlarne con il nutrizionista." : ""}
 Programma attuale${activeProg()&&activeProg().kind==="imported"?" (scheda del suo personal trainer: non contraddirla, al massimo suggerisci di parlarne con il trainer)":""}: ${pr? (pr.name+" – "+(pr.summary||"")+" – giorni: "+pr.days.map(d=>d.title+": "+(d.exercises||[]).map(x=>x.name+" "+exTarget(x)).join(", ")).join(" | ")) : "nessuno"}.
 Ultimi allenamenti registrati con la scheda: ${tlog.sessions.slice(-3).map(s=>s.date+" "+s.title+": "+s.exercises.map(x=>x.name+" "+x.sets.map(z=>z.text? z.text : (z.kg!=null? z.kg+"kg×":"")+(z.reps||"")).join("/")).join("; ")+(s.notes?" (note: "+s.notes+")":"")).join(" || ")||"nessuno"}. Allenamenti registrati oggi: ${recent}. Evento di oggi: ${eventText()}.
-Se l'utente vuole un programma nuovo, puoi descriverlo e ricordargli che può generarlo nella scheda Programma scrivendo l'obiettivo specifico.
+SCHEDA DI ALLENAMENTO. Programma attuale completo (JSON, la posizione nell'array è l'indice del giorno): ${pr? JSON.stringify({name:pr.name,summary:pr.summary,progression:pr.progression,days:pr.days.map(d=>{ const o={title:d.title,minutes:d.minutes}; if(d.kind==="run") Object.assign(o,{kind:"run",runType:d.runType,distanceKm:d.distanceKm,pace:d.pace,intensity:d.intensity,description:d.description,segments:d.segments}); else o.exercises=(d.exercises||[]).map(x=>({name:x.name,sets:x.sets,reps:x.reps,rest:x.rest,equip:x.equip,muscles:x.muscles,...(x.detail?{detail:x.detail}:{})})); return o; }),weekMap:pr.weekMap||null}) : "nessun programma"}. weekMap: {giorno della settimana 0=domenica…6=sabato: indice del giorno o null per riposo}.
+Gestisci la scheda così:
+A) Se l'utente ti RACCONTA cosa fa o cosa ha cambiato (es. "ora faccio la pressa al posto dello squat", "la panca la faccio 4×8 a 70 kg", "mi alleno martedì e giovedì", "il lunedì aggiungo i curl", "ho tolto il cardio"), aggiorna la scheda per rispecchiare ESATTAMENTE quello che fa, senza giudicarlo (al massimo un consiglio breve nel testo): modalità "user".
+B) Se ti CHIEDE supporto o un consiglio (es. "cosa mi consigli?", "fammi una scheda", "sono fermo con la panca", "voglio migliorare le gambe", "preparami per una mezza maratona"), costruisci TU la scheda secondo le tue indicazioni professionali, rispettando attrezzatura, giorni disponibili, infortuni e obiettivo: modalità "coach". Può essere una modifica o un programma completamente nuovo.
+In entrambi i casi spiega in breve cosa cambia e aggiungi alla FINE della risposta una riga esatta:
+<<SCHEDA {"mode":"user" o "coach","summary":"cosa cambia, una frase","program":{"name":"...","summary":"...","progression":"...","days":[giorni COMPLETI nello stesso formato del programma attuale, anche quelli che non cambiano],"weekMap":{...}}}>>
+Esercizi: {"name","sets","reps","rest" (es. "90 s"),"tip","equip","muscles":[tra petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci]}. Giorni di corsa: "kind":"run","runType","distanceKm","minutes","pace","intensity" 1-5,"description","segments", "exercises":[]. Non aggiungere la riga SCHEDA se la scheda non deve cambiare. L'app la applica subito e l'utente può annullare.
 
 PROFILO. Dati attuali del profilo (JSON): ${JSON.stringify({fname:p.fname||"",lname:p.lname||"",nick:p.nick||"",sex:p.sex||"",age:p.age||"",height:p.height||"",weight:p.weight||"",activity:p.activity||"",goal:p.goal||"",meals:mealList().map(m=>m.name),foodPrefs:p.foodPrefs||"",train:trainOf(p)})}.
 Se l'utente chiede di compilare o aggiornare il profilo, fai UNA domanda alla volta, breve, partendo da ciò che manca (nome o nickname, sesso, età, altezza, peso, attività quotidiana, obiettivo, pasti, preferenze alimentari, giorni/orari di allenamento, digiuno al mattino). I dati facoltativi si possono saltare.
@@ -3106,7 +3280,10 @@ $("chatSend").onclick=async()=>{
   try{
     const res=await sample(msgs,{cache:false,...(imgs.length?{images:imgs}:{}),onText:({text})=>{ bub.textContent=splitReply(text).visible||"Sto pensando…"; $("chatLog").scrollTop=1e9; }});
     const sp=splitReply(res.text);
-    chat.turns.push({role:"assistant",content:sp.visible||"Ecco le modifiche che propongo:",...(sp.changes?{proposal:{changes:sp.changes,status:"pending"}}:{})}); chat.turns=chat.turns.slice(-30); save("coach",chat);
+    const turn={role:"assistant",content:sp.visible||"Ecco le modifiche:",...(sp.changes?{proposal:{changes:sp.changes,status:"pending"}}:{}),...(sp.sched?{sched:{...sp.sched,status:"new"}}:{})};
+    chat.turns.push(turn); chat.turns=chat.turns.slice(-30);
+    if(turn.sched){ const keep={mode:turn.sched.mode,summary:turn.sched.summary}; applySched(turn); delete turn.sched.program; Object.assign(turn.sched,keep); toast(turn.sched.mode==="user"?"Scheda aggiornata ✓":"Nuova scheda del coach pronta ✓"); }
+    save("coach",chat);
   }catch(e){ chat.turns.pop(); chatErr={msg:errCopy(e),code:(e&&e.code)||"sconosciuto",detail:(e&&e.message)||""}; $("chatIn").value=text; }
   finally{ $("chatSend").disabled=!sample; renderChat(); }
 };
@@ -3177,11 +3354,32 @@ function drawToBlob(src,w,h,max){
 function shrinkFile(file,max){
   return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>drawToBlob(img,img.width,img.height,max).then(res,rej); img.onerror=()=>rej({code:"bad_image"}); img.src=URL.createObjectURL(file); });
 }
+/* quando torna disponibile l'AI gratuita: limiti al minuto (pochi secondi) o al giorno (mezzanotte del Pacifico) */
+function nextPacificMidnight(){ const now=new Date(); let la; try{ la=new Date(now.toLocaleString("en-US",{timeZone:"America/Los_Angeles"})); }catch{ la=new Date(now.getTime()-9*3600e3); }
+  const nx=new Date(la); nx.setHours(24,0,0,0); return new Date(now.getTime()+(nx-la)); }
+function hhmm(d){ return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+function aiResetText(e){
+  e=e||{}; let txt;
+  if(!e.daily&&e.retrySec&&e.retrySec<=120){ const at=new Date((e.at||Date.now())+e.retrySec*1000);
+    txt=`Hai superato il limite di richieste al minuto del piano gratuito. Puoi riprovare tra ${e.retrySec} secondi (alle ${hhmm(at)}:${String(at.getSeconds()).padStart(2,"0")}).`;
+    try{ localStorage.setItem("hf:aiPause",JSON.stringify({until:at.getTime(),daily:false})); }catch{}
+  } else { const at=nextPacificMidnight(), today=new Date().toDateString()===at.toDateString();
+    txt=`Hai esaurito le richieste gratuite di oggi. L'AI torna disponibile ${today?"oggi":"domani"} alle ${hhmm(at)} (quando Google azzera il conteggio, a mezzanotte ora della California). Nel frattempo puoi usare ricerca, codice a barre, preferiti e valori a mano.`;
+    try{ localStorage.setItem("hf:aiPause",JSON.stringify({until:at.getTime(),daily:true})); }catch{}
+  }
+  try{ renderAiPause(); }catch{}
+  return txt;
+}
+function renderAiPause(){ let p=null; try{ p=JSON.parse(localStorage.getItem("hf:aiPause")||"null"); }catch{}
+  const b=$("aiPauseBar"); if(!b) return; if(!p||p.until<=Date.now()){ b.hidden=true; try{ localStorage.removeItem("hf:aiPause"); }catch{} return; }
+  const at=new Date(p.until), today=new Date().toDateString()===at.toDateString();
+  b.hidden=false; b.textContent= p.daily? `⏸ AI gratuita esaurita per oggi: torna ${today?"oggi":"domani"} alle ${hhmm(at)}` : `⏸ Limite al minuto raggiunto: AI di nuovo pronta alle ${hhmm(at)}:${String(at.getSeconds()).padStart(2,"0")}`; }
+setInterval(()=>{ try{ renderAiPause(); }catch{} },15000); setTimeout(()=>{ try{ renderAiPause(); }catch{} },600);
 function errCopy(e){
   const c=e&&e.code;
   if(c==="no_key") return "Manca la chiave API: inseriscila in Profilo → Impostazioni AI e dati.";
   if(c==="bad_key") return "La chiave API non è valida. Controllala in Profilo → Impostazioni AI e dati.";
-  if(c==="quota") return "Hai esaurito le richieste gratuite di oggi (o del minuto). Riprova più tardi.";
+  if(c==="quota"||c==="rate_limited") return aiResetText(e);
   if(c==="blocked") return "Il modello ha rifiutato questa richiesta. Prova a riformularla o con un'altra foto.";
   if(c==="network") return "Non riesco a raggiungere il servizio AI: controlla la connessione e riprova.";
   if(c==="timeout") return "L'AI ci sta mettendo troppo: riprova tra poco.";
@@ -4262,6 +4460,7 @@ function renderActivity(){
   $("gSteps").value=ag.steps; $("gMin").value=ag.min; $("gKcal").value=ag.kcal;
 }
 $("attBack").onclick=()=>{ if(history.state&&history.state.v==="attivita") history.back(); else go("diario"); };
+$("rPrev").onclick=()=>$("prev").click(); $("rNext").onclick=()=>$("next").click(); $("rDayPick").onclick=()=>$("dayPick").click();
 $("aPrev").onclick=()=>$("prev").click(); $("aNext").onclick=()=>$("next").click(); $("aDayPick").onclick=()=>$("dayPick").click();
 $("aAddW").onclick=()=>{ go("allenamento"); try{ setW("oggi"); }catch{} };
 $("gSave").onclick=()=>{ const n=(id,d)=>Math.max(1,Math.round(+$(id).value||d)); actG={steps:n("gSteps",6000),min:n("gMin",90),kcal:n("gKcal",500)}; save("actGoals",actG); renderAll(); toast("Obiettivi salvati"); };
@@ -4295,10 +4494,11 @@ Rispondi SOLO con JSON: {"steps":number|null,"activeMin":number|null,"activeKcal
 $("dHero").onclick=()=>go("allenamento");
 $("dFood").onclick=()=>go("cibo");
 $("dAct").onclick=()=>go("attivita");
+$("mpBack").onclick=()=>{ if(history.state&&history.state.v==="pasto") history.back(); else go("cibo"); };
 $("ciboBack").onclick=()=>{ if(history.state&&history.state.v==="cibo") history.back(); else go("diario"); };
 $("cPrev").onclick=()=>$("prev").click(); $("cNext").onclick=()=>$("next").click(); $("cDayPick").onclick=()=>$("dayPick").click();
 $("dBody").onclick=()=>go("corpo");
-function renderAll(){ document.body.classList.toggle("home",view==="diario"); if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento") renderWorkouts(); if(view==="corpo") renderBody(); }
+function renderAll(){ document.body.classList.toggle("home",view==="diario"); if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento") renderWorkouts(); if(view==="corpo") renderBody(); }
 renderAll();
 async function loadAll(){
   const agd=await store.getDoc("actGoals"); if(agd&&agd.steps) actG=agd;
