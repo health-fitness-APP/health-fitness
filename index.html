@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Health &amp; Fitness</title>
+<title>HealthFit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -30,6 +30,56 @@
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body.home{background:linear-gradient(180deg,#F4EFC9 0%,#E4F0DD 38%,#DCEEF0 100%) fixed}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) body.home{background:linear-gradient(180deg,#1E2216 0%,#16211A 40%,#14202A 100%) fixed} }
+:root[data-theme="dark"] body.home{background:linear-gradient(180deg,#1E2216 0%,#16211A 40%,#14202A 100%) fixed}
+.dash{display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:row dense;gap:12px;margin:4px 0 12px}
+.dash>.tile{margin:0;min-width:0}
+.dash>.tile.full{grid-column:1/-1}
+#meals>.card:first-child{margin-top:0}
+.dash.editing{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.dash.editing>.tile{position:relative;animation:wig .32s ease-in-out infinite alternate;cursor:grab}
+.dash.editing>.tile:nth-child(2n){animation-delay:-.16s}
+.dash.editing>.tile::after{content:"⠿";position:absolute;inset:0;border-radius:inherit;border:2px dashed var(--basil);display:flex;align-items:flex-start;justify-content:flex-end;padding:8px 12px;font-size:1.3rem;color:var(--basil);background:rgba(255,255,255,.06);pointer-events:auto}
+.dash>.tile.lifted{animation:none!important;z-index:30;box-shadow:0 18px 40px rgba(0,0,0,.25);transition:none;opacity:.96}
+@keyframes wig{from{transform:rotate(-.5deg)}to{transform:rotate(.5deg)}}
+@media (prefers-reduced-motion: reduce){ .dash.editing>.tile{animation:none} }
+.editbar{position:fixed;left:12px;right:12px;max-width:640px;margin-inline:auto!important;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--bg);border-radius:16px;padding:10px 12px;margin:0 0 12px;font-size:.88rem}
+.editbar span{flex:1}
+.editbar button{border:0;border-radius:10px;padding:8px 12px;font-weight:700;font-size:.85rem}
+.editbar .rs{background:transparent;color:var(--bg);text-decoration:underline}
+.editbar .ok{background:var(--basil);color:var(--basil-ink)}
+.dcard{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;background:var(--surface);border-radius:26px;padding:18px 20px;border:0;text-align:left;color:var(--ink);font:inherit;cursor:pointer;width:100%;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.dcard .t{font-size:1.02rem;font-weight:500}
+.hero{position:relative;overflow:hidden;color:#fff;min-height:168px;background:radial-gradient(120% 140% at 85% 10%,#7FA33A 0%,#4F7A22 45%,#3B5E1A 100%)}
+.hero.run{background:radial-gradient(120% 140% at 85% 10%,#7FA33A 0%,#4F7A22 45%,#3B5E1A 100%)}
+.hero.gym{background:radial-gradient(120% 140% at 85% 10%,#3E8E7E 0%,#2A6B5E 50%,#1D4D44 100%)}
+.hero.other{background:radial-gradient(120% 140% at 85% 10%,#4D8FC9 0%,#2F6B9E 50%,#214D74 100%)}
+.hero.empty{background:radial-gradient(120% 140% at 85% 10%,#8BB39C 0%,#4E8467 55%,#2F6B4F 100%)}
+.hero .t{color:rgba(255,255,255,.92)}
+.hero .when{font-size:.82rem;opacity:.8;margin-top:2px}
+.hero .big{font-family:"Bricolage Grotesque",sans-serif;font-size:3.4rem;font-weight:700;line-height:1;margin-top:26px;letter-spacing:-.02em}
+.hero .big small{font-size:1.1rem;font-weight:500;margin-left:6px;letter-spacing:0}
+.hero .meta{margin-top:10px;font-size:1rem;opacity:.85;display:flex;flex-wrap:wrap;gap:6px 10px}
+.hero .meta span+span::before{content:"|";margin-right:10px;opacity:.6}
+.hero .art{position:absolute;right:-6px;top:6px;font-size:6.2rem;line-height:1;opacity:.95;transform:rotate(-12deg);filter:drop-shadow(0 6px 10px rgba(0,0,0,.25))}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.food .big{font-family:"Bricolage Grotesque",sans-serif;font-size:2.6rem;font-weight:700;line-height:1;margin-top:18px}
+.food .of{color:var(--muted);margin-top:6px}
+.fbar{height:16px;border-radius:9px;background:var(--line);margin-top:16px;overflow:hidden;display:flex}
+.fbar i{display:block;height:100%;background:#3BAA1E;border-radius:9px 0 0 9px}
+.fbar b{display:block;height:100%;background:repeating-linear-gradient(135deg,rgba(0,0,0,.18) 0 3px,transparent 3px 6px)}
+.rings{display:flex;justify-content:center;margin-top:8px}
+.rings svg{width:100%;max-width:130px;height:auto}
+.rleg{display:flex;justify-content:center;gap:7px;font-size:.7rem;color:var(--muted);margin-top:4px;flex-wrap:wrap;white-space:nowrap}
+.rleg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.bcomp .row{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:12px;margin-top:14px}
+.bcomp .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:1.05rem}
+.bcomp .v{font-family:"Bricolage Grotesque",sans-serif;font-size:1.8rem;font-weight:700;white-space:nowrap}
+.bcomp .v small{font-size:1rem;font-weight:500;color:var(--muted);margin-left:3px}
+.bcomp .v em{font-style:normal;font-size:.95rem;font-weight:500;color:var(--muted);margin-left:10px;font-family:"Instrument Sans",sans-serif}
+.bcomp svg{width:100%;height:34px}
+.bcomp .none{color:var(--muted);margin-top:8px;font-size:.92rem}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
 h1,h2,h3,.num{font-family:"Bricolage Grotesque","Instrument Sans",system-ui,sans-serif}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -43,6 +93,21 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:8px
 header.top h1{font-size:1.45rem;margin:0;font-weight:800}
 .daynav{display:flex;align-items:center;gap:4px}
 .daynav h1{font-size:1.3rem;margin:0 6px;font-weight:700;min-width:7.5em;text-align:center}
+.daypick{border:0;background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 18px;cursor:pointer;font:inherit}
+.daypick h1{margin:0;min-width:6.5em}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
+.cal-head b{font-size:1.15rem;font-weight:600;text-transform:capitalize}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px 4px;text-align:center}
+.cal-grid .wd{font-size:.78rem;color:var(--muted);font-weight:600;padding-bottom:4px}
+.cal-grid .wd.sun{color:var(--warn)}
+.cal-grid button{aspect-ratio:1;width:100%;max-width:46px;margin:auto;border-radius:50%;border:0;background:none;font-size:1rem;font-weight:600;color:var(--ink);cursor:pointer;padding:0}
+.cal-grid button.has{background:var(--basil-soft);color:var(--basil)}
+.cal-grid button.other{opacity:.45}
+.cal-grid button.sel{background:var(--ink);color:var(--bg)}
+.cal-grid button.today:not(.sel){box-shadow:inset 0 0 0 2px var(--basil)}
+.cal-grid button:disabled{color:var(--muted);opacity:.35;cursor:default;background:none}
+.cal-leg{display:flex;gap:14px;justify-content:center;font-size:.8rem;color:var(--muted);margin-top:14px}
+.cal-leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .icon-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:1.1rem}
 
 .card{background:var(--surface);border-radius:22px;padding:16px;margin-top:12px}
@@ -175,6 +240,14 @@ textarea{resize:vertical;min-height:76px}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:26px 26px 0 0;max-height:92%;overflow:auto;transform:translateY(105%);transition:transform .28s ease;padding:10px 16px calc(20px + env(safe-area-inset-bottom,0px))}
 .sheet.open{transform:none}
 .sheet-inner{max-width:560px;margin:0 auto}
+.sheet-x{position:absolute;top:10px;right:12px;width:40px;height:40px;border-radius:50%;border:0;background:var(--line);color:var(--ink);font-size:1.1rem;font-weight:700;cursor:pointer;z-index:2}
+.sheet-inner{position:relative}
+.sheet h3{padding-right:48px}
+.tp{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:8px 0 16px}
+.tp select{font-size:2rem;font-weight:700;text-align:center;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.tp b{font-size:2rem}
+input.tp-in{cursor:pointer}
+.status.ok{color:var(--basil);font-weight:600;background:var(--basil-soft);padding:10px 12px;border-radius:12px}
 .grab{width:42px;height:5px;border-radius:5px;background:var(--line);margin:4px auto 12px}
 .sheet h3{margin:0 0 12px;font-size:1.3rem}
 .tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px}
@@ -258,11 +331,20 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <header class="top">
     <div class="daynav">
       <button class="icon-btn" id="prev" aria-label="Giorno precedente">‹</button>
-      <h1 id="dayLabel">Oggi</h1>
+      <button class="daypick" id="dayPick" aria-label="Scegli il giorno dal calendario"><h1 id="dayLabel">Oggi</h1></button>
       <button class="icon-btn" id="next" aria-label="Giorno successivo">›</button>
     </div>
   </header>
-  <section class="summary" aria-label="Riepilogo del giorno">
+  <div class="editbar" id="editBar" hidden><span>Trascina i riquadri per ordinarli</span><button class="rs" id="editReset">Ripristina</button><button class="ok" id="editDone">Fatto</button></div>
+  <section class="dash" id="dash" aria-label="Panoramica">
+    <button class="dcard hero" id="dHero"></button>
+    <div class="dgrid">
+      <button class="dcard food" id="dFood"><div class="t">Cibo</div><div class="big num" id="dFoodE">0</div><div class="of" id="dFoodG">– kcal</div><div class="fbar"><i id="dFoodBar" style="width:0"></i><b id="dFoodBurn" style="width:0"></b></div></button>
+      <button class="dcard" id="dAct"><div class="t">Attività di oggi</div><div class="rings" id="dRings"></div><div class="rleg"><span><i style="background:#3BAA1E"></i>kcal</span><span><i style="background:#1EA7E0"></i>prot.</span><span><i style="background:#9B5CF6"></i>allen.</span></div></button>
+    </div>
+    <button class="dcard bcomp" id="dBody"><div class="t">Composizione corporea</div><div id="dBodyRows"></div></button>
+  </section>
+  <section class="summary" id="summary" aria-label="Riepilogo del giorno">
     <div class="ring" id="ring">
       <svg viewBox="0 0 120 120" aria-hidden="true">
         <circle cx="60" cy="60" r="52" fill="none" stroke="var(--ring-bg)" stroke-width="12"/>
@@ -586,7 +668,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <section class="card">
     <h2>Storico</h2>
     <ul class="items" id="bHist"></ul>
-    <p class="note">Il peso più recente aggiorna il profilo e ricalcola i tuoi obiettivi. Nell'app vera questi dati arriveranno in automatico da Apple Salute e Health Connect, dove FitDays e Renpho li sincronizzano.</p>
+    <p class="note">Il peso più recente aggiorna il profilo e ricalcola i tuoi obiettivi. Per ora carica uno screenshot dell'app della bilancia o del metro: lo leggo e lo salvo da solo. La lettura automatica da Health Connect (FitDays, Renpho, Galaxy Watch) arriverà con l'app Android nativa.</p>
   </section>
 </main>
 
@@ -711,11 +793,16 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     </div>
     <div id="syncOff" class="form">
       <p class="sub">Con un account Supabase gratuito vedi gli stessi dati su telefono e PC.</p>
+      <div class="seg2" role="tablist" id="sbMode">
+        <button role="tab" aria-selected="true" data-m="up">Primo dispositivo</button>
+        <button role="tab" aria-selected="false" data-m="in">Ho già un account</button>
+      </div>
+      <p class="note" id="sbModeHint" style="margin:0"></p>
       <label>Project URL<input class="field" id="sbUrl" placeholder="https://xxxx.supabase.co" autocomplete="off"></label>
       <label>Chiave pubblica (publishable / anon)<input class="field" id="sbKey" placeholder="sb_publishable_… oppure eyJ…" autocomplete="off"></label>
       <label>Email<input class="field" id="sbEmail" type="email" autocomplete="username"></label>
       <label>Password<input class="field" id="sbPass" type="password" autocomplete="current-password"></label>
-      <div class="two"><button class="btn" id="sbLogin">Accedi</button><button class="btn ghost" id="sbSignup">Crea account</button></div>
+      <button class="btn" id="sbGo">Crea il mio account</button>
     </div>
     <div class="status" id="syncStatus" aria-live="polite"></div>
     <h3 style="margin:18px 0 6px;font-size:1rem">Backup dei dati</h3>
@@ -744,9 +831,27 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 </nav>
 
 <div class="scrim" id="scrim"></div>
+<div class="sheet" id="timeSheet" role="dialog" aria-modal="true" aria-labelledby="tpTitle" style="z-index:27">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="tpTitle">Scegli l'orario</h3>
+    <div class="tp"><select id="tpH" aria-label="Ore"></select><b>:</b><select id="tpM" aria-label="Minuti"></select></div>
+    <div class="two"><button class="btn ghost" id="tpClear">Cancella</button><button class="btn" id="tpOk">Imposta</button></div>
+  </div>
+</div>
+<div class="sheet" id="calSheet" role="dialog" aria-modal="true" aria-labelledby="calTitle">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="calTitle">Vai al giorno</h3>
+    <div class="cal-head"><button class="icon-btn" id="calPrev" aria-label="Mese precedente">‹</button><b id="calMonth"></b><button class="icon-btn" id="calNext" aria-label="Mese successivo">›</button></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-leg"><span><i style="background:var(--basil-soft);box-shadow:inset 0 0 0 1px var(--basil)"></i>giorni con dati</span><span><i style="background:var(--ink)"></i>selezionato</span></div>
+    <button class="btn ghost" id="calToday" style="margin-top:14px">Torna a oggi</button>
+  </div>
+</div>
 <div class="sheet" id="addSheet" role="dialog" aria-modal="true" aria-labelledby="addTitle">
   <div class="sheet-inner">
-    <div class="grab"></div>
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
     <h3 id="addTitle">Aggiungi</h3>
     <div class="tabs" role="tablist">
       <button role="tab" id="tabQuick" aria-selected="false">Rapidi</button>
@@ -765,10 +870,12 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     </div>
     <div id="panePhoto">
       <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+      <input type="file" id="galleryInput" accept="image/*" hidden>
       <div id="photoStart" class="photo-drop">
         <div class="cam" aria-hidden="true">📷</div>
         <div>Scatta o scegli una foto del piatto: riconosco gli alimenti e stimo porzioni e valori.</div>
-        <button class="btn" id="pickPhoto" style="max-width:260px">Scatta una foto</button>
+        <button class="btn" id="pickPhoto" style="max-width:260px">📷 Scatta una foto</button>
+        <button class="btn ghost" id="pickGallery" style="max-width:260px">🖼️ Scegli dalla galleria</button>
       </div>
       <img id="preview" class="preview" alt="Foto del pasto" hidden>
       <div class="status" id="photoStatus" aria-live="polite"></div>
@@ -776,7 +883,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <p class="note" id="foundNote" hidden></p>
       <div class="stack" id="photoActions" hidden>
         <button class="btn" id="confirmFound">Aggiungi al pasto</button>
-        <button class="btn ghost" id="retake">Rifai la foto</button>
+        <button class="btn ghost" id="retake">Riprova con un'altra foto</button>
       </div>
     </div>
     <div id="paneSearch" hidden>
@@ -790,10 +897,19 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         <div style="display:flex;gap:8px"><input class="field" id="scanCode" inputmode="numeric" placeholder="oppure scrivi le cifre" style="flex:1"><button class="btn" id="scanLookup" style="width:auto">Cerca</button></div>
         <button class="btn ghost" id="scanStop">Chiudi fotocamera</button>
       </div>
-      <input type="file" id="labelInput" accept="image/*" capture="environment" hidden>
+      <input type="file" id="labelInput" accept="image/*" hidden>
       <button class="btn ghost" id="labelBtn" hidden>📷 Fotografa la tabella nutrizionale</button>
       <ul class="results" id="results"></ul>
       <button class="btn ghost" id="aiSearch">Calcola con l'AI quello che hai scritto</button>
+      <button class="linkbtn" id="newFoodBtn" style="margin-top:6px">+ Crea un nuovo alimento</button>
+      <div class="form" id="newFoodBox" hidden style="margin-top:8px">
+        <label>Nome<input class="field" id="nfName" placeholder="Es. Pane di segale del forno sotto casa"></label>
+        <p class="note" style="margin:0">Valori per 100 g (li trovi sull'etichetta). Se non li sai, lascia vuoto e li calcolo con l'AI.</p>
+        <div class="two"><label>Kcal<input class="field" id="nfK" inputmode="decimal"></label><label>Porzione abituale (g)<input class="field" id="nfG" inputmode="decimal" placeholder="100"></label></div>
+        <div class="two"><label>Proteine g<input class="field" id="nfP" inputmode="decimal"></label><label>Carboidrati g<input class="field" id="nfC" inputmode="decimal"></label></div>
+        <label>Grassi g<input class="field" id="nfF" inputmode="decimal"></label>
+        <button class="btn" id="nfSave">Salva alimento</button>
+      </div>
       <div class="status" id="searchStatus" aria-live="polite"></div>
       <div id="pickedBox" hidden>
         <ul class="found" id="picked"></ul>
@@ -824,7 +940,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 </div>
 <div class="sheet" id="logSheet" role="dialog" aria-modal="true" aria-labelledby="logTitle">
   <div class="sheet-inner">
-    <div class="grab"></div>
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
     <h3 id="logTitle">Allenamento</h3>
     <p class="sub">Segna peso e ripetizioni di ogni serie e spunta quelle fatte. Trovi già i valori dell'ultima volta.</p>
     <div id="logBody"></div>
@@ -837,7 +953,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 </div>
 <div class="sheet" id="micSheet" role="dialog" aria-modal="true" aria-labelledby="micTitle">
   <div class="sheet-inner">
-    <div class="grab"></div>
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
     <h3 id="micTitle">Detta con il microfono della tastiera</h3>
     <p class="sub">Qui dentro il telefono non permette di usare il microfono direttamente, ma puoi dettare con quello della tastiera: funziona in tutti i campi.</p>
     <div class="pline"><span class="ic">1</span><span>Tocca “Apri la tastiera” qui sotto.</span></div>
@@ -1120,7 +1236,12 @@ function mealList(){ return (state.profile&&state.profile.meals&&state.profile.m
 
 /* ---------- navigazione ---------- */
 let view="diario";
-function go(v){
+function go(v,fromHistory){
+  if(!fromHistory && v!==view){
+    if(v==="diario"){ if(history.state&&history.state.v&&history.state.v!=="diario"&&!sheetStack.length){ history.back(); return; } }
+    else if(!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
+  }
+  if(v!=="diario"&&typeof editMode!=="undefined"&&editMode) setEdit(false);
   view=v;
   ["diario","dieta","allenamento","corpo","profilo"].forEach(x=>$("view-"+x).hidden = x!==v);
   document.querySelectorAll("nav.tabbar button").forEach(b=> b.dataset.v===v ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
@@ -1206,6 +1327,36 @@ async function loadDay(){
   renderAll();
 }
 let evT; ["eventTime","eventNote"].forEach(id=>$(id).addEventListener("input",()=>{ state.day.event={...(state.day.event||{}),time:$("eventTime").value,note:$("eventNote").value.trim()}; clearTimeout(evT); evT=setTimeout(saveDay,700); }));
+/* calendario */
+let calYM=null;
+function daysWithData(){ const set=new Set(); try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith("diario:day-")){ const v=JSON.parse(localStorage.getItem(k)||"null"); if(v&&((v.workouts||[]).length||Object.values(v.meals||{}).some(a=>a&&a.length))) set.add(k.slice(11)); } } }catch{} return set; }
+function renderCal(){
+  const [y,m]=calYM, first=new Date(y,m,1,12), today=todayISO(), has=daysWithData();
+  $("calMonth").textContent=first.toLocaleDateString("it-IT",{month:"long",year:"numeric"});
+  const g=$("calGrid"); g.innerHTML="";
+  ["LUN","MAR","MER","GIO","VEN","SAB","DOM"].forEach((d,i)=>g.appendChild(el("div","wd"+(i===6?" sun":""),d)));
+  const start=new Date(first); start.setDate(1-((first.getDay()+6)%7));
+  for(let i=0;i<42;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    if(i>=35&&d.getMonth()!==m) break;
+    const iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    const b=el("button",null,String(d.getDate())); b.type="button";
+    if(d.getMonth()!==m) b.classList.add("other");
+    if(has.has(iso)) b.classList.add("has");
+    if(iso===state.date) b.classList.add("sel");
+    if(iso===today) b.classList.add("today");
+    if(iso>today) b.disabled=true;
+    b.setAttribute("aria-label",d.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})+(has.has(iso)?", con dati":""));
+    b.onclick=()=>{ closeTopSheet(); goDate(iso); };
+    g.appendChild(b);
+  }
+  const now=new Date(); $("calNext").disabled = y>now.getFullYear()||(y===now.getFullYear()&&m>=now.getMonth());
+}
+function goDate(iso){ if(iso>todayISO()) return; state.date=iso; $("coachOut").textContent=""; loadDay(); }
+$("dayPick").onclick=()=>{ const d=new Date(state.date+"T12:00:00"); calYM=[d.getFullYear(),d.getMonth()]; renderCal(); openSheet("calSheet"); };
+$("calPrev").onclick=()=>{ let [y,m]=calYM; m--; if(m<0){m=11;y--;} calYM=[y,m]; renderCal(); };
+$("calNext").onclick=()=>{ let [y,m]=calYM; m++; if(m>11){m=0;y++;} calYM=[y,m]; renderCal(); };
+$("calToday").onclick=()=>{ closeTopSheet(); goDate(todayISO()); };
 $("prev").onclick=()=>{ state.date=shiftDate(state.date,-1); $("coachOut").textContent=""; loadDay(); };
 $("next").onclick=()=>{ if(state.date<todayISO()){ state.date=shiftDate(state.date,1); $("coachOut").textContent=""; loadDay(); } };
 
@@ -1231,10 +1382,28 @@ Suggerisci 1 o 2 pasti o spuntini concreti con grammature per avvicinarsi ai tar
 };
 
 /* ----- foglio aggiunta cibo ----- */
-function openSheet(id){ $("scrim").classList.add("open"); $(id).classList.add("open"); }
-function closeSheets(){ try{ stopScan(); }catch{} $("scrim").classList.remove("open"); document.querySelectorAll(".sheet").forEach(s=>s.classList.remove("open")); }
-$("scrim").onclick=closeSheets;
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeSheets(); });
+/* finestre a pila + tasto "indietro" di Android */
+let sheetStack=[];
+function openSheet(id){
+  if(sheetStack.includes(id)) return;
+  $("scrim").classList.add("open"); $(id).classList.add("open"); sheetStack.push(id);
+  $(id).style.zIndex = String(21+sheetStack.length*2); $("scrim").style.zIndex=String(20+sheetStack.length*2);
+  history.pushState({v:view,sheet:sheetStack.length},"");
+}
+function hideTopSheet(){
+  const id=sheetStack.pop(); if(id){ $(id).classList.remove("open"); if(id==="addSheet"){ try{ stopScan(); }catch{} } }
+  if(!sheetStack.length) $("scrim").classList.remove("open"); else $("scrim").style.zIndex=String(20+sheetStack.length*2);
+}
+function closeTopSheet(){ if(sheetStack.length) history.back(); }
+function closeSheets(){ const n=sheetStack.length; if(n) history.go(-n); }
+window.addEventListener("popstate",e=>{
+  const target=(e.state&&e.state.sheet)||0;
+  while(sheetStack.length>target) hideTopSheet();
+  const v=(e.state&&e.state.v)||"diario"; if(v!==view) go(v,true);
+});
+$("scrim").onclick=closeTopSheet;
+document.querySelectorAll(".sheet-x").forEach(b=>b.onclick=closeTopSheet);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeTopSheet(); });
 function openAdd(m){
   currentMeal=m.id; currentMealName=m.name; $("addTitle").textContent="Aggiungi a "+m.name.toLowerCase();
   resetPhoto(); resetSearch(); resetSuggest(); const canImg=!!imgLimits; $("tabPhoto").hidden=!canImg; $("tabSuggest").hidden=!sample;
@@ -1248,9 +1417,11 @@ $("tabPhoto").onclick=()=>setTab("photo"); $("tabSearch").onclick=()=>{ setTab("
 function resetPhoto(){ photoItems=[]; $("photoStart").hidden=false; $("preview").hidden=true; setStatus("photoStatus",""); $("found").innerHTML=""; $("foundNote").hidden=true; $("photoActions").hidden=true; $("photoInput").value=""; }
 function setStatus(id,txt,isErr){ $(id).textContent=txt; $(id).classList.toggle("err",!!isErr); }
 $("pickPhoto").onclick=()=>$("photoInput").click();
-$("retake").onclick=()=>{ resetPhoto(); $("photoInput").click(); };
-$("photoInput").onchange=async e=>{
-  const file=e.target.files[0]; if(!file) return;
+$("pickGallery").onclick=()=>$("galleryInput").click();
+$("retake").onclick=()=>resetPhoto();
+$("galleryInput").onchange=e=>{ const f=e.target.files[0]; $("galleryInput").value=""; if(f) handleMealPhoto(f); };
+$("photoInput").onchange=e=>{ const f=e.target.files[0]; if(f) handleMealPhoto(f); };
+async function handleMealPhoto(file){
   $("photoStart").hidden=true; $("preview").src=URL.createObjectURL(file); $("preview").hidden=false;
   setStatus("photoStatus","Sto riconoscendo gli alimenti…");
   try{
@@ -1269,8 +1440,8 @@ p = proteine g, c = carboidrati g, f = grassi g. Se non c'è cibo: {"items":[],"
     renderFound($("found"),photoItems);
     if(res.note){ $("foundNote").textContent=res.note; $("foundNote").hidden=false; }
     $("confirmFound").hidden=false;
-  }catch(err){ setStatus("photoStatus",errCopy(err),true); $("photoActions").hidden=false; $("confirmFound").hidden=true; }
-};
+  }catch(err){ setStatus("photoStatus",errCopy(err)+(err&&(err.code||err.message)?` [${err.code||""}${err.message?": "+String(err.message).slice(0,140):""}]`:""),true); $("photoActions").hidden=false; $("confirmFound").hidden=true; }
+}
 $("confirmFound").onclick=()=>addItems(photoItems);
 
 function normItem(x){
@@ -1320,7 +1491,7 @@ Rispondi SOLO con JSON: {"remove":["id"],"update":[{"id":"string","qty":"string"
 function resetSearch(){ $("q").value=""; setStatus("searchStatus",""); pickedItems=[]; $("pickedBox").hidden=true; showResults(""); }
 function showResults(q){
   const ul=$("results"); ul.innerHTML=""; const s=q.trim().toLowerCase();
-  const mine=[...foods.favs,...foods.recents.filter(x=>!isFav(x.name))].filter(e=>!s||e.key.includes(s)).slice(0,s?4:5);
+  const mine=[...foods.favs,...foods.custom.filter(x=>!isFav(x.name)),...foods.recents.filter(x=>!isFav(x.name)&&!foods.custom.some(c=>c.key===x.key))].filter(e=>!s||e.key.includes(s)).slice(0,s?6:5);
   mine.forEach(e=>{ const it=itemFromEntry(e); const li=el("li","row2"), b=el("button"); b.append(el("span",null,(isFav(e.name)?"★ ":"")+e.name), el("small",null,e.grams+" g · "+r(it.kcal)+" kcal"));
     b.onclick=()=>{ pickedItems.push(itemFromEntry(e)); renderFound($("picked"),pickedItems); $("pickedBox").hidden=false; }; li.appendChild(b); ul.appendChild(li); });
   const list=s? FOODS.filter(f=>f.name.toLowerCase().includes(s)) : (mine.length? [] : FOODS.slice(0,6));
@@ -1334,6 +1505,25 @@ function showResults(q){
   if(s&&!list.length&&!mine.length){ const li=el("li"); li.appendChild(el("small",null,"Non è nell'elenco: usa il calcolo con l'AI qui sotto.")); ul.appendChild(li); }
 }
 $("q").oninput=e=>showResults(e.target.value);
+$("newFoodBtn").onclick=()=>{ const b=$("newFoodBox"); b.hidden=!b.hidden; if(!b.hidden){ if(!$("nfName").value) $("nfName").value=$("q").value.trim(); $("nfName").focus(); } };
+$("nfSave").onclick=async()=>{
+  const name=$("nfName").value.trim(); if(!name){ setStatus("searchStatus","Scrivi il nome dell'alimento.",true); return; }
+  const num=id=>{ const v=String($(id).value).replace(",","."); return v===""? null : +v; };
+  let k=num("nfK"),p=num("nfP"),c=num("nfC"),f=num("nfF"); const g=num("nfG")||100;
+  if(k==null){
+    if(!sample){ setStatus("searchStatus","Inserisci almeno le kcal per 100 g.",true); return; }
+    $("nfSave").disabled=true; setStatus("searchStatus","Calcolo i valori per 100 g…");
+    try{ const res=await sample.json(`Valori nutrizionali medi per 100 g di "${name.replace(/"/g,"'")}" (tabelle CREA o etichette tipiche italiane). Rispondi SOLO con JSON: {"kcal":number,"p":number,"c":number,"f":number}`,{modelTier:"quick"});
+      k=+res.kcal; p=p??+res.p; c=c??+res.c; f=f??+res.f; }
+    catch(e){ setStatus("searchStatus",errCopy(e),true); $("nfSave").disabled=false; return; }
+    $("nfSave").disabled=false;
+  }
+  const e={key:fkey(name),name:name.slice(0,80),grams:Math.round(g),per:{kcal:k/100,p:(p||0)/100,c:(c||0)/100,f:(f||0)/100},custom:true};
+  foods.custom=[e,...foods.custom.filter(x=>x.key!==e.key)]; saveFoods();
+  pickedItems.push(itemFromEntry(e)); renderFound($("picked"),pickedItems); $("pickedBox").hidden=false;
+  ["nfName","nfK","nfG","nfP","nfC","nfF"].forEach(id=>$(id).value=""); $("newFoodBox").hidden=true;
+  setStatus("searchStatus",`“${e.name}” salvato tra i tuoi alimenti: lo ritrovi cercandolo. Ora controlla i grammi e aggiungi.`);
+};
 $("confirmPicked").onclick=()=>addItems(pickedItems);
 $("aiSearch").onclick=async()=>{
   const q=$("q").value.trim(); if(!q){ setStatus("searchStatus","Scrivi prima cosa hai mangiato, ad esempio “un piatto di carbonara”."); return; }
@@ -1352,7 +1542,7 @@ Rispondi SOLO con JSON: {"items":[{"name":"string","grams":number,"kcal":number,
 };
 
 /* ----- preferiti, pasti salvati, recenti ----- */
-let foods={favs:[],recents:[],saved:[],barcodes:{}}, quickPicked=[];
+let foods={favs:[],recents:[],saved:[],barcodes:{},custom:[]}, quickPicked=[];
 const saveFoods=()=>save("foods",foods);
 const fkey=n=>String(n||"").trim().toLowerCase();
 function perOf(it){ if(it.per&&it.per.kcal!=null) return it.per; const g=Math.max(1,+it.grams||100); return {kcal:(+it.kcal||0)/g,p:(+it.p||0)/g,c:(+it.c||0)/g,f:(+it.f||0)/g}; }
@@ -1383,7 +1573,7 @@ function saveMealFav(m,items){
   foods.saved=[{id:uid(),name:name.slice(0,60),mealId:m.id,items:items.map(it=>({name:it.name,grams:it.grams,kcal:it.kcal,p:it.p,c:it.c,f:it.f}))},...foods.saved].slice(0,40);
   saveFoods(); toast("⭐ Pasto salvato: lo trovi in “Rapidi”");
 }
-const hasQuick=()=>!!(foods.saved.length||foods.favs.length||foods.recents.length||((state.yday&&state.yday.meals&&state.yday.meals[currentMeal])||[]).length);
+const hasQuick=()=>!!(foods.saved.length||foods.favs.length||foods.custom.length||foods.recents.length||((state.yday&&state.yday.meals&&state.yday.meals[currentMeal])||[]).length);
 function quickRow(label,sub,onAdd,extra){
   const li=el("li","row2"), b=el("button"); b.append(el("span",null,label), el("small",null,sub)); b.onclick=onAdd; li.appendChild(b); if(extra) li.appendChild(extra); return li;
 }
@@ -1402,7 +1592,13 @@ function renderQuick(){
   if(foods.favs.length){ box.appendChild(el("p","rq-h","Alimenti preferiti")); const ul=el("ul","results");
     foods.favs.forEach(f=>{ const it=itemFromEntry(f); ul.appendChild(quickRow(f.name, f.grams+" g · "+r(it.kcal)+" kcal", ()=>pushQuick([itemFromEntry(f)]), starBtn(it))); });
     box.appendChild(ul); }
-  const rec=foods.recents.filter(x=>!isFav(x.name)).slice(0,12);
+  const cus=foods.custom.filter(x=>!isFav(x.name));
+  if(cus.length){ box.appendChild(el("p","rq-h","I tuoi alimenti")); const ul=el("ul","results");
+    cus.forEach(f=>{ const it=itemFromEntry(f), del=el("button","star","×"); del.style.color="var(--muted)"; del.setAttribute("aria-label","Elimina "+f.name);
+      del.onclick=()=>{ if(!confirm("Eliminare “"+f.name+"” dai tuoi alimenti?")) return; foods.custom=foods.custom.filter(x=>x.key!==f.key); saveFoods(); renderQuick(); };
+      ul.appendChild(quickRow(f.name, f.grams+" g · "+r(it.kcal)+" kcal", ()=>pushQuick([itemFromEntry(f)]), del)); });
+    box.appendChild(ul); }
+  const rec=foods.recents.filter(x=>!isFav(x.name)&&!foods.custom.some(c=>c.key===x.key)).slice(0,12);
   if(rec.length){ box.appendChild(el("p","rq-h","Usati di recente")); const ul=el("ul","results");
     rec.forEach(f=>{ const it=itemFromEntry(f); ul.appendChild(quickRow(f.name, f.grams+" g · "+r(it.kcal)+" kcal", ()=>pushQuick([itemFromEntry(f)]), starBtn(it))); });
     box.appendChild(ul); }
@@ -1987,7 +2183,7 @@ function renderChat(){
   const log=$("chatLog"); log.innerHTML="";
   if(!chat.turns.length) log.appendChild(el("div","bubble ai","Ciao! Sono il tuo coach. Dimmi cosa vuoi ottenere: una gara, un fisico diverso, più forza. Se vuoi, allega una foto e ti do un parere sul punto di partenza."));
   chat.turns.forEach(t=>{ log.appendChild(el("div","bubble "+(t.role==="user"?"me":"ai"), t.content + (t.imgs? "\n📎 "+t.imgs+" foto":""))); if(t.proposal) log.appendChild(proposalCard(t)); });
-  if(!sample) log.appendChild(el("div","bubble ai err","⚠️ Il coach non è disponibile in questa visualizzazione. Apri Health & Fitness dall'app Claude (o da claude.ai) con il tuo account e, quando te lo chiede, consenti l'uso di Claude."));
+  if(!sample) log.appendChild(el("div","bubble ai err","⚠️ Il coach non è disponibile in questa visualizzazione. Apri HealthFit dall'app Claude (o da claude.ai) con il tuo account e, quando te lo chiede, consenti l'uso di Claude."));
   if(chatErr){ const b=el("div","bubble ai err","⚠️ Il messaggio non è stato inviato. "+chatErr.msg+"\nIl tuo testo è rimasto nel campo qui sotto: tocca Invia per riprovare.\n(codice: "+chatErr.code+(chatErr.detail?" – "+chatErr.detail:"")+")"); log.appendChild(b); }
   log.scrollTop=log.scrollHeight;
   $("chatAttach").hidden=!imgLimits; $("chatSend").disabled=!sample;
@@ -2521,6 +2717,7 @@ Non inventare: includi solo ciò che vedi con ragionevole certezza.`,{images:img
 /* ================= IMPOSTAZIONI AI (Gemini) ================= */
 const G=window.HF_GEMINI;
 function lsSet(k,v){ try{ localStorage.setItem("hf:"+k,v); }catch{} }
+function showAiOk(){ const st=$("apiStatus"); if(G.LS("apiKey")){ $("apiKey").placeholder="Chiave salvata (incollane una nuova per cambiarla)"; if(!st.classList.contains("err")){ st.textContent="✓ AI collegata · modello "+(G.LS("mMain")||"Gemini"); st.classList.add("ok"); } } else st.classList.remove("ok"); }
 function renderKeyBanner(){ $("keyBanner").hidden=!!G.LS("apiKey"); }
 function fillModelSelects(list){
   ["mMain","mQuick"].forEach(id=>{ const sel=$(id), cur=G.LS(id); sel.innerHTML="";
@@ -2545,7 +2742,7 @@ async function testModel(model,key){
 }
 $("apiSave").onclick=async()=>{
   const key=$("apiKey").value.trim(); if(!key){ setStatus("apiStatus","Incolla prima la chiave."); return; }
-  $("apiSave").disabled=true; setStatus("apiStatus","Verifico la chiave e cerco i modelli gratuiti disponibili…");
+  $("apiSave").disabled=true; $("apiStatus").classList.remove("ok"); setStatus("apiStatus","Verifico la chiave e cerco i modelli gratuiti disponibili…");
   try{
     const m=await detectModels(key); if(!m.main) throw {code:"bad_output",message:"nessun modello Flash trovato"};
     let main=m.main, quick=m.quick;
@@ -2553,7 +2750,7 @@ $("apiSave").onclick=async()=>{
     if(quick!==main && !(await testModel(quick,key))) quick=main;
     lsSet("apiKey",key); lsSet("mMain",main); lsSet("mQuick",quick); fillModelSelects(m.all);
     $("apiKey").value=""; $("apiKey").placeholder="Chiave salvata ✓ (incollane una nuova per cambiarla)";
-    markDirty("aiSettings"); schedulePush(); setStatus("apiStatus",`Tutto pronto ✓ Modello principale: ${main}, veloce: ${quick}.`); renderKeyBanner(); toast("AI collegata");
+    markDirty("aiSettings"); schedulePush(); setStatus("apiStatus",""); showAiOk(); renderKeyBanner(); toast("✓ AI collegata");
   }catch(e){ setStatus("apiStatus",errCopy(e)+(e&&e.message?" ("+e.message.slice(0,120)+")":""),true); }
   finally{ $("apiSave").disabled=false; }
 };
@@ -2573,8 +2770,8 @@ function renderSync(){
     $("syncInfo").textContent=`Collegato come ${SY.user.email}. `+(SY.last?`Ultima sincronizzazione alle ${SY.last.toTimeString().slice(0,5)}.`:"")+(pend?` ${pend} modifiche in attesa di invio.`:" Tutto aggiornato ✓"); }
 }
 function syncErr(e){ const m=String(e&&e.message||e||"");
-  if(/Invalid login/i.test(m)) return "Email o password sbagliate.";
-  if(/already registered/i.test(m)) return "Questa email ha già un account: usa \"Accedi\".";
+  if(/Invalid login/i.test(m)) return sbMode==="in"? "Email o password sbagliate. Se non hai ancora creato l'account, scegli \"Primo dispositivo\"." : "Email o password sbagliate.";
+  if(/already registered/i.test(m)){ setTimeout(()=>setSbMode("in"),0); return "Questa email ha già un account: ho selezionato \"Ho già un account\", rimetti la password e tocca Accedi."; }
   if(/Email not confirmed/i.test(m)) return "Email non confermata: disattiva \"Confirm email\" in Supabase (vedi istruzioni) oppure conferma dal link ricevuto.";
   if(/relation .*kv|kv.*does not exist|schema cache/i.test(m)) return "Manca la tabella: esegui il comando SQL delle istruzioni in Supabase.";
   if(/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Non raggiungo Supabase: controlla il Project URL e la connessione.";
@@ -2585,7 +2782,7 @@ async function sbAuth(mode){
   const url=$("sbUrl").value.trim().replace(/\/+$/,""), key=$("sbKey").value.trim(), email=$("sbEmail").value.trim(), pass=$("sbPass").value;
   if(!window.supabase){ setStatus("syncStatus","Non riesco a caricare il modulo di sincronizzazione: controlla la connessione e riapri l'app.",true); return; }
   if(!/^https:\/\/.+/.test(url)||!key||!email||pass.length<6){ setStatus("syncStatus","Compila Project URL, chiave, email e una password di almeno 6 caratteri.",true); return; }
-  $("sbLogin").disabled=$("sbSignup").disabled=true; setStatus("syncStatus", mode==="up"?"Creo l'account…":"Accedo…");
+  $("sbGo").disabled=true; setStatus("syncStatus", mode==="up"?"Creo l'account…":"Accedo…");
   try{
     lsSet("sbUrl",url); lsSet("sbKey",key);
     SY.client=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"hf-sb-auth"}});
@@ -2597,10 +2794,18 @@ async function sbAuth(mode){
     const n=await pull(); renderSync(); await loadAll(); go("profilo");
     setStatus("syncStatus", n?`Fatto ✓ Ho scaricato ${n} elementi dall'altro dispositivo.`:"Fatto ✓ I dati di questo dispositivo sono ora online.");
   }catch(e){ SY.user=null; setStatus("syncStatus",syncErr(e),true); renderSync(); }
-  finally{ $("sbLogin").disabled=$("sbSignup").disabled=false; }
+  finally{ $("sbGo").disabled=false; }
 }
-$("sbLogin").onclick=()=>sbAuth("in");
-$("sbSignup").onclick=()=>sbAuth("up");
+let sbMode="up";
+function setSbMode(m){ sbMode=m; document.querySelectorAll("#sbMode button").forEach(b=>b.setAttribute("aria-selected",b.dataset.m===m));
+  $("sbGo").textContent= m==="up"? "Crea il mio account" : "Accedi";
+  $("sbModeHint").innerHTML= m==="up"
+    ? "<b>Stai creando un nuovo account.</b> Scrivi la tua email e <b>inventa ora una password</b> (almeno 6 caratteri): non è quella di Supabase né del database, serve solo per i dati di questa app. Fallo una volta sola, sul primo dispositivo."
+    : "<b>Stai accedendo a un account esistente.</b> Usa la stessa email e password che hai creato sull'altro dispositivo: i dati arriveranno da soli.";
+  $("sbPass").autocomplete= m==="up"? "new-password" : "current-password"; }
+document.querySelectorAll("#sbMode button").forEach(b=>b.onclick=()=>setSbMode(b.dataset.m));
+setSbMode(localStorage.getItem("hf:sbUrl")? "in" : "up");
+$("sbGo").onclick=()=>sbAuth(sbMode);
 $("syncNow").onclick=async()=>{ $("syncNow").disabled=true; setStatus("syncStatus","Sincronizzo…");
   try{ const n=await pull(); renderSync(); if(n) await loadAll(); setStatus("syncStatus", n?`Aggiornati ${n} elementi.`:"Tutto già aggiornato ✓"); }
   catch(e){ setStatus("syncStatus",syncErr(e),true); } finally{ $("syncNow").disabled=false; } };
@@ -2618,7 +2823,7 @@ function fillProfile(){
   const p=state.profile||{};
   draft={fname:p.fname||"",lname:p.lname||"",nick:p.nick||"",photo:p.photo||"",sex:p.sex||"m",age:p.age||"",height:p.height||"",weight:p.weight||"",activity:p.activity||1.2,goal:p.goal||"",meals:JSON.parse(JSON.stringify(p.meals||PRESETS["4 pasti"])),foodPrefs:p.foodPrefs||"",train:{sessions:JSON.parse(JSON.stringify(trainOf(p).sessions))},equipment:{items:[...((p.equipment&&p.equipment.items)||[])],other:(p.equipment&&p.equipment.other)||""},customGoal:p.customGoal?JSON.parse(JSON.stringify(p.customGoal)):null};
   ["sex","age","height","weight","activity","fname","lname","nick"].forEach(id=>$(id).value=draft[id]);
-  renderAvatar(); renderTrain(); renderEquip(); fillModelSelects(); if(G.LS("apiKey")) $("apiKey").placeholder="Chiave salvata ✓ (incollane una nuova per cambiarla)";
+  renderAvatar(); renderTrain(); renderEquip(); fillModelSelects(); showAiOk();
   renderGoals(); renderMealRows(); updCalc();
 }
 let cgOpen=false, cgMe=null, cgEx=null, cgRes=null;
@@ -2729,8 +2934,28 @@ $("saveProfile").onclick=()=>{
 /* ================= avvio ================= */
 /* ----- dettatura vocale ----- */
 let micField=null;
-function showMicHelp(field){ micField=field; $("micSheet").style.zIndex="25"; openSheet("micSheet"); }
-$("micOk").onclick=()=>{ $("micSheet").classList.remove("open"); if(!document.querySelector(".sheet.open")) $("scrim").classList.remove("open"); if(micField){ micField.scrollIntoView({block:"center"}); micField.focus(); } };
+/* selettore orario (sostituisce quello di Android, che taglia il tasto Imposta) */
+let tpTarget=null;
+(function(){ const H=$("tpH"), M=$("tpM");
+  for(let h=0;h<24;h++){ const o=el("option",null,String(h).padStart(2,"0")); o.value=o.textContent; H.appendChild(o); }
+  for(let m=0;m<60;m+=5){ const o=el("option",null,String(m).padStart(2,"0")); o.value=o.textContent; M.appendChild(o); }
+})();
+function openTime(inp){
+  tpTarget=inp; const v=/^\d{2}:\d{2}$/.test(inp.value)? inp.value : (()=>{ const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(Math.round(d.getMinutes()/5)*5%60).padStart(2,"0"); })();
+  const [h,m]=v.split(":"); $("tpH").value=h;
+  if(![...$("tpM").options].some(o=>o.value===m)){ const o=el("option",null,m); o.value=m; $("tpM").appendChild(o); }
+  $("tpM").value=m; openSheet("timeSheet");
+}
+function setTime(val){ if(!tpTarget) return; tpTarget.value=val; tpTarget.dispatchEvent(new Event("input",{bubbles:true})); tpTarget.dispatchEvent(new Event("change",{bubbles:true})); closeTopSheet(); }
+$("tpOk").onclick=()=>setTime($("tpH").value+":"+$("tpM").value);
+$("tpClear").onclick=()=>setTime("");
+function upgradeTime(inp){ if(inp.dataset.tp) return; inp.dataset.tp="1"; inp.type="text"; inp.readOnly=true; inp.inputMode="none"; inp.classList.add("tp-in"); if(!inp.placeholder) inp.placeholder="--:--";
+  inp.addEventListener("click",e=>{ e.preventDefault(); openTime(inp); }); inp.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openTime(inp); } }); }
+document.querySelectorAll('input[type="time"]').forEach(upgradeTime);
+new MutationObserver(()=>document.querySelectorAll('input[type="time"]').forEach(upgradeTime)).observe(document.body,{childList:true,subtree:true});
+
+function showMicHelp(field){ micField=field; openSheet("micSheet"); }
+$("micOk").onclick=()=>{ closeTopSheet(); if(micField){ micField.scrollIntoView({block:"center"}); micField.focus(); } };
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition; let rec=null, recBtn=null;
 function stopRec(){ if(rec){ try{ rec.stop(); }catch{} } }
 function attachMic(id){
@@ -2753,10 +2978,137 @@ function attachMic(id){
 ["chatIn","wDesc","dietPrefs","dietAsk","sugAvail","pNotes","pGoal","logNotes","cEx","q","upText","impText","panCmd","panAsk","cgText"].forEach(attachMic);
 $("openChat").onclick=()=>{ go("allenamento"); setW("chat"); };
 const _send=$("chatSend").onclick; $("chatSend").onclick=()=>{ stopRec(); return _send(); };
-function renderAll(){ renderKeyBanner(); renderHello(); renderDiary(); if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento") renderWorkouts(); if(view==="corpo") renderBody(); }
+/* ---------- home a schede ---------- */
+function wKind(n){ n=String(n||"").toLowerCase(); if(/cors|run|marat|trail|jog/.test(n)) return ["run","🏃"]; if(/palestr|pesi|forza|gym|scheda|crossfit|funzional/.test(n)) return ["gym","🏋️"]; if(/bici|cicl|spinning|bike/.test(n)) return ["other","🚴"]; if(/nuot|swim/.test(n)) return ["other","🏊"]; if(/camm|walk|escurs|trekking/.test(n)) return ["other","🥾"]; if(/calc|tennis|padel|basket|pallavol/.test(n)) return ["other","⚽"]; if(/yoga|pilates|stretch/.test(n)) return ["other","🧘"]; return ["other","⚡"]; }
+function hms(min){ const t=Math.round((+min||0)*60), h=Math.floor(t/3600), m=Math.floor(t%3600/60), sec=t%60; return (h? h+":"+String(m).padStart(2,"0") : m)+":"+String(sec).padStart(2,"0"); }
+function whenLabel(d){ const t=todayISO(); if(d===t) return "Oggi"; if(d===shiftDate(t,-1)) return "Ieri"; const x=new Date(d+"T12:00:00"); return x.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}); }
+function spark(vals,color){
+  if(vals.length<2) return "";
+  const w=200,h=34,p=4, mn=Math.min(...vals), mx=Math.max(...vals), rg=(mx-mn)||1;
+  const pts=vals.map((v,i)=>[p+i*(w-2*p)/(vals.length-1), h-p-(v-mn)/rg*(h-2*p)]);
+  const d=pts.map((q,i)=>(i?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join(" ");
+  const L=pts[pts.length-1];
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="${L[0]}" cy="${L[1]}" r="4" fill="${color}"/></svg>`;
+}
+function renderDash(){
+  // ultimo allenamento
+  const items=[...((hist&&hist.items)||[])].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+  const last=items[0], H=$("dHero");
+  if(last){
+    const [k,emo]=wKind(last.name); H.className="dcard hero tile full "+k;
+    const dist=+last.distance>0, big= dist? (Math.round(last.distance*100)/100).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) : r(last.minutes||0);
+    const meta=[dist||last.minutes? hms(last.minutes):"", last.pace? last.pace.replace(":","'")+'" /km':"", last.kcal? r(last.kcal).toLocaleString("it-IT")+" kcal":"", last.avgHr? last.avgHr+" bpm":""].filter(Boolean);
+    H.innerHTML=`<div class="t"></div><div class="when"></div><div class="big num">${big}<small>${dist?"km":"min"}</small></div><div class="meta">${meta.map(x=>`<span>${x}</span>`).join("")}</div><div class="art" aria-hidden="true">${emo}</div>`;
+    H.querySelector(".t").textContent=last.name||"Allenamento"; H.querySelector(".when").textContent=whenLabel(last.date);
+    H.setAttribute("aria-label","Ultimo allenamento: "+(last.name||"")+", apri Allenamento");
+  } else {
+    H.className="dcard hero tile full empty";
+    H.innerHTML=`<div class="t">Allenamento</div><div class="big" style="font-size:1.6rem;margin-top:30px">Registra il tuo primo allenamento</div><div class="meta"><span>Tocca qui</span></div><div class="art" aria-hidden="true">🏃</div>`;
+  }
+  // cibo
+  const dt=dayTargets(), t=totals();
+  $("dFoodE").textContent=r(t.kcal).toLocaleString("it-IT");
+  $("dFoodG").textContent= dt? r(dt.goal).toLocaleString("it-IT")+" kcal" : "Completa il profilo";
+  const goal=dt?dt.goal:0, eatPct=goal? Math.min(100,t.kcal/goal*100) : 0, burnPct=goal&&dt.burn? Math.min(100-eatPct,dt.burn/goal*100) : 0;
+  $("dFoodBar").style.width=eatPct+"%"; $("dFoodBar").style.borderRadius= eatPct>=99? "9px" : "9px 0 0 9px";
+  $("dFoodBar").style.background= dt&&t.kcal>goal*1.05? "var(--warn)" : "#3BAA1E";
+  $("dFoodBurn").style.width=Math.max(0,burnPct)+"%"; $("dFoodBurn").title="Quota dovuta agli allenamenti";
+  // anelli
+  const pK=goal? Math.min(1,t.kcal/goal) : 0, pP=dt&&dt.P? Math.min(1,t.p/dt.P) : 0;
+  const done=(state.day.workouts||[]).length>0, rest=((state.day.event||{}).type==="Riposo");
+  const wd=new Date(state.date+"T12:00:00").getDay(), planned=trainOf(state.profile).sessions.some(x=>x.days.includes(wd));
+  const pW= done? 1 : (rest||!planned)? (rest?1:0) : 0;
+  const ring=(r0,col,p)=>{ const c=2*Math.PI*r0; return `<circle cx="60" cy="60" r="${r0}" fill="none" stroke="${col}" stroke-opacity=".18" stroke-width="10"/><circle cx="60" cy="60" r="${r0}" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c*(1-p)).toFixed(1)}" transform="rotate(-90 60 60)" style="transition:stroke-dashoffset .5s ease"/>`; };
+  $("dRings").innerHTML=`<svg viewBox="0 0 120 120" role="img" aria-label="Calorie ${Math.round(pK*100)}%, proteine ${Math.round(pP*100)}%, allenamento ${done?"fatto":rest?"riposo":planned?"da fare":"non previsto"}">${ring(50,"#3BAA1E",pK)}${ring(37,"#1EA7E0",pP)}${ring(24,"#9B5CF6",pW)}</svg>`;
+  // composizione corporea
+  const se=sortedEntries(), rows=$("dBodyRows"); rows.innerHTML="";
+  const defs=[["weight","kg","#3BAA1E","⚖️"],["muscle","kg","#F07A3A","💪"],["fat","%","#7CC242","◔"]];
+  let any=false;
+  defs.forEach(([k,u,col,ic])=>{
+    const vals=se.filter(x=>x[k]!=null).map(x=>+x[k]); if(!vals.length) return; any=true;
+    const v=vals[vals.length-1], prev=vals.length>1? vals[vals.length-2] : null, dlt= prev==null? "" : (v-prev>0?"+":v-prev<0?"−":"")+(Math.round(Math.abs(v-prev)*10)/10).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1});
+    const row=el("div","row"); row.innerHTML=`<span class="ic" style="background:${col}">${ic}</span><span class="v num">${fmt(v)}<small>${u}</small>${dlt?`<em>${dlt}</em>`:""}</span><span>${spark(vals.slice(-10),col)}</span>`;
+    rows.appendChild(row);
+  });
+  if(!any) rows.appendChild(el("p","none","Carica lo screenshot della tua bilancia smart: peso, muscoli e grasso compaiono qui."));
+}
+/* ---------- ordine dei riquadri della home (tieni premuto e trascina) ---------- */
+const TILES=[["hero","dHero"],["food","dFood"],["act","dAct"],["body","dBody"],["summary","summary"],["progress","progCard"],["event","eventCard"],["coach","coach"],["meals","meals"]];
+const HALF=["food","act"], DEF_ORDER=TILES.map(t=>t[0]);
+let homeOrder=[...DEF_ORDER]; var editMode=false;
+(function initHomeGrid(){
+  const g=$("dash");
+  TILES.forEach(([k,id])=>{ const n=$(id); n.dataset.tile=k; n.classList.add("tile",HALF.includes(k)?"half":"full"); g.appendChild(n); });
+  g.querySelectorAll(".dgrid").forEach(x=>x.remove());
+})();
+function applyHomeOrder(order){
+  const valid=(order||[]).filter(k=>DEF_ORDER.includes(k));
+  homeOrder=[...valid,...DEF_ORDER.filter(k=>!valid.includes(k))];
+  const g=$("dash"); homeOrder.forEach(k=>{ const n=g.querySelector(`[data-tile="${k}"]`); if(n) g.appendChild(n); });
+}
+function saveHomeOrder(){ homeOrder=[...$("dash").querySelectorAll(".tile")].map(n=>n.dataset.tile); save("homeLayout",{order:homeOrder}); }
+function setEdit(on){
+  editMode=on; $("dash").classList.toggle("editing",on); $("editBar").hidden=!on;
+  if(on){ if(navigator.vibrate) navigator.vibrate(25); } else saveHomeOrder();
+}
+$("editDone").onclick=()=>{ setEdit(false); toast("Ordine salvato"); };
+$("editReset").onclick=()=>{ applyHomeOrder(DEF_ORDER); saveHomeOrder(); toast("Ordine predefinito ripristinato"); };
+(function dragSetup(){
+  const g=$("dash"); let lp=null, drag=null;
+  const pt=e=>{ const t=e.touches?e.touches[0]||e.changedTouches[0]:e; return {x:t.clientX,y:t.clientY}; };
+  function start(e){
+    if(e.button>0) return;
+    const tile=e.target.closest(".tile"); if(!tile||!g.contains(tile)) return;
+    if(!editMode && e.target.closest("input,textarea,select")) return;
+    const p=pt(e); clearTimeout(lp&&lp.timer);
+    lp={tile,x:p.x,y:p.y,timer:setTimeout(()=>{ if(!lp) return; begin(lp.tile,{x:lp.x,y:lp.y}); lp=null; }, editMode?160:480)};
+  }
+  function begin(tile,p){
+    if(!editMode) setEdit(true); else if(navigator.vibrate) navigator.vibrate(15);
+    const r0=tile.getBoundingClientRect(); drag={tile,offX:p.x-r0.left,offY:p.y-r0.top};
+    tile.classList.add("lifted"); place(p);
+  }
+  function place(p){
+    const t=drag.tile; t.style.transform=""; const r0=t.getBoundingClientRect();
+    t.style.transform=`translate(${p.x-drag.offX-r0.left}px,${p.y-drag.offY-r0.top}px) scale(1.03)`;
+  }
+  function move(e){
+    const p=pt(e);
+    if(lp && !drag){ if(Math.hypot(p.x-lp.x,p.y-lp.y)>10){ clearTimeout(lp.timer); lp=null; } return; }
+    if(!drag) return; if(e.cancelable) e.preventDefault();
+    const t=drag.tile; t.style.visibility="hidden";
+    const under=document.elementFromPoint(p.x,p.y); t.style.visibility="";
+    const tg=under&&under.closest(".tile");
+    if(tg&&tg!==t&&g.contains(tg)){
+      const r=tg.getBoundingClientRect(), half=tg.classList.contains("half")&&t.classList.contains("half");
+      const after= half? p.x>r.left+r.width/2 : p.y>r.top+r.height/2;
+      if(after){ if(tg.nextSibling!==t) g.insertBefore(t,tg.nextSibling); } else if(tg.previousSibling!==t) g.insertBefore(t,tg);
+    }
+    if(p.y<90) window.scrollBy(0,-14); else if(p.y>innerHeight-130) window.scrollBy(0,14);
+    place(p);
+  }
+  function end(){
+    if(lp){ clearTimeout(lp.timer); lp=null; }
+    if(drag){ const t=drag.tile; t.classList.remove("lifted"); t.style.transform=""; drag=null; saveHomeOrder(); suppressClick=Date.now(); }
+  }
+  let suppressClick=0;
+  g.addEventListener("touchstart",start,{passive:true});
+  g.addEventListener("mousedown",start);
+  document.addEventListener("touchmove",move,{passive:false});
+  document.addEventListener("mousemove",e=>{ if(lp||drag) move(e); });
+  ["touchend","touchcancel","mouseup"].forEach(ev=>document.addEventListener(ev,end));
+  g.addEventListener("contextmenu",e=>{ if(editMode||lp||drag) e.preventDefault(); });
+  g.addEventListener("click",e=>{ if(editMode||Date.now()-suppressClick<400){ e.preventDefault(); e.stopPropagation(); } },true);
+})();
+$("dHero").onclick=()=>go("allenamento");
+$("dFood").onclick=()=>{ const m=$("meals"); if(m) m.scrollIntoView({behavior:"smooth",block:"start"}); };
+$("dAct").onclick=()=>$("summary").scrollIntoView({behavior:"smooth",block:"start"});
+$("dBody").onclick=()=>go("corpo");
+function renderAll(){ document.body.classList.toggle("home",view==="diario"); renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento") renderWorkouts(); if(view==="corpo") renderBody(); }
 renderAll();
 async function loadAll(){
-  const fd=await store.getDoc("foods"); foods={favs:(fd&&fd.favs)||[],recents:(fd&&fd.recents)||[],saved:(fd&&fd.saved)||[],barcodes:(fd&&fd.barcodes)||{}};
+  const hl=await store.getDoc("homeLayout"); applyHomeOrder(hl&&hl.order);
+  const fd=await store.getDoc("foods"); foods={favs:(fd&&fd.favs)||[],recents:(fd&&fd.recents)||[],saved:(fd&&fd.saved)||[],barcodes:(fd&&fd.barcodes)||{},custom:(fd&&fd.custom)||[]};
   const [p,diet,prog,ch]=await Promise.all([store.getDoc("profile"),store.getDoc("diet"),store.getDoc("program"),store.getDoc("coach")]);
   if(ch&&Array.isArray(ch.turns)) chat=ch;
   const bd=await store.getDoc("body"); if(bd&&Array.isArray(bd.entries)) body=bd;
@@ -2773,6 +3125,7 @@ async function loadAll(){
   refreshProgress().catch(()=>{});
 }
 (async()=>{
+  try{ history.replaceState({v:"diario"},""); }catch{}
   await initSync(); renderSync();
   try{ if(window.claude){ sample=await claude.use("sample"); if(sample){ const lim=await sample.limits().catch(()=>null); imgLimits=(lim&&lim.images)||null; } } }catch{}
   await loadAll();
