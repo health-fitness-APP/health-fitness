@@ -559,6 +559,29 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 #d-plan.has-diet #dietAiCard{order:-2}
 #dietMore{display:none;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin:22px 4px 0}
 #d-plan.has-diet #dietMore{display:block}
+.restchip{display:inline-block;margin-top:4px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:.78rem;font-weight:600;cursor:pointer}
+button.rchip{font:inherit;font-size:.78rem;font-weight:600;cursor:pointer}
+.restin{width:4.2em;text-align:center;font:inherit;font-size:1.4rem;font-weight:800;padding:6px;border:1px solid var(--line);border-radius:12px;background:var(--surface-solid);color:var(--ink)}
+details.areg summary{list-style:none;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+details.areg summary::-webkit-details-marker{display:none}
+details.areg .chev{color:var(--muted);font-size:1.3rem;transition:transform .2s}
+details.areg[open] .chev{transform:rotate(90deg)}
+details.areg #wAddCard{margin-top:12px}
+.dgoal{margin-top:6px;font-size:.95rem}
+.dgoal.ok b{color:var(--basil)}
+.dgoal.off b{color:var(--warn)}
+.dnote{font-size:.8rem;color:var(--muted);margin-top:4px}
+.adtoday{margin-top:10px}
+.tut-top{display:flex;gap:14px;align-items:center}
+.tut-fig{flex:none;width:160px;background:var(--surface2);border-radius:18px;padding:8px}
+.tut-meta{display:grid;gap:6px;font-size:.9rem}
+.tut-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 6px}
+.tut-acts .btn{padding:12px 6px;font-size:.9rem;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
+.tut-guide h4{margin:14px 0 4px;font-size:1rem}
+.tut-guide ol,.tut-guide ul{margin:0;padding-left:20px;line-height:1.5}
+.tut-guide p{margin:4px 0;line-height:1.5}
+.tut-sum{font-weight:600}
+.sx-more.tut{color:var(--basil);font-size:1rem}
 .plan-meal{border-top:1px solid var(--line);padding:12px 0}
 .plan-meal:first-child{border-top:0;padding-top:4px}
 .plan-meal .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
@@ -594,7 +617,10 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .propose ul{margin:0 0 10px;padding-left:18px;font-size:.9rem}
 .propose .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .propose .done{font-size:.88rem;color:var(--muted)}
-.chatlog{display:grid;gap:2px;max-height:55vh;overflow-y:auto;margin:6px 0 10px}
+.chatlog{display:grid;gap:2px;margin:6px 0 10px}
+#w-chat .stack{position:sticky;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:5;background:var(--surface-solid);border-radius:16px;padding:8px;box-shadow:0 -6px 18px rgba(0,0,0,.06)}
+#w-chat{padding-bottom:20px}
+.chatlog>*{scroll-margin-bottom:250px}
 .sug h4{margin:4px 0 2px;font-family:"Bricolage Grotesque",sans-serif;font-size:1.1rem}
 .prep{font-size:.9rem;white-space:pre-wrap;margin:0 0 12px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 10px}
@@ -762,8 +788,9 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <div class="center"><div class="big num" id="remain">–</div><div class="lbl" id="remainLbl">kcal rimanenti</div></div>
     </div>
     <div class="eq">
-      <div class="row"><span id="eqTargetLbl">Base del giorno</span><b id="eqTarget">–</b></div>
+      <div class="row"><span id="eqTargetLbl">Fabbisogno senza allenamenti</span><b id="eqTarget">–</b></div>
       <div class="row"><span id="eqBurnLbl">Allenamenti</span><b id="eqBurn">+0</b></div>
+      <div class="row" id="eqPreRow" hidden><span id="eqPreLbl">Carboidrati per domani</span><b id="eqPre">+0</b></div>
       <div class="row"><span>Mangiate</span><b id="eqEaten">0</b></div>
       <div class="row"><span id="goalName" style="color:var(--basil);font-weight:600"></span></div>
       <p class="note" id="burnSrc" hidden style="margin:6px 0 0"></p>
@@ -846,10 +873,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     </div>
     <div class="status" id="aTellStatus" aria-live="polite"></div>
   </section>
-  <section class="card">
+  <section class="card" id="aWCard" hidden>
     <div class="meal-head"><h2>Allenamenti</h2><button class="add" id="aAddW">+ Registra</button></div>
     <ul class="wlist" id="aWorkouts" style="list-style:none;margin:0;padding:0"></ul>
   </section>
+  <div id="aRegSlot"></div>
+  <details class="card areg" id="aAddWrap"><summary><b>✎ Aggiungi a mano o da screenshot dell'orologio</b><span class="chev">›</span></summary><div id="aAddSlot"></div></details>
+  <div id="aHistSlot"></div>
   <section class="card">
     <h2>Importa dal telefono o dall'orologio</h2>
     <p class="sub">Fai uno screenshot della pagina "Attività di oggi" di Samsung Health (o di un'altra app): leggo passi, minuti, calorie e distanza.</p>
@@ -996,7 +1026,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <header class="top"><h1>Allenamento</h1></header>
   <button class="live-banner" id="liveBanner" type="button" hidden></button>
   <div class="seg" role="tablist">
-    <button role="tab" data-w="oggi" aria-selected="true">Registro</button>
+
     <button role="tab" data-w="programma" aria-selected="false">Programma</button>
     <button role="tab" data-w="chat" aria-selected="false">Coach</button>
     <button role="tab" data-w="coach" aria-selected="false">Tecnica</button>
@@ -1008,13 +1038,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="daypick" id="rDayPick" aria-label="Scegli il giorno dal calendario"><h1 id="rDayLabel">Oggi</h1></button>
       <button class="icon-btn" id="rNext" aria-label="Giorno successivo">›</button>
     </div>
-    <section class="card">
+    <section class="card" id="wTodayCard">
       <h2 id="wDayTitle">Allenamenti di oggi</h2>
       <p class="sub" id="wDaySub">Le calorie bruciate si aggiungono al fabbisogno del giorno nel diario.</p>
       <ul class="items" id="wList"></ul>
       <p class="empty" id="wEmpty">Nessun allenamento registrato.</p>
     </section>
-    <section class="card">
+    <section class="card" id="wAddCard">
       <h2>Aggiungi allenamento</h2>
       <div class="form" style="margin-top:8px">
         <label>Attività<select id="wAct"></select></label>
@@ -1050,7 +1080,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         <div class="status" id="wAiStatus" aria-live="polite"></div>
       </div>
     </section>
-    <section class="card">
+    <section class="card" id="wHistCard">
       <h2>Il tuo storico</h2>
       <p class="sub">Tutti gli allenamenti registrati: corse, palestra, schede, sport.</p>
       <div class="chips" id="hPeriod"></div>
@@ -1397,7 +1427,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.58 (correzioni Corpo, ordine dieta, circuito automatico)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.65 (codice a barre: aggiungi prodotto)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -1434,12 +1464,19 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <label>Nome<input class="field" id="cirName" placeholder="Es. Circuito corpo libero"></label>
       <label>Esercizi e ripetizioni del primo giro (uno per riga)
         <textarea id="cirEx" rows="5" placeholder="Pull-up 1&#10;Dip 2&#10;Push-up 3&#10;Sit-up 4&#10;Air squat 5"></textarea></label>
-      <div class="two"><label>Fino al giro<input class="field" id="cirPeak" inputmode="numeric" value="6"></label><label>Riposo tra i giri (s)<input class="field" id="cirRest" inputmode="numeric" value="90"></label></div>
+      <div class="two"><label>Fino al giro<input class="field" id="cirPeak" inputmode="numeric" value="6"></label><label>Riposo tra i giri (s o m:ss)<input class="field" id="cirRest" value="90"></label></div>
       <label class="chk"><input type="checkbox" id="cirBack" checked> Andata e ritorno (poi si scende fino al primo giro)</label>
       <label>Giorno della settimana<select class="field" id="cirWd"><option value="1">Lunedì</option><option value="2">Martedì</option><option value="3">Mercoledì</option><option value="4">Giovedì</option><option value="5">Venerdì</option><option value="6">Sabato</option><option value="0">Domenica</option></select></label>
       <p class="note" id="cirPreview"></p>
       <button class="btn" id="cirSave" type="button">Crea il circuito</button>
     </div>
+  </div>
+</div>
+<div class="sheet" id="tutSheet" role="dialog" aria-modal="true" aria-labelledby="tutTitle">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="tutTitle">Esercizio</h3>
+    <div id="tutBody"></div>
   </div>
 </div>
 <div class="sheet" id="sesExitSheet" role="dialog" aria-modal="true" aria-labelledby="sesExitTitle">
@@ -1522,10 +1559,12 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         <video id="scanVideo" playsinline muted></video>
         <p class="note" id="scanHint">Inquadra il codice a barre della confezione.</p>
         <div style="display:flex;gap:8px"><input class="field" id="scanCode" inputmode="numeric" placeholder="oppure scrivi le cifre" style="flex:1"><button class="btn" id="scanLookup" style="width:auto">Cerca</button></div>
-        <button class="btn ghost" id="scanStop">Chiudi fotocamera</button>
+        <div class="two"><button class="btn ghost" id="scanPhoto" type="button">📷 Foto del codice</button><button class="btn ghost" id="scanStop">Chiudi fotocamera</button></div>
       </div>
       <input type="file" id="labelInput" accept="image/*" hidden>
-      <button class="btn ghost" id="labelBtn" hidden>📷 Fotografa la tabella nutrizionale</button>
+      <input type="file" id="labelCam" accept="image/*" capture="environment" hidden>
+      <input type="file" id="codeCam" accept="image/*" capture="environment" hidden>
+      <div class="two" id="labelBtns" hidden><button class="btn" id="labelBtn" type="button">📷 Fotografa la tabella</button><button class="btn ghost" id="labelGal" type="button">🖼️ Dalla galleria</button></div>
       <ul class="results" id="results"></ul>
       <button class="btn ghost" id="aiSearch">Calcola con l'AI quello che hai scritto</button>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px">
@@ -1873,14 +1912,19 @@ function plannedBurn(){
   const real=rb.n>=3, kpm= real? rb.kpm : 5*w/60;     // base: MET 5 (allenamento moderato)
   return {kcal:Math.round(kpm*minutes*f/10)*10, minutes, real, n:rb.n};
 }
+/* il giorno prima di una seduta impegnativa: un po' di carboidrati in più per arrivarci carichi */
+function preloadFor(iso){
+  try{ const nx=shiftDate(iso,1), wd=new Date(nx+"T12:00:00").getDay(), dp=dayPlanFor(wd);
+    if(!dp||dp.kind==="rest"||dp.kcal<400) return {kcal:0,label:""};
+    return {kcal:Math.round(Math.min(300,dp.kcal*0.25)/10)*10, label:dp.label}; }catch{ return {kcal:0,label:""}; } }
 function dayTargets(){
   const pb=plannedBurn(), burn=workoutKcal()||(pb?pb.kcal:0);
   const d=upDayFor(state.date);
   if(d){ const t=upDayTotals(d);
     if(t.kcal>300) return {kcal:t.kcal,prot:t.p,carb:t.c,fat:t.f,burn,goal:t.kcal,P:t.p,C:t.c,F:t.f,fromDiet:true}; }
   const tg=targets(state.profile); if(!tg) return null;
-  const goal=tg.kcal+burn, k=goal/tg.kcal;
-  return {...tg, burn, goal, planned:!workoutKcal()&&pb?pb:null, P:tg.prot, C:tg.carb+burn*0.85/4, F:tg.fat+burn*0.15/9};
+  const pre=preloadFor(state.date), goal=tg.kcal+burn+pre.kcal;
+  return {...tg, burn, pre:pre.kcal, preLabel:pre.label, goal, planned:!workoutKcal()&&pb?pb:null, P:tg.prot, C:tg.carb+burn*0.85/4+pre.kcal/4, F:tg.fat+burn*0.15/9};
 }
 const WD=["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"], WD_ORDER=[1,2,3,4,5,6,0];
 const FED={digiuno:"a digiuno",leggero:"dopo un pasto leggero",abbondante:"dopo un pasto abbondante",pasto:"dopo aver mangiato"};
@@ -1942,7 +1986,7 @@ function go(v,fromHistory){
   renderAll();
 }
 document.querySelectorAll("nav.tabbar button").forEach(b=>b.onclick=()=>go(b.dataset.v));
-$("goWorkout").onclick=()=>{ go("allenamento"); setW("oggi"); };
+$("goWorkout").onclick=()=>{ go("attivita"); setTimeout(()=>{ $("aTellCard").scrollIntoView({behavior:"smooth",block:"start"}); },150); };
 
 /* ================= DIARIO ================= */
 function renderDiary(){
@@ -1953,7 +1997,7 @@ function renderDiary(){
   const dt=dayTargets(), t=totals();
   const g=goalOf(state.profile); $("goalName").textContent = upActive()? "Segui la dieta caricata (allenamenti non sommati)" : g? "Obiettivo: "+(state.profile.customGoal&&state.profile.customGoal.active? state.profile.customGoal.title : g.t.toLowerCase()) : "";
   $("eqTarget").textContent = dt? r(dt.kcal):"–";
-  $("eqTargetLbl").textContent = dt&&dt.fromDiet? "Dalla tua dieta" : "Base del giorno";
+  $("eqTargetLbl").textContent = dt&&dt.fromDiet? "Dalla tua dieta" : "Fabbisogno senza allenamenti";
   const pl=dt&&dt.planned, real=workoutKcal();
   $("eqBurnLbl").textContent = real? "Allenamenti fatti" : pl? "Allenamento previsto" : "Allenamenti";
   $("eqBurn").textContent = "+"+r(real||(pl&&!(dt&&dt.fromDiet)?pl.kcal:0));
@@ -1963,6 +2007,7 @@ function renderDiary(){
   else if(pl){ bs.hidden=false; bs.textContent=`Stima per ~${pl.minutes} min: `+(pl.real? `basata sulla media reale dei tuoi ultimi ${pl.n} allenamenti.` : "stima di base, diventa più precisa man mano che registri gli allenamenti.")+" Quando registri l'allenamento, uso il dato vero."; }
   else bs.hidden=true;
   $("eqEaten").textContent = r(t.kcal);
+  { const pre=dt&&!dt.fromDiet? dt.pre||0 : 0; $("eqPreRow").hidden=!pre; if(pre){ $("eqPre").textContent="+"+r(pre); $("eqPreLbl").textContent="Carico per domani"; $("eqPreRow").title="Carboidrati in più per arrivare carico a: "+(dt.preLabel||"l'allenamento di domani"); } }
   const remain = dt? dt.goal-t.kcal : 0;
   $("remain").textContent = dt? r(Math.abs(remain)) : "–";
   $("remainLbl").textContent = !dt? "completa il profilo" : remain>=0? "kcal rimanenti":"kcal oltre l'obiettivo";
@@ -2161,8 +2206,9 @@ function openAdd(m){
   resetPhoto(); resetSearch(); resetSuggest(); const canImg=!!imgLimits; $("tabPhoto").hidden=!canImg; $("tabSuggest").hidden=!sample;
   quickPicked=[]; $("quickPickedBox").hidden=true; renderQuick();
   setTab(hasQuick()? "quick" : canImg?"photo":"search"); $("aiSearch").hidden=!sample; openSheet("addSheet");
+  requestAnimationFrame(()=>{ $("addSheet").scrollTop=0; });
 }
-function setTab(t){ if(t!=="search") stopScan(); [["quick","Quick"],["photo","Photo"],["search","Search"],["suggest","Suggest"]].forEach(([k,K])=>{ $("tab"+K).setAttribute("aria-selected",t===k); $("pane"+K).hidden=t!==k; }); }
+function setTab(t){ if(t!=="search") stopScan(); try{ $("addSheet").scrollTop=0; }catch{} [["quick","Quick"],["photo","Photo"],["search","Search"],["suggest","Suggest"]].forEach(([k,K])=>{ $("tab"+K).setAttribute("aria-selected",t===k); $("pane"+K).hidden=t!==k; }); }
 $("tabSuggest").onclick=()=>setTab("suggest");
 $("tabPhoto").onclick=()=>setTab("photo"); $("tabSearch").onclick=()=>{ setTab("search"); setTimeout(()=>$("q").focus(),50); };
 
@@ -2320,7 +2366,7 @@ $("nfSave").onclick=async()=>{
     $("nfSave").disabled=false;
   }
   const e={key:fkey(name),name:name.slice(0,80),grams:Math.round(g),per:{kcal:k/100,p:(p||0)/100,c:(c||0)/100,f:(f||0)/100},custom:true};
-  foods.custom=[e,...foods.custom.filter(x=>x.key!==e.key)]; saveFoods();
+  foods.custom=[e,...foods.custom.filter(x=>x.key!==e.key)]; if(newFoodCode){ foods.barcodes[newFoodCode]={...e,serving:null}; newFoodCode=""; } saveFoods();
   pickedItems.push(itemFromEntry(e)); renderFound($("picked"),pickedItems); $("pickedBox").hidden=false;
   ["nfName","nfK","nfG","nfP","nfC","nfF"].forEach(id=>$(id).value=""); $("newFoodBox").hidden=true;
   setStatus("searchStatus",`“${e.name}” salvato tra i tuoi alimenti: lo ritrovi cercandolo. Ora controlla i grammi e aggiungi.`);
@@ -2412,7 +2458,7 @@ $("quickMan").onclick=()=>{ setTab("search"); $("manBox").hidden=false; $("newFo
 
 /* ----- codice a barre (Open Food Facts) ----- */
 let scanStream=null, scanTimer=null, zxReader=null, scanBusy=false;
-function stopScan(){
+function stopScan(){ clearTimeout(startScan.hintT);
   clearInterval(scanTimer); scanTimer=null;
   if(zxReader){ try{ zxReader.reset(); }catch{} zxReader=null; }
   if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
@@ -2420,13 +2466,14 @@ function stopScan(){
 }
 function loadScript(src){ return new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=src; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
 async function startScan(){
-  $("scanBox").hidden=false; $("labelBtn").hidden=true; $("scanCode").value=""; setStatus("searchStatus","");
+  $("scanBox").hidden=false; $("labelBtns").hidden=true; $("scanCode").value=""; setStatus("searchStatus","");
   $("scanHint").textContent="Inquadra il codice a barre della confezione.";
   const v=$("scanVideo");
   try{
     if("BarcodeDetector" in window){
       const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
-      scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+      scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720},advanced:[{focusMode:"continuous"}]},audio:false});
+      clearTimeout(startScan.hintT); startScan.hintT=setTimeout(()=>{ if(scanStream) $("scanHint").textContent="Non riesco a leggerlo: avvicinati (10-15 cm), metti più luce, oppure usa “📷 Foto del codice” o scrivi le cifre qui sotto."; },10000);
       v.srcObject=scanStream; await v.play();
       scanTimer=setInterval(async()=>{ if(scanBusy||v.readyState<2) return; scanBusy=true;
         try{ const c=await det.detect(v); if(c&&c.length){ const code=c[0].rawValue; stopScan(); lookupBarcode(code); } }catch{} finally{ scanBusy=false; } },350);
@@ -2443,7 +2490,7 @@ async function startScan(){
 let pendingCode="";
 async function lookupBarcode(code){
   code=String(code||"").replace(/\D/g,""); if(code.length<6){ setStatus("searchStatus","Codice non valido.",true); return; }
-  pendingCode=code; setTab("search"); $("labelBtn").hidden=true;
+  pendingCode=code; setTab("search"); $("labelBtns").hidden=true;
   const cached=foods.barcodes[code];
   if(cached){ pickedItems.push(withPortions(itemFromEntry(cached),cached)); renderFound($("picked"),pickedItems); $("pickedBox").hidden=false; setStatus("searchStatus","Trovato: "+cached.name+". Controlla i grammi e aggiungi."); return; }
   setStatus("searchStatus","Cerco il prodotto "+code+"…");
@@ -2458,14 +2505,29 @@ async function lookupBarcode(code){
     pickedItems.push(withPortions(itemFromEntry(e),e)); renderFound($("picked"),pickedItems); $("pickedBox").hidden=false;
     setStatus("searchStatus","Trovato: "+name+". "+(p.serving_quantity?"Porzione indicata: "+e.grams+" g.":"Ho messo 100 g: correggi se serve."));
   }catch(err){
-    setStatus("searchStatus", err&&err.code==="notfound"? "Prodotto non presente nel database. Fotografa la tabella nutrizionale: la leggo e lo ricordo per la prossima volta." : "Non riesco a cercare il prodotto: controlla la connessione.", err&&err.code!=="notfound");
-    $("labelBtn").hidden=!(err&&err.code==="notfound"&&imgLimits);
+    if(err&&err.code==="notfound"){
+      setStatus("searchStatus","Prodotto "+code+" non trovato nel database.",true);
+      $("labelBtns").hidden=!imgLimits; $("labelBtns").scrollIntoView({behavior:"smooth",block:"center"});
+      setTimeout(()=>{
+        if(imgLimits&&confirm("Non trovo questo prodotto nel database.\n\nVuoi aggiungerlo? Fotografi la tabella nutrizionale e lo salvo: la prossima volta basterà il codice a barre.")) $("labelCam").click();
+        else if(confirm("Vuoi inserire i valori a mano (kcal e macro per 100 g)?")){ $("newFoodBox").hidden=false; $("manBox").hidden=true; $("nfName").value=""; $("nfName").focus(); newFoodCode=code; setStatus("searchStatus","Scrivi nome e valori per 100 g: lo collego al codice "+code+"."); }
+      },150);
+    } else setStatus("searchStatus","Non riesco a cercare il prodotto: controlla la connessione.",true);
   }
 }
+let newFoodCode="";
 $("scanBtn").onclick=()=>{ if(!$("scanBox").hidden) stopScan(); else startScan(); };
 $("scanStop").onclick=stopScan;
 $("scanLookup").onclick=()=>{ const c=$("scanCode").value; stopScan(); lookupBarcode(c); };
-$("labelBtn").onclick=()=>$("labelInput").click();
+$("labelBtn").onclick=()=>$("labelCam").click(); $("labelGal").onclick=()=>$("labelInput").click();
+$("labelCam").onchange=e=>{ const f=e.target.files[0]; $("labelCam").value=""; if(f) $("labelInput").onchange({target:{files:[f]}}); };
+$("scanPhoto").onclick=()=>$("codeCam").click();
+$("codeCam").onchange=async e=>{ const f=e.target.files[0]; $("codeCam").value=""; if(!f) return; stopScan(); setStatus("searchStatus","Leggo il codice dalla foto…");
+  try{ let code="";
+    if("BarcodeDetector" in window){ try{ const bmp=await createImageBitmap(f); const r0=await new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]}).detect(bmp); if(r0&&r0.length) code=r0[0].rawValue; }catch{} }
+    if(!code&&sample){ const blob=await shrinkFile(f,1400); const r1=await sample.json(`Nella foto c'è un codice a barre di un prodotto alimentare. Leggi le cifre stampate sotto le barre (8 o 13 cifre). Rispondi SOLO con JSON: {"code":"cifre"} oppure {"code":null}.`,{images:[blob],modelTier:"quick"}); code=String(r1&&r1.code||"").replace(/\D/g,""); }
+    if(code.length>=8) lookupBarcode(code); else setStatus("searchStatus","Non riesco a leggere il codice: scrivi le cifre a mano.",true);
+  }catch(err){ setStatus("searchStatus",errCopy(err),true); } };
 $("labelInput").onchange=async e=>{
   const file=e.target.files[0]; if(!file) return; $("labelBtn").disabled=true; setStatus("searchStatus","Leggo l'etichetta…");
   try{
@@ -2473,10 +2535,10 @@ $("labelInput").onchange=async e=>{
     const res=await sample.json(`Leggi la tabella nutrizionale di questa confezione. Riporta i valori PER 100 g (o 100 ml). Se c'è anche il nome del prodotto o la porzione consigliata, indicali.
 Rispondi SOLO con JSON: {"name":"string","serving_g":number|null,"kcal":number,"p":number,"c":number,"f":number}. Se non leggi la tabella: {"error":"motivo"}.`,{images:[blob]});
     if(!res||res.error||res.kcal==null) throw {code:"bad_output",message:res&&res.error};
-    const name=String(res.name||"Prodotto "+pendingCode).slice(0,80);
+    let name=String(res.name||"").trim(); if(!name){ name=(prompt("Ho letto i valori. Come si chiama il prodotto?","")||"").trim()||("Prodotto "+pendingCode); } name=name.slice(0,80);
     const e2={key:fkey(name),name,serving:Math.round(+res.serving_g||0)||null,grams:Math.round(+res.serving_g||100),per:{kcal:+res.kcal/100,p:(+res.p||0)/100,c:(+res.c||0)/100,f:(+res.f||0)/100}};
     if(pendingCode){ foods.barcodes[pendingCode]=e2; saveFoods(); }
-    pickedItems.push(withPortions(itemFromEntry(e2),e2)); renderFound($("picked"),pickedItems); $("pickedBox").hidden=false; $("labelBtn").hidden=true;
+    pickedItems.push(withPortions(itemFromEntry(e2),e2)); renderFound($("picked"),pickedItems); $("pickedBox").hidden=false; $("labelBtns").hidden=true; $("pickedBox").scrollIntoView({behavior:"smooth",block:"center"});
     setStatus("searchStatus","Fatto: "+name+" salvato. La prossima volta basta il codice a barre.");
   }catch(err){ setStatus("searchStatus",(err&&err.message)||errCopy(err),true); }
   finally{ $("labelBtn").disabled=false; $("labelInput").value=""; }
@@ -2603,8 +2665,9 @@ function weekTargets(){
   const p=state.profile, rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*((+p.weight)||70)/60;
   return WD_ORDER.map(wd=>{
     const dp=dayPlanFor(wd), min=dp.minutes, when=dp.when;
-    const burn=Math.round(dp.kcal/10)*10, goal=tg.kcal+burn;
-    return {wd, name:WD_NAME[wd], train:dp.kind!=="rest", kind:dp.kind, label:dp.label, min, when, kcal:Math.round(goal), p:Math.round(tg.prot), c:Math.round(tg.carb+burn*0.85/4), f:Math.round(tg.fat+burn*0.15/9)};   // le kcal in più vanno soprattutto in carboidrati
+    const nx=dayPlanFor((wd+1)%7), pre= nx&&nx.kind!=="rest"&&nx.kcal>=400? Math.round(Math.min(300,nx.kcal*0.25)/10)*10 : 0;
+    const burn=Math.round(dp.kcal/10)*10, goal=tg.kcal+burn+pre;
+    return {wd, name:WD_NAME[wd], train:dp.kind!=="rest", kind:dp.kind, label:dp.label, min, when, pre, preLabel:pre? nx.label : "", kcal:Math.round(goal), p:Math.round(tg.prot), c:Math.round(tg.carb+burn*0.85/4+pre/4), f:Math.round(tg.fat+burn*0.15/9)};   // le kcal in più vanno soprattutto in carboidrati
   });
 }
 /* l'AI sbaglia spesso le somme: ricalibro io le porzioni perché ogni giorno arrivi esattamente all'obiettivo */
@@ -2653,7 +2716,10 @@ function renderDietAI(){
   if(!days.length) return;
   const todayWd=new Date(state.date+"T12:00:00").getDay();
   if(dietDayIdx==null||!days[dietDayIdx]){ const i=days.findIndex(d=>d.weekday===todayWd); dietDayIdx= i>=0? i : 0; }
-  const tgtOf=d=> wt&&wt.find(x=>x.wd===d.weekday) || (tg? {kcal:tg.kcal,p:tg.prot,c:tg.carb,f:tg.fat,train:false} : null);
+  const curWd=new Date(todayISO()+"T12:00:00").getDay();
+  const liveT=(()=>{ if(state.date!==todayISO()) return null; try{ const dt=dayTargets(); if(!dt||dt.fromDiet) return null; const base=wt&&wt.find(x=>x.wd===curWd);
+    return {...(base||{}), kcal:Math.round(dt.goal), p:Math.round(dt.P), c:Math.round(dt.C), f:Math.round(dt.F), live:true, pre:dt.pre||0, preLabel:dt.preLabel||"", burnReal:Math.round(workoutKcal()), burnPlan:base? Math.round(base.kcal-tg.kcal-(base.pre||0)) : 0}; }catch{ return null; } })();
+  const tgtOf=d=> (liveT&&d.weekday===curWd)? liveT : (wt&&wt.find(x=>x.wd===d.weekday) || (tg? {kcal:tg.kcal,p:tg.prot,c:tg.carb,f:tg.fat,train:false} : null));
   // settimana
   const wk=$("dietWeek"); wk.innerHTML="";
   days.forEach((d,i)=>{ const t=sumMeals(d.meals), tt=tgtOf(d), b=el("button");
@@ -2662,11 +2728,26 @@ function renderDietAI(){
     b.setAttribute("aria-pressed",i===dietDayIdx); b.setAttribute("aria-label",(d.label||WD_NAME[d.weekday]||"Giorno "+(i+1))+", "+r(t.kcal)+" kcal");
     b.onclick=()=>{ dietDayIdx=i; renderDietAI(); }; wk.appendChild(b); });
   // giorno selezionato
+  // oggi: il piano segue sempre l'obiettivo di Cibo (allenamento reale di oggi + quello di domani)
+  if(liveT){ const iT=days.findIndex(x=>x.weekday===curWd);
+    if(iT>=0){ const td=days[iT], tot=sumMeals(td.meals).kcal, key=todayISO()+"|"+liveT.kcal;
+      if(Math.abs(tot-liveT.kcal)/liveT.kcal>0.03&&td.syncedFor!==key){
+        const eatenIds=mealList().filter(m=>(state.day.meals[m.id]||[]).length).map(m=>m.id), tE=totals();
+        const rest=td.meals.filter(m=>!eatenIds.includes(m.id)), doneM=td.meals.filter(m=>eatenIds.includes(m.id)), doneK=sumMeals(doneM);
+        const tgtRest={kcal:Math.max(0,liveT.kcal-(eatenIds.length? Math.max(tE.kcal,doneK.kcal) : 0)), p:Math.max(0,liveT.p-(eatenIds.length? Math.max(tE.p,doneK.p) : 0))};
+        const cal=rest.length? calibrateMeals(rest,tgtRest) : [];
+        days[iT]={...td, meals:td.meals.map(m=>cal.find(x=>x.id===m.id)||m), syncedFor:key};
+        state.diet.plan={...state.diet.plan, days}; save("diet",state.diet);
+      } } }
   const d=days[dietDayIdx], t=sumMeals(d.meals), tt=tgtOf(d), name=d.label||WD_NAME[d.weekday]||"Giorno";
   const bar=(v,tv,col)=>`<div class="bar"><i style="width:${tv?Math.min(100,v/tv*100):0}%;background:${col}"></i></div>`;
   const ds=$("dietDay"); ds.innerHTML=`<div class="dsum">
     <div class="top"><span class="day"></span><span class="kind">${tt&&tt.train? (tt.kind==="run"?"🏃 ":"🏋️ ")+(tt.label||"giorno di allenamento")+(tt.when?" · "+tt.when:"") : "giorno di riposo"}</span></div>
-    <div class="kc num">${r(t.kcal).toLocaleString("it-IT")} kcal<small>${tt? (Math.abs(t.kcal-tt.kcal)/tt.kcal<=0.03? "✓ in linea con il tuo obiettivo del giorno" : "obiettivo del giorno: "+r(tt.kcal).toLocaleString("it-IT")+" kcal") : ""}</small></div>
+    <div class="kc num">${r(t.kcal).toLocaleString("it-IT")} kcal<small>nel piano</small></div>
+    ${tt? `<div class="dgoal ${Math.abs(t.kcal-tt.kcal)/tt.kcal<=0.03?"ok":"off"}">🎯 Obiettivo ${tt.live?"di oggi":"del giorno"}: <b>${r(tt.kcal).toLocaleString("it-IT")} kcal</b>${Math.abs(t.kcal-tt.kcal)/tt.kcal<=0.03? " ✓" : ` · ${t.kcal>tt.kcal?"il piano è sopra di":"al piano mancano"} ${r(Math.abs(t.kcal-tt.kcal))} kcal`}</div>` : ""}
+    ${tt&&tt.live&&tt.burnReal&&Math.abs(tt.burnReal-tt.burnPlan)>=50? `<div class="dnote">Porzioni adattate all'allenamento che hai registrato oggi: +${tt.burnReal} kcal invece dei +${tt.burnPlan} previsti. Lo stesso obiettivo che vedi in Cibo.</div>` : ""}
+    ${tt&&tt.pre? `<div class="dnote">🍝 +${tt.pre} kcal di carboidrati per arrivare carico domani (${String(tt.preLabel||"").replace(/</g,"")}): meglio a cena.</div>` : ""}
+    ${tt&&tt.live&&Math.abs(t.kcal-tt.kcal)/tt.kcal>0.03&&sample? `<button class="btn ghost adtoday" type="button">Adatta i pasti di oggi all'obiettivo</button>` : ""}
     <div class="mac">
       <div><div class="n">Proteine</div><div class="v">${r(t.p)} / ${tt?r(tt.p):"–"} g</div>${bar(t.p,tt&&tt.p,"var(--pro)")}</div>
       <div><div class="n">Carboidrati</div><div class="v">${r(t.c)} / ${tt?r(tt.c):"–"} g</div>${bar(t.c,tt&&tt.c,"var(--carb)")}</div>
@@ -2674,6 +2755,7 @@ function renderDietAI(){
     </div>
     <button class="btn ghost addall" type="button">Aggiungi tutta la giornata al diario</button></div>`;
   ds.querySelector(".day").textContent=name+(d.adapted===todayISO()? " · adattato oggi ✓" : "");
+  const adb=ds.querySelector(".adtoday"); if(adb) adb.onclick=()=>{ adb.disabled=true; adb.textContent="Adatto i pasti…"; adaptDiet(Math.round(tt.kcal-t.kcal)); };
   ds.querySelector(".addall").onclick=()=>{ (d.meals||[]).forEach(m=>{ const target=mealList().find(x=>x.id===m.id)? m.id : mealList()[0].id; addItems((m.foods||[]).map(normItem), target, true); }); toast(name+": aggiunto al diario di "+$("dayLabel").textContent.toLowerCase()); };
   const box=$("dietPlan"); box.innerHTML="";
   (d.meals||[]).forEach(m=>{
@@ -2716,7 +2798,7 @@ async function adaptDiet(diff){
   const t=totals();
   try{
     const res=await sample.json(
-`Sei un nutrizionista sportivo. Oggi (${WD_NAME[wd]}, ore ${ora}) la persona ha fatto allenamenti diversi dal previsto: ${(state.day.workouts||[]).map(w=>w.name+" "+r(w.minutes)+" min"+(w.distance?" "+w.distance+" km":"")+" "+r(w.kcal)+" kcal").join("; ")} (${diff>0?"+":""}${diff} kcal rispetto al piano).
+`Sei un nutrizionista sportivo. Oggi (${WD_NAME[wd]}, ore ${ora}) l'obiettivo calorico è cambiato rispetto al piano; allenamenti registrati oggi: ${(state.day.workouts||[]).map(w=>w.name+" "+r(w.minutes)+" min"+(w.distance?" "+w.distance+" km":"")+" "+r(w.kcal)+" kcal").join("; ")} (${diff>0?"+":""}${diff} kcal rispetto al piano).
 Obiettivo di oggi aggiornato: ${r(dt.goal)} kcal, proteine ${r(dt.P)} g, carboidrati ${r(dt.C)} g, grassi ${r(dt.F)} g. Già mangiato oggi: ${eaten} (totale ${r(t.kcal)} kcal, P ${r(t.p)}, C ${r(t.c)}, G ${r(t.f)}).
 Piano di oggi: ${JSON.stringify(days[iT].meals)}.
 ${iN>=0? `Piano di domani (${WD_NAME[wd2]}): ${JSON.stringify(days[iN].meals)}. Obiettivo di domani: ${tN? `${tN.kcal} kcal, P ${tN.p} g, C ${tN.c} g, G ${tN.f} g (${tN.train? tN.label : "riposo"})` : "invariato"}.` : ""}
@@ -2759,7 +2841,7 @@ function dietPrompt(prefs, request, prevPlan, extra){
 Persona: ${p.sex==="m"?"uomo":"donna"}, ${p.age} anni, ${p.height} cm, ${p.weight} kg. Obiettivo: ${goalOf(p).t} (${goalOf(p).d}).
 Profilo completo: ${profileSummary()}.
 Obiettivi per ciascun giorno: la SOMMA degli alimenti di ogni giorno deve arrivare a queste kcal e proteine (tolleranza ±3%); prima di rispondere controlla i totali e aggiusta le grammature:
-${wt.map(d=>`- ${d.name} (weekday ${d.wd}) – ${d.train? d.label.toUpperCase()+(d.when?" alle "+d.when:"") : "riposo"}: ${d.kcal} kcal, proteine ${d.p} g, carboidrati ${d.c} g, grassi ${d.f} g`).join("\n")}
+${wt.map(d=>`- ${d.name} (weekday ${d.wd}) – ${d.train? d.label.toUpperCase()+(d.when?" alle "+d.when:"") : "riposo"}${d.pre?` (+${d.pre} kcal di carboidrati per preparare ${d.preLabel} del giorno dopo: mettili soprattutto a cena)`:""}: ${d.kcal} kcal, proteine ${d.p} g, carboidrati ${d.c} g, grassi ${d.f} g`).join("\n")}
 Composizione corporea e metabolismo: peso ${p.weight} kg${tg.fatPct?`, grasso ${fmt(tg.fatPct)}%, massa magra ${fmt(tg.lbm)} kg`:""}; metabolismo basale ${r(tg.bmr)} kcal (${tg.bmrSrc}); fabbisogno senza allenamenti ${r(tg.tdee)} kcal. Obiettivo: ${goalOf(p).t} → ${goalOf(p).mult<1?"deficit":"surplus"} del ${Math.round(Math.abs(1-goalOf(p).mult)*100)}% nei giorni di riposo.
 Adatta i pasti al tipo di allenamento: prima di corse lunghe o intense carboidrati facili (colazione o spuntino 1-3 ore prima) e cena precedente ricca di carboidrati; dopo la forza un pasto con almeno 30-40 g di proteine; nei giorni di riposo meno carboidrati e più verdure, proteine stabili.
 Pasti di ogni giorno, con questi id esatti: ${JSON.stringify(mealList().map(m=>({id:m.id,name:m.name})))}.
@@ -2798,10 +2880,21 @@ $("dietAsk").addEventListener("keydown",e=>{ if(e.key==="Enter") $("dietSend").c
 /* ================= ALLENAMENTO ================= */
 function setW(w){
   document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-selected",b.dataset.w===w));
+  if(w==="oggi"){ go("attivita"); return; }
   ["oggi","programma","chat","coach"].forEach(x=>$("w-"+x).hidden=x!==w);
   if(w==="chat") renderChat();
 }
 document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>setW(b.dataset.w));
+/* il registro vive nella pagina Attività (quella con il cuore): sposto lì i suoi riquadri */
+(function moveRegistro(){
+  const t=$("wTodayCard"), ad=$("wAddCard"), h=$("wHistCard");
+  if(t) $("aRegSlot").appendChild(t);
+  if(ad){ ad.classList.remove("card"); ad.querySelector("h2").remove(); $("aAddSlot").appendChild(ad); }
+  if(h) $("aHistSlot").appendChild(h);
+  if($("wAiBox")) $("wAiBox").hidden=true;   // c'è già "Cosa hai fatto?" in cima alla pagina
+  $("w-oggi").hidden=true; $("w-programma").hidden=false;
+  document.querySelectorAll('.seg button[data-w="programma"]').forEach(b=>b.setAttribute("aria-selected","true"));
+})();
 ACTS.forEach(([n,met],i)=>{ const o=el("option",null,n); o.value=i; $("wAct").appendChild(o); });
 function calcWorkout(){
   const w=(state.profile&&state.profile.weight)||70, met=ACTS[+$("wAct").value][1], f=+$("wInt").value, min=+$("wMin").value||0;
@@ -3179,7 +3272,7 @@ function cirPreview(){ const ex=parseCirEx($("cirEx").value), pk=Math.max(1,Math
 $("cirOpen").onclick=()=>{ if(!$("cirEx").value) $("cirEx").value="Pull-up 1\nDip 2\nPush-up 3\nSit-up 4\nAir squat 5"; $("cirWd").value=String(new Date(todayISO()+"T12:00:00").getDay()); cirPreview(); openSheet("cirSheet"); };
 $("cirSave").onclick=()=>{
   const ex=parseCirEx($("cirEx").value); if(!ex.length){ toast("Scrivi almeno un esercizio"); return; }
-  const pk=Math.max(1,Math.min(30,+$("cirPeak").value||1)), rest=Math.max(0,+$("cirRest").value||90), wd=+$("cirWd").value;
+  const pk=Math.max(1,Math.min(30,+$("cirPeak").value||1)), rest=Math.max(0,parseRestInput($("cirRest").value)??90), wd=+$("cirWd").value;
   const day={title:($("cirName").value.trim()||"Circuito "+ex.map(e=>e.name).join(" · ")).slice(0,70), kind:"circuit", minutes:Math.round(buildRounds(ex.map(e=>e.step),pk,$("cirBack").checked).length*2.5), exercises:[], editedByMe:true,
     circuit:{exercises:ex.map(e=>e.name), steps:ex.map(e=>e.step), peak:pk, back:$("cirBack").checked, rounds:buildRounds(ex.map(e=>e.step),pk,$("cirBack").checked), rest:rest+" s"}};
   let a=activeProg(); if(!a){ state.program={name:"Il mio programma",summary:"",days:[],weekMap:{0:null,1:null,2:null,3:null,4:null,5:null,6:null}}; save("program",state.program); a=activeProg(); }
@@ -3205,6 +3298,44 @@ function applySpiderPreset(){
   try{ localStorage.setItem("hf:presetSpider","1"); }catch{}
   renderProgram();
 }
+/* ----- tutorial degli esercizi: guida scritta dal coach (salvata), video e controllo della tecnica ----- */
+let tutCache=null;
+async function tutStore(){ if(!tutCache){ try{ tutCache=(await store.getDoc("tutorials"))||{}; }catch{ tutCache={}; } } return tutCache; }
+const tutKey=n=>String(n||"").toLowerCase().replace(/\s+/g," ").trim();
+async function openTutorial(name,x){
+  x=x||{name}; $("tutTitle").textContent=name; const box=$("tutBody"); box.innerHTML="";
+  const ms=exMuscles(x), eq=exEquip(x);
+  const top=el("div","tut-top"); top.innerHTML=`<div class="tut-fig">${muscleSVG(ms,150)}</div><div class="tut-meta"></div>`;
+  const meta=top.querySelector(".tut-meta");
+  if(ms.length) meta.appendChild(el("div","tut-m","💪 "+ms.join(", ")));
+  if(eq) meta.appendChild(el("div","tut-m","🏋️ "+eq));
+  if(x.sets||x.reps) meta.appendChild(el("div","tut-m","📋 "+[x.sets?x.sets+" serie":"", x.reps?"× "+x.reps:"", x.rest?"· recupero "+x.rest:""].filter(Boolean).join(" ")));
+  box.appendChild(top);
+  const acts=el("div","tut-acts");
+  const yt=el("a","btn","▶ Guarda il video"); yt.href="https://www.youtube.com/results?search_query="+encodeURIComponent(name+" esecuzione corretta tutorial"); yt.target="_blank"; yt.rel="noopener";
+  const tech=el("button","btn ghost","🎥 Controlla la mia tecnica"); tech.type="button"; tech.onclick=()=>{ closeTopSheet(); setTimeout(()=>{ go("allenamento"); setW("coach"); $("cEx").value=name; window.scrollTo(0,0); },250); };
+  acts.append(yt,tech); box.appendChild(acts);
+  const g=el("div","tut-guide"); box.appendChild(g);
+  openSheet("tutSheet");
+  const cache=await tutStore(), k=tutKey(name);
+  const draw=t=>{ g.innerHTML="";
+    const sec=(title,items,ord)=>{ if(!items||!items.length) return; g.appendChild(el("h4",null,title)); const l=el(ord?"ol":"ul"); items.forEach(v=>l.appendChild(el("li",null,v))); g.appendChild(l); };
+    if(t.summary) g.appendChild(el("p","tut-sum",t.summary));
+    sec("Posizione di partenza",t.setup); sec("Come si esegue",t.steps,true);
+    if(t.breathing){ g.appendChild(el("h4",null,"Respirazione")); g.appendChild(el("p",null,t.breathing)); }
+    sec("Errori da evitare",t.mistakes); sec("Consigli",t.tips);
+    if(t.easier||t.harder){ g.appendChild(el("h4",null,"Varianti")); if(t.easier) g.appendChild(el("p",null,"⬇️ Più facile: "+t.easier)); if(t.harder) g.appendChild(el("p",null,"⬆️ Più difficile: "+t.harder)); }
+    g.appendChild(el("p","note","Guida scritta dal coach AI: se senti dolore fermati e chiedi a un professionista.")); };
+  if(cache[k]){ draw(cache[k]); return; }
+  if(!sample){ g.appendChild(el("p","note","Per la guida passo passo serve l'AI (Profilo → Impostazioni). Intanto puoi guardare il video.")); return; }
+  g.appendChild(el("p","note","Il coach sta scrivendo la guida…"));
+  try{
+    const t=await sample.json(`Sei un personal trainer. Scrivi una guida breve e precisa, in italiano, per eseguire correttamente l'esercizio "${name.replace(/"/g,"'")}"${eq?" ("+eq+")":""}. Livello della persona: ${(state.profile&&state.profile.level)||"intermedio"}.
+Rispondi SOLO con JSON: {"summary":"a cosa serve, 1 frase","setup":["posizione di partenza, 2-3 punti"],"steps":["fasi dell'esecuzione in ordine, 3-5 punti"],"breathing":"come respirare, 1 frase","mistakes":["errori comuni, 3-4 punti"],"tips":["consigli pratici, 2-3 punti"],"easier":"variante più facile","harder":"variante più difficile"}`,{modelTier:"quick"});
+    if(!t||!Array.isArray(t.steps)) throw {code:"bad_output"};
+    cache[k]=t; save("tutorials",cache); if($("tutTitle").textContent===name) draw(t);
+  }catch(e){ g.innerHTML=""; g.appendChild(el("p","note","Guida non disponibile ora: "+errCopy(e)+" Puoi comunque guardare il video.")); }
+}
 function renderCircuitPage(box,a,pr,d,di,wd,names){
   const c=d.circuit||{exercises:[],rounds:[]}, ms=new Set(); c.exercises.forEach(n=>exMuscles({name:n}).forEach(m=>ms.add(m)));
   const hd=el("div","gd-head"); hd.innerHTML=`<div><h1 class="gd-t"></h1><span class="gd-pill">🔁 Circuito · ${c.rounds.length} giri</span></div><div class="gd-fig">${muscleSVG([...ms],120)}</div>`;
@@ -3212,7 +3343,7 @@ function renderCircuitPage(box,a,pr,d,di,wd,names){
   const sub=el("div","gd-sub"); sub.innerHTML=`<b></b><span>${c.exercises.length} esercizi di fila, poi riposo ${c.rest||"90 s"} · circa ${d.minutes||Math.round(c.rounds.length*2.5)} minuti</span>`; sub.querySelector("b").textContent=d.title; box.appendChild(sub);
   c.exercises.forEach((n,i)=>{ const tot=c.rounds.reduce((s0,rd)=>s0+(+rd[i]||0),0), e=el("div","gd-ex");
     e.innerHTML=`<div class="gd-ef">${muscleSVG(exMuscles({name:n}),78)}</div><div class="gd-et"><b></b><div class="d">${c.rounds.map(rd=>rd[i]).join(" · ")}</div><div class="last">Totale: ${tot} ripetizioni</div></div>`;
-    e.querySelector("b").textContent=(i+1)+". "+n; box.appendChild(e); });
+    e.querySelector("b").textContent=(i+1)+". "+n; const tb0=el("button","gd-help","▶"); tb0.type="button"; tb0.setAttribute("aria-label","Tutorial di "+n); tb0.onclick=()=>openTutorial(n,{name:n}); e.appendChild(tb0); box.appendChild(e); });
   const meta=cirMeta(c);
   if(meta){ const ctl=el("div","card cir-ctl");
     ctl.innerHTML=`<div class="row"><span>Arriva fino al giro</span><span class="stp"><button type="button" class="pbtn" data-d="-1" aria-label="Un giro in meno">−</button><b class="num">${meta.peak}</b><button type="button" class="pbtn" data-d="1" aria-label="Un giro in più">+</button></span></div>
@@ -3222,11 +3353,31 @@ function renderCircuitPage(box,a,pr,d,di,wd,names){
       setCirPeak(c,meta.peak+(+b.dataset.d),null); d.minutes=Math.round(c.rounds.length*2.5); d.editedByMe=true; saveActive(a); renderProgram(); renderDayPage(); });
     ctl.querySelector("input").onchange=e=>{ setCirPeak(c,meta.peak,e.target.checked); d.minutes=Math.round(c.rounds.length*2.5); d.editedByMe=true; saveActive(a); renderProgram(); renderDayPage(); };
     box.appendChild(ctl); }
+  { const rc=el("div","card cir-ctl"); const cur=restSecs(c.rest||"90 s");
+    rc.innerHTML=`<div class="row"><span>Riposo tra i giri</span><span class="stp"><button type="button" class="pbtn" data-d="-15" aria-label="15 secondi in meno">−</button><input class="restin num" inputmode="numeric" aria-label="Secondi di riposo"><button type="button" class="pbtn" data-d="15" aria-label="15 secondi in più">+</button></span></div><div class="note">Scrivi i secondi (es. 75) o minuti e secondi (es. 1:30).</div>`;
+    const inp=rc.querySelector(".restin"); inp.value= cur%60||cur<120? String(cur) : (cur/60)+":00";
+    const setR=sec=>{ c.rest=sec+" s"; d.editedByMe=true; saveActive(a); renderProgram(); renderDayPage(); toast(`Riposo tra i giri: ${restLabel(sec)}`); };
+    inp.onchange=()=>{ const sec=parseRestInput(inp.value); if(sec==null||sec>1800){ toast("Scrivi ad esempio 90 o 1:30"); inp.value=String(cur); return; } setR(sec); };
+    rc.querySelectorAll(".pbtn").forEach(b=>b.onclick=()=>setR(Math.max(0,cur+(+b.dataset.d))));
+    box.appendChild(rc); }
   const tb=el("div","card cir-table"); tb.innerHTML=`<h3 style="margin:0 0 8px">Giro per giro</h3>`+c.rounds.map((rd,k)=>`<div class="cr"><b>Giro ${k+1}</b><span>${rd.map((v,i)=>`${v} ${c.exercises[i]}`).join(" → ")}</span></div>`).join("");
   box.appendChild(tb);
   const liveHere= logCtx&&logCtx.live&&logCtx.title===d.title;
   const bar=el("div","gd-bar"), start=el("button","btn", liveHere? (logCtx.paused? "▶ RIPRENDI · ":"CONTINUA · ")+hmsSec(sesElapsed()) : "INIZIA"); start.type="button"; start.onclick=()=>openCircuit(a,di);
-  bar.appendChild(start); box.appendChild(bar);
+  const quick=el("button","btn ghost allbtn","✓ Ho fatto tutto il circuito"); quick.type="button";
+  quick.onclick=()=>quickCircuitDone(a,di);
+  bar.append(start,quick); box.appendChild(bar);
+}
+function quickCircuitDone(a,di){
+  const d=a.pr.days[di]; if(!d||!d.circuit) return;
+  const est=Math.round(d.minutes||d.circuit.rounds.length*2.5);
+  const v=prompt(`Hai fatto tutti i ${d.circuit.rounds.length} giri? Quanti minuti è durato? (lascia ${est} se non lo sai)`, String(est)); if(v==null) return;
+  const min=Math.max(1,Math.min(300,+String(v).replace(",",".")||est));
+  if(logCtx&&logCtx.live&&logCtx.title!==d.title&&!confirm("Hai un altro allenamento in corso ("+logCtx.title+"): lo sostituisco?")) return;
+  openCircuit(a,di);
+  const c=logCtx.circuit; c.done=c.rounds.map(()=>true); c.checks=c.rounds.map(()=>c.exercises.map(()=>true)); c.cur=c.rounds.length-1; restEnd=0;
+  logCtx.paused=false; logCtx.startedAt=Date.now()-min*60000; saveLive();
+  setTimeout(()=>$("logSave").click(),150);
 }
 function openCircuit(a,di){
   const d=a.pr.days[di], c=d.circuit;
@@ -3250,6 +3401,13 @@ function renderCircuitSession(){
   const total=c.rounds.length, cur=Math.min(c.cur,total-1), allDone=c.done.length>=total&&c.done.every(Boolean);
   const resting=restEnd&&restEnd>Date.now();
   const top=el("div","cir-top"); top.innerHTML=`<div class="cir-prog"><b>${allDone?"Circuito completato! 🎉":`Giro ${cur+1} di ${total}`}</b><span>${(n0=>n0===1?"1 giro fatto":n0+" giri fatti")(c.done.filter(Boolean).length)}</span></div><button class="cir-mute" type="button" aria-label="Suono di fine riposo">${alarmMuted()?"🔕":"🔔"}</button>`;
+  const rr=el("div","vestrow on"); rr.style.flexBasis="100%";
+  rr.innerHTML=`<span>⏱ Riposo tra i giri</span><input inputmode="numeric" aria-label="Secondi di riposo"><span class="u">s</span>`;
+  const ri=rr.querySelector("input"); ri.value=String(c.rest||0);
+  ri.onchange=()=>{ const sec=parseRestInput(ri.value); if(sec==null||sec>1800){ toast("Scrivi ad esempio 90 o 1:30"); ri.value=String(c.rest); return; }
+    const was=c.rest; c.rest=sec; if(restEnd&&restEnd>Date.now()) restEnd+= (sec-was)*1000; saveLive(); renderCircuitSession(); toast(`Riposo tra i giri: ${restLabel(sec)}`);
+    if(confirm("Salvare questo riposo anche nel circuito, per le prossime volte?")){ try{ const a=activeProg(); const d=a&&a.pr.days.find(x=>x.kind==="circuit"&&x.title===logCtx.title); if(d){ d.circuit.rest=sec+" s"; saveActive(a); toast("Riposo salvato nel circuito ✓"); } }catch{} } };
+  top.appendChild(rr);
   const vr=el("div","vestrow"+(+c.vest>0?" on":"")); vr.style.flexBasis="100%";
   vr.innerHTML=`<span>🦺 Gilet zavorrato per tutto il circuito</span><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" aria-label="Kg del gilet"><span class="u">kg</span>`;
   const vi=vr.querySelector("input"); vi.value= +c.vest>0? c.vest : ""; vi.onchange=()=>{ c.vest=Math.max(0,+String(vi.value).replace(",",".")||0); saveLive(); renderCircuitSession(); toast(c.vest?`Gilet da ${fmt(c.vest)} kg segnato`:"Senza gilet"); };
@@ -3264,6 +3422,7 @@ function renderCircuitSession(){
       saveLive(); renderCircuitSession(); toast(nd>0? `Aggiunto il giro ${np} (e il suo ritorno) 💪` : `Il circuito ora arriva fino al giro ${np}`); });
     top.appendChild(ex); }
   top.appendChild(vr);
+  if(!allDone){ const qa=el("button","btn ghost allbtn","✓ Ho finito tutto il circuito"); qa.type="button"; qa.style.flexBasis="100%"; qa.style.margin="6px 0 0"; qa.onclick=completeAllCircuit; top.appendChild(qa); }
   const pb=el("div","cir-bar"); pb.innerHTML=c.rounds.map((_,k)=>`<i class="${c.done[k]?"ok":k===cur&&!allDone?"now":""}"></i>`).join(""); top.appendChild(pb);
   box.appendChild(top);
   if(resting){ const r0=el("div","card cir-rest"); r0.innerHTML=`<div class="l">Riposo</div><div class="t num" id="cirRestT">${hmsSec((restEnd-Date.now())/1000)}</div><div class="nx">Poi giro ${cur+1}: ${c.rounds[cur].map((v,i)=>`${v} ${c.exercises[i]}`).join(" → ")}</div><div class="two"><button class="btn ghost" type="button" id="cirPlus">+30 s</button><button class="btn" type="button" id="cirSkip">Salta il riposo</button></div>`;
@@ -3400,13 +3559,14 @@ function renderDayPage(){
   (d.exercises||[]).forEach(x=>{
     const c=el("div","gd-ex"), eq=exEquip(x);
     const pg0=progFor(x);
-    c.innerHTML=`<div class="gd-ef">${muscleSVG(exMuscles(x),78)}</div><div class="gd-et"><b></b><div class="d"></div><div class="chips2"><span class="rchip">⏱ recupero ${restFor(x)}</span></div><div class="last"></div><div class="prog ${pg0?pg0.kind:""}"></div></div><button class="gd-help" type="button" aria-label="Come si fa?">?</button>`;
+    c.innerHTML=`<div class="gd-ef">${muscleSVG(exMuscles(x),78)}</div><div class="gd-et"><b></b><div class="d"></div><div class="chips2"><button type="button" class="rchip" aria-label="Cambia il tempo di riposo">⏱ recupero ${restFor(x)} ✎</button></div><div class="last"></div><div class="prog ${pg0?pg0.kind:""}"></div></div><button class="gd-help" type="button" aria-label="Tutorial: come si fa">▶</button>`;
     if(pg0) c.querySelector(".prog").textContent=(pg0.kind==="up"?"📈 ":pg0.kind==="down"?"📉 ":pg0.kind==="new"?"💡 ":"🎯 ")+pg0.text;
     const eqShow= eq && !(x.name||"").toLowerCase().includes(eq.toLowerCase().replace(/i$/,"")); c.querySelector("b").textContent=x.name+(eqShow?" · "+eq:"");
     c.querySelector(".d").textContent=x.detail? x.detail : (x.sets? x.sets+" serie × "+(x.reps||"?") : "");
     const lt=lastText(x.name); c.querySelector(".last").textContent=lt||"";
     if(x.tip) c.title=x.tip;
-    c.querySelector(".gd-help").onclick=()=>{ go("allenamento"); setW("coach"); $("cEx").value=x.name; window.scrollTo(0,0); };
+    c.querySelector(".rchip").onclick=()=>{ const sec=askRest(restFor(x)); if(sec==null) return; x.rest=restLabel(sec); d.editedByMe=true; saveActive(a); renderProgram(); renderDayPage(); toast(`Riposo di ${x.name}: ${restLabel(sec)}`); };
+    c.querySelector(".gd-help").onclick=()=>openTutorial(x.name,x);
     box.appendChild(c);
   });
   if(pr.notes||pr.progression) box.appendChild(el("p","note",pr.progression||pr.notes));
@@ -3469,8 +3629,8 @@ let sesTick=null, restEnd=0, liveT=null;
 function saveLive(){ clearTimeout(liveT); liveT=setTimeout(()=>{ try{ if(logCtx&&logCtx.live) localStorage.setItem("hf:live",JSON.stringify(logCtx)); else localStorage.removeItem("hf:live"); }catch{} },300); }
 function sesElapsed(){ if(!logCtx) return 0; return ((logCtx.paused? logCtx.pausedAt : Date.now())-logCtx.startedAt)/1000; }
 function resumeSession(){ if(logCtx&&logCtx.paused){ logCtx.startedAt+=Date.now()-logCtx.pausedAt; logCtx.paused=false; logCtx.pausedAt=null; saveLive(); toast("Allenamento ripreso ▶"); } }
-function openSesExit(){ if(!logCtx) return; const n=logCtx.exercises.reduce((a,x)=>a+x.sets.filter(z=>z.done).length,0);
-  $("sesExitSub").textContent=`${hmsSec(sesElapsed())} di allenamento · ${n} ${n===1?"serie fatta":"serie fatte"}`; $("sxStop").disabled=!n; openSheet("sesExitSheet"); }
+function openSesExit(){ if(!logCtx) return; const cir=logCtx.circuit, n= cir? cir.done.filter(Boolean).length : logCtx.exercises.reduce((a,x)=>a+x.sets.filter(z=>z.done).length,0);
+  $("sesExitSub").textContent=`${hmsSec(sesElapsed())} di allenamento · ${n} ${cir? (n===1?"giro fatto":"giri fatti") : (n===1?"serie fatta":"serie fatte")}`; $("sxStop").disabled=!n; openSheet("sesExitSheet"); }
 function leaveSession(){ sesExitOk=true; const steps=1+sheetStack.length; history.go(-steps); setTimeout(()=>{ sesExitOk=false; if(view==="sessione") go("allenamento"); },400); }
 const afterSheet=fn=>{ closeTopSheet(); setTimeout(fn,250); };
 function hmsSec(t){ t=Math.max(0,Math.floor(t)); const h=Math.floor(t/3600), m=Math.floor(t%3600/60), s0=t%60; return (h? h+":"+String(m).padStart(2,"0") : String(m).padStart(2,"0"))+":"+String(s0).padStart(2,"0"); }
@@ -3490,6 +3650,16 @@ function renderLiveBanner(){ const b=$("liveBanner"); if(!b) return; const on=!!
 $("liveBanner").onclick=()=>{ if(logCtx&&logCtx.live){ resumeSession(); go("sessione"); renderLogger(); startSesTimer(); } };
 function restSecs(t){ const s0=String(t||"").toLowerCase(); const m=s0.match(/(\d+(?:[.,]\d+)?)\s*(m|min|')/), sc=s0.match(/(\d+)\s*(s|sec)/), c=s0.match(/(\d+):(\d{2})/);
   if(c) return +c[1]*60+ +c[2]; if(m) return Math.round(parseFloat(m[1].replace(",","."))*60)+(sc?+sc[1]:0); if(sc) return +sc[1]; const n=+firstNum(s0); return n? (n<=10? n*60 : n) : 90; }
+/* riposo inserito a mano: accetta 90, 90s, 1:30, 2 min, 1,5 min */
+function parseRestInput(v){ v=String(v||"").trim().toLowerCase().replace(",","."); if(!v) return null;
+  const mm=v.match(/^(\d+):(\d{1,2})$/); if(mm) return +mm[1]*60+ +mm[2];
+  const mn=v.match(/^([\d.]+)\s*(m|min|minuti|')$/); if(mn) return Math.round(+mn[1]*60);
+  const sc=v.match(/^([\d.]+)\s*(s|sec|secondi|")?$/); if(sc) return Math.round(+sc[1]);
+  return null; }
+function restLabel(sec){ sec=Math.max(0,Math.round(sec)); return sec<120||sec%60? (sec>=60? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,"0")} min` : `${sec} s`) : `${sec/60} min`; }
+function askRest(cur){ const v=prompt("Quanto riposo? (es. 90, 1:30, 2 min)", cur? restLabel(restSecs(cur)).replace(" s","").replace(" min","") : "90"); if(v==null) return null;
+  const sec=parseRestInput(v); if(sec==null||sec>1800){ toast("Non ho capito il tempo: scrivi ad esempio 90 o 1:30"); return null; } return sec; }
+function saveRestToProgram(name,rest){ try{ const a=activeProg(); if(!a) return; let n=0; a.pr.days.forEach(d=>(d.exercises||[]).forEach(x=>{ if(String(x.name).toLowerCase().trim()===String(name).toLowerCase().trim()){ x.rest=rest; n++; } })); if(n){ saveActive(a); toast("Riposo salvato nella scheda ✓"); } }catch{} }
 function nextSet(){ for(let xi=0;xi<logCtx.exercises.length;xi++){ const x=logCtx.exercises[xi]; for(let si=0;si<x.sets.length;si++) if(!x.sets[si].done) return {xi,si}; } return null; }
 function markSet(xi,si,val){ const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
   if(st.done){ const last=x.sets.every(z=>z.done); restEnd= last&&xi===logCtx.exercises.length-1? 0 : Date.now()+restSecs(x.rest)*1000; if(navigator.vibrate) navigator.vibrate(30); }
@@ -3505,10 +3675,15 @@ function renderLogger(){
     const tt=el("div","sx-tt");
     if(x.custom){ const i=el("input"); i.placeholder="Nome esercizio"; i.value=x.name; i.oninput=()=>{ x.name=i.value; x.muscles=exMuscles(x); saveLive(); }; i.onclick=e=>e.stopPropagation(); tt.appendChild(i); }
     else { const bb=el("b"); bb.textContent=x.name+(x.equip&&!x.name.toLowerCase().includes(x.equip.toLowerCase().replace(/i$/,""))?" · "+x.equip:""); tt.appendChild(bb); }
-    tt.appendChild(el("div","c"+(all?" ok":""), all? `✓ ${done}/${x.sets.length} completati` : `${done}/${x.sets.length} completati${x.rest?" · recupero "+x.rest:""}`));
+    const cl=el("div","c"+(all?" ok":""), all? `✓ ${done}/${x.sets.length} completati` : `${done}/${x.sets.length} completati`); tt.appendChild(cl);
+    if(!x.cardio){ const rb=el("button","restchip",`⏱ riposo ${restLabel(restSecs(x.rest||"90 s"))} ✎`); rb.type="button"; rb.setAttribute("aria-label","Cambia il tempo di riposo");
+      rb.onclick=e=>{ e.stopPropagation(); const sec=askRest(x.rest); if(sec==null) return; x.rest=restLabel(sec); saveLive(); renderLogger(); toast(`Riposo di ${x.name}: ${restLabel(sec)}`);
+        if(confirm("Salvare questo riposo anche nella scheda, per le prossime volte?")) saveRestToProgram(x.name,restLabel(sec)); };
+      tt.appendChild(rb); }
     const more=el("button","sx-more","⋮"); more.type="button"; more.setAttribute("aria-label","Opzioni esercizio");
     more.onclick=e=>{ e.stopPropagation(); if(confirm(`Togliere "${x.name||"esercizio"}" da questo allenamento?`)){ logCtx.exercises.splice(xi,1); saveLive(); renderLogger(); } };
-    h.append(el("span","chev","⌃"),fig,tt,more); h.onclick=()=>{ x.closed=!x.closed; renderLogger(); }; card.appendChild(h);
+    const tutB=el("button","sx-more tut","▶"); tutB.type="button"; tutB.setAttribute("aria-label","Tutorial di "+(x.name||"esercizio")); tutB.onclick=e=>{ e.stopPropagation(); if(x.name) openTutorial(x.name,x); };
+    h.append(el("span","chev","⌃"),fig,tt,tutB,more); h.onclick=()=>{ x.closed=!x.closed; renderLogger(); }; card.appendChild(h);
     const body=el("div","sx-body");
     const lt=lastText(x.name); if(lt&&!x.custom) body.appendChild(el("div","sx-last",lt));
     if(x.bw||x.custom){ const v=el("div","vestrow"+(+x.vest>0?" on":""));
@@ -3726,7 +3901,7 @@ function renderChat(){
   chat.turns.forEach(t=>{ log.appendChild(el("div","bubble "+(t.role==="user"?"me":"ai"), t.content + (t.imgs? "\n📎 "+t.imgs+" foto":""))); if(t.proposal) log.appendChild(proposalCard(t)); if(t.sched) log.appendChild(schedCard(t)); });
   if(!sample) log.appendChild(el("div","bubble ai err","⚠️ Il coach non è disponibile in questa visualizzazione. Apri HealthFit dall'app Claude (o da claude.ai) con il tuo account e, quando te lo chiede, consenti l'uso di Claude."));
   if(chatErr){ const b=el("div","bubble ai err","⚠️ Il messaggio non è stato inviato. "+chatErr.msg+"\nIl tuo testo è rimasto nel campo qui sotto: tocca Invia per riprovare.\n(codice: "+chatErr.code+(chatErr.detail?" – "+chatErr.detail:"")+")"); log.appendChild(b); }
-  log.scrollTop=log.scrollHeight;
+  requestAnimationFrame(()=>{ const lastB=log.lastElementChild; const nearBottom=window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-420; if(lastB&&(renderChat.scrollNext||nearBottom)&&!$("w-chat").hidden){ window.scrollTo({top:document.documentElement.scrollHeight,behavior:"auto"}); } });
   $("chatAttach").hidden=!imgLimits; $("chatSend").disabled=!sample;
 }
 function coachContext(){
@@ -3765,7 +3940,7 @@ $("chatFile").onchange=async e=>{
 };
 $("chatNew").onclick=()=>{ chat={turns:[]}; save("coach",chat); renderChat(); };
 $("chatSend").onclick=async()=>{
-  const text=$("chatIn").value.trim(); if(!text&&!chatFiles.length) return;
+  const text=$("chatIn").value.trim(); if(!text&&!chatFiles.length) return; renderChat.scrollNext=true; clearTimeout(renderChat.sT); renderChat.sT=setTimeout(()=>{ renderChat.scrollNext=false; },90000);
   const imgs=chatFiles; chatFiles=[]; $("chatThumbs").innerHTML=""; $("chatIn").value="";
   chat.turns.push({role:"user",content:text||"Guarda le foto e dimmi cosa ne pensi.",...(imgs.length?{imgs:imgs.length}:{})});
   renderChat(); const bub=el("div","bubble ai","Sto pensando…"); $("chatLog").appendChild(bub); $("chatLog").scrollTop=1e9;
@@ -5000,7 +5175,7 @@ function renderActivity(){
 $("attBack").onclick=()=>{ if(history.state&&history.state.v==="attivita") history.back(); else go("diario"); };
 $("rPrev").onclick=()=>$("prev").click(); $("rNext").onclick=()=>$("next").click(); $("rDayPick").onclick=()=>$("dayPick").click();
 $("aPrev").onclick=()=>$("prev").click(); $("aNext").onclick=()=>$("next").click(); $("aDayPick").onclick=()=>$("dayPick").click();
-$("aAddW").onclick=()=>{ go("allenamento"); try{ setW("oggi"); }catch{} };
+$("aAddW").onclick=()=>{ $("aAddWrap").open=true; $("aAddWrap").scrollIntoView({behavior:"smooth"}); };
 $("gSave").onclick=()=>{ const n=(id,d)=>Math.max(1,Math.round(+$(id).value||d)); actG={steps:n("gSteps",6000),min:n("gMin",90),kcal:n("gKcal",500)}; save("actGoals",actG); renderAll(); toast("Obiettivi salvati"); };
 $("aTellGo").onclick=async()=>{
   const d=$("aTell").value.trim(); if(!d){ setStatus("aTellStatus","Scrivi prima cosa hai fatto."); return; }
@@ -5036,7 +5211,7 @@ $("mpBack").onclick=()=>{ if(history.state&&history.state.v==="pasto") history.b
 $("ciboBack").onclick=()=>{ if(history.state&&history.state.v==="cibo") history.back(); else go("diario"); };
 $("cPrev").onclick=()=>$("prev").click(); $("cNext").onclick=()=>$("next").click(); $("cDayPick").onclick=()=>$("dayPick").click();
 $("dBody").onclick=()=>go("corpo");
-function renderAll(){ document.body.classList.toggle("home",view==="diario"); if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento") renderWorkouts(); if(view==="corpo") renderBody(); }
+function renderAll(){ document.body.classList.toggle("home",view==="diario"); if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento"||view==="attivita") renderWorkouts(); if(view==="corpo") renderBody(); }
 renderAll();
 async function loadAll(){
   const agd=await store.getDoc("actGoals"); if(agd&&agd.steps) actG=agd;
