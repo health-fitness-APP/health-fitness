@@ -583,7 +583,7 @@ details.areg #wAddCard{margin-top:12px}
 .tut-sum{font-weight:600}
 .sx-more.tut{color:var(--basil);font-size:1rem}
 html,body{overscroll-behavior-y:contain}
-.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:70;transform:translate(-50%,-70px);background:var(--surface-solid);color:var(--ink);border-radius:999px;padding:8px 16px;font-size:.88rem;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.15);transition:transform .15s;pointer-events:none;display:flex;align-items:center;gap:8px}
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:70;transform:translate(-50%,-70px);background:var(--surface-solid);color:var(--basil);border-radius:50%;width:42px;height:42px;justify-content:center;padding:0;font-size:1.3rem;font-size:.88rem;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.15);transition:transform .15s;pointer-events:none;display:flex;align-items:center;gap:8px}
 .ptr .sp{display:inline-block;transition:transform .1s}
 .ptr.busy .sp{animation:ptrspin .8s linear infinite}
 @keyframes ptrspin{to{transform:rotate(360deg)}}
@@ -763,7 +763,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 
 <!-- ================= DIARIO ================= -->
 <div class="aipause" id="aiPauseBar" hidden></div>
-<div class="ptr" id="ptr" aria-live="polite"><span class="sp">↻</span><span id="ptrT">Trascina per aggiornare</span></div>
+<div class="ptr" id="ptr" aria-hidden="true"><span class="sp">↻</span><span id="ptrT" hidden></span></div>
 <div class="acttoast" id="actToast" hidden role="status"><span id="actToastT"></span><button type="button" id="actToastB"></button><button type="button" class="x" id="actToastX" aria-label="Chiudi">✕</button></div>
 <main id="view-diario">
   <section class="card" id="keyBanner" hidden style="border:2px solid var(--basil)">
@@ -1437,7 +1437,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.70 (storico in fondo, apribile)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.72 (dieta di oggi con i pasti già mangiati)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -2178,19 +2178,19 @@ window.addEventListener("hf-ai-status",e=>toast(e.detail));
 /* trascina giù per aggiornare: ricarica i dati (e la sincronizzazione) restando sulla stessa pagina */
 (function pullToRefresh(){
   let y0=null, dy=0, busy=false; const P=()=>$("ptr");
-  const show=(d)=>{ const p=P(); p.style.transform=`translate(-50%,${Math.min(10,-70+d*0.8)}px)`; p.querySelector(".sp").style.transform=`rotate(${d*3}deg)`; $("ptrT").textContent= d>90? "Rilascia per aggiornare" : "Trascina per aggiornare"; };
-  const hide=()=>{ const p=P(); p.style.transform="translate(-50%,-70px)"; p.classList.remove("busy"); };
+  const show=()=>{}, hide=()=>{};   // aggiornamento invisibile: nessun indicatore
   document.addEventListener("touchstart",e=>{ if(busy||document.querySelector(".sheet.open")||window.scrollY>0||e.touches.length!==1){ y0=null; return; } y0=e.touches[0].clientY; dy=0; },{passive:true});
   document.addEventListener("touchmove",e=>{ if(y0==null) return; dy=e.touches[0].clientY-y0; if(dy>0&&window.scrollY<=0){ show(dy); } else { y0=null; hide(); } },{passive:true});
   document.addEventListener("touchend",async()=>{ if(y0==null) return; y0=null;
     if(dy<=90){ hide(); return; }
-    busy=true; const p=P(); p.classList.add("busy"); p.style.transform="translate(-50%,10px)"; $("ptrT").textContent="Aggiorno…";
+    busy=true;
+    const t0=Date.now();
     try{ if(typeof SY!=="undefined"&&SY.user){ await pull(); renderSync(); } const keepView=view, keepMeal=mealPageId, keepWd=progOpenWd;
       await loadAll(); mealPageId=keepMeal; progOpenWd=keepWd; if(view!==keepView) go(keepView,true); renderAll();
       if(view==="giorno") renderDayPage(); if(view==="pasto") renderMealPage();
-      $("ptrT").textContent="Aggiornato ✓"; }
-    catch(err){ $("ptrT").textContent="Non riesco ad aggiornare"; }
-    finally{ setTimeout(()=>{ hide(); busy=false; },700); }
+    }
+    catch(err){ toast("Non riesco ad aggiornare: controlla la connessione"); }
+    finally{ setTimeout(()=>{ hide(); busy=false; },Math.max(0,400-(Date.now()-t0))); }
   },{passive:true});
 })();
 /* tastiera: tieni sempre visibile il campo in cui stai scrivendo (anche quando rientri nell'app) */
@@ -2635,7 +2635,7 @@ function mealDetails(name,foods,alt,onAdd){
   sm.append(nm, el("span","kc",r(mt.kcal)+" kcal"), el("span","chev","›")); d.appendChild(sm);
   const body=el("div","body"), ul=el("ul"); (foods||[]).forEach(f=>ul.appendChild(el("li",null,`${f.name} – ${r(+f.grams||0)} g · ${r(+f.kcal||0)} kcal`))); body.appendChild(ul);
   if(alt) body.appendChild(el("div","alt","In alternativa: "+alt));
-  const b=el("button","btn ghost","Aggiungi "+name.toLowerCase()+" al diario"); b.type="button"; b.onclick=onAdd; body.appendChild(b);
+  if(onAdd){ const b=el("button","btn ghost","Aggiungi "+name.toLowerCase()+" al diario"); b.type="button"; b.onclick=onAdd; body.appendChild(b); }
   d.appendChild(body); return d;
 }
 function renderUploaded(){
@@ -2735,6 +2735,13 @@ function planDays(plan){
   return WD_ORDER.map(wd=>({weekday:wd,label:WD_NAME[wd],meals:plan.meals||[]}));   // vecchio piano a giornata unica
 }
 const sumMeals=meals=>(meals||[]).reduce((a,m)=>{ const t=sumFoods(m.foods); return {kcal:a.kcal+t.kcal,p:a.p+t.p,c:a.c+t.c,f:a.f+t.f}; },{kcal:0,p:0,c:0,f:0});
+/* oggi: i pasti già registrati nel diario prendono il posto di quelli del piano, così il totale torna con l'obiettivo */
+function mealsWithEaten(d){
+  if(d.weekday!==new Date(todayISO()+"T12:00:00").getDay()||state.date!==todayISO()) return d.meals||[];
+  const ml=mealList(), out=(d.meals||[]).map(m=>{ const it=state.day.meals[m.id]||[]; return it.length? {...m, eaten:true, planned:m.foods, foods:it.map(x=>({name:x.name,grams:x.grams,kcal:x.kcal,p:x.p,c:x.c,f:x.f}))} : m; });
+  Object.keys(state.day.meals||{}).forEach(k=>{ if(!out.find(m=>m.id===k)&&(state.day.meals[k]||[]).length){ const m=ml.find(x=>x.id===k)||{id:k,name:k}; out.push({id:k,name:m.name,eaten:true,foods:state.day.meals[k].map(x=>({name:x.name,grams:x.grams,kcal:x.kcal,p:x.p,c:x.c,f:x.f}))}); } });
+  return out;
+}
 function renderDietAI(){
   const tg=targets(state.profile), wt=weekTargets();
   $("dietTargets").textContent = tg? `Calcolata su di te: metabolismo basale ${r(tg.bmr)} kcal (${tg.bmrSrc})${tg.fatPct?`, grasso ${fmt(tg.fatPct)}% e massa magra ${fmt(tg.lbm)} kg`:""}. Obiettivo ${goalOf(state.profile).t.toLowerCase()}: ${r(tg.kcal)} kcal nei giorni di riposo${wt&&wt.some(d=>d.train)? `, di più nei giorni di allenamento (${wt.filter(d=>d.train).map(d=>`${d.name.toLowerCase()} ${d.kind==="run"?"🏃":"🏋️"} +${r(d.kcal-tg.kcal)}`).join(", ")})`:""}, con circa ${r(tg.prot)} g di proteine. Preparo 7 giorni sui tuoi ${mealList().length} pasti.` : "Completa prima il profilo con obiettivo e dati: la dieta si basa su quelli.";
@@ -2753,7 +2760,7 @@ function renderDietAI(){
   const tgtOf=d=> (liveT&&d.weekday===curWd)? liveT : (wt&&wt.find(x=>x.wd===d.weekday) || (tg? {kcal:tg.kcal,p:tg.prot,c:tg.carb,f:tg.fat,train:false} : null));
   // settimana
   const wk=$("dietWeek"); wk.innerHTML="";
-  days.forEach((d,i)=>{ const t=sumMeals(d.meals), tt=tgtOf(d), b=el("button");
+  days.forEach((d,i)=>{ const t=sumMeals(mealsWithEaten(d)), tt=tgtOf(d), b=el("button");
     b.type="button"; if(tt&&tt.train) b.classList.add("tr");
     b.innerHTML=`<b>${d.weekday!=null?WD_SHORT[d.weekday]:(i+1)}</b><small>${r(t.kcal)}</small><i></i>`;
     b.setAttribute("aria-pressed",i===dietDayIdx); b.setAttribute("aria-label",(d.label||WD_NAME[d.weekday]||"Giorno "+(i+1))+", "+r(t.kcal)+" kcal");
@@ -2770,11 +2777,13 @@ function renderDietAI(){
         days[iT]={...td, meals:td.meals.map(m=>cal.find(x=>x.id===m.id)||m), syncedFor:key};
         state.diet.plan={...state.diet.plan, days}; save("diet",state.diet);
       } } }
-  const d=days[dietDayIdx], t=sumMeals(d.meals), tt=tgtOf(d), name=d.label||WD_NAME[d.weekday]||"Giorno";
+  const d=days[dietDayIdx], vm=mealsWithEaten(d), t=sumMeals(vm), tt=tgtOf(d), name=d.label||WD_NAME[d.weekday]||"Giorno";
+  const eatenK=vm.filter(m=>m.eaten).reduce((a,m)=>a+sumFoods(m.foods).kcal,0);
   const bar=(v,tv,col)=>`<div class="bar"><i style="width:${tv?Math.min(100,v/tv*100):0}%;background:${col}"></i></div>`;
   const ds=$("dietDay"); ds.innerHTML=`<div class="dsum">
     <div class="top"><span class="day"></span><span class="kind">${tt&&tt.train? (tt.kind==="run"?"🏃 ":"🏋️ ")+(tt.label||"giorno di allenamento")+(tt.when?" · "+tt.when:"") : "giorno di riposo"}</span></div>
-    <div class="kc num">${r(t.kcal).toLocaleString("it-IT")} kcal<small>nel piano</small></div>
+    <div class="kc num">${r(t.kcal).toLocaleString("it-IT")} kcal<small>${eatenK? "nella giornata" : "nel piano"}</small></div>
+    ${eatenK? `<div class="dnote">Già mangiato: <b>${r(eatenK).toLocaleString("it-IT")} kcal</b> · ancora da mangiare secondo il piano: <b>${r(Math.max(0,t.kcal-eatenK)).toLocaleString("it-IT")} kcal</b></div>` : ""}
     ${tt? `<div class="dgoal ${Math.abs(t.kcal-tt.kcal)/tt.kcal<=0.03?"ok":"off"}">🎯 Obiettivo ${tt.live?"di oggi":"del giorno"}: <b>${r(tt.kcal).toLocaleString("it-IT")} kcal</b>${Math.abs(t.kcal-tt.kcal)/tt.kcal<=0.03? " ✓" : ` · ${t.kcal>tt.kcal?"il piano è sopra di":"al piano mancano"} ${r(Math.abs(t.kcal-tt.kcal))} kcal`}</div>` : ""}
     ${tt&&tt.live&&tt.burnReal&&Math.abs(tt.burnReal-tt.burnPlan)>=50? `<div class="dnote">Porzioni adattate all'allenamento che hai registrato oggi: +${tt.burnReal} kcal invece dei +${tt.burnPlan} previsti. Lo stesso obiettivo che vedi in Cibo.</div>` : ""}
     ${tt&&tt.pre? `<div class="dnote">🍝 +${tt.pre} kcal di carboidrati per arrivare carico domani (${String(tt.preLabel||"").replace(/</g,"")}): meglio a cena.</div>` : ""}
@@ -2789,14 +2798,15 @@ function renderDietAI(){
   const adb=ds.querySelector(".adtoday"); if(adb) adb.onclick=()=>{ adb.disabled=true; adb.textContent="Adatto i pasti…"; adaptDiet(Math.round(tt.kcal-t.kcal)); };
   ds.querySelector(".addall").onclick=()=>{ (d.meals||[]).forEach(m=>{ const target=mealList().find(x=>x.id===m.id)? m.id : mealList()[0].id; addItems((m.foods||[]).map(normItem), target, true); }); toast(name+": aggiunto al diario di "+$("dayLabel").textContent.toLowerCase()); };
   const box=$("dietPlan"); box.innerHTML="";
-  (d.meals||[]).forEach(m=>{
+  vm.forEach(m=>{
     const foods=m.foods||[], mname=(mealList().find(x=>x.id===m.id)||{}).name||m.name||"Pasto";
+    if(m.eaten){ box.appendChild(mealDetails("✓ "+mname+" (già mangiato)", foods, null, null)); return; }
     box.appendChild(mealDetails(mname, foods, m.alternatives, ()=>{ const target=mealList().find(x=>x.id===m.id)? m.id : mealList()[0].id;
       addItems(foods.map(normItem), target, true); toast(mname+" aggiunto al diario di "+($("dayLabel").textContent.toLowerCase())); }));
   });
   // tabella della settimana
   const avg={kcal:0,p:0,c:0,f:0}; const off=(v,tv)=> tv&&Math.abs(v-tv)/tv>0.10? ' class="off"' : "";
-  let rows=days.map((dd,i)=>{ const s0=sumMeals(dd.meals), t0=tgtOf(dd); ["kcal","p","c","f"].forEach(k=>avg[k]+=s0[k]/days.length);
+  let rows=days.map((dd,i)=>{ const s0=sumMeals(mealsWithEaten(dd)), t0=tgtOf(dd); ["kcal","p","c","f"].forEach(k=>avg[k]+=s0[k]/days.length);
     return `<tr data-i="${i}"${i===dietDayIdx?' class="sel"':""}><td>${dd.weekday!=null?WD_NAME[dd.weekday].slice(0,3):(i+1)}${t0&&t0.train?" 🏋️":""}</td><td${off(s0.kcal,t0&&t0.kcal)}>${r(s0.kcal)}<div style="font-size:.7rem;color:var(--muted);font-weight:400">su ${t0?r(t0.kcal):"–"}</div></td><td${off(s0.p,t0&&t0.p)}>${r(s0.p)}</td><td${off(s0.c,t0&&t0.c)}>${r(s0.c)}</td><td${off(s0.f,t0&&t0.f)}>${r(s0.f)}</td></tr>`; }).join("");
   $("dietWTab").innerHTML=`<thead><tr><th>Giorno</th><th>kcal</th><th>Prot. g</th><th>Carb. g</th><th>Grassi g</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Media</td><td>${r(avg.kcal)}</td><td>${r(avg.p)}</td><td>${r(avg.c)}</td><td>${r(avg.f)}</td></tr></tfoot>`;
   $("dietWTab").querySelectorAll("tbody tr").forEach(tr=>tr.onclick=()=>{ dietDayIdx=+tr.dataset.i; renderDietAI(); $("dietPlanCard").scrollIntoView({behavior:"smooth",block:"start"}); });
