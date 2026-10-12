@@ -521,13 +521,13 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .mweek .ph{display:inline-block;margin:6px 0 4px;background:var(--basil-soft);color:var(--basil);font-weight:700;font-size:.8rem;border-radius:999px;padding:3px 10px}
 .mweek .ph.deload{background:var(--surface2);color:var(--muted)}
 .mweek .nt{font-size:.84rem;color:var(--muted);margin-bottom:4px}
-.mrow{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;border:0;border-top:1px solid var(--line);background:none;padding:9px 2px;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
-.mrow .d{font-size:.82rem;color:var(--muted);text-transform:capitalize}
-.mrow .w{min-width:0;overflow-wrap:break-word}
-.mrow.rest .w{color:var(--muted)}
-.mrow.today{background:var(--basil-soft);border-radius:10px}
-.mrow .s{font-weight:800;color:var(--basil)}
-.mrow .s.miss{color:var(--muted);font-weight:500}
+.mdrow{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;border:0;border-top:1px solid var(--line);background:none;padding:9px 2px;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.mdrow .d{font-size:.82rem;color:var(--muted);text-transform:capitalize}
+.mdrow .w{min-width:0;overflow-wrap:break-word}
+.mdrow.rest .w{color:var(--muted)}
+.mdrow.today{background:var(--basil-soft);border-radius:10px}
+.mdrow .s{font-weight:800;color:var(--basil)}
+.mdrow .s.miss{color:var(--muted);font-weight:500}
 .mp-top{display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 0 16px}
 .mp-day{font-size:.85rem;color:var(--muted)}
 .mp-sel{appearance:none;-webkit-appearance:none;border:0;background:none;font:inherit;font-size:1.7rem;font-weight:800;color:var(--ink);text-align:center;padding:2px 26px 2px 8px;background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);background-position:calc(100% - 12px) 55%,calc(100% - 6px) 55%;background-size:6px 6px;background-repeat:no-repeat;cursor:pointer}
@@ -550,6 +550,15 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .mp-add:last-child{border-bottom:0}
 .mp-add b{font-size:1.6rem;font-weight:400}
 .mp-done{display:block;margin:18px auto 8px;border:0;border-radius:999px;background:var(--surface-solid);box-shadow:0 4px 14px rgba(0,0,0,.1);padding:14px 56px;font:inherit;font-weight:700;font-size:1.05rem;color:var(--ink);cursor:pointer}
+#d-plan:not([hidden]){display:flex;flex-direction:column}
+#d-plan.has-diet #upPlanCard{order:-7}
+#d-plan.has-diet #dietPlanCard{order:-6}
+#d-plan.has-diet #dietWeekCard{order:-5}
+#d-plan.has-diet #dietChatCard{order:-4}
+#d-plan.has-diet #dietMore{order:-3}
+#d-plan.has-diet #dietAiCard{order:-2}
+#dietMore{display:none;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin:22px 4px 0}
+#d-plan.has-diet #dietMore{display:block}
 .plan-meal{border-top:1px solid var(--line);padding:12px 0}
 .plan-meal:first-child{border-top:0;padding-top:4px}
 .plan-meal .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
@@ -890,8 +899,9 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="upRemove">Rimuovi la dieta caricata e torna ai consigli dell'AI</button>
     </div>
   </section>
+  <p id="dietMore">Altre opzioni</p>
   <section class="card" id="dietAiCard">
-    <h2>✨ Ti preparo la dieta</h2>
+    <h2 id="dietAiTitle">✨ Ti preparo la dieta</h2>
     <p class="sub" style="margin-bottom:4px">Creo un piano alimentare su misura per il tuo obiettivo, le tue calorie e i tuoi allenamenti. Dimmi cosa ti piace e cosa eviti: al resto penso io.</p>
     <p class="sub" id="dietTargets"></p>
     <div class="form">
@@ -1387,7 +1397,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.55 (pagina Registra pasto)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.58 (correzioni Corpo, ordine dieta, circuito automatico)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -2512,9 +2522,18 @@ $("sugAdd").onclick=()=>addItems(sugItems);
 
 /* ================= DIETA ================= */
 function renderDiet(){
+  try{ renderDietInner(); } finally {
+    const has=!$("dietPlanCard").hidden||!$("upPlanCard").hidden, dp=$("d-plan");
+    dp.classList.toggle("has-diet",has);
+    const order= has? ["upPlanCard","dietPlanCard","dietWeekCard","dietChatCard","dietMore","dietAiCard","upCard"] : ["upCard","upPlanCard","dietMore","dietAiCard","dietPlanCard","dietWeekCard","dietChatCard"];
+    order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===dp) dp.appendChild(n); });
+    $("dietAiTitle").textContent= has&&!upActive()? "✨ Rifai o cambia la dieta" : "✨ Ti preparo la dieta";
+  }
+}
+function renderDietInner(){
   renderUploaded();
   const on=upActive();
-  $("dietAiCard").hidden=on; if(on){ $("dietPlanCard").hidden=true; $("dietChatCard").hidden=true; return; }
+  $("dietAiCard").hidden=on; if(on){ $("dietPlanCard").hidden=true; $("dietChatCard").hidden=true; if($("dietWeekCard")) $("dietWeekCard").hidden=true; return; }
   renderDietAI();
 }
 function mealDetails(name,foods,alt,onAdd){
@@ -2949,7 +2968,9 @@ function progFor(x){
   return {kind:"hold",kg:top,text:`Resta a ${fmt(top)} kg e punta a ${target}×${hi}: quando ci arrivi in tutte le serie, aumenti di ${fmt(step)} kg.`};
 }
 function renderProgram(){
-  try{ $("w-programma").classList.toggle("has-prog", !!activeProg()); }catch{}
+  try{ const wp=$("w-programma"), hp=!!activeProg(); wp.classList.toggle("has-prog",hp);
+    const order= hp? ["progOut","cirOpen","progMore","progPick","aiProgCard","impCard"] : ["progPick","aiProgCard","impCard","progOut","cirOpen","progMore"];
+    order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===wp) wp.appendChild(n); }); }catch{}
   try{ const cg=state.profile&&state.profile.customGoal; if($("pGoal")&&!$("pGoal").value&&cg&&cg.active&&cg.programGoal) $("pGoal").value=cg.programGoal; }catch{}
   const box=$("progOut"); box.innerHTML="";
   const a=activeProg(), hasImp=!!(imported&&Array.isArray(imported.days));
@@ -3070,7 +3091,7 @@ function buildMonth(a,pr,names,doneOn){
     card.innerHTML=`<div class="mh"><b>${w===0?"Questa settimana":w===1?"Prossima settimana":"Settimana "+(w+1)}</b><span>${fmtD(mon)} – ${fmtD(end)} · settimana ${idx+1} del ciclo</span></div><span class="ph${deload?" deload":""}"></span><div class="nt"></div>`;
     card.querySelector(".ph").textContent=focus; card.querySelector(".nt").textContent=note;
     order.forEach((wd,k)=>{ const iso=shiftDate(mon,k), di=pr.weekMap? pr.weekMap[wd] : null, d= di!=null? pr.days[di] : null;
-      const row=el("button","mrow"+(d?"":" rest")+(iso===today?" today":"")); row.type="button";
+      const row=el("button","mdrow"+(d?"":" rest")+(iso===today?" today":"")); row.type="button";
       let label="Riposo";
       if(d&&d.kind==="run"){ const p=runPlan(d); label=`🏃 ${d.runType||"Corsa"}${p.km?` ~${(Math.round(p.km*kmF*10)/10).toLocaleString("it-IT")} km`:p.min?` ~${Math.round(p.min*kmF)} min`:""}`; }
       else if(d&&d.kind==="circuit") label=`🔁 ${d.title}${deload?" (meno giri)":""}`;
@@ -3165,6 +3186,25 @@ $("cirSave").onclick=()=>{
   const pr=a.pr; pr.days.push(day); pr.weekMap=pr.weekMap||defaultWeekMap(pr.days.length-1); pr.weekMap[wd]=pr.days.length-1; saveActive(a);
   closeTopSheet(); renderProgram(); toast("Circuito creato ✓"); setTimeout(()=>{ progOpenWd=wd; editDay=null; go("giorno"); renderDayPage(); },300);
 };
+/* una tantum: circuito di Tom Holland il lunedì, mercoledì e venerdì (con conferma) */
+function spiderPresetOffer(){
+  try{ if(localStorage.getItem("hf:presetSpider")==="1") return; }catch{}
+  if(!state.profile) return;
+  const a=activeProg(); if(a&&a.pr.days.some(d=>d.kind==="circuit"&&/holland|spiderman/i.test(d.title||""))){ try{ localStorage.setItem("hf:presetSpider","1"); }catch{} return; }
+  const prev=a? JSON.parse(JSON.stringify(a.pr)) : null, kind=a? a.kind : null;
+  applySpiderPreset();
+  actionToast("Ho aggiunto il circuito di Tom Holland il lunedì, mercoledì e venerdì.","Annulla",()=>{ if(prev){ if(kind==="imported"){ imported=Object.assign(imported,prev); save("programImported",imported); } else { state.program=prev; save("program",state.program); } } else { state.program=null; save("program",null); } renderProgram(); toast("Circuito tolto"); },20000);
+}
+function applySpiderPreset(){
+  const names=["Pull-up","Dip","Push-up","Sit-up","Air squat"], steps=[1,2,3,4,5], pk=6;
+  let a=activeProg(); if(!a){ state.program={name:"Il mio programma",summary:"",days:[],weekMap:{0:null,1:null,2:null,3:null,4:null,5:null,6:null},startDate:mondayOf(todayISO())}; save("program",state.program); a=activeProg(); }
+  const pr=a.pr; pr.weekMap=pr.weekMap||defaultWeekMap(pr.days.length);
+  const day={title:"Circuito Spiderman (Tom Holland)",kind:"circuit",minutes:Math.round(buildRounds(steps,pk,true).length*2.5),exercises:[],editedByMe:true,
+    circuit:{exercises:names,steps,peak:pk,back:true,rounds:buildRounds(steps,pk,true),rest:"90 s"}};
+  pr.days.push(day); const idx=pr.days.length-1; [1,3,5].forEach(wd=>pr.weekMap[wd]=idx); saveActive(a);
+  try{ localStorage.setItem("hf:presetSpider","1"); }catch{}
+  renderProgram();
+}
 function renderCircuitPage(box,a,pr,d,di,wd,names){
   const c=d.circuit||{exercises:[],rounds:[]}, ms=new Set(); c.exercises.forEach(n=>exMuscles({name:n}).forEach(m=>ms.add(m)));
   const hd=el("div","gd-head"); hd.innerHTML=`<div><h1 class="gd-t"></h1><span class="gd-pill">🔁 Circuito · ${c.rounds.length} giri</span></div><div class="gd-fig">${muscleSVG([...ms],120)}</div>`;
@@ -5024,6 +5064,7 @@ async function loadAll(){
   try{ if(window.claude){ sample=await claude.use("sample"); if(sample){ const lim=await sample.limits().catch(()=>null); imgLimits=(lim&&lim.images)||null; } } }catch{}
   await loadAll();
   setTimeout(()=>{ try{ weeklyDietRefresh(); }catch{} },4000);
+  setTimeout(()=>{ try{ spiderPresetOffer(); }catch{} },1500);
 })();
 document.addEventListener("visibilitychange",async()=>{
   if(document.visibilityState!=="visible"||!SY.user||SY.busy) return;
