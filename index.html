@@ -1437,7 +1437,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.72 (dieta di oggi con i pasti già mangiati)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.73 (aggiornamento del tutto silenzioso)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -5305,7 +5305,7 @@ async function loadAll(){
 })();
 document.addEventListener("visibilitychange",async()=>{
   if(document.visibilityState!=="visible"||!SY.user||SY.busy) return;
-  SY.busy=true; try{ const n=await pull(); renderSync(); if(n){ await loadAll(); toast("Dati aggiornati dall'altro dispositivo"); } }catch(e){ console.warn(e); } finally{ SY.busy=false; }
+  SY.busy=true; try{ const n=await pull(); renderSync(); if(n){ await loadAll(); void 0; } }catch(e){ console.warn(e); } finally{ SY.busy=false; }
 });
 window.addEventListener("online",()=>{ if(SY.user) pushDirty().catch(()=>{}); });
 })();
