@@ -1671,7 +1671,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.07 (riserva gratuita Groq)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.08 (modelli ritirati riconosciuti, Groq più robusto)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <div class="status" id="updStatus" aria-live="polite" style="text-align:center"></div>
   </section>
@@ -1946,7 +1946,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   }
   function reserveModels(chain){
     const known=(LS("models")||"").split(",").filter(Boolean), base=["gemini-2.5-flash-lite","gemini-2.5-flash","gemini-2.0-flash"];
-    const pool=[...new Set(known.length? known : base)].filter(n=>!chain.includes(n)&&!/preview|exp/.test(n));
+    const dead=(LS("deadModels")||"").split(",").filter(Boolean);
+    const pool=[...new Set(known.length? known : base)].filter(n=>!chain.includes(n)&&!dead.includes(n)&&!/preview|exp/.test(n));
     // prima i modelli di generazione più vecchia: di solito sono meno affollati
     return pool.sort((a,b)=>(parseFloat((a.match(/(\d+(?:\.\d+)?)/)||[0,9])[1])-parseFloat((b.match(/(\d+(?:\.\d+)?)/)||[0,9])[1]))||(/lite/.test(b)-/lite/.test(a))).slice(0,2);
   }
@@ -1954,7 +1955,18 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   async function groqOnce(contents,json,opts){
     const gk=LS("groqKey"); if(!gk) throw {code:"no_groq"};
     const hasImg=contents.some(c=>c.parts.some(p=>p.inline_data));
-    const model= hasImg? (LS("groqVision")||"meta-llama/llama-4-scout-17b-16e-instruct") : (LS("groqText")||LS("groqVision")||"llama-3.3-70b-versatile");
+    const first= hasImg? LS("groqVision") : (LS("groqText")||LS("groqVision"));
+    let cands=[first].filter(Boolean), tried=0, lastE=null;
+    const more=async()=>{ try{ const m=await window.HF_GROQ(gk); return (hasImg? m.visionList : m.textList).filter(x=>!cands.includes(x)); }catch{ return []; } };
+    if(!cands.length) cands=await more();
+    for(let i=0;i<cands.length&&tried<4;i++){ tried++;
+      try{ const t=await groqModel(cands[i],contents,json,opts,gk); if(cands[i]!==first) lsSetG(hasImg?"groqVision":"groqText",cands[i]); return t; }
+      catch(e){ lastE=e; if(!/groq_(400|404)/.test(String(e.code))) throw e; if(i===cands.length-1&&tried<4){ cands.push(...await more()); } }
+    }
+    throw lastE||{code:"no_groq_model"};
+  }
+  const lsSetG=(k,v)=>{ try{ localStorage.setItem("hf:"+k,v); }catch{} };
+  async function groqModel(model,contents,json,opts,gk){
     const messages=contents.map(c=>{ const role=c.role==="model"?"assistant":"user";
       const txt=c.parts.filter(p=>p.text!=null).map(p=>p.text).join("\n"), imgs=c.parts.filter(p=>p.inline_data);
       if(!imgs.length) return {role,content:txt};
@@ -1973,10 +1985,12 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   window.HF_GROQ=async(gk)=>{   // verifica la chiave e sceglie i modelli (foto e testo)
     const res=await fetch(`${GROQ}/models`,{headers:{"Authorization":"Bearer "+gk}}); const d=await res.json().catch(()=>null);
     if(!res.ok) throw {code:res.status===401?"bad_key":"groq_"+res.status,message:(d&&d.error&&d.error.message)||""};
-    const ids=(d.data||[]).filter(m=>m.active!==false).map(m=>m.id);
-    const vision=ids.find(n=>/llama-4-scout/i.test(n))||ids.find(n=>/llama-4-maverick/i.test(n))||ids.find(n=>/vision|vl|llava|pixtral|gemma-3/i.test(n))||"";
-    const text=ids.find(n=>/llama-3\.3-70b/i.test(n))||ids.find(n=>/gpt-oss-120b/i.test(n))||ids.find(n=>/llama-4-maverick/i.test(n))||vision||ids[0]||"";
-    return {vision,text,count:ids.length};
+    const ids=(d.data||[]).filter(m=>m.active!==false&&!/whisper|tts|guard|playai|orpheus|embed|distil/i.test(m.id)).map(m=>m.id);
+    const visRe=[/llama-4-maverick/i,/llama-4-scout/i,/llama-4/i,/vision|-vl|vl-|llava|pixtral|gemma-?3|qwen.*vl|kimi.*vl/i];
+    const visionList=[]; visRe.forEach(re=>ids.filter(n=>re.test(n)).forEach(n=>{ if(!visionList.includes(n)) visionList.push(n); }));
+    const txtRe=[/gpt-oss-120b/i,/llama-3\.3-70b/i,/kimi|qwen3|deepseek/i,/llama-4/i,/./];
+    const textList=[]; txtRe.forEach(re=>ids.filter(n=>re.test(n)).forEach(n=>{ if(!textList.includes(n)) textList.push(n); }));
+    return {vision:visionList[0]||"",text:textList[0]||"",visionList,textList,count:ids.length};
   };
   async function viaReserves(chain,key,contents,json,opts,lastErr){
     const busy=e=>e&&(/^api_50\d$/.test(e.code||"")||e.code==="timeout"||e.code==="rate_limited"||e.code==="network"||e.code==="quota"||e.retry);
@@ -1985,7 +1999,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     for(const m of reserveModels(chain)){
       status("I modelli scelti sono sovraccarichi: provo con "+m.replace("gemini-","")+"…");
       try{ const t=await once(m,key,contents,json,opts.signal,20000); try{ localStorage.setItem("hf:lastReserve",m); }catch{} return t; }
-      catch(e){ lastErr=e; if(e&&e.code===404) continue; }
+      catch(e){ lastErr=e; if(e&&/404/.test(String(e.code))){ const d=(LS("deadModels")||"").split(",").filter(Boolean); if(!d.includes(m)){ d.push(m); try{ localStorage.setItem("hf:deadModels",d.join(",")); }catch{} } } }
     }
     throw lastErr;
   }
@@ -2006,14 +2020,17 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         let done=false, started=0, failed=0, tm=null; const ctls=[];
         const finishOk=(t,c)=>{ if(done) return; done=true; clearTimeout(tm); ctls.forEach(x=>{ if(x!==c) x.abort(); }); resolve(t); };
         const run=(model,retry)=>{ started++; const c=new AbortController(); ctls.push(c); if(opts.signal) opts.signal.addEventListener("abort",()=>c.abort(),{once:true});
-          once(model,key,contents,json,c.signal,22000).then(t=>finishOk(t,c)).catch(async e=>{ if(done) return; lastErr=e;
+          once(model,key,contents,json,c.signal,18000).then(t=>finishOk(t,c)).catch(async e=>{ if(done) return; lastErr=e;
             if(e.code==="cancelled"&&opts.signal&&opts.signal.aborted){ done=true; reject(e); return; }
             if(!e.retry&&e.code!=="quota"){ done=true; clearTimeout(tm); ctls.forEach(x=>x.abort()); reject(e); return; }
-            if(retry&&Date.now()-t0<30000&&e.code!=="quota"){ await sleep(700); if(!done){ started--; run(model,false); } return; }
+            if(retry&&Date.now()-t0<30000&&e.code!=="quota"&&e.code!=="timeout"){ await sleep(700); if(!done){ started--; run(model,false); } return; }
             failed++; if(started<2){ clearTimeout(tm); status("Provo con l'altro modello…"); run(chain[1],true); }
             else if(failed>=started){ done=true; reject(e); } }); };
         run(chain[0],true);
-        tm=setTimeout(()=>{ if(!done&&started<2){ status("Il server è lento: provo in parallelo anche l'altro modello…"); run(chain[1],true); } },7000);
+        tm=setTimeout(()=>{ if(!done&&started<2){ status("Il server è lento: provo in parallelo anche l'altro modello…"); run(chain[1],true); } },5000);
+        // con la riserva Groq: dopo 9 secondi parte anche lei, vince la prima risposta
+        if(LS("groqKey")) setTimeout(()=>{ if(done) return; status("Gemini è lento: provo anche con Groq…"); started++;
+          groqOnce(contents,json,opts).then(t=>finishOk(t,null)).catch(e=>{ if(done) return; failed++; if(failed>=started){ done=true; reject(e); } }); },9000);
       }).catch(e=>viaReserves(chain,key,contents,json,opts,e));
       try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{}
       if(opts.onText) opts.onText({text,done:true}); return text;
@@ -6115,6 +6132,9 @@ async function loadAll(){
       renderAll(); if(w.v==="giorno") renderDayPage(); if(w.v==="pasto") renderMealPage(); } }catch(e){ console.warn("ripristino vista",e); }
   setTimeout(()=>{ try{ weeklyDietRefresh(); }catch{} },4000);
   setTimeout(()=>{ try{ spiderPresetOffer(); }catch{} },1500);
+  setTimeout(async()=>{ try{ const k=localStorage.getItem("hf:apiKey"), last=+localStorage.getItem("hf:modelsAt")||0;
+    if(k&&navigator.onLine&&Date.now()-last>3*864e5){ const m=await detectModels(k); if(m&&m.all&&m.all.length){ lsSet("models",m.all.join(",")); lsSet("modelsAt",String(Date.now())); localStorage.removeItem("hf:deadModels");
+      const sel=[G.LS("mMain"),G.LS("mQuick")]; if(sel.some(x=>x&&!m.all.includes(x))){ if(!m.all.includes(G.LS("mMain"))) lsSet("mMain",m.main); if(!m.all.includes(G.LS("mQuick"))) lsSet("mQuick",m.quick); } fillModelSelects(m.all); } } }catch{} },5000);
 })();
 document.addEventListener("visibilitychange",async()=>{
   if(document.visibilityState!=="visible"||!SY.user||SY.busy) return;
