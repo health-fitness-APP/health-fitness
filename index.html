@@ -672,6 +672,25 @@ html,body{overscroll-behavior-y:contain}
 .brand img{width:30px;height:30px;border-radius:9px;display:block}
 .acct{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--glass-b);background:var(--surface);padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08);z-index:2}
 .acct .mini-av{width:38px;height:38px;font-size:1rem}
+.st-list{margin-top:10px;padding:4px 14px}
+.st-list .swipe{margin:0 -14px}
+.st-list .swipe-fg{padding-left:14px;padding-right:14px}
+#dietAdded{margin-top:12px}
+.stchip{display:inline-flex;align-items:center;gap:6px;background:var(--basil-soft)!important;border-color:var(--basil)!important;color:var(--ink)!important}
+.stchip button{border:0;background:none;color:inherit;font-weight:800;cursor:pointer;padding:0 2px}
+.stadd{display:flex;gap:8px;margin-top:10px}
+.stadd .field{flex:1;min-width:0}
+.stadd .btn{width:auto;padding:10px 16px}
+.stres{margin-top:14px;border-radius:18px;padding:14px;border:1.5px solid var(--line);background:var(--surface2)}
+.stres.ok{border-color:var(--basil)}
+.stres h3{margin:0 0 6px;font-size:1.05rem}
+.stres h4{margin:12px 0 4px;font-size:.95rem}
+.stmiss{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
+.stmiss input{margin-top:3px;width:18px;height:18px;flex:none}
+.stmiss b{display:block}
+.stmiss small{color:var(--muted)}
+.stlim{padding:6px 0;font-size:.92rem}
+.stlim .sw{color:var(--basil);font-weight:600;font-size:.88rem}
 .plan-meal{border-top:1px solid var(--line);padding:12px 0}
 .plan-meal:first-child{border-top:0;padding-top:4px}
 .plan-meal .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
@@ -923,6 +942,12 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <div id="meals"></div>
 </main>
 
+<!-- ================= CIBI DI CASA ================= -->
+<main id="view-casa" hidden>
+  <header class="cibo-top"><button class="icon-btn" id="casaBack" aria-label="Indietro">‹</button><h1>I cibi di casa</h1></header>
+  <div id="casaBody"></div>
+</main>
+
 <!-- ================= PASTO ================= -->
 <main id="view-pasto" hidden>
   <header class="cibo-top"><button class="icon-btn" id="mpBack" aria-label="Indietro">‹</button><h1 id="mpTitle">Pasto</h1></header>
@@ -1064,6 +1089,18 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </section>
   </div>
   <div id="d-pantry" hidden>
+    <button class="card mealrow" id="stRow" type="button"><span class="mi">⭐</span><span class="mt"><b>I cibi che tieni in casa</b><span class="ms" id="stRowSub">Tocca per aggiungerli</span></span><span class="chev">›</span></button>
+    <section class="card" id="stapleCard">
+      <h2>⭐ I cibi che tieni sempre in casa</h2>
+      <p class="sub">Salva qui gli alimenti che compri di solito: il coach controlla se bastano per il tuo obiettivo, ti dice cosa manca o cosa non va bene, e ti prepara la dieta usando soprattutto questi.</p>
+      <div class="mp-list st-list" id="stList"></div>
+      <input type="hidden" id="stIn"><button hidden id="stAdd" type="button"></button>
+      <div id="stSug" hidden></div>
+      <button class="linkbtn" id="stFromPan" type="button">↳ Aggiungi quelli che ho ora in dispensa</button>
+      <button class="btn" id="stCheck" type="button" style="margin-top:12px">🍽️ Valuta i miei cibi e proponimi la dieta</button>
+      <div class="status" id="stStatus" aria-live="polite"></div>
+      <div id="stOut"></div>
+    </section>
     <section class="card">
       <h2>Cosa posso mangiare?</h2>
       <p class="sub" id="panTargets"></p>
@@ -1529,7 +1566,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.90 (selezione grigio scuro)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.93 (cibi di casa in una pagina)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -2077,17 +2114,17 @@ function mealList(){ return (state.profile&&state.profile.meals&&state.profile.m
 
 /* ---------- navigazione ---------- */
 let view="diario";
-const SUB_VIEWS=["cibo","pasto","attivita","attrezzatura","giorno"];
+const SUB_VIEWS=["cibo","pasto","casa","attivita","attrezzatura","giorno"];
 function rememberView(v){ if(!state.profile||!goalOf(state.profile)) return; try{ sessionStorage.setItem("hf:where",JSON.stringify({v,meal:typeof mealPageId!=="undefined"?mealPageId:null,wd:typeof progOpenWd!=="undefined"?progOpenWd:null,date:state.date,at:Date.now()})); }catch{} }
 function go(v,fromHistory){ setTimeout(()=>rememberView(v),0);
   if(!fromHistory && v!==view){
     if(v==="diario"){ if(history.state&&history.state.v&&history.state.v!=="diario"&&!sheetStack.length){ history.back(); return; } }
-    else if(["cibo","pasto","attivita","attrezzatura","giorno","sessione"].includes(v)||!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
+    else if(["cibo","pasto","casa","attivita","attrezzatura","giorno","sessione"].includes(v)||!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
   }
   if(v!=="diario"&&typeof editMode!=="undefined"&&editMode) setEdit(false);
   view=v;
-  ["diario","cibo","pasto","attivita","attrezzatura","giorno","sessione","dieta","allenamento","corpo","profilo"].forEach(x=>$("view-"+x).hidden = x!==v);
-  document.querySelectorAll("nav.tabbar button").forEach(b=> b.dataset.v===((v==="cibo"||v==="attivita"||v==="pasto")?"diario":v==="attrezzatura"?"profilo":(v==="giorno"||v==="sessione")?"allenamento":v) ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
+  ["diario","cibo","pasto","casa","attivita","attrezzatura","giorno","sessione","dieta","allenamento","corpo","profilo"].forEach(x=>$("view-"+x).hidden = x!==v);
+  document.querySelectorAll("nav.tabbar button").forEach(b=> b.dataset.v===((v==="cibo"||v==="attivita"||v==="pasto")?"diario":v==="attrezzatura"?"profilo":(v==="giorno"||v==="sessione")?"allenamento":v==="casa"?"dieta":v) ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
   window.scrollTo(0,0);
   if(v==="profilo") fillProfile();
   renderAll();
@@ -2392,7 +2429,7 @@ $("scrim").onclick=closeTopSheet;
 document.querySelectorAll(".sheet-x").forEach(b=>b.onclick=closeTopSheet);
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeTopSheet(); });
 function openAdd(m){
-  currentMeal=m.id; currentMealName=m.name; $("addTitle").textContent="Aggiungi a "+m.name.toLowerCase();
+  currentMeal=m.id; currentMealName=m.name; $("addTitle").textContent= m.id==="__staples"? "Aggiungi ai cibi di casa" : "Aggiungi a "+m.name.toLowerCase();
   resetPhoto(); resetSearch(); resetSuggest(); const canImg=!!imgLimits; $("tabPhoto").hidden=!canImg; $("tabSuggest").hidden=!sample;
   quickPicked=[]; $("quickPickedBox").hidden=true; renderQuick();
   setTab(hasQuick()? "quick" : canImg?"photo":"search"); $("aiSearch").hidden=!sample; openSheet("addSheet");
@@ -2490,6 +2527,9 @@ function renderFound(ul,list){
 function addItems(list, mealId=currentMeal, quiet){
   const clean=list.filter(it=>it.grams>0).map(({per,...rest})=>({...rest,id:uid()}));
   if(!clean.length) return;
+  if(mealId==="__staples"){ const cur=stapleItems(), low=cur.map(x=>x.name.toLowerCase());
+    clean.forEach(it=>{ if(!low.includes(String(it.name).toLowerCase())){ cur.push({id:uid(),name:String(it.name).slice(0,60),grams:+it.grams||100,kcal:+it.kcal||0,p:+it.p||0,c:+it.c||0,f:+it.f||0}); low.push(String(it.name).toLowerCase()); } });
+    pantry.staples=cur; saveStaples(); closeSheets(); renderStaples(); toast(clean.length===1? clean[0].name+" aggiunto ai cibi di casa" : clean.length+" alimenti aggiunti ai cibi di casa"); return; }
   state.day.meals[mealId]=[...(state.day.meals[mealId]||[]),...clean];
   saveDay(); renderAll(); closeSheets();
   if(!quiet) toast("Aggiunto: "+r(clean.reduce((a,b)=>a+b.kcal,0))+" kcal");
@@ -2971,6 +3011,12 @@ function renderDietAI(){
   $("dietWTab").querySelectorAll("tbody tr").forEach(tr=>tr.onclick=()=>{ dietDayIdx=+tr.dataset.i; renderDietAI(); $("dietPlanCard").scrollIntoView({behavior:"smooth",block:"start"}); });
   $("dietPlanTot").textContent=`7 giorni pronti. Tocca un giorno per vedere pasti e valori; i giorni con il pallino sono di allenamento.`;
   $("dietTips").textContent=(plan&&plan.tips)||"";
+  { let ab=$("dietAdded"); if(!ab){ ab=el("div","stres"); ab.id="dietAdded"; $("dietTips").after(ab); }
+    const ad=(plan&&plan.added)||[], low=stapleNames().map(x=>x.toLowerCase()), miss=ad.filter(a=>!low.includes(String(a.food).toLowerCase()));
+    ab.hidden=!miss.length; ab.innerHTML="";
+    if(miss.length){ ab.appendChild(el("h3",null,"🛒 Ho aggiunto alla dieta, oltre ai tuoi cibi"));
+      miss.forEach(a=>{ const p=el("div","stlim"); p.innerHTML="<b></b> <span></span>"; p.querySelector("b").textContent=a.food; p.querySelector("span").textContent="— "+(a.why||""); ab.appendChild(p); });
+      const b=el("button","btn ghost","Aggiungili ai miei cibi di casa"); b.type="button"; b.onclick=()=>{ addStaples(miss.map(a=>a.food).join(",")); renderDietAI(); toast("Aggiunti ai cibi di casa"); }; ab.appendChild(b); } }
   const chat=$("dietChat"); chat.innerHTML="";
   (state.diet.history||[]).slice(-6).forEach(h=>chat.appendChild(el("div","bubble"+(h.me?" me":""),h.text)));
 }
@@ -3046,10 +3092,11 @@ Composizione corporea e metabolismo: peso ${p.weight} kg${tg.fatPct?`, grasso ${
 Adatta i pasti al tipo di allenamento: prima di corse lunghe o intense carboidrati facili (colazione o spuntino 1-3 ore prima) e cena precedente ricca di carboidrati; dopo la forza un pasto con almeno 30-40 g di proteine; nei giorni di riposo meno carboidrati e più verdure, proteine stabili.
 Pasti di ogni giorno, con questi id esatti: ${JSON.stringify(mealList().map(m=>({id:m.id,name:m.name})))}.
 Preferenze: ${prefs||"nessuna"}.
+${stapleItems().length? `Alimenti che tiene SEMPRE in casa: ${stapleNames().join(", ")}. Costruisci la dieta usando SOPRATTUTTO questi, se vanno bene per il suo obiettivo. Se mancano alimenti importanti (verdure, frutta, fonti proteiche varie, carboidrati per gli allenamenti…) o alcuni dei suoi non sono adatti, scegli tu cosa aggiungere o sostituire e mettilo nel campo "added" con il motivo.` : ""}
 Nei giorni di allenamento organizza i pasti intorno all'orario (pre e post allenamento, più carboidrati); se si allena al mattino a digiuno, prevedi una colazione di recupero ricca di proteine e carboidrati.
 ${prevPlan? "Piano attuale: "+JSON.stringify(prevPlan)+"\nModifica richiesta: "+request+"\nApplica la modifica (ai giorni interessati, o a tutti se la richiesta è generale) mantenendo gli obiettivi e restituisci il piano COMPLETO di 7 giorni." : "Usa cibi comuni in Italia, pasti realistici e semplici da preparare."}${extra? "\n"+extra : ""}
 Valori per la porzione indicata, tabelle CREA. Rispondi SOLO con JSON valido e compatto:
-{"days":[{"weekday":1,"label":"Lunedì","meals":[{"id":"string","name":"string","foods":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}]}],"tips":"2-3 consigli brevi per organizzarsi nella settimana (spesa, preparazioni in anticipo)","reply":"una frase che spiega cosa hai fatto"}`;
+{"days":[{"weekday":1,"label":"Lunedì","meals":[{"id":"string","name":"string","foods":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}]}],"tips":"2-3 consigli brevi per organizzarsi nella settimana (spesa, preparazioni in anticipo)","added":[{"food":"alimento che hai aggiunto oltre ai suoi","why":"perché, breve"}],"reply":"una frase che spiega cosa hai fatto"}`;
 }
 async function runDiet(request){
   const prefs=$("dietPrefs").value.trim();
@@ -3066,7 +3113,7 @@ async function runDiet(request){
     days=days.map((d,i)=>{ const wd= d.weekday!=null&&d.weekday>=0&&d.weekday<=6? +d.weekday : WD_ORDER[i%7]; return {weekday:wd,label:WD_NAME[wd],meals:d.meals}; })
       .sort((a,b)=>WD_ORDER.indexOf(a.weekday)-WD_ORDER.indexOf(b.weekday));
     const history = request? [...(state.diet.history||[]),{me:false,text:res.reply||"Fatto."}] : [];
-    state.diet={plan:calibratePlan({days,tips:res.tips||"",createdAt:todayISO()}),prefs,history};
+    state.diet={plan:calibratePlan({days,tips:res.tips||"",added:Array.isArray(res.added)?res.added.filter(x=>x&&x.food).slice(0,8):(request&&state.diet&&state.diet.plan&&state.diet.plan.added)||[],createdAt:todayISO()}),prefs,history};
     save("diet",state.diet); clearInterval(tick); setStatus("dietStatus","");
     if(state.profile&&prefs!==state.profile.foodPrefs){ state.profile.foodPrefs=prefs; save("profile",state.profile); }
     dietDayIdx=null; renderDiet(); if(!request) $("dietPlanCard").scrollIntoView({behavior:"smooth",block:"start"});
@@ -4649,7 +4696,83 @@ Massimo 3 azioni; se tutto va bene, una sola azione di tipo habit per continuare
 
 /* ================= DISPENSA ================= */
 const PCATS=["Frutta e verdura","Carne e pesce","Latticini e uova","Pane, pasta e cereali","Legumi e scatolame","Surgelati","Condimenti e dispensa","Snack e dolci","Bevande","Altro"];
-let pantry={items:[],batches:[]}, panUndo=null, dTab="plan";
+let pantry={items:[],batches:[],staples:[]}, panUndo=null, dTab="plan";
+/* ----- cibi che tiene sempre in casa ----- */
+const ST_SUG=["Uova","Yogurt greco","Fiocchi d'avena","Riso","Pasta","Pane integrale","Petto di pollo","Tonno al naturale","Salmone","Legumi in scatola","Latte","Ricotta","Parmigiano","Frutta di stagione","Banane","Verdure surgelate","Insalata","Patate","Olio extravergine","Frutta secca","Burro d'arachidi","Cioccolato fondente"];
+function saveStaples(){ save("pantry",pantry); }
+function stapleItems(){ pantry.staples=(pantry.staples||[]).map(x=> typeof x==="string"? {id:uid(),name:x} : x); return pantry.staples; }
+const stapleNames=()=>stapleItems().map(x=>x.name);
+function addStaples(txt){ const add=String(txt||"").split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1)).slice(0,30);
+  const cur=stapleItems(), low=cur.map(x=>x.name.toLowerCase());
+  add.forEach(x=>{ if(!low.includes(x.toLowerCase())){ const lx=x.toLowerCase(), FD=(typeof FOODS!=="undefined"? FOODS:[]).filter(f=>Array.isArray(f)&&typeof f[0]==="string"), db=FD.find(f=>f[0].toLowerCase()===lx)||FD.find(f=>f[0].toLowerCase().startsWith(lx));
+    cur.push(db? {id:uid(),name:x.slice(0,50),grams:100,kcal:db[1],p:db[2],c:db[3],f:db[4]} : {id:uid(),name:x.slice(0,50)}); low.push(x.toLowerCase()); } });
+  pantry.staples=cur; saveStaples(); renderStaples(); queueStapleValues(); }
+/* calcola in automatico porzione tipica e valori dei cibi aggiunti solo per nome */
+let stValT=null, stValBusy=false;
+function queueStapleValues(){ clearTimeout(stValT); stValT=setTimeout(fillStapleValues,1500); }
+async function fillStapleValues(){
+  const miss=stapleItems().filter(x=>x.kcal==null); if(!miss.length||!sample||stValBusy||aiPaused()) return; stValBusy=true;
+  try{ const res=await sample.json(`Per ciascun alimento indica una porzione tipica in grammi e i valori nutrizionali di quella porzione (tabelle CREA). Alimenti: ${miss.map(x=>x.name).join(", ")}.
+Rispondi SOLO con JSON: {"items":[{"name":"come scritto","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}`,{modelTier:"quick"});
+    (res&&Array.isArray(res.items)?res.items:[]).forEach(v=>{ const it=stapleItems().find(x=>x.kcal==null&&x.name.toLowerCase()===String(v.name||"").toLowerCase()); if(it&&+v.grams>0){ Object.assign(it,{grams:Math.round(+v.grams),kcal:Math.round(+v.kcal||0),p:+v.p||0,c:+v.c||0,f:+v.f||0}); } });
+    saveStaples(); renderStaples();
+  }catch(e){} finally{ stValBusy=false; } }
+function renderStaples(){
+  const st=stapleItems(), box=$("stList"); if(!box) return; box.innerHTML="";
+  st.forEach((it,i)=>{ const row=el("div","mp-row"), tx=el("div","mp-tx");
+    tx.innerHTML=`<span class="n"></span><span class="q"></span>`; tx.querySelector(".n").textContent=it.name;
+    tx.querySelector(".q").textContent= it.kcal!=null&&it.grams? `${r(it.kcal)} kcal per ${fmt(it.grams)} g · P ${r(it.p)} · C ${r(it.c)} · G ${r(it.f)}` : (sample? "calcolo i valori…" : "valori non disponibili");
+    const st0=starBtn({name:it.name,grams:it.grams||100,kcal:it.kcal||0,p:it.p||0,c:it.c||0,f:it.f||0});
+    const del=el("button","mp-pm","×"); del.type="button"; del.setAttribute("aria-label","Togli "+it.name);
+    const rm=()=>{ const idx=stapleItems().findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.staples.splice(idx,1)[0]; saveStaples(); renderStaples();
+      actionToast(`Tolto: ${was.name}`,"Annulla",()=>{ pantry.staples.splice(idx,0,was); saveStaples(); renderStaples(); },6000); };
+    del.onclick=rm; row.append(tx,st0,el("span","mp-div"),del); box.appendChild(makeSwipe(row,rm,it.name)); });
+  if(st.some(x=>x.kcal==null)&&!renderStaples.tried){ renderStaples.tried=true; queueStapleValues(); }
+  const add=el("button","mp-add"); add.type="button"; add.innerHTML=`<span>Aggiungi alimenti</span><b>+</b>`; add.onclick=()=>openAdd({id:"__staples",name:"I cibi di casa"}); box.appendChild(add);
+  if(!st.length) box.insertBefore(el("p","note","Ancora nessun alimento: aggiungili come nei pasti (foto, codice a barre, ricerca, preferiti…)."),add);
+  { const n=st.length, k=st.reduce((a,x)=>a+(+x.kcal||0),0); if($("stRowSub")) $("stRowSub").textContent= n? `${n} ${n===1?"alimento":"alimenti"} · tocca per vederli e aggiungerne` : "Tocca per aggiungere quelli che compri di solito"; }
+  const sg=$("stSug"); sg.innerHTML=""; const low=st.map(x=>x.name.toLowerCase());
+  void low;
+  $("stFromPan").hidden=!pantry.items.length; $("stCheck").disabled=!sample||!st.length;
+}
+(function(){ const c=$("stapleCard"); c.querySelector("h2").remove(); $("casaBody").appendChild(c); })();
+$("stRow").onclick=()=>{ renderStaples(); go("casa"); };
+$("casaBack").onclick=()=>{ if(history.state&&history.state.v==="casa") history.back(); else go("dieta"); };
+$("stAdd").onclick=()=>{ addStaples($("stIn").value); $("stIn").value=""; };
+$("stIn").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("stAdd").click(); } });
+$("stFromPan").onclick=()=>{ addStaples(pantry.items.map(i=>i.name).join(",")); toast("Aggiunti i cibi della dispensa"); };
+let stRes=null;
+$("stCheck").onclick=async()=>{
+  const st=stapleItems().map(x=>x.name+(x.kcal!=null&&x.grams?` (${r(x.kcal)} kcal/${fmt(x.grams)} g)`:"")); if(!st.length||!sample) return; const tg=targets(state.profile), wt=weekTargets();
+  $("stCheck").disabled=true; setStatus("stStatus","Il coach controlla i tuoi cibi…"); $("stOut").innerHTML="";
+  try{
+    const res=await sample.json(`Sei un nutrizionista sportivo. La persona tiene di solito in casa SOLO questi alimenti: ${st.join(", ")}.
+Profilo: ${profileSummary()}. Obiettivi medi: ${tg? `${r(tg.kcal)} kcal nei giorni di riposo, fino a ${r(Math.max(...(wt||[]).map(d=>d.kcal),tg.kcal))} nei giorni di allenamento; proteine ${r(tg.prot)} g, carboidrati ${r(tg.carb)} g, grassi ${r(tg.fat)} g` : "non impostati"}.
+Valuta se con questi alimenti si può fare una dieta settimanale varia ed equilibrata per il suo obiettivo (proteine sufficienti, carboidrati per gli allenamenti, verdura e frutta, grassi buoni, varietà).
+Rispondi SOLO con JSON in italiano: {"ok":true|false,"summary":"giudizio in 1-2 frasi","good":["alimenti ottimi per il suo obiettivo, brevi"],"missing":[{"food":"alimento da aggiungere","why":"perché serve, breve"}],"limit":[{"food":"alimento della sua lista","why":"perché non va bene o va limitato","swap":"cosa usare al posto"}]}. "missing" vuoto se basta così; "limit" solo per alimenti della sua lista davvero poco adatti.`,{modelTier:"default"});
+    if(!res||typeof res.ok!=="boolean") throw {code:"bad_output"};
+    stRes=res; setStatus("stStatus",""); renderStRes();
+  }catch(e){ setStatus("stStatus",errCopy(e),true); }
+  finally{ $("stCheck").disabled=!sample||!stapleItems().length; }
+};
+function renderStRes(){
+  const res=stRes, box=$("stOut"); box.innerHTML=""; if(!res) return;
+  const card=el("div","stres "+(res.ok?"ok":"ko"));
+  card.appendChild(el("h3",null, res.ok? "✓ Con i tuoi cibi si può fare una buona dieta" : "Mancano alcuni alimenti"));
+  if(res.summary) card.appendChild(el("p",null,res.summary));
+  if(res.good&&res.good.length){ card.appendChild(el("h4",null,"👍 Ottimi per il tuo obiettivo")); card.appendChild(el("p","note",res.good.join(", "))); }
+  const sel=new Set();
+  if(res.missing&&res.missing.length){ card.appendChild(el("h4",null,"🛒 Cosa manca"));
+    res.missing.forEach(m=>{ const row=el("label","stmiss"); const cb=el("input"); cb.type="checkbox"; cb.checked=true; sel.add(m.food); cb.onchange=()=>{ cb.checked? sel.add(m.food) : sel.delete(m.food); };
+      const tx=el("span"); tx.innerHTML="<b></b><small></small>"; tx.querySelector("b").textContent=m.food; tx.querySelector("small").textContent=m.why||""; row.append(cb,tx); card.appendChild(row); });
+    const addB=el("button","btn ghost","Li compro: aggiungili ai miei cibi"); addB.type="button"; addB.onclick=()=>{ addStaples([...sel].join(",")); toast("Aggiunti ai tuoi cibi"); }; card.appendChild(addB); }
+  if(res.limit&&res.limit.length){ card.appendChild(el("h4",null,"⚠️ Da limitare o sostituire"));
+    res.limit.forEach(l=>{ const p=el("div","stlim"); p.innerHTML="<b></b> <span></span><div class='sw'></div>"; p.querySelector("b").textContent=l.food; p.querySelector("span").textContent="— "+(l.why||""); p.querySelector(".sw").textContent= l.swap? "Meglio: "+l.swap : ""; card.appendChild(p); }); }
+  const go=el("button","btn","Preparami la dieta con i miei cibi"); go.type="button"; go.style.marginTop="12px";
+  go.onclick=()=>{ const extra=[...sel]; if(extra.length&&!res.ok&&confirm("Aggiungo anche: "+extra.join(", ")+"?")) addStaples(extra.join(","));
+    if(view==="casa"){ if(history.state&&history.state.v==="casa") history.back(); else go("dieta"); } setTimeout(()=>setD("plan"),60); setTimeout(()=>{ runDiet(null); $("dietPlanCard").scrollIntoView({behavior:"smooth"}); },150); };
+  card.appendChild(go); box.appendChild(card);
+}
 function setD(t){ dTab=t; document.querySelectorAll("#dSeg button").forEach(b=>b.setAttribute("aria-selected",b.dataset.d===t)); $("d-plan").hidden=t!=="plan"; $("d-pantry").hidden=t!=="pantry"; if(t==="pantry") renderPantry(); }
 document.querySelectorAll("#dSeg button").forEach(b=>b.onclick=()=>setD(b.dataset.d));
 function pantryText(){ return pantry.items.map(i=>i.name+(i.qty?" ("+i.qty+")":"")).join(", "); }
@@ -4657,7 +4780,7 @@ function savePantry(){ save("pantry",pantry); }
 function snapshot(){ panUndo=JSON.parse(JSON.stringify(pantry)); $("panUndo").hidden=false; }
 function remainingText(){ const dt=dayTargets(); if(!dt) return "obiettivi non impostati"; const t=totals();
   return `oggi mancano ${r(dt.goal-t.kcal)} kcal, proteine ${r(dt.P-t.p)} g, carboidrati ${r(dt.C-t.c)} g, grassi ${r(dt.F-t.f)} g (negativo = già superato)`; }
-function renderPantry(){
+function renderPantry(){ try{ renderStaples(); }catch(e){ console.warn("staples",e); }
   const dt=dayTargets(), t=totals();
   $("panTargets").textContent = dt? `Uso quello che hai in casa e quello che ti manca oggi: ${r(Math.max(0,dt.goal-t.kcal))} kcal, ${r(Math.max(0,dt.P-t.p))} g di proteine.` : "Completa il profilo per avere consigli sui tuoi obiettivi.";
   const q=$("panQuick"); q.innerHTML="";
@@ -5446,7 +5569,7 @@ $("mpBack").onclick=()=>{ if(history.state&&history.state.v==="pasto") history.b
 $("ciboBack").onclick=()=>{ if(history.state&&history.state.v==="cibo") history.back(); else go("diario"); };
 $("cPrev").onclick=()=>$("prev").click(); $("cNext").onclick=()=>$("next").click(); $("cDayPick").onclick=()=>$("dayPick").click();
 $("dBody").onclick=()=>go("corpo");
-function renderAll(){ document.body.classList.toggle("home",view==="diario"); if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento"||view==="attivita") renderWorkouts(); if(view==="corpo") renderBody(); }
+function renderAll(){ document.body.classList.toggle("home",view==="diario"); if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } } if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento"||view==="attivita") renderWorkouts(); if(view==="corpo") renderBody(); }
 renderAll();
 async function loadAll(){
   const agd=await store.getDoc("actGoals"); if(agd&&agd.steps) actG=agd;
@@ -5457,7 +5580,7 @@ async function loadAll(){
   const bd=await store.getDoc("body"); if(bd&&Array.isArray(bd.entries)) body=bd;
   uploaded=await store.getDoc("dietUploaded");
   const hh=await store.getDoc("workoutHistory"); if(hh&&Array.isArray(hh.items)) hist=hh; else await backfillHistory();
-  const pn=await store.getDoc("pantry"); if(pn&&Array.isArray(pn.items)) pantry={items:pn.items,batches:pn.batches||[]};
+  const pn=await store.getDoc("pantry"); if(pn&&Array.isArray(pn.items)) pantry={items:pn.items,batches:pn.batches||[],staples:pn.staples||[]};
   imported=await store.getDoc("programImported"); const tl=await store.getDoc("trainingLog"); if(tl&&Array.isArray(tl.sessions)) tlog=tl;
   if(p){ if(p.goal==="rassodare") p.goal="definito"; if(p.goal==="mantenere") p.goal="salute"; if(!GOALS.find(g=>g.id===p.goal)) p.goal=""; if(!p.meals) p.meals=PRESETS["4 pasti"]; }
   state.profile=p; state.diet=diet; state.program=prog;
