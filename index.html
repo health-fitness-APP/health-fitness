@@ -451,14 +451,14 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .gd-et .prog.down,.sx-prog.down{color:var(--warn);font-weight:600}
 .sx-prog{margin:0 4px}
 .btn.danger{color:var(--warn);border-color:var(--warn);margin-top:10px}
-.mealrow{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:16px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+button.mealrow{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:16px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
 #meals>.mealrow:first-child{margin-top:0}
-.mealrow .mi{flex:none;width:46px;height:46px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.4rem}
-.mealrow .mt{flex:1;min-width:0;display:flex;flex-direction:column}
-.mealrow b{font-size:1.12rem}
-.mealrow .ms{font-size:.82rem;color:var(--muted);margin-top:2px}
-.mealrow .mk{font-weight:700;white-space:nowrap}
-.mealrow .chev{color:var(--muted);font-size:1.4rem}
+button.mealrow .mi{flex:none;width:46px;height:46px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+button.mealrow .mt{flex:1;min-width:0;display:flex;flex-direction:column}
+button.mealrow b{font-size:1.12rem}
+button.mealrow .ms{font-size:.82rem;color:var(--muted);margin-top:2px}
+button.mealrow .mk{font-weight:700;white-space:nowrap}
+button.mealrow .chev{color:var(--muted);font-size:1.4rem}
 .aipause{position:sticky;top:env(safe-area-inset-top,0px);z-index:16;margin:6px 12px 0;padding:8px 12px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:.85rem;font-weight:600;text-align:center}
 .chk{display:flex;align-items:center;gap:8px;font-size:.92rem}
 .cir-table .cr{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:.88rem}
@@ -701,6 +701,16 @@ html,body{overscroll-behavior-y:contain}
 .ro-drag{position:relative;z-index:30;box-shadow:0 16px 40px rgba(0,0,0,.22)!important;transition:none!important;opacity:.97}
 .ro-on{user-select:none;-webkit-user-select:none}
 .ro-on>*:not(.ro-drag){transition:transform .15s}
+.rec-keep{font-size:1rem}
+#recentCard{margin-top:14px}
+.mealrow .mwhere{flex:none;width:auto;max-width:44%;padding-right:26px}
+.supprow{display:grid;grid-template-columns:1.4fr 1fr auto;gap:6px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.supprow select{grid-column:1/3}
+.supprow .del{grid-row:1/3;grid-column:3}
+.suppres{border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:8px}
+.suppres.ok{border-color:var(--basil)}.suppres.rivedi{border-color:#E9A21E}.suppres.inutile{border-color:#E5484D}
+.suppres b{margin-right:8px}.suppres .vb{font-size:.85rem;font-weight:700}
+.suppres .d{font-size:.88rem;margin-top:4px}.suppres .nt{font-size:.85rem;color:var(--muted);margin-top:2px}
 .stchip{display:inline-flex;align-items:center;gap:6px;background:var(--basil-soft)!important;border-color:var(--basil)!important;color:var(--ink)!important}
 .stchip button{border:0;background:none;color:inherit;font-weight:800;cursor:pointer;padding:0 2px}
 .stadd{display:flex;gap:8px;margin-top:10px}
@@ -972,13 +982,17 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <header class="cibo-top"><button class="icon-btn" id="casaBack" aria-label="Indietro">‹</button><h1>I cibi di casa</h1></header>
   <section class="card" id="outCard">
     <h2>🚫 Oggi ho finito…</h2>
-    <p class="sub">Tocca i cibi che oggi non hai o scrivili: aggiorno la dieta di oggi senza usarli. Domani tornano disponibili.</p>
-    <div class="chips" id="outChips"></div>
-    <div class="stadd"><input class="field" id="outIn" placeholder="Es. latte, banane"><button class="btn ghost" id="outAdd" type="button">Aggiungi</button></div>
-    <button class="btn" id="outGo" type="button" style="margin-top:10px">Aggiorna la dieta di oggi</button>
+    <div class="stadd" style="margin-top:6px"><input class="field" id="outIn" placeholder="Scrivi cosa hai finito, es. latte, banane"><button class="btn ghost" id="outAdd" type="button">Ok</button></div>
+    <p class="note" style="margin:8px 0 0">Oppure tieni premuto un cibo nell'elenco qui sotto. La dieta di oggi si aggiorna da sola; domani tornano disponibili.</p>
+    <div class="chips" id="outChips" style="margin-top:8px"></div><button hidden id="outGo" type="button"></button>
     <div class="status" id="outStatus" aria-live="polite"></div>
   </section>
   <div id="casaBody"></div>
+  <section class="card" id="recentCard">
+    <h2>🧾 Comprati di recente</h2>
+    <p class="sub">Dallo scontrino e dalle foto del frigo. Quelli che hai già tra i cibi di sempre non li ripeto.</p>
+    <div class="mp-list st-list" id="recList"></div>
+  </section>
 </main>
 
 <!-- ================= VALUTA UN CIBO ================= -->
@@ -987,9 +1001,11 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <section class="card">
     <p class="sub" style="margin-top:0">Fotografa il prodotto, l'etichetta o il codice a barre: ti dico se è un cibo consigliato da mangiare e comprare per il tuo obiettivo.</p>
     <input type="file" id="valCam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="valCode" accept="image/*" capture="environment" hidden>
     <input type="file" id="valGal" accept="image/*" multiple hidden>
-    <div class="eqp3" style="grid-template-columns:1fr 1fr">
-      <button class="btn" id="valCamBtn" type="button">📷 Scatta una foto</button>
+    <button class="btn" id="valCodeBtn" type="button">▥ Fotografa il codice a barre</button>
+    <div class="eqp3" style="grid-template-columns:1fr 1fr;margin-top:8px">
+      <button class="btn ghost" id="valCamBtn" type="button">📷 Foto del prodotto</button>
       <button class="btn ghost" id="valGalBtn" type="button">🖼️ Dalla galleria</button>
     </div>
     <div class="stadd"><input class="field" id="valTxt" placeholder="Oppure scrivi il nome o il codice a barre"><button class="btn ghost" id="valTxtGo" type="button">Valuta</button></div>
@@ -1549,10 +1565,19 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </section>
   <section class="card">
     <h2>I tuoi pasti</h2>
-    <p class="sub">Scegli quanti pasti fai: puoi anche rinominarli o aggiungerne.</p>
+    <p class="sub">Scegli quanti pasti fai, rinominali o aggiungine, e indica dove li mangi di solito: i cibi di casa li uso soprattutto nei pasti a casa.</p>
     <div class="chips" id="presets"></div>
     <div id="mealRows"></div>
     <button class="add soft" id="addMealRow">+ Aggiungi pasto</button>
+  </section>
+  <section class="card" id="suppCard">
+    <h2>💊 Integratori</h2>
+    <p class="sub">Segna cosa prendi e in che dose: il coach ne tiene conto nei consigli e può dirti se vanno bene per il tuo obiettivo.</p>
+    <div id="suppRows"></div>
+    <button class="add soft" id="suppAdd" type="button">+ Aggiungi integratore</button>
+    <button class="btn ghost" id="suppAsk" type="button" style="margin-top:10px">🤖 Chiedi al coach se vanno bene</button>
+    <div class="status" id="suppStatus" aria-live="polite"></div>
+    <div id="suppOut"></div>
   </section>
   <button class="card eqrow" id="eqOpen" type="button">
     <span><span class="l">Attrezzature disponibili</span><b id="eqCount">Nessuna selezionata</b></span><span class="chev">›</span>
@@ -1619,7 +1644,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.95 (riordina i riquadri ovunque)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.99 (integratori e pasti a casa o fuori)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -1669,6 +1694,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
     <h3 id="tutTitle">Esercizio</h3>
     <div id="tutBody"></div>
+  </div>
+</div>
+<div class="sheet" id="stMenu" role="dialog" aria-modal="true" aria-labelledby="stMenuT">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="stMenuT">Alimento</h3>
+    <div class="stack"><button class="btn" id="stMenuOut" type="button"></button><button class="btn ghost danger" id="stMenuDel" type="button">🗑 Elimina dall'elenco</button></div>
   </div>
 </div>
 <div class="sheet" id="sesExitSheet" role="dialog" aria-modal="true" aria-labelledby="sesExitTitle">
@@ -2144,7 +2176,8 @@ function profileSummary(){
     set.level? "livello "+set.level : "", set.place? "si allena in "+set.place : "",
     equipText(p)? "attrezzatura disponibile: "+equipText(p) : "",
     notes? "infortuni/note: "+notes : "",
-    "pasti: "+mealList().map(m=>m.name).join(", "),
+    "pasti: "+mealList().map(m=>m.name+({casa:" (a casa)",schiscetta:" (schiscetta portata da casa)",fuori:" (fuori casa: bar, mensa o ristorante)"}[m.where||"casa"]||"")).join(", "),
+    (p.supplements||[]).filter(x=>x&&x.name).length? "integratori: "+p.supplements.filter(x=>x&&x.name).map(x=>x.name+(x.dose?" "+x.dose:"")+" ("+((SUPP_WHEN.find(w=>w[0]===x.when)||[,""])[1]||"").toLowerCase()+")").join(", ") : "",
     p.foodPrefs? "preferenze alimentari: "+p.foodPrefs : "",
     upActive()? "segue una dieta del nutrizionista" : "",
     ap? (ap.kind==="imported"? "segue la scheda del suo personal trainer: " : "segue il programma del coach: ")+(ap.pr.name||"") : ""
@@ -2581,7 +2614,8 @@ function addItems(list, mealId=currentMeal, quiet){
   const clean=list.filter(it=>it.grams>0).map(({per,...rest})=>({...rest,id:uid()}));
   if(!clean.length) return;
   if(mealId==="__staples"){ const cur=stapleItems(), low=cur.map(x=>x.name.toLowerCase());
-    clean.forEach(it=>{ if(!low.includes(String(it.name).toLowerCase())){ cur.push({id:uid(),name:String(it.name).slice(0,60),grams:+it.grams||100,kcal:+it.kcal||0,p:+it.p||0,c:+it.c||0,f:+it.f||0}); low.push(String(it.name).toLowerCase()); } });
+    clean.forEach(it=>{ if(!cur.some(z=>sameFood(z.name,it.name))&&!low.includes(String(it.name).toLowerCase())){ cur.push({id:uid(),name:String(it.name).slice(0,60),grams:+it.grams||100,kcal:+it.kcal||0,p:+it.p||0,c:+it.c||0,f:+it.f||0}); low.push(String(it.name).toLowerCase()); } });
+    pantry.items=pantry.items.filter(i=>!cur.some(z=>sameFood(z.name,i.name)));
     pantry.staples=cur; saveStaples(); closeSheets(); renderStaples(); toast(clean.length===1? clean[0].name+" aggiunto ai cibi di casa" : clean.length+" alimenti aggiunti ai cibi di casa"); return; }
   state.day.meals[mealId]=[...(state.day.meals[mealId]||[]),...clean];
   saveDay(); renderAll(); closeSheets();
@@ -3143,10 +3177,12 @@ Obiettivi per ciascun giorno: la SOMMA degli alimenti di ogni giorno deve arriva
 ${wt.map(d=>`- ${d.name} (weekday ${d.wd}) – ${d.train? d.label.toUpperCase()+(d.when?" alle "+d.when:"") : "riposo"}${d.pre?` (+${d.pre} kcal di carboidrati per preparare ${d.preLabel} del giorno dopo: mettili soprattutto a cena)`:""}: ${d.kcal} kcal, proteine ${d.p} g, carboidrati ${d.c} g, grassi ${d.f} g`).join("\n")}
 Composizione corporea e metabolismo: peso ${p.weight} kg${tg.fatPct?`, grasso ${fmt(tg.fatPct)}%, massa magra ${fmt(tg.lbm)} kg`:""}; metabolismo basale ${r(tg.bmr)} kcal (${tg.bmrSrc}); fabbisogno senza allenamenti ${r(tg.tdee)} kcal. Obiettivo: ${goalOf(p).t} → ${goalOf(p).mult<1?"deficit":"surplus"} del ${Math.round(Math.abs(1-goalOf(p).mult)*100)}% nei giorni di riposo.
 Adatta i pasti al tipo di allenamento: prima di corse lunghe o intense carboidrati facili (colazione o spuntino 1-3 ore prima) e cena precedente ricca di carboidrati; dopo la forza un pasto con almeno 30-40 g di proteine; nei giorni di riposo meno carboidrati e più verdure, proteine stabili.
-Pasti di ogni giorno, con questi id esatti: ${JSON.stringify(mealList().map(m=>({id:m.id,name:m.name})))}.
+Pasti di ogni giorno, con questi id esatti: ${JSON.stringify(mealList().map(m=>({id:m.id,name:m.name,dove:m.where||"casa"})))}.
+Dove mangia: nei pasti "casa" usa soprattutto i cibi che ha in casa; nei pasti "schiscetta" piatti facili da preparare a casa e portare (freddi o da scaldare); nei pasti "fuori" scelte realistiche da bar, mensa o ristorante (es. insalatona con proteine, primo semplice, piadina, poke), senza grammature impossibili da controllare.
+${(state.profile&&state.profile.supplements||[]).filter(x=>x&&x.name).length? "Integratori che prende (le proteine in polvere contano nelle calorie e vanno messe nei pasti giusti): "+state.profile.supplements.filter(x=>x&&x.name).map(x=>x.name+(x.dose?" "+x.dose:"")).join(", ")+"." : ""}
 Preferenze: ${prefs||"nessuna"}.
 ${outToday().length? `OGGI (${WD_NAME[new Date(todayISO()+"T12:00:00").getDay()]}) non ha: ${outToday().join(", ")} — non usarli nei pasti di oggi.
-` : ""}${stapleItems().length? `Alimenti che tiene SEMPRE in casa: ${stapleNames().join(", ")}. Costruisci la dieta usando SOPRATTUTTO questi, se vanno bene per il suo obiettivo. Se mancano alimenti importanti (verdure, frutta, fonti proteiche varie, carboidrati per gli allenamenti…) o alcuni dei suoi non sono adatti, scegli tu cosa aggiungere o sostituire e mettilo nel campo "added" con il motivo.` : ""}
+` : ""}${pantry.items.length? `Ha in casa in questo momento anche (scontrino/frigo): ${pantry.items.filter(i=>!stapleItems().some(z=>sameFood(z.name,i.name))).map(i=>i.name+(i.qty?" ("+i.qty+")":"")).join(", ")} — usali, soprattutto i freschi.\n` : ""}${stapleItems().length? `Alimenti che tiene SEMPRE in casa: ${stapleNames().join(", ")}. Costruisci la dieta usando SOPRATTUTTO questi, se vanno bene per il suo obiettivo. Se mancano alimenti importanti (verdure, frutta, fonti proteiche varie, carboidrati per gli allenamenti…) o alcuni dei suoi non sono adatti, scegli tu cosa aggiungere o sostituire e mettilo nel campo "added" con il motivo.` : ""}
 Nei giorni di allenamento organizza i pasti intorno all'orario (pre e post allenamento, più carboidrati); se si allena al mattino a digiuno, prevedi una colazione di recupero ricca di proteine e carboidrati.
 ${prevPlan? "Piano attuale: "+JSON.stringify(prevPlan)+"\nModifica richiesta: "+request+"\nApplica la modifica (ai giorni interessati, o a tutti se la richiesta è generale) mantenendo gli obiettivi e restituisci il piano COMPLETO di 7 giorni." : "Usa cibi comuni in Italia, pasti realistici e semplici da preparare."}${extra? "\n"+extra : ""}
 Valori per la porzione indicata, tabelle CREA. Rispondi SOLO con JSON valido e compatto:
@@ -4754,12 +4790,19 @@ let pantry={items:[],batches:[],staples:[]}, panUndo=null, dTab="plan";
 /* ----- cibi che tiene sempre in casa ----- */
 const ST_SUG=["Uova","Yogurt greco","Fiocchi d'avena","Riso","Pasta","Pane integrale","Petto di pollo","Tonno al naturale","Salmone","Legumi in scatola","Latte","Ricotta","Parmigiano","Frutta di stagione","Banane","Verdure surgelate","Insalata","Patate","Olio extravergine","Frutta secca","Burro d'arachidi","Cioccolato fondente"];
 function saveStaples(){ save("pantry",pantry); }
+const normFood=x=>String(x||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\(.*?\)/g," ").replace(/[^a-z0-9 ]+/g," ").replace(/\b(di|da|al|alla|allo|del|della|con|in|e|il|lo|la|i|gli|le)\b/g," ").replace(/\s+/g," ").trim();
+function sameFood(a,b){ const x=normFood(a), y=normFood(b); if(!x||!y) return false; if(x===y) return true;
+  const sx=x.replace(/[aeio]\b/g,""), sy=y.replace(/[aeio]\b/g,""); if(sx===sy) return true;   // uova/uovo, banane/banana
+  const short= x.length<y.length? x : y, long= x.length<y.length? y : x; return short.length>=4 && (long.startsWith(short+" ")||long===short); }
+function inHouse(name){ return (pantry.staples||[]).some(z=>sameFood(typeof z==="string"? z : z.name,name)) || pantry.items.some(z=>sameFood(z.name,name)); }
+function pushPantry(item){ if(!item||!item.name||inHouse(item.name)) return false; pantry.items.push(item); return true; }
 function stapleItems(){ pantry.staples=(pantry.staples||[]).map(x=> typeof x==="string"? {id:uid(),name:x} : x); return pantry.staples; }
 const stapleNames=()=>stapleItems().map(x=>x.name);
 function addStaples(txt){ const add=String(txt||"").split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1)).slice(0,30);
   const cur=stapleItems(), low=cur.map(x=>x.name.toLowerCase());
-  add.forEach(x=>{ if(!low.includes(x.toLowerCase())){ const lx=x.toLowerCase(), FD=(typeof FOODS!=="undefined"? FOODS:[]).filter(f=>Array.isArray(f)&&typeof f[0]==="string"), db=FD.find(f=>f[0].toLowerCase()===lx)||FD.find(f=>f[0].toLowerCase().startsWith(lx));
+  add.forEach(x=>{ if(!cur.some(z=>sameFood(z.name,x))&&!low.includes(x.toLowerCase())){ const lx=x.toLowerCase(), FD=(typeof FOODS!=="undefined"? FOODS:[]).filter(f=>Array.isArray(f)&&typeof f[0]==="string"), db=FD.find(f=>f[0].toLowerCase()===lx)||FD.find(f=>f[0].toLowerCase().startsWith(lx));
     cur.push(db? {id:uid(),name:x.slice(0,50),grams:100,kcal:db[1],p:db[2],c:db[3],f:db[4]} : {id:uid(),name:x.slice(0,50)}); low.push(x.toLowerCase()); } });
+  pantry.items=pantry.items.filter(i=>!cur.some(z=>sameFood(z.name,i.name)));
   pantry.staples=cur; saveStaples(); renderStaples(); queueStapleValues(); }
 /* calcola in automatico porzione tipica e valori dei cibi aggiunti solo per nome */
 let stValT=null, stValBusy=false;
@@ -4786,12 +4829,13 @@ function renderStaples(){
     const del=el("button","mp-pm","×"); del.type="button"; del.setAttribute("aria-label","Togli "+it.name);
     const rm=()=>{ const idx=stapleItems().findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.staples.splice(idx,1)[0]; saveStaples(); renderStaples();
       actionToast(`Tolto: ${was.name}`,"Annulla",()=>{ pantry.staples.splice(idx,0,was); saveStaples(); renderStaples(); },6000); };
-    del.onclick=rm; row.append(tx,st0,el("span","mp-div"),del); box.appendChild(makeSwipe(row,rm,it.name)); });
-  try{ renderOut(); }catch{}
+    del.onclick=rm; row.append(tx,st0,el("span","mp-div"),del); addLongPress(tx,()=>openStMenu(it)); box.appendChild(makeSwipe(row,rm,it.name)); });
+  try{ renderOut(); }catch{} try{ renderRecent(); }catch{}
   if(st.some(x=>x.kcal==null)&&!renderStaples.tried){ renderStaples.tried=true; queueStapleValues(); }
   const add=el("button","mp-add"); add.type="button"; add.innerHTML=`<span>Aggiungi alimenti</span><b>+</b>`; add.onclick=()=>openAdd({id:"__staples",name:"I cibi di casa"}); box.appendChild(add);
   if(!st.length) box.insertBefore(el("p","note","Ancora nessun alimento: aggiungili come nei pasti (foto, codice a barre, ricerca, preferiti…)."),add);
-  { const n=st.length, k=st.reduce((a,x)=>a+(+x.kcal||0),0); if($("stRowSub")) $("stRowSub").textContent= n? `${n} ${n===1?"alimento":"alimenti"} · tocca per vederli e aggiungerne` : "Tocca per aggiungere quelli che compri di solito"; }
+  { const n=st.length, k=st.reduce((a,x)=>a+(+x.kcal||0),0); const nr=pantry.items.filter(i=>!st.some(z=>sameFood(z.name,i.name))).length;
+    if($("stRowSub")) $("stRowSub").textContent= n||nr? `${n} di sempre${nr?` · ${nr} comprati di recente`:""} · tocca per vederli` : "Tocca per aggiungere quelli che compri di solito"; }
   const sg=$("stSug"); sg.innerHTML=""; const low=st.map(x=>x.name.toLowerCase());
   void low;
   $("stFromPan").hidden=!pantry.items.length; $("stCheck").disabled=!sample||!st.length;
@@ -4809,21 +4853,50 @@ $("stSelDel").onclick=()=>{ if(!stSel.size) return; const before=JSON.parse(JSON
   actionToast(`Eliminati ${n} ${n===1?"alimento":"alimenti"}`,"Annulla",()=>{ pantry.staples=before; saveStaples(); renderStaples(); },7000); };
 /* oggi ho finito… */
 function outToday(){ const o=pantry.outToday; return o&&o.date===todayISO()? o.names : []; }
-function setOut(names){ pantry.outToday={date:todayISO(),names:[...new Set(names.map(x=>String(x).trim()).filter(Boolean))].slice(0,30)}; saveStaples(); renderStaples(); }
-function renderOut(){ const box=$("outChips"); if(!box) return; box.innerHTML=""; const out=outToday(), low=out.map(x=>x.toLowerCase());
-  const names=[...new Set([...stapleNames(),...out])];
-  if(!names.length) box.appendChild(el("p","note","Aggiungi prima i cibi che tieni in casa, qui sotto."));
-  names.forEach(n=>{ const on=low.includes(n.toLowerCase()), b=el("button","chip"+(on?" outon":""),(on?"🚫 ":"")+n); b.type="button"; b.setAttribute("aria-pressed",on);
-    b.onclick=()=>{ setOut(on? out.filter(x=>x.toLowerCase()!==n.toLowerCase()) : [...out,n]); }; box.appendChild(b); });
-  $("outGo").disabled=!out.length||!sample||!(state.diet&&state.diet.plan); }
+let outT=null;
+function setOut(names,update=true){ pantry.outToday={date:todayISO(),names:[...new Set(names.map(x=>String(x).trim()).filter(Boolean))].slice(0,30)}; saveStaples(); renderStaples();
+  if(update&&pantry.outToday.names.length){ clearTimeout(outT); setStatus("outStatus","Tra un attimo aggiorno la dieta di oggi…"); outT=setTimeout(()=>$("outGo").click(),1200); } }
+function renderRecent(){
+  const box=$("recList"); if(!box) return; box.innerHTML="";
+  const st=stapleItems(), list=pantry.items.filter(i=>!st.some(z=>sameFood(z.name,i.name)));
+  $("recentCard").hidden=false;
+  if(!list.length){ box.appendChild(el("p","note","Niente per ora: fotografa uno scontrino o il frigo in Frigo e dispensa.")); return; }
+  list.forEach(it=>{ const row=el("div","mp-row"), tx=el("div","mp-tx");
+    tx.innerHTML=`<span class="n"></span><span class="q"></span>`; tx.querySelector(".n").textContent=it.name;
+    tx.querySelector(".q").textContent=[it.qty, it.added? "dal "+new Date(it.added+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"}) : ""].filter(Boolean).join(" · ");
+    const keep=el("button","mp-pm rec-keep","⭐"); keep.type="button"; keep.title="Lo tengo sempre: spostalo nei cibi di sempre"; keep.setAttribute("aria-label",it.name+": tienilo tra i cibi di sempre");
+    keep.onclick=()=>{ pantry.items=pantry.items.filter(x=>x.id!==it.id); addStaples(it.name); toast(it.name+" spostato tra i cibi di sempre"); };
+    const del=el("button","mp-pm","×"); del.type="button"; del.setAttribute("aria-label","Finito: togli "+it.name);
+    const rm=()=>{ const idx=pantry.items.findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.items.splice(idx,1)[0]; savePantry(); renderRecent();
+      actionToast(`Tolto: ${was.name}`,"Annulla",()=>{ pantry.items.splice(idx,0,was); savePantry(); renderRecent(); },6000); };
+    del.onclick=rm; row.append(tx,keep,el("span","mp-div"),del); box.appendChild(makeSwipe(row,rm,it.name)); });
+}
+function renderOut(){ const box=$("outChips"); if(!box) return; box.innerHTML=""; const out=outToday();
+  out.forEach(n=>{ const b=el("span","chip outon stchip"); b.textContent="🚫 "+n; const x=el("button",null,"×"); x.type="button"; x.setAttribute("aria-label",n+": ce l'ho di nuovo");
+    x.onclick=()=>setOut(out.filter(v=>v.toLowerCase()!==n.toLowerCase()),false); b.appendChild(x); box.appendChild(b); }); }
 $("outAdd").onclick=()=>{ const add=$("outIn").value.split(/[,;]+/).map(x=>x.trim()).filter(Boolean); if(!add.length) return; setOut([...outToday(),...add]); $("outIn").value=""; };
+/* pressione lunga su un cibo dell'elenco: oggi l'ho finito / elimina */
+let stMenuItem=null;
+function openStMenu(it){ stMenuItem=it; const on=outToday().map(x=>x.toLowerCase()).includes(it.name.toLowerCase());
+  $("stMenuT").textContent=it.name; $("stMenuOut").textContent= on? "✓ Oggi ce l'ho di nuovo" : "🚫 Oggi l'ho finito"; if(navigator.vibrate) navigator.vibrate(25); openSheet("stMenu"); }
+$("stMenuOut").onclick=()=>{ const it=stMenuItem; if(!it) return; const out=outToday(), on=out.map(x=>x.toLowerCase()).includes(it.name.toLowerCase());
+  closeTopSheet(); setTimeout(()=>setOut(on? out.filter(x=>x.toLowerCase()!==it.name.toLowerCase()) : [...out,it.name], !on),200); };
+$("stMenuDel").onclick=()=>{ const it=stMenuItem; if(!it) return; closeTopSheet(); const idx=stapleItems().findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.staples.splice(idx,1)[0]; saveStaples(); renderStaples();
+  actionToast(`Tolto: ${was.name}`,"Annulla",()=>{ pantry.staples.splice(idx,0,was); saveStaples(); renderStaples(); },6000); };
+function addLongPress(node,fn){ let t=null,x0=0,y0=0,fired=false;
+  node.addEventListener("touchstart",e=>{ fired=false; x0=e.touches[0].clientX; y0=e.touches[0].clientY; clearTimeout(t); t=setTimeout(()=>{ fired=true; fn(); },500); },{passive:true});
+  node.addEventListener("touchmove",e=>{ const tt=e.touches[0]; if(Math.abs(tt.clientX-x0)>8||Math.abs(tt.clientY-y0)>8) clearTimeout(t); },{passive:true});
+  node.addEventListener("touchend",e=>{ clearTimeout(t); if(fired){ e.preventDefault(); } });
+  node.addEventListener("contextmenu",e=>{ e.preventDefault(); clearTimeout(t); if(!fired) fn(); }); }
 $("outIn").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("outAdd").click(); } });
 $("outGo").onclick=async()=>{
-  const out=outToday(), plan=state.diet&&state.diet.plan; if(!out.length||!plan||!sample) return;
+  const out=outToday(), plan=state.diet&&state.diet.plan; if(!out.length) return;
+  if(!plan){ setStatus("outStatus","Segnato ✓ Quando prepari la dieta ne terrò conto."); return; }
+  if(!sample){ setStatus("outStatus","Segnato ✓ Per aggiornare la dieta serve l'AI.",true); return; }
   const days=planDays(plan).map(d=>({...d})), wd=new Date(todayISO()+"T12:00:00").getDay(), iT=days.findIndex(d=>d.weekday===wd);
   if(iT<0){ setStatus("outStatus","Nella dieta non c'è il giorno di oggi.",true); return; }
   const eatenIds=mealList().filter(m=>(state.day.meals[m.id]||[]).length).map(m=>m.id), dt=dayTargets(), t=totals();
-  $("outGo").disabled=true; setStatus("outStatus","Aggiorno la dieta di oggi senza: "+out.join(", ")+"…");
+  setStatus("outStatus","Aggiorno la dieta di oggi senza: "+out.join(", ")+"…");
   try{
     const res=await sample.json(`Sei un nutrizionista sportivo. Oggi la persona NON ha questi alimenti: ${out.join(", ")}.
 Piano di oggi: ${JSON.stringify(days[iT].meals)}. Pasti già mangiati (non toccarli): ${eatenIds.join(", ")||"nessuno"}.
@@ -4841,7 +4914,13 @@ Rispondi SOLO con JSON: {"today":[{"id":"string","name":"string","foods":[{"name
   finally{ renderOut(); }
 };
 /* valuta un cibo: foto, etichetta o codice a barre */
-$("valCamBtn").onclick=()=>$("valCam").click(); $("valGalBtn").onclick=()=>$("valGal").click();
+$("valCamBtn").onclick=()=>$("valCam").click(); $("valGalBtn").onclick=()=>$("valGal").click(); $("valCodeBtn").onclick=()=>$("valCode").click();
+$("valCode").onchange=async e=>{ const f=e.target.files[0]; $("valCode").value=""; if(!f) return; setStatus("valStatus","Leggo il codice a barre…");
+  let code="";
+  if("BarcodeDetector" in window){ try{ const bmp=await createImageBitmap(f); const r0=await new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]}).detect(bmp); if(r0&&r0.length) code=r0[0].rawValue; }catch{} }
+  if(!code&&sample){ try{ const blob=await shrinkFile(f,1400); const r1=await sample.json(`Nella foto c'è il codice a barre di un prodotto alimentare. Leggi le cifre stampate sotto le barre (8 o 13 cifre). Rispondi SOLO con JSON: {"code":"cifre"} oppure {"code":null}.`,{images:[blob],modelTier:"quick"}); code=String(r1&&r1.code||"").replace(/\D/g,""); }catch{} }
+  if(code.length>=8){ $("valTxt").value=code; valuta({code}); }
+  else { setStatus("valStatus","Non riesco a leggere il codice: riprova più vicino e con più luce, oppure fotografa il prodotto o l'etichetta.",true); } };
 $("valCam").onchange=e=>{ const f=[...e.target.files]; $("valCam").value=""; if(f.length) valuta({files:f}); };
 $("valGal").onchange=e=>{ const f=[...e.target.files].slice(0,3); $("valGal").value=""; if(f.length) valuta({files:f}); };
 $("valTxtGo").onclick=()=>{ const v=$("valTxt").value.trim(); if(!v) return; valuta(/^\d{8,14}$/.test(v)? {code:v} : {text:v}); };
@@ -4951,7 +5030,7 @@ function renderPantry(){ try{ renderStaples(); }catch(e){ console.warn("staples"
     row.append(el("span",null,`${b.label} · ${n} alimenti rimasti`),fin); bb.appendChild(row); });
 }
 $("panAdd").onclick=()=>{ const n=$("panName").value.trim(); if(!n) return; snapshot();
-  pantry.items.push({id:uid(),name:n,qty:$("panQty").value.trim(),cat:"Altro",added:todayISO()}); $("panName").value=""; $("panQty").value=""; savePantry(); renderPantry(); };
+  if(!pushPantry({id:uid(),name:n,qty:$("panQty").value.trim(),cat:"Altro",added:todayISO()})) toast("Ce l'hai già in elenco"); $("panName").value=""; $("panQty").value=""; savePantry(); renderPantry(); };
 $("panName").addEventListener("keydown",e=>{ if(e.key==="Enter") $("panAdd").click(); });
 $("panUndo").onclick=()=>{ if(!panUndo) return; pantry=panUndo; panUndo=null; $("panUndo").hidden=true; savePantry(); renderPantry(); toast("Modifica annullata"); };
 $("fridgePick").onclick=()=>$("fridgeFiles").click();
@@ -4982,9 +5061,9 @@ Valori per la grammatura indicata, tabelle CREA. Nomi in italiano.`,{images:imgs
     if(items.length){
       out.appendChild(el("p","rq-h","Ho visto"));
       const chips=el("div","fr-items"); items.forEach(i=>{ const c=el("span",i.inPantry?null:"new",i.name+(i.qty?" · "+i.qty:"")); chips.appendChild(c); }); out.appendChild(chips);
-      const nw=items.filter(i=>!i.inPantry);
+      const nw=items.filter(i=>!i.inPantry&&!inHouse(i.name));
       if(nw.length){ const b=el("button","btn ghost",`Aggiungi ${nw.length} alimenti alla dispensa`); b.type="button";
-        b.onclick=()=>{ snapshot(); nw.forEach(i=>pantry.items.push({id:uid(),name:String(i.name).slice(0,60),qty:String(i.qty||"").slice(0,30),cat:PCATS.includes(i.cat)?i.cat:"Altro",added:todayISO()})); savePantry(); renderPantry(); b.disabled=true; b.textContent="Aggiunti alla dispensa ✓"; };
+        b.onclick=()=>{ snapshot(); nw.forEach(i=>pushPantry({id:uid(),name:String(i.name).slice(0,60),qty:String(i.qty||"").slice(0,30),cat:PCATS.includes(i.cat)?i.cat:"Altro",added:todayISO()})); savePantry(); renderPantry(); b.disabled=true; b.textContent="Aggiunti alla dispensa ✓"; };
         out.appendChild(b); out.appendChild(el("p","note",`In evidenza quelli che non avevi ancora in dispensa.`)); }
     }
     if(ideas.length){
@@ -5022,7 +5101,7 @@ Rispondi SOLO con JSON: {"store":"nome negozio o null","date":"YYYY-MM-DD o null
     const date=(res.date&&/^\d{4}-\d{2}-\d{2}$/.test(res.date))? res.date : todayISO();
     const b={id:uid(),date,label:"Spesa del "+new Date(date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"})+(res.store?" ("+res.store+")":"")};
     pantry.batches.push(b);
-    items.forEach(i=>pantry.items.push({id:uid(),name:String(i.name).slice(0,60),qty:String(i.qty||"").slice(0,30),cat:PCATS.includes(i.cat)?i.cat:"Altro",batch:b.id,added:date}));
+    items.forEach(i=>pushPantry({id:uid(),name:String(i.name).slice(0,60),qty:String(i.qty||"").slice(0,30),cat:PCATS.includes(i.cat)?i.cat:"Altro",batch:b.id,added:date}));
     savePantry(); renderPantry(); setStatus("panStatus",`Aggiunti ${items.length} alimenti. Se qualcosa non torna, toglilo con la × o correggilo a parole.`);
   }catch(err){ setStatus("panStatus",errCopy(err),true); }
   finally{ $("panPick").disabled=false; $("panFiles").value=""; }
@@ -5042,7 +5121,7 @@ Rispondi SOLO con JSON: {"remove":["id"],"update":[{"id":"string","qty":"string"
     const rm=new Set(Array.isArray(res.remove)?res.remove:[]);
     pantry.items=pantry.items.filter(i=>!rm.has(i.id));
     (Array.isArray(res.update)?res.update:[]).forEach(u=>{ const it=pantry.items.find(i=>i.id===u.id); if(it&&typeof u.qty==="string") it.qty=u.qty.slice(0,30); });
-    (Array.isArray(res.add)?res.add:[]).filter(a=>a&&a.name).forEach(a=>pantry.items.push({id:uid(),name:String(a.name).slice(0,60),qty:String(a.qty||"").slice(0,30),cat:PCATS.includes(a.cat)?a.cat:"Altro",added:todayISO()}));
+    (Array.isArray(res.add)?res.add:[]).filter(a=>a&&a.name).forEach(a=>pushPantry({id:uid(),name:String(a.name).slice(0,60),qty:String(a.qty||"").slice(0,30),cat:PCATS.includes(a.cat)?a.cat:"Altro",added:todayISO()}));
     savePantry(); renderPantry(); $("panCmd").value=""; setStatus("panCmdStatus",res.reply||"Fatto.");
   }catch(e){ setStatus("panCmdStatus",errCopy(e),true); }
   finally{ $("panCmdGo").disabled=!sample; }
@@ -5293,9 +5372,9 @@ applyLook();
 let draft=null;
 function fillProfile(){
   const p=state.profile||{};
-  draft={fname:p.fname||"",lname:p.lname||"",nick:p.nick||"",photo:p.photo||"",sex:p.sex||"m",age:p.age||"",height:p.height||"",weight:p.weight||"",activity:p.activity||1.2,goal:p.goal||"",meals:JSON.parse(JSON.stringify(p.meals||PRESETS["4 pasti"])),foodPrefs:p.foodPrefs||"",train:{sessions:JSON.parse(JSON.stringify(trainOf(p).sessions))},equipment:{items:[...((p.equipment&&p.equipment.items)||[])],other:(p.equipment&&p.equipment.other)||""},customGoal:p.customGoal?JSON.parse(JSON.stringify(p.customGoal)):null};
+  draft={supplements:JSON.parse(JSON.stringify(p.supplements||[])),fname:p.fname||"",lname:p.lname||"",nick:p.nick||"",photo:p.photo||"",sex:p.sex||"m",age:p.age||"",height:p.height||"",weight:p.weight||"",activity:p.activity||1.2,goal:p.goal||"",meals:JSON.parse(JSON.stringify(p.meals||PRESETS["4 pasti"])),foodPrefs:p.foodPrefs||"",train:{sessions:JSON.parse(JSON.stringify(trainOf(p).sessions))},equipment:{items:[...((p.equipment&&p.equipment.items)||[])],other:(p.equipment&&p.equipment.other)||""},customGoal:p.customGoal?JSON.parse(JSON.stringify(p.customGoal)):null};
   ["sex","age","height","weight","activity","fname","lname","nick"].forEach(id=>$(id).value=draft[id]);
-  renderAvatar(); renderTrain(); renderEquip(); fillModelSelects(); showAiOk();
+  renderAvatar(); renderTrain(); renderEquip(); try{ renderSupps(); }catch(e){ console.warn("integratori",e); } fillModelSelects(); showAiOk();
   renderGoals(); renderMealRows(); updCalc();
 }
 let cgOpen=false, cgMe=[], cgEx=[], cgRes=null;
@@ -5394,6 +5473,40 @@ Rispondi SOLO con JSON in italiano:
     }catch(e){ setStatus("cgCrossSt",errCopy(e),true); $("cgCross").disabled=!sample; }
   };
 }
+/* ----- integratori ----- */
+const SUPPS=["Creatina monoidrato","Proteine in polvere (whey)","Proteine vegetali","Omega-3","Vitamina D","Magnesio","Caffeina","Elettroliti / sali minerali","Multivitaminico","Ferro","Beta-alanina","Altro"];
+const SUPP_WHEN=[["giorno","Ogni giorno"],["allenamento","Solo giorni di allenamento"],["pre","Prima dell'allenamento"],["post","Dopo l'allenamento"],["mattina","Al mattino"],["sera","La sera"]];
+function renderSupps(){
+  const box=$("suppRows"); if(!box||!draft) return; box.innerHTML=""; draft.supplements=draft.supplements||[];
+  if(!draft.supplements.length) box.appendChild(el("p","note","Nessun integratore segnato."));
+  draft.supplements.forEach((x,i)=>{ const row=el("div","supprow");
+    const nm=el("input","field"); nm.setAttribute("list","suppList"); nm.value=x.name||""; nm.placeholder="Integratore"; nm.setAttribute("aria-label","Nome integratore "+(i+1)); nm.oninput=()=>{ x.name=nm.value; };
+    const ds=el("input","field"); ds.value=x.dose||""; ds.placeholder="Dose, es. 5 g"; ds.setAttribute("aria-label","Dose"); ds.oninput=()=>{ x.dose=ds.value; };
+    const wh=el("select","field"); SUPP_WHEN.forEach(([v,l])=>{ const o=el("option",null,l); o.value=v; wh.appendChild(o); }); wh.value=x.when||"giorno"; wh.setAttribute("aria-label","Quando"); wh.onchange=()=>{ x.when=wh.value; };
+    const del=el("button","del","×"); del.type="button"; del.setAttribute("aria-label","Togli integratore"); del.onclick=()=>{ draft.supplements.splice(i,1); renderSupps(); };
+    row.append(nm,ds,wh,del); box.appendChild(row); });
+  if(!$("suppList")){ const dl=document.createElement("datalist"); dl.id="suppList"; SUPPS.forEach(n=>{ const o=document.createElement("option"); o.value=n; dl.appendChild(o); }); document.body.appendChild(dl); }
+  $("suppAsk").disabled=!sample||!draft.supplements.some(x=>String(x.name||"").trim());
+}
+$("suppAdd").onclick=()=>{ draft.supplements=draft.supplements||[]; draft.supplements.push({name:"",dose:"",when:"giorno"}); renderSupps(); const ins=$("suppRows").querySelectorAll(".supprow input"); if(ins.length) ins[ins.length-2].focus(); };
+$("suppAsk").onclick=async()=>{
+  const list=(draft.supplements||[]).filter(x=>String(x.name||"").trim()); if(!list.length||!sample) return;
+  $("suppAsk").disabled=true; setStatus("suppStatus","Il coach valuta i tuoi integratori…"); $("suppOut").innerHTML="";
+  try{
+    const res=await sample.json(`Sei un nutrizionista sportivo. Valuta gli integratori che prende questa persona: ${list.map(x=>`${x.name}${x.dose?" "+x.dose:""} (${(SUPP_WHEN.find(w=>w[0]===x.when)||[,""])[1]})`).join("; ")}.
+Profilo: ${profileSummary()}.
+Per ciascuno: è utile per il suo obiettivo? la dose è corretta (indica quella consigliata per il suo peso)? il momento è giusto? Segnala interazioni o eccessi e cosa eventualmente aggiungere o togliere. Ricorda che non sostituisci il medico.
+Rispondi SOLO con JSON in italiano: {"items":[{"name":"string","verdict":"ok"|"rivedi"|"inutile","dose":"dose consigliata","when":"momento consigliato","note":"una frase"}],"summary":"giudizio complessivo in 1-2 frasi","suggest":["eventuale integratore da valutare, con motivo, breve"]}`,{modelTier:"default"});
+    if(!res||!Array.isArray(res.items)) throw {code:"bad_output"};
+    setStatus("suppStatus",""); const box=$("suppOut"), V={ok:["✅","Va bene"],rivedi:["⚠️","Da rivedere"],inutile:["❌","Poco utile"]};
+    if(res.summary) box.appendChild(el("p",null,res.summary));
+    res.items.forEach(it=>{ const v=V[it.verdict]||V.rivedi, c=el("div","suppres "+(it.verdict||"rivedi")); c.innerHTML=`<b></b><span class="vb">${v[0]} ${v[1]}</span><div class="d"></div><div class="nt"></div>`;
+      c.querySelector("b").textContent=it.name; c.querySelector(".d").textContent=[it.dose?"Dose: "+it.dose:"", it.when?"Quando: "+it.when:""].filter(Boolean).join(" · "); c.querySelector(".nt").textContent=it.note||""; box.appendChild(c); });
+    if(res.suggest&&res.suggest.length){ box.appendChild(el("h4",null,"💡 Da valutare")); const u=el("ul"); res.suggest.forEach(x=>u.appendChild(el("li",null,x))); box.appendChild(u); }
+    box.appendChild(el("p","note","Consigli indicativi: per dosi elevate o problemi di salute senti il medico. Ricordati di salvare il profilo se hai cambiato qualcosa."));
+  }catch(e){ setStatus("suppStatus",errCopy(e),true); }
+  finally{ $("suppAsk").disabled=false; }
+};
 function renderMealRows(){
   const pres=$("presets"); pres.innerHTML="";
   Object.entries(PRESETS).forEach(([k,list])=>{
@@ -5407,7 +5520,9 @@ function renderMealRows(){
     inp.oninput=()=>{ m.name=inp.value; };
     const del=el("button","del","×"); del.setAttribute("aria-label","Rimuovi "+m.name); del.disabled=draft.meals.length<=1;
     del.onclick=()=>{ draft.meals.splice(i,1); renderMealRows(); };
-    row.append(inp,del); rows.appendChild(row);
+    const wh=el("select","field mwhere"); [["casa","🏠 A casa"],["schiscetta","🥡 Schiscetta"],["fuori","🍽️ Fuori"]].forEach(([v,l])=>{ const o=el("option",null,l); o.value=v; wh.appendChild(o); });
+    wh.value=m.where||"casa"; wh.setAttribute("aria-label","Dove mangi "+m.name); wh.onchange=()=>{ m.where=wh.value; };
+    row.append(inp,wh,del); rows.appendChild(row);
   });
 }
 $("addMealRow").onclick=()=>{ draft.meals.push({id:"pasto-"+uid(),name:"Nuovo pasto"}); renderMealRows(); };
@@ -5438,7 +5553,7 @@ $("saveProfile").onclick=()=>{
   const p=readForm();
   if(!p.goal){ toast("Scegli il tuo obiettivo"); $("goals").scrollIntoView({behavior:"smooth",block:"center"}); return; }
   if(!(p.age>=14&&p.height>=120&&p.weight>=35)){ toast("Completa età, altezza e peso"); return; }
-  p.meals=p.meals.map(m=>({id:m.id,name:(m.name||"").trim()||"Pasto"}));
+  p.meals=p.meals.map(m=>({id:m.id,name:(m.name||"").trim()||"Pasto",where:m.where||"casa"}));
   p.train={sessions:(draft.train.sessions||[]).filter(s=>s.days.length||s.start)};
   state.profile={...(state.profile||{}),...p}; save("profile",state.profile); toast("Profilo salvato"); go("diario"); queueProgress();
 };
