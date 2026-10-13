@@ -1632,6 +1632,18 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         <label>Modello principale<select class="field" id="mMain"></select></label>
         <label>Modello veloce<select class="field" id="mQuick"></select></label>
       </div>
+      <h3 style="margin:14px 0 2px;font-size:1rem">🛟 Riserva gratuita: Groq (facoltativa)</h3>
+      <p class="note" style="margin:0">Quando Gemini è sovraccarico, l'app passa da sola a Groq: è molto veloce e anche questo è gratuito.</p>
+      <label>Chiave API Groq<input class="field" id="groqKey" type="password" autocomplete="off" placeholder="Incolla qui la chiave (inizia con gsk_…)"></label>
+      <div class="two"><button class="btn ghost" id="groqSave" type="button">Salva e verifica</button><button class="btn ghost" id="groqDel" type="button">Togli</button></div>
+      <div class="status" id="groqStatus" aria-live="polite"></div>
+      <details>
+        <summary class="note" style="cursor:pointer">Come ottenere la chiave Groq gratuita</summary>
+        <div class="pline"><span class="ic">1</span><span>Apri <b>console.groq.com</b> e accedi (anche con l'account Google).</span></div>
+        <div class="pline"><span class="ic">2</span><span>Nel menu tocca <b>API Keys</b> → <b>Create API Key</b>, dagli un nome (es. HealthFit) e conferma.</span></div>
+        <div class="pline"><span class="ic">3</span><span>Copia subito la chiave (inizia con <b>gsk_</b>: Groq la mostra una volta sola), incollala qui sopra e tocca “Salva e verifica”.</span></div>
+        <p class="note">Piano gratuito: nessuna carta richiesta, con un limite di richieste al minuto e al giorno. Per le foto Groq è un po' meno preciso di Gemini, per questo lo uso solo come riserva.</p>
+      </details>
     </div>
     <h3 style="margin:18px 0 6px;font-size:1rem">Sincronizzazione telefono ↔ PC</h3>
     <div id="syncOn" hidden>
@@ -1659,7 +1671,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.06 (modelli di riserva quando Google è sovraccarico)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.07 (riserva gratuita Groq)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <div class="status" id="updStatus" aria-live="polite" style="text-align:center"></div>
   </section>
@@ -1938,9 +1950,38 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     // prima i modelli di generazione più vecchia: di solito sono meno affollati
     return pool.sort((a,b)=>(parseFloat((a.match(/(\d+(?:\.\d+)?)/)||[0,9])[1])-parseFloat((b.match(/(\d+(?:\.\d+)?)/)||[0,9])[1]))||(/lite/.test(b)-/lite/.test(a))).slice(0,2);
   }
+  const GROQ="https://api.groq.com/openai/v1";
+  async function groqOnce(contents,json,opts){
+    const gk=LS("groqKey"); if(!gk) throw {code:"no_groq"};
+    const hasImg=contents.some(c=>c.parts.some(p=>p.inline_data));
+    const model= hasImg? (LS("groqVision")||"meta-llama/llama-4-scout-17b-16e-instruct") : (LS("groqText")||LS("groqVision")||"llama-3.3-70b-versatile");
+    const messages=contents.map(c=>{ const role=c.role==="model"?"assistant":"user";
+      const txt=c.parts.filter(p=>p.text!=null).map(p=>p.text).join("\n"), imgs=c.parts.filter(p=>p.inline_data);
+      if(!imgs.length) return {role,content:txt};
+      return {role,content:[{type:"text",text:txt},...imgs.map(p=>({type:"image_url",image_url:{url:`data:${p.inline_data.mime_type};base64,${p.inline_data.data}`}}))]}; });
+    const body=(rf)=>JSON.stringify({model,messages,temperature:json?0.3:0.7,max_tokens:opts.maxTokens||2048,...(rf?{response_format:{type:"json_object"}}:{})});
+    const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),20000); const ts=Date.now();
+    const go=async rf=>{ const res=await fetch(`${GROQ}/chat/completions`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+gk},body:body(rf),signal:ctl.signal}); const d=await res.json().catch(()=>null); return {res,d}; };
+    try{ let {res,d}=await go(json);
+      if(!res.ok&&json&&res.status===400){ ({res,d}=await go(false)); }
+      clearTimeout(t);
+      if(!res.ok){ window.HF_TRACE.push({m:"groq "+model.split("/").pop(),ms:Date.now()-ts,ok:false,code:"groq_"+res.status}); throw {code:res.status===429?"rate_limited":"groq_"+res.status,message:(d&&d.error&&d.error.message)||""}; }
+      window.HF_TRACE.push({m:"groq "+model.split("/").pop(),ms:Date.now()-ts,ok:true});
+      return (d&&d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||"";
+    }catch(e){ clearTimeout(t); if(e&&e.code) throw e; window.HF_TRACE.push({m:"groq",ms:Date.now()-ts,ok:false,code:"network"}); throw {code:"network",message:String(e&&e.message||e)}; }
+  }
+  window.HF_GROQ=async(gk)=>{   // verifica la chiave e sceglie i modelli (foto e testo)
+    const res=await fetch(`${GROQ}/models`,{headers:{"Authorization":"Bearer "+gk}}); const d=await res.json().catch(()=>null);
+    if(!res.ok) throw {code:res.status===401?"bad_key":"groq_"+res.status,message:(d&&d.error&&d.error.message)||""};
+    const ids=(d.data||[]).filter(m=>m.active!==false).map(m=>m.id);
+    const vision=ids.find(n=>/llama-4-scout/i.test(n))||ids.find(n=>/llama-4-maverick/i.test(n))||ids.find(n=>/vision|vl|llava|pixtral|gemma-3/i.test(n))||"";
+    const text=ids.find(n=>/llama-3\.3-70b/i.test(n))||ids.find(n=>/gpt-oss-120b/i.test(n))||ids.find(n=>/llama-4-maverick/i.test(n))||vision||ids[0]||"";
+    return {vision,text,count:ids.length};
+  };
   async function viaReserves(chain,key,contents,json,opts,lastErr){
-    const busy=e=>e&&(/^api_50\d$/.test(e.code||"")||e.code==="timeout"||e.code==="rate_limited"||e.code==="network"||e.retry);
+    const busy=e=>e&&(/^api_50\d$/.test(e.code||"")||e.code==="timeout"||e.code==="rate_limited"||e.code==="network"||e.code==="quota"||e.retry);
     if(!busy(lastErr)) throw lastErr;
+    if(LS("groqKey")){ status("Gemini è sovraccarico: passo a Groq…"); try{ return await groqOnce(contents,json,opts); }catch(e){ lastErr=e; } }
     for(const m of reserveModels(chain)){
       status("I modelli scelti sono sovraccarichi: provo con "+m.replace("gemini-","")+"…");
       try{ const t=await once(m,key,contents,json,opts.signal,20000); try{ localStorage.setItem("hf:lastReserve",m); }catch{} return t; }
@@ -2063,7 +2104,7 @@ async function pushDirty(){
   const m=jget("mtimes",{}); const rows=[];
   for(const k of d){
     let value=null;
-    if(k==="aiSettings"){ value={apiKey:localStorage.getItem("hf:apiKey")||"",mMain:localStorage.getItem("hf:mMain")||"",mQuick:localStorage.getItem("hf:mQuick")||""}; }
+    if(k==="aiSettings"){ value={apiKey:localStorage.getItem("hf:apiKey")||"",mMain:localStorage.getItem("hf:mMain")||"",mQuick:localStorage.getItem("hf:mQuick")||"",groqKey:localStorage.getItem("hf:groqKey")||"",groqVision:localStorage.getItem("hf:groqVision")||"",groqText:localStorage.getItem("hf:groqText")||""}; }
     else { const raw=localStorage.getItem("diario:"+k); if(raw==null) continue; value=JSON.parse(raw); }
     rows.push({user_id:SY.user.id,key:k,value,updated_at:m[k]||new Date().toISOString()});
   }
@@ -2082,7 +2123,8 @@ async function pull(){
     if(error) throw error;
     for(const r of data){ remote.add(r.key);
       const lt=Date.parse(m[r.key]||"")||0, rt=Date.parse(r.updated_at)||0;
-      if(r.key==="aiSettings"){ if(!localStorage.getItem("hf:apiKey")&&r.value&&r.value.apiKey){ ["apiKey","mMain","mQuick"].forEach(x=>r.value[x]&&localStorage.setItem("hf:"+x,r.value[x])); m[r.key]=new Date(rt).toISOString(); changed++; } continue; }
+      if(r.key==="aiSettings"){ if(r.value&&r.value.groqKey&&!localStorage.getItem("hf:groqKey")){ ["groqKey","groqVision","groqText"].forEach(x=>r.value[x]&&localStorage.setItem("hf:"+x,r.value[x])); changed++; }
+        if(!localStorage.getItem("hf:apiKey")&&r.value&&r.value.apiKey){ ["apiKey","mMain","mQuick"].forEach(x=>r.value[x]&&localStorage.setItem("hf:"+x,r.value[x])); m[r.key]=new Date(rt).toISOString(); changed++; } continue; }
       if(rt>lt+1){ localStorage.setItem("diario:"+r.key,JSON.stringify(r.value)); m[r.key]=new Date(rt).toISOString(); changed++; }
       else if(lt>rt+1){ const d=jget("dirty",[]); if(!d.includes(r.key)){ d.push(r.key); jset("dirty",d); } }
     }
@@ -5438,6 +5480,17 @@ $("apiSave").onclick=async()=>{
   }catch(e){ setStatus("apiStatus",errCopy(e)+(e&&e.message?" ("+e.message.slice(0,120)+")":""),true); }
   finally{ $("apiSave").disabled=false; }
 };
+$("groqKey").value=localStorage.getItem("hf:groqKey")||"";
+$("groqSave").onclick=async()=>{ const k=$("groqKey").value.trim(); if(!k){ setStatus("groqStatus","Incolla prima la chiave Groq.",true); return; }
+  $("groqSave").disabled=true; setStatus("groqStatus","Verifico la chiave…");
+  try{ const m=await window.HF_GROQ(k); if(!m.vision&&!m.text) throw {code:"bad_output",message:"nessun modello disponibile"};
+    lsSet("groqKey",k); lsSet("groqVision",m.vision||""); lsSet("groqText",m.text||""); markDirty("aiSettings"); schedulePush();
+    setStatus("groqStatus",`✓ Groq collegato come riserva · foto: ${(m.vision||"non disponibile").split("/").pop()} · testo: ${(m.text||"").split("/").pop()}`);
+    toast("Riserva Groq attiva ✓"); }
+  catch(e){ setStatus("groqStatus", e&&e.code==="bad_key"? "Chiave Groq non valida: ricopiala da console.groq.com." : e&&e.code==="network"||(e&&/fetch/i.test(String(e.message||e)))? "Non riesco a collegarmi a Groq: controlla la connessione." : "Errore: "+((e&&(e.message||e.code))||e),true); }
+  finally{ $("groqSave").disabled=false; } };
+$("groqDel").onclick=()=>{ ["groqKey","groqVision","groqText"].forEach(k=>{ try{ localStorage.removeItem("hf:"+k); }catch{} }); $("groqKey").value=""; markDirty("aiSettings"); schedulePush(); setStatus("groqStatus","Riserva Groq tolta."); };
+if(localStorage.getItem("hf:groqKey")) setStatus("groqStatus",`✓ Groq attivo come riserva · foto: ${(localStorage.getItem("hf:groqVision")||"–").split("/").pop()}`);
 ["mMain","mQuick"].forEach(id=>$(id).addEventListener("change",()=>{ lsSet(id,$(id).value); markDirty("aiSettings"); schedulePush(); toast("Modello aggiornato"); }));
 $("keyGo").onclick=()=>{ go("profilo"); setTimeout(()=>{ $("settingsCard").scrollIntoView({behavior:"smooth"}); $("apiKey").focus(); },100); };
 $("bkExport").onclick=()=>{
