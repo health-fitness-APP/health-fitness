@@ -1659,7 +1659,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 2.01 (scheda Dispensa negli alimenti)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 2.02 (foto dei pasti più veloci)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -1908,10 +1908,10 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     return null; }
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const status=msg=>{ try{ window.dispatchEvent(new CustomEvent("hf-ai-status",{detail:msg})); }catch{} };
-  async function once(model,key,contents,json,signal){
+  async function once(model,key,contents,json,signal,tmo){
     const tc=thinkCfg(model);
     const gc={temperature:json?0.3:0.7,...(json?{responseMimeType:"application/json"}:{}),...(tc?{thinkingConfig:tc}:{}),...(once.maxTokens?{maxOutputTokens:once.maxTokens}:{})};
-    const ctl=new AbortController(), t=setTimeout(()=>ctl.abort("timeout"),35000);
+    const ctl=new AbortController(), t=setTimeout(()=>ctl.abort("timeout"),tmo||35000);
     if(signal) signal.addEventListener("abort",()=>ctl.abort("user"),{once:true});
     let res;
     try{ res=await fetch(`${API}/models/${model}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents,generationConfig:gc}),signal:ctl.signal}); }
@@ -1920,7 +1920,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     const data=await res.json().catch(()=>null);
     if(!res.ok){
       const msg=(data&&data.error&&data.error.message)||"";
-      if(res.status===400&&tc&&/think/i.test(msg)){ noThink.add(model); try{ localStorage.setItem("hf:noThink",[...noThink].join(",")); }catch{} return once(model,key,contents,json,signal); }
+      if(res.status===400&&tc&&/think/i.test(msg)){ noThink.add(model); try{ localStorage.setItem("hf:noThink",[...noThink].join(",")); }catch{} return once(model,key,contents,json,signal,tmo); }
       const e=err(res.status,data); if([500,502,503,504].includes(res.status)||e.code==="rate_limited") e.retry=true; throw e;
     }
     const cand=data&&data.candidates&&data.candidates[0];
@@ -1937,6 +1937,25 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     if(opts.images&&opts.images.length){ const last=contents[contents.length-1];
       for(const b of opts.images){ last.parts.push({inline_data:{mime_type:b.type||"image/jpeg",data:await blobToB64(b)}}); } }
     let lastErr=null;
+    once.maxTokens=opts.maxTokens||0;
+    if(opts.fast&&chain.length>1){   // foto: se il primo modello tarda, parte anche l'altro e vince il più veloce
+      const t0=Date.now();
+      const text=await new Promise((resolve,reject)=>{
+        let done=false, started=0, failed=0, tm=null; const ctls=[];
+        const finishOk=(t,c)=>{ if(done) return; done=true; clearTimeout(tm); ctls.forEach(x=>{ if(x!==c) x.abort(); }); resolve(t); };
+        const run=(model,retry)=>{ started++; const c=new AbortController(); ctls.push(c); if(opts.signal) opts.signal.addEventListener("abort",()=>c.abort(),{once:true});
+          once(model,key,contents,json,c.signal,22000).then(t=>finishOk(t,c)).catch(async e=>{ if(done) return; lastErr=e;
+            if(e.code==="cancelled"&&opts.signal&&opts.signal.aborted){ done=true; reject(e); return; }
+            if(!e.retry&&e.code!=="quota"){ done=true; clearTimeout(tm); ctls.forEach(x=>x.abort()); reject(e); return; }
+            if(retry&&Date.now()-t0<30000&&e.code!=="quota"){ await sleep(700); if(!done){ started--; run(model,false); } return; }
+            failed++; if(started<2){ clearTimeout(tm); status("Provo con l'altro modello…"); run(chain[1],true); }
+            else if(failed>=started){ done=true; reject(e); } }); };
+        run(chain[0],true);
+        tm=setTimeout(()=>{ if(!done&&started<2){ status("Il server è lento: provo in parallelo anche l'altro modello…"); run(chain[1],true); } },7000);
+      });
+      try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{}
+      if(opts.onText) opts.onText({text,done:true}); return text;
+    }
     for(let mi=0; mi<chain.length; mi++){
       for(let attempt=0; attempt<2; attempt++){
         try{ once.maxTokens=opts.maxTokens||0; const text=await once(chain[mi],key,contents,json,opts.signal); try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{} if(opts.onText) opts.onText({text,done:true}); return text; }
@@ -2665,7 +2684,7 @@ ${info? `Informazioni date dall'utente (hanno la precedenza sulle tue stime, usa
 ` : ""}${prev? `Il tuo risultato precedente era: ${JSON.stringify(prev)}. Correggilo secondo le indicazioni dell'utente e restituisci l'elenco COMPLETO aggiornato.
 ` : ""}Rispondi SOLO con JSON, nomi in italiano: {"kind":"photo"|"values","items":[{"name":"string","grams":number|null,"kcal":number,"p":number,"c":number,"f":number}],"note":"frase breve"}
 p=proteine g, c=carboidrati g, f=grassi g. Se non c'è cibo né valori: {"kind":"none","items":[],"note":"motivo"}.`,
-      {images:[blob], modelTier:"quick", maxTokens:900});
+      {images:[blob], modelTier:"quick", maxTokens:900, fast:true});
     const items=(res&&Array.isArray(res.items))?res.items:[];
     $("photoActions").hidden=false;
     if(!items.length){ setStatus("photoStatus",(res&&res.note)||"Non trovo cibo né valori nella foto. Riprova con un'immagine più nitida."); $("confirmFound").hidden=true; return; }
