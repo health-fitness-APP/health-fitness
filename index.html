@@ -1671,7 +1671,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.08 (modelli ritirati riconosciuti, Groq più robusto)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.09 (se la foto non va: descrivilo a parole)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <div class="status" id="updStatus" aria-live="polite" style="text-align:center"></div>
   </section>
@@ -1813,6 +1813,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         <button class="btn" id="confirmFound">Aggiungi al pasto</button>
         <button class="btn ghost" id="retake">Riprova con un'altra foto</button>
       </div>
+      <button class="btn" id="photoToText" type="button" hidden>✍️ Descrivilo a parole (più veloce)</button>
     </div>
     <div id="paneSearch" hidden>
       <div style="display:flex;gap:8px;align-items:center">
@@ -1963,7 +1964,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       try{ const t=await groqModel(cands[i],contents,json,opts,gk); if(cands[i]!==first) lsSetG(hasImg?"groqVision":"groqText",cands[i]); return t; }
       catch(e){ lastE=e; if(!/groq_(400|404)/.test(String(e.code))) throw e; if(i===cands.length-1&&tried<4){ cands.push(...await more()); } }
     }
-    throw lastE||{code:"no_groq_model"};
+    throw lastE||{code: hasImg? "no_groq_vision" : "no_groq_model"};
   }
   const lsSetG=(k,v)=>{ try{ localStorage.setItem("hf:"+k,v); }catch{} };
   async function groqModel(model,contents,json,opts,gk){
@@ -2020,7 +2021,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         let done=false, started=0, failed=0, tm=null; const ctls=[];
         const finishOk=(t,c)=>{ if(done) return; done=true; clearTimeout(tm); ctls.forEach(x=>{ if(x!==c) x.abort(); }); resolve(t); };
         const run=(model,retry)=>{ started++; const c=new AbortController(); ctls.push(c); if(opts.signal) opts.signal.addEventListener("abort",()=>c.abort(),{once:true});
-          once(model,key,contents,json,c.signal,18000).then(t=>finishOk(t,c)).catch(async e=>{ if(done) return; lastErr=e;
+          once(model,key,contents,json,c.signal,14000).then(t=>finishOk(t,c)).catch(async e=>{ if(done) return; lastErr=e;
             if(e.code==="cancelled"&&opts.signal&&opts.signal.aborted){ done=true; reject(e); return; }
             if(!e.retry&&e.code!=="quota"){ done=true; clearTimeout(tm); ctls.forEach(x=>x.abort()); reject(e); return; }
             if(retry&&Date.now()-t0<30000&&e.code!=="quota"&&e.code!=="timeout"){ await sleep(700); if(!done){ started--; run(model,false); } return; }
@@ -2732,7 +2733,7 @@ async function dpPick(e){
 $("dpConfirm").onclick=()=>{ if(!dpPicked.length) return; const n=dpPicked.length; addItems(dpPicked); dpPicked=[]; toast(n===1?"Aggiunto al pasto":n+" alimenti aggiunti al pasto"); };
 $("tabPhoto").onclick=()=>setTab("photo"); $("tabSearch").onclick=()=>{ setTab("search"); setTimeout(()=>$("q").focus(),50); };
 
-function resetPhoto(){ pendingPhoto=null; if($("photoInfoBox")){ $("photoInfoBox").hidden=true; $("photoInfo").value=""; $("photoFixBox").hidden=true; $("photoFix").value=""; } photoItems=[]; $("photoStart").hidden=false; $("preview").hidden=true; setStatus("photoStatus",""); $("found").innerHTML=""; $("foundNote").hidden=true; $("photoActions").hidden=true; $("photoInput").value=""; }
+function resetPhoto(){ pendingPhoto=null; if($("photoToText")) $("photoToText").hidden=true; if($("photoInfoBox")){ $("photoInfoBox").hidden=true; $("photoInfo").value=""; $("photoFixBox").hidden=true; $("photoFix").value=""; } photoItems=[]; $("photoStart").hidden=false; $("preview").hidden=true; setStatus("photoStatus",""); $("found").innerHTML=""; $("foundNote").hidden=true; $("photoActions").hidden=true; $("photoInput").value=""; }
 function setStatus(id,txt,isErr){ $(id).textContent=txt; $(id).classList.toggle("err",!!isErr); }
 $("pickPhoto").onclick=()=>$("photoInput").click();
 $("pickGallery").onclick=()=>$("galleryInput").click();
@@ -2781,7 +2782,7 @@ p=proteine g, c=carboidrati g, f=grassi g. Se non c'è cibo né valori: {"kind":
     renderFound($("found"),photoItems);
     if(res.note){ $("foundNote").textContent=res.note; $("foundNote").hidden=false; }
     $("confirmFound").hidden=false; $("photoFixBox").hidden=false; $("photoFix").value="";
-  }catch(err){ $("photoInfoBox").hidden=false; setStatus("photoStatus",(analyzeMealPhoto.diag? analyzeMealPhoto.diag()+"\n" : "")+errCopy(err)+(err&&err.code&&!/^(api_50\d|timeout|network|quota|rate_limited|no_key|bad_key)$/.test(err.code)?` [${err.code}${err.message?": "+String(err.message).slice(0,140):""}]`:""),true); $("photoActions").hidden=false; $("confirmFound").hidden=true; }
+  }catch(err){ $("photoInfoBox").hidden=false; $("photoToText").hidden=false; setStatus("photoStatus",(analyzeMealPhoto.diag? analyzeMealPhoto.diag()+"\n" : "")+errCopy(err)+(err&&err.code&&!/^(api_50\d|timeout|network|quota|rate_limited|no_key|bad_key)$/.test(err.code)?` [${err.code}${err.message?": "+String(err.message).slice(0,140):""}]`:""),true); $("photoActions").hidden=false; $("confirmFound").hidden=true; }
   finally{ clearInterval(tick); $("photoGo").disabled=$("photoFixGo").disabled=false; }
 }
 $("confirmFound").onclick=()=>addItems(photoItems);
@@ -2898,6 +2899,7 @@ $("nfSave").onclick=async()=>{
   setStatus("searchStatus",`“${e.name}” salvato tra i tuoi alimenti: lo ritrovi cercandolo. Ora controlla i grammi e aggiungi.`);
 };
 $("confirmPicked").onclick=()=>addItems(pickedItems);
+$("photoToText").onclick=()=>{ const d=$("photoInfo").value.trim(); setTab("search"); $("q").value=d; setTimeout(()=>{ $("q").focus(); if(d) $("aiSearch").click(); else setStatus("searchStatus","Scrivi cosa hai mangiato (es. un trancio di focaccia con pomodorini e olive) e tocca “Calcola con l'AI”."); },80); };
 $("aiSearch").onclick=async()=>{
   const q=$("q").value.trim(); if(!q){ setStatus("searchStatus","Scrivi prima cosa hai mangiato, ad esempio “un piatto di carbonara”."); return; }
   $("aiSearch").disabled=true; setStatus("searchStatus","Calcolo i valori…");
@@ -4609,6 +4611,8 @@ function errCopy(e){
   if(c==="quota"||c==="rate_limited") return aiResetText(e);
   if(c==="blocked") return "Il modello ha rifiutato questa richiesta. Prova a riformularla o con un'altra foto.";
   if(c==="network") return "Non riesco a raggiungere il servizio AI: controlla la connessione e riprova.";
+  if(c==="no_groq_vision") return "Gemini è sovraccarico e Groq al momento non ha modelli che leggono le foto. Riprova tra poco oppure descrivi il piatto a parole: il testo funziona anche con Groq.";
+  if(c==="no_groq_model") return "Gemini è sovraccarico e Groq non ha risposto. Riprova tra poco.";
   if(c==="timeout") return "L'AI ci sta mettendo troppo: riprova tra poco.";
   if(c==="api_503"||c==="api_500"||c==="api_502"||c==="api_504") return "I server gratuiti di Google sono sovraccarichi in questo momento. Ho già riprovato anche con il modello di riserva: riprova tra un minuto.";
   if(c==="not_granted") return "Serve il permesso per usare l'AI.";
@@ -5502,7 +5506,7 @@ $("groqSave").onclick=async()=>{ const k=$("groqKey").value.trim(); if(!k){ setS
   $("groqSave").disabled=true; setStatus("groqStatus","Verifico la chiave…");
   try{ const m=await window.HF_GROQ(k); if(!m.vision&&!m.text) throw {code:"bad_output",message:"nessun modello disponibile"};
     lsSet("groqKey",k); lsSet("groqVision",m.vision||""); lsSet("groqText",m.text||""); markDirty("aiSettings"); schedulePush();
-    setStatus("groqStatus",`✓ Groq collegato come riserva · foto: ${(m.vision||"non disponibile").split("/").pop()} · testo: ${(m.text||"").split("/").pop()}`);
+    setStatus("groqStatus",`✓ Groq collegato come riserva · testo: ${(m.text||"").split("/").pop()} · foto: ${m.vision? m.vision.split("/").pop() : "nessun modello per le foto al momento (userò Groq solo per i testi)"}`);
     toast("Riserva Groq attiva ✓"); }
   catch(e){ setStatus("groqStatus", e&&e.code==="bad_key"? "Chiave Groq non valida: ricopiala da console.groq.com." : e&&e.code==="network"||(e&&/fetch/i.test(String(e.message||e)))? "Non riesco a collegarmi a Groq: controlla la connessione." : "Errore: "+((e&&(e.message||e.code))||e),true); }
   finally{ $("groqSave").disabled=false; } };
