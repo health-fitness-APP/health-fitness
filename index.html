@@ -711,6 +711,19 @@ html,body{overscroll-behavior-y:contain}
 .suppres.ok{border-color:var(--basil)}.suppres.rivedi{border-color:#E9A21E}.suppres.inutile{border-color:#E5484D}
 .suppres b{margin-right:8px}.suppres .vb{font-size:.85rem;font-weight:700}
 .suppres .d{font-size:.88rem;margin-top:4px}.suppres .nt{font-size:.85rem;color:var(--muted);margin-top:2px}
+.mcoach{margin-top:14px}
+.mc-log{display:grid;gap:2px;margin:6px 0 10px}
+.mc-log .bubble{max-width:92%}
+.mc-row{align-items:flex-end}
+.mc-row textarea{min-height:44px;resize:vertical}
+.dplist{margin-top:10px}
+.dprow{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:10px;width:100%;border:0;border-bottom:1px solid var(--line);background:none;padding:12px 4px;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.dprow .n{font-weight:600}
+.dprow .q{grid-row:2;font-size:.82rem;color:var(--muted)}
+.dprow .pl{grid-row:1/3;grid-column:2;align-self:center;width:34px;height:34px;border-radius:50%;background:var(--basil-soft);color:var(--basil);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem}
+.dprow.on .pl{background:var(--basil);color:var(--basil-ink)}
+.dprow.on .pl::before{content:"✓"}
+.dprow.on .pl{font-size:0}.dprow.on .pl::before{font-size:1rem}
 .stchip{display:inline-flex;align-items:center;gap:6px;background:var(--basil-soft)!important;border-color:var(--basil)!important;color:var(--ink)!important}
 .stchip button{border:0;background:none;color:inherit;font-weight:800;cursor:pointer;padding:0 2px}
 .stadd{display:flex;gap:8px;margin-top:10px}
@@ -823,7 +836,9 @@ input.tp-in{cursor:pointer}
 .status.ok{color:var(--basil);font-weight:600;background:var(--basil-soft);padding:10px 12px;border-radius:12px}
 .grab{width:42px;height:5px;border-radius:5px;background:var(--line);margin:4px auto 12px}
 .sheet h3{margin:0 0 12px;font-size:1.3rem}
-.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px}
+.tabs{display:flex;overflow-x:auto;scrollbar-width:none;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:1 0 auto}
 .tabs button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(.7rem,3.3vw,.9rem);line-height:1.2;border:0;background:none;padding:10px 2px;border-radius:11px;font-weight:600;color:var(--muted)}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .photo-drop{display:grid;place-items:center;text-align:center;gap:8px;border:2px dashed var(--line);border-radius:20px;padding:24px 16px;background:var(--surface2)}
@@ -1644,7 +1659,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.99 (integratori e pasti a casa o fuori)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 2.01 (scheda Dispensa negli alimenti)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -1735,7 +1750,18 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button role="tab" id="tabQuick" aria-selected="false">Rapidi</button>
       <button role="tab" id="tabPhoto" aria-selected="true">Foto</button>
       <button role="tab" id="tabSearch" aria-selected="false">Cerca</button>
+      <button role="tab" id="tabPan" aria-selected="false">Dispensa</button>
       <button role="tab" id="tabSuggest" aria-selected="false">Consigliami</button>
+    </div>
+    <div id="panePan" hidden>
+      <input class="field" id="dpQ" placeholder="Cerca tra i cibi che hai in casa" autocomplete="off">
+      <div id="dpList" class="dplist"></div>
+      <div id="dpPickedBox" hidden>
+        <p class="rq-h" style="margin-top:12px">Da aggiungere</p>
+        <ul class="found" id="dpPicked"></ul>
+        <button class="btn" id="dpConfirm" type="button">Aggiungi al pasto</button>
+      </div>
+      <div class="status" id="dpStatus" aria-live="polite"></div>
     </div>
     <div id="paneQuick" hidden>
       <div class="two"><button class="btn ghost" id="quickScan">▥ Codice a barre</button><button class="btn ghost" id="quickMan">✎ Solo valori</button></div>
@@ -2347,6 +2373,48 @@ function setItemGrams(mid,id,ng){
 function qtyText(it){ if(it.manual) return `${r(it.kcal)} kcal, ${fmt(it.grams)} ${+it.grams===1?"porzione":"porzioni"}`;
   const pr= +it.portion>0? `, ${fmt(Math.round(it.grams/it.portion*100)/100)} ${Math.round(it.grams/it.portion*100)/100===1?"porzione":"porzioni"}` : "";
   return `${r(it.kcal)} kcal, ${fmt(it.grams)} g${pr}`; }
+/* ----- parere del coach sul pasto, con possibilità di rispondere ----- */
+function mealContext(m,items){
+  const dt=dayTargets(), t=totals(), mt=items.reduce((a,b)=>({kcal:a.kcal+(+b.kcal||0),p:a.p+(+b.p||0),c:a.c+(+b.c||0),f:a.f+(+b.f||0)}),{kcal:0,p:0,c:0,f:0});
+  const time=(state.day.mealTimes||{})[m.id]||"";
+  const wd=new Date(state.date+"T12:00:00").getDay(), pd=state.diet&&state.diet.plan? planDays(state.diet.plan).find(d=>d.weekday===wd) : null, pm=pd&&(pd.meals||[]).find(x=>x.id===m.id);
+  const others=mealList().filter(x=>x.id!==m.id).map(x=>{ const it=state.day.meals[x.id]||[]; return it.length? `${x.name}: ${it.map(i=>i.name+" "+r(i.grams)+"g").join(", ")} (${r(it.reduce((a,b)=>a+(+b.kcal||0),0))} kcal)` : null; }).filter(Boolean).join("; ")||"nessuno";
+  return `Sei il coach di nutrizione sportiva della persona. Parli in italiano, in modo diretto, concreto e amichevole, con numeri. Risposte brevi (massimo 6-8 righe), niente elenchi lunghi.
+Pasto: ${m.name}${time?" alle "+time:""} (${({casa:"a casa",schiscetta:"schiscetta",fuori:"fuori casa"})[m.where||"casa"]||""}) del ${state.date===todayISO()?"giorno di oggi":state.date}.
+Cosa ha mangiato: ${items.map(i=>`${i.name} ${r(i.grams)} g (${r(i.kcal)} kcal, P ${r(i.p)}, C ${r(i.c)}, G ${r(i.f)})`).join("; ")}. Totale pasto: ${r(mt.kcal)} kcal, P ${r(mt.p)} g, C ${r(mt.c)} g, G ${r(mt.f)} g.
+${pm? `Nella sua dieta per questo pasto era previsto: ${(pm.foods||[]).map(f=>f.name+" "+r(f.grams)+"g").join(", ")} (${r(sumFoods(pm.foods).kcal)} kcal).` : ""}
+Altri pasti della giornata: ${others}. Totale giornata finora: ${r(t.kcal)} kcal, P ${r(t.p)}, C ${r(t.c)}, G ${r(t.f)}.
+${dt? `Obiettivo del giorno: ${r(dt.goal)} kcal, P ${r(dt.P)} g, C ${r(dt.C)} g, G ${r(dt.F)} g.` : ""} Allenamenti di oggi: ${(state.day.workouts||[]).map(w=>w.name+" "+r(w.minutes)+" min").join(", ")||"nessuno"}. Giornata: ${eventText()}.
+Profilo: ${profileSummary()}.`;
+}
+function mealCoachCard(m,items){
+  state.day.mealChat=state.day.mealChat||{}; const th=state.day.mealChat[m.id]||[];
+  const card=el("section","card mcoach"); card.appendChild(el("h2",null,"💬 Parere del coach"));
+  const log=el("div","mc-log"); th.forEach(x=>log.appendChild(el("div","bubble "+(x.role==="user"?"me":"ai"),x.content))); card.appendChild(log);
+  const st=el("div","status"); st.setAttribute("aria-live","polite"); const setSt=(t,e)=>{ st.textContent=t; st.classList.toggle("err",!!e); };
+  const ask=async(text,first)=>{
+    if(!sample){ setSt("Serve la chiave AI (Profilo → Impostazioni).",true); return; }
+    const list=(state.day.mealChat[m.id]=state.day.mealChat[m.id]||[]);
+    const userMsg= first? "Dammi un parere su questo pasto: cosa va bene, cosa migliorare e come regolarmi nel resto della giornata." : text;
+    list.push({role:"user",content:userMsg}); if(!first) log.appendChild(el("div","bubble me",userMsg));
+    const bub=el("div","bubble ai","Sto guardando il tuo pasto…"); log.appendChild(bub); bub.scrollIntoView({block:"nearest",behavior:"smooth"});
+    send.disabled=true; if(go) go.disabled=true;
+    const msgs=list.slice(-12).map(x=>({role:x.role,content:x.content})); msgs[0]={role:"user",content:mealContext(m,items)+"\n\n"+msgs[0].content};
+    try{ const res=await sample(msgs,{cache:false,onText:({text})=>{ bub.textContent=text||"…"; }});
+      const ans=String(res.text||"").trim()||"Non sono riuscito a rispondere, riprova."; bub.textContent=ans; list.push({role:"assistant",content:ans}); state.day.mealChat[m.id]=list.slice(-20); saveDay(); renderMealPage(); }
+    catch(e){ bub.remove(); list.pop(); setSt(errCopy(e),true); send.disabled=false; if(go) go.disabled=false; }
+  };
+  let go=null;
+  if(!th.length){ go=el("button","btn","Chiedi un parere su questo pasto"); go.type="button"; go.disabled=!items.length; go.onclick=()=>ask("",true); card.appendChild(go);
+    if(!items.length) card.appendChild(el("p","note","Aggiungi prima cosa hai mangiato.")); }
+  const row=el("div","stadd mc-row"), inp=el("textarea","field"); inp.rows=1; inp.id="mcIn"; inp.placeholder= th.length? "Rispondi al coach…" : "Oppure scrivi una domanda su questo pasto";
+  const send=el("button","btn ghost","Invia"); send.type="button";
+  send.onclick=()=>{ const v=inp.value.trim(); if(!v) return; inp.value=""; ask(v,false); };
+  row.append(inp,send); card.appendChild(row); card.appendChild(st);
+  if(th.length){ const clr=el("button","linkbtn","Ricomincia la conversazione"); clr.type="button"; clr.onclick=()=>{ if(!confirm("Cancellare la conversazione su questo pasto?")) return; delete state.day.mealChat[m.id]; saveDay(); renderMealPage(); }; card.appendChild(clr); }
+  setTimeout(()=>{ try{ attachMic("mcIn"); }catch{} },0);
+  return card;
+}
 function renderMealPage(){
   if(mealPageId==null) return;
   const list=[...mealList()]; Object.keys(state.day.meals||{}).forEach(k=>{ if(!list.find(m=>m.id===k)) list.push({id:k,name:k.charAt(0).toUpperCase()+k.slice(1)}); });
@@ -2393,6 +2461,7 @@ function renderMealPage(){
   const yi=(state.yday&&state.yday.meals&&state.yday.meals[m.id])||[];
   if(!items.length&&yi.length){ const cp=el("button","linkbtn",`↺ Come ieri: ${yi.map(x=>x.name).slice(0,3).join(", ")}${yi.length>3?"…":""} (${r(yi.reduce((a,b)=>a+b.kcal,0))} kcal)`); cp.onclick=()=>{ currentMeal=m.id; addItems(yi.map(x=>({...x,per:null}))); }; tools.appendChild(cp); }
   if(tools.children.length) box.appendChild(tools);
+  try{ box.appendChild(mealCoachCard(m,items)); }catch(e){ console.warn("parere",e); }
   const done=el("button","mp-done","Fatto"); done.type="button"; done.onclick=()=>$("mpBack").click(); box.appendChild(done);
 }
 async function loadDay(){
@@ -2516,13 +2585,48 @@ document.querySelectorAll(".sheet-x").forEach(b=>b.onclick=closeTopSheet);
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeTopSheet(); });
 function openAdd(m){
   currentMeal=m.id; currentMealName=m.name; $("addTitle").textContent= m.id==="__staples"? "Aggiungi ai cibi di casa" : "Aggiungi a "+m.name.toLowerCase();
+  $("tabPan").hidden= m.id==="__staples";
   resetPhoto(); resetSearch(); resetSuggest(); const canImg=!!imgLimits; $("tabPhoto").hidden=!canImg; $("tabSuggest").hidden=!sample;
   quickPicked=[]; $("quickPickedBox").hidden=true; renderQuick();
   setTab(hasQuick()? "quick" : canImg?"photo":"search"); $("aiSearch").hidden=!sample; openSheet("addSheet");
   requestAnimationFrame(()=>{ $("addSheet").scrollTop=0; });
 }
-function setTab(t){ if(t!=="search") stopScan(); try{ $("addSheet").scrollTop=0; }catch{} [["quick","Quick"],["photo","Photo"],["search","Search"],["suggest","Suggest"]].forEach(([k,K])=>{ $("tab"+K).setAttribute("aria-selected",t===k); $("pane"+K).hidden=t!==k; }); }
+function setTab(t){ if(t!=="search") stopScan(); try{ $("addSheet").scrollTop=0; }catch{} [["quick","Quick"],["photo","Photo"],["search","Search"],["pan","Pan"],["suggest","Suggest"]].forEach(([k,K])=>{ $("tab"+K).setAttribute("aria-selected",t===k); $("pane"+K).hidden=t!==k; }); }
 $("tabSuggest").onclick=()=>setTab("suggest");
+/* ----- scheda Dispensa: aggiungi al pasto i cibi che hai in casa ----- */
+let dpPicked=[];
+$("tabPan").onclick=()=>{ setTab("pan"); dpPicked=[]; $("dpQ").value=""; renderDp(); };
+$("dpQ").addEventListener("input",()=>renderDp());
+function dpEntries(){ const st=stapleItems().map(x=>({src:"sempre",name:x.name,grams:x.grams,kcal:x.kcal,p:x.p,c:x.c,f:x.f}));
+  const rec=pantry.items.filter(i=>!st.some(z=>sameFood(z.name,i.name))).map(i=>({src:"recenti",name:i.name,qty:i.qty})); return [...st,...rec]; }
+function dbValues(name){ const lx=normFood(name), FD=(typeof FOODS!=="undefined"? FOODS:[]).filter(f=>Array.isArray(f)&&typeof f[0]==="string"); const d=FD.find(f=>normFood(f[0])===lx)||FD.find(f=>normFood(f[0]).startsWith(lx)||lx.startsWith(normFood(f[0])));
+  return d? {grams:100,kcal:d[1],p:d[2],c:d[3],f:d[4]} : null; }
+function renderDp(){
+  const q=normFood($("dpQ").value), box=$("dpList"); box.innerHTML="";
+  const all=dpEntries().filter(e=>!q||normFood(e.name).includes(q));
+  if(!dpEntries().length){ box.appendChild(el("p","note","Non hai ancora cibi di casa: aggiungili in Dieta → Frigo e dispensa, oppure fotografa lo scontrino o il frigo.")); }
+  else if(!all.length) box.appendChild(el("p","note","Nessun cibo di casa con questo nome."));
+  [["sempre","⭐ Di sempre"],["recenti","🧾 Comprati di recente"]].forEach(([k,t])=>{ const g=all.filter(e=>e.src===k); if(!g.length) return; box.appendChild(el("p","rq-h",t));
+    g.forEach(e=>{ const b=el("button","dprow"); b.type="button"; const has=e.kcal!=null&&e.grams;
+      b.innerHTML=`<span class="n"></span><span class="q"></span><span class="pl">+</span>`; b.querySelector(".n").textContent=e.name;
+      b.querySelector(".q").textContent= has? `${r(e.kcal)} kcal per ${fmt(e.grams)} g` : (e.qty||"");
+      if(dpPicked.some(x=>sameFood(x.name,e.name))) b.classList.add("on");
+      b.onclick=()=>dpPick(e); box.appendChild(b); }); });
+  $("dpPickedBox").hidden=!dpPicked.length; if(dpPicked.length) renderFound($("dpPicked"),dpPicked);
+}
+async function dpPick(e){
+  if(dpPicked.some(x=>sameFood(x.name,e.name))){ dpPicked=dpPicked.filter(x=>!sameFood(x.name,e.name)); renderDp(); return; }
+  let v= e.kcal!=null&&e.grams? {grams:e.grams,kcal:e.kcal,p:e.p,c:e.c,f:e.f} : dbValues(e.name);
+  if(!v){ if(!sample){ setStatus("dpStatus","Per questo cibo non ho i valori: aggiungilo da Cerca.",true); return; }
+    setStatus("dpStatus","Calcolo i valori di "+e.name+"…");
+    try{ const res=await sample.json(`Porzione tipica in grammi e valori nutrizionali (tabelle CREA) di: "${e.name.replace(/"/g,"'")}". Rispondi SOLO con JSON: {"grams":number,"kcal":number,"p":number,"c":number,"f":number}`,{modelTier:"quick"});
+      if(!res||!(+res.grams>0)) throw {code:"bad_output"}; v={grams:+res.grams,kcal:+res.kcal||0,p:+res.p||0,c:+res.c||0,f:+res.f||0}; setStatus("dpStatus","");
+      const st=stapleItems().find(x=>sameFood(x.name,e.name)); if(st&&st.kcal==null){ Object.assign(st,v); saveStaples(); } }
+    catch(err){ setStatus("dpStatus",errCopy(err),true); return; } }
+  dpPicked.push(normItem({name:e.name,...v})); renderDp();
+  setTimeout(()=>{ const pb=$("dpPickedBox"); if(pb&&!pb.hidden) pb.scrollIntoView({behavior:"smooth",block:"nearest"}); },60);
+}
+$("dpConfirm").onclick=()=>{ if(!dpPicked.length) return; const n=dpPicked.length; addItems(dpPicked); dpPicked=[]; toast(n===1?"Aggiunto al pasto":n+" alimenti aggiunti al pasto"); };
 $("tabPhoto").onclick=()=>setTab("photo"); $("tabSearch").onclick=()=>{ setTab("search"); setTimeout(()=>$("q").focus(),50); };
 
 function resetPhoto(){ pendingPhoto=null; if($("photoInfoBox")){ $("photoInfoBox").hidden=true; $("photoInfo").value=""; $("photoFixBox").hidden=true; $("photoFix").value=""; } photoItems=[]; $("photoStart").hidden=false; $("preview").hidden=true; setStatus("photoStatus",""); $("found").innerHTML=""; $("foundNote").hidden=true; $("photoActions").hidden=true; $("photoInput").value=""; }
