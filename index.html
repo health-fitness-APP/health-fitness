@@ -698,6 +698,9 @@ html,body{overscroll-behavior-y:contain}
 .vmac b{display:block;font-size:1.1rem}.vmac span{font-size:.72rem;color:var(--muted)}
 .valres h4{margin:12px 0 4px}
 .valres ul{margin:0;padding-left:20px;line-height:1.45}
+.ro-drag{position:relative;z-index:30;box-shadow:0 16px 40px rgba(0,0,0,.22)!important;transition:none!important;opacity:.97}
+.ro-on{user-select:none;-webkit-user-select:none}
+.ro-on>*:not(.ro-drag){transition:transform .15s}
 .stchip{display:inline-flex;align-items:center;gap:6px;background:var(--basil-soft)!important;border-color:var(--basil)!important;color:var(--ink)!important}
 .stchip button{border:0;background:none;color:inherit;font-weight:800;cursor:pointer;padding:0 2px}
 .stadd{display:flex;gap:8px;margin-top:10px}
@@ -1616,7 +1619,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.94 (seleziona, oggi ho finito, valuta un cibo)</p>
+    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 1.95 (riordina i riquadri ovunque)</p>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -2868,7 +2871,7 @@ function renderDiet(){
     const has=!$("dietPlanCard").hidden||!$("upPlanCard").hidden, dp=$("d-plan");
     dp.classList.toggle("has-diet",has);
     const order= has? ["upPlanCard","dietPlanCard","dietWeekCard","dietChatCard","dietMore","dietAiCard","upCard"] : ["upCard","upPlanCard","dietMore","dietAiCard","dietPlanCard","dietWeekCard","dietChatCard"];
-    order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===dp) dp.appendChild(n); });
+    order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===dp) dp.appendChild(n); }); applyOrder(dp,"dieta");
     $("dietAiTitle").textContent= has&&!upActive()? "✨ Rifai o cambia la dieta" : "✨ Ti preparo la dieta";
   }
 }
@@ -3370,7 +3373,7 @@ function progFor(x){
 function renderProgram(){
   try{ const wp=$("w-programma"), hp=!!activeProg(); wp.classList.toggle("has-prog",hp);
     const order= hp? ["progOut","cirOpen","progMore","progPick","aiProgCard","impCard"] : ["progPick","aiProgCard","impCard","progOut","cirOpen","progMore"];
-    order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===wp) wp.appendChild(n); }); }catch{}
+    order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===wp) wp.appendChild(n); }); applyOrder(wp,"programma"); }catch{}
   try{ const cg=state.profile&&state.profile.customGoal; if($("pGoal")&&!$("pGoal").value&&cg&&cg.active&&cg.programGoal) $("pGoal").value=cg.programGoal; }catch{}
   const box=$("progOut"); box.innerHTML="";
   const a=activeProg(), hasImp=!!(imported&&Array.isArray(imported.days));
@@ -5552,6 +5555,39 @@ function applyHomeOrder(order){
   homeOrder=[...valid,...DEF_ORDER.filter(k=>!valid.includes(k))];
   const g=$("dash"); homeOrder.forEach(k=>{ const n=g.querySelector(`[data-tile="${k}"]`); if(n) g.appendChild(n); });
 }
+/* ===== riordina i riquadri tenendo premuto, in tutte le pagine ===== */
+let uiOrder={};
+const RO_TARGETS=[["view-attivita","attivita"],["view-corpo","corpo"],["ciboBody","cibo"],["d-pantry","dispensa"],["d-plan","dieta"],["w-programma","programma"],["view-profilo","profilo"]];
+function roKids(c){ return [...c.children].filter(n=>!["SCRIPT","STYLE","HEADER","INPUT"].includes(n.tagName)&&!n.classList.contains("daynav")&&!n.classList.contains("top")&&!n.classList.contains("cibo-top")&&!n.classList.contains("seg")&&!n.classList.contains("eqbar")&&n.id!=="progMore"&&n.id!=="dietMore"); }
+function roKey(n,i){ if(!n.dataset.rk) n.dataset.rk= n.id||("i"+i); return n.dataset.rk; }
+function applyOrder(c,key){ if(!c) return; const ord=uiOrder[key]; const kids=roKids(c); kids.forEach((n,i)=>roKey(n,i)); if(!Array.isArray(ord)||!ord.length) return;
+  const map=new Map(kids.map(n=>[n.dataset.rk,n])); const first=kids[0]&&kids[0].previousElementSibling; let anchor=null;
+  ord.forEach(k=>{ const n=map.get(k); if(n){ if(anchor) anchor.after(n); else if(first) first.after(n); else c.prepend(n); anchor=n; map.delete(k); } });
+  [...map.values()].forEach(n=>{ if(anchor){ anchor.after(n); anchor=n; } }); }
+function saveOrder(c,key){ uiOrder[key]=roKids(c).map((n,i)=>roKey(n,i)); save("uiOrder",uiOrder); }
+function enableReorder(c,key){
+  if(!c||c._ro) return; c._ro=true; roKids(c).forEach((n,i)=>roKey(n,i));
+  let timer=null, drag=null, y0=0, x0=0, startY=0, suppress=false;
+  const pick=t=>{ let n=t; while(n&&n.parentElement!==c) n=n.parentElement; return n&&roKids(c).includes(n)? n : null; };
+  c.addEventListener("touchstart",e=>{ if(e.touches.length!==1||document.querySelector(".sheet.open")) return; const n=pick(e.target); if(!n) return;
+    if(e.target.closest("input,textarea,select,.swipe,.wkdiet,.chips,.mp-pm,canvas")) return;
+    x0=e.touches[0].clientX; y0=e.touches[0].clientY; clearTimeout(timer);
+    timer=setTimeout(()=>{ drag=n; startY=y0; n.classList.add("ro-drag"); c.classList.add("ro-on"); if(navigator.vibrate) navigator.vibrate(25); },480); },{passive:true});
+  c.addEventListener("touchmove",e=>{ const t=e.touches[0];
+    if(!drag){ if(Math.abs(t.clientX-x0)>8||Math.abs(t.clientY-y0)>8) clearTimeout(timer); return; }
+    e.preventDefault(); const dy=t.clientY-startY; drag.style.transform=`translateY(${dy}px) scale(1.02)`;
+    const sibs=roKids(c).filter(n=>n!==drag&&!n.hidden&&n.offsetParent!==null), r0=drag.getBoundingClientRect(), mid=r0.top+r0.height/2;
+    for(const s0 of sibs){ const r1=s0.getBoundingClientRect(), m1=r1.top+r1.height/2;
+      if(dy>0&&mid>m1&&drag.compareDocumentPosition(s0)&Node.DOCUMENT_POSITION_FOLLOWING){ const before=drag.getBoundingClientRect().top; s0.after(drag); startY+=drag.getBoundingClientRect().top-before; drag.style.transform=`translateY(${t.clientY-startY}px) scale(1.02)`; break; }
+      if(dy<0&&mid<m1&&drag.compareDocumentPosition(s0)&Node.DOCUMENT_POSITION_PRECEDING){ const before=drag.getBoundingClientRect().top; s0.before(drag); startY+=drag.getBoundingClientRect().top-before; drag.style.transform=`translateY(${t.clientY-startY}px) scale(1.02)`; break; } }
+    if(t.clientY<80) window.scrollBy(0,-12); else if(t.clientY>innerHeight-120) window.scrollBy(0,12); },{passive:false});
+  const end=()=>{ clearTimeout(timer); if(!drag) return; drag.style.transform=""; drag.classList.remove("ro-drag"); c.classList.remove("ro-on"); drag=null; suppress=true; setTimeout(()=>suppress=false,350); saveOrder(c,key);
+    if(!localStorage.getItem("hf:roHint")){ try{ localStorage.setItem("hf:roHint","1"); }catch{} toast("Ordine salvato ✓"); } };
+  c.addEventListener("touchend",end); c.addEventListener("touchcancel",end);
+  c.addEventListener("click",e=>{ if(suppress){ e.preventDefault(); e.stopPropagation(); } },true);
+  c.addEventListener("contextmenu",e=>{ if(drag) e.preventDefault(); });
+}
+function initReorder(){ RO_TARGETS.forEach(([id,key])=>{ const c=$(id); if(c){ applyOrder(c,key); enableReorder(c,key); } }); }
 function saveHomeOrder(){ homeOrder=[...$("dash").querySelectorAll(".tile")].map(n=>n.dataset.tile); save("homeLayout",{order:homeOrder}); }
 function setEdit(on){
   editMode=on; $("dash").classList.toggle("editing",on); $("editBar").hidden=!on;
@@ -5717,6 +5753,7 @@ renderAll();
 async function loadAll(){
   const agd=await store.getDoc("actGoals"); if(agd&&agd.steps) actG=agd;
   const hl=await store.getDoc("homeLayout"); applyHomeOrder(hl&&hl.order);
+  try{ uiOrder=(await store.getDoc("uiOrder"))||{}; initReorder(); }catch(e){ console.warn("ordine",e); }
   const fd=await store.getDoc("foods"); foods={favs:(fd&&fd.favs)||[],recents:(fd&&fd.recents)||[],saved:(fd&&fd.saved)||[],barcodes:(fd&&fd.barcodes)||{},custom:(fd&&fd.custom)||[]};
   const [p,diet,prog,ch]=await Promise.all([store.getDoc("profile"),store.getDoc("diet"),store.getDoc("program"),store.getDoc("coach")]);
   if(ch&&Array.isArray(ch.turns)) chat=ch;
