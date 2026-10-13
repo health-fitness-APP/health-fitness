@@ -1659,7 +1659,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.05 (modelli Gemini 3: risposte più rapide)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.06 (modelli di riserva quando Google è sovraccarico)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <div class="status" id="updStatus" aria-live="polite" style="text-align:center"></div>
   </section>
@@ -1932,6 +1932,22 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     if(!cand||!cand.content){ throw {code:"blocked",message:(data&&data.promptFeedback&&data.promptFeedback.blockReason)||(cand&&cand.finishReason)||""}; }
     return (cand.content.parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
   }
+  function reserveModels(chain){
+    const known=(LS("models")||"").split(",").filter(Boolean), base=["gemini-2.5-flash-lite","gemini-2.5-flash","gemini-2.0-flash"];
+    const pool=[...new Set(known.length? known : base)].filter(n=>!chain.includes(n)&&!/preview|exp/.test(n));
+    // prima i modelli di generazione più vecchia: di solito sono meno affollati
+    return pool.sort((a,b)=>(parseFloat((a.match(/(\d+(?:\.\d+)?)/)||[0,9])[1])-parseFloat((b.match(/(\d+(?:\.\d+)?)/)||[0,9])[1]))||(/lite/.test(b)-/lite/.test(a))).slice(0,2);
+  }
+  async function viaReserves(chain,key,contents,json,opts,lastErr){
+    const busy=e=>e&&(/^api_50\d$/.test(e.code||"")||e.code==="timeout"||e.code==="rate_limited"||e.code==="network"||e.retry);
+    if(!busy(lastErr)) throw lastErr;
+    for(const m of reserveModels(chain)){
+      status("I modelli scelti sono sovraccarichi: provo con "+m.replace("gemini-","")+"…");
+      try{ const t=await once(m,key,contents,json,opts.signal,20000); try{ localStorage.setItem("hf:lastReserve",m); }catch{} return t; }
+      catch(e){ lastErr=e; if(e&&e.code===404) continue; }
+    }
+    throw lastErr;
+  }
   async function call(input,opts={},json=false){
     const key=LS("apiKey"); if(!key) throw {code:"no_key"};
     const main=LS("mMain")||"gemini-2.5-flash", quick=LS("mQuick")||main;
@@ -1957,7 +1973,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
             else if(failed>=started){ done=true; reject(e); } }); };
         run(chain[0],true);
         tm=setTimeout(()=>{ if(!done&&started<2){ status("Il server è lento: provo in parallelo anche l'altro modello…"); run(chain[1],true); } },7000);
-      });
+      }).catch(e=>viaReserves(chain,key,contents,json,opts,e));
       try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{}
       if(opts.onText) opts.onText({text,done:true}); return text;
     }
@@ -1973,7 +1989,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       }
       if(mi+1<chain.length) status("Passo al modello di riserva…");
     }
-    throw lastErr||{code:"network"};
+    return await viaReserves(chain,key,contents,json,opts,lastErr||{code:"network",retry:true});
   }
   const sample=async(input,opts)=>({text:await call(input,opts,false)});
   const parseJSON=t=>{ const clean=String(t||"").replace(/```json|```/g,"").trim(); try{ return JSON.parse(clean); }catch{ const m=clean.match(/[\[{][\s\S]*[\]}]/); if(m){ try{ return JSON.parse(m[0]); }catch{} } return undefined; } };
@@ -5387,6 +5403,7 @@ function lsSet(k,v){ try{ localStorage.setItem("hf:"+k,v); }catch{} }
 function showAiOk(){ const st=$("apiStatus"); if(G.LS("apiKey")){ $("apiKey").placeholder="Chiave salvata (incollane una nuova per cambiarla)"; if(!st.classList.contains("err")){ st.textContent="✓ AI collegata · modello "+(G.LS("mMain")||"Gemini"); st.classList.add("ok"); } } else st.classList.remove("ok"); }
 function renderKeyBanner(){ $("keyBanner").hidden=!!G.LS("apiKey"); }
 function fillModelSelects(list){
+  if(!list||!list.length){ const kn=(G.LS("models")||"").split(",").filter(Boolean); if(kn.length) list=kn; }
   ["mMain","mQuick"].forEach(id=>{ const sel=$(id), cur=G.LS(id); sel.innerHTML="";
     const opts=list&&list.length? list : [cur||"gemini-2.5-flash"];
     opts.forEach(m=>{ const o=el("option",null,m); o.value=m; sel.appendChild(o); }); if(cur) sel.value=cur; });
@@ -5415,7 +5432,7 @@ $("apiSave").onclick=async()=>{
     let main=m.main, quick=m.quick;
     if(!(await testModel(main,key))){ const alt=m.all.find(x=>x!==main); if(alt&&await testModel(alt,key)) main=alt; else throw {code:"quota",message:"il modello non risponde con questa chiave"}; }
     if(quick!==main && !(await testModel(quick,key))) quick=main;
-    lsSet("apiKey",key); lsSet("mMain",main); lsSet("mQuick",quick); fillModelSelects(m.all);
+    lsSet("apiKey",key); lsSet("mMain",main); lsSet("mQuick",quick); lsSet("models",m.all.join(",")); fillModelSelects(m.all);
     $("apiKey").value=""; $("apiKey").placeholder="Chiave salvata ✓ (incollane una nuova per cambiarla)";
     markDirty("aiSettings"); schedulePush(); setStatus("apiStatus",""); showAiOk(); renderKeyBanner(); toast("✓ AI collegata");
   }catch(e){ setStatus("apiStatus",errCopy(e)+(e&&e.message?" ("+e.message.slice(0,120)+")":""),true); }
