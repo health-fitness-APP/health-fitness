@@ -1659,7 +1659,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.04 (foto: niente più risposte incomplete)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.05 (modelli Gemini 3: risposte più rapide)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <div class="status" id="updStatus" aria-live="polite" style="text-align:center"></div>
   </section>
@@ -1906,7 +1906,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   const noThink=new Set((LS("noThink")||"").split(",").filter(Boolean));
   function thinkCfg(model){ if(noThink.has(model)) return null;
     if(/2\.5-flash/.test(model)) return {thinkingBudget:0};          // risposta immediata, senza "ragionamento"
-    if(/gemini-[3-9]/.test(model)) return {thinkingLevel:"low"};
+    if(/gemini-[3-9]/.test(model)){ const lv=(LS("thinkLv:"+model)||"minimal"); return {thinkingLevel:lv}; }   // il "ragionamento" più corto possibile: risposte rapide
     return null; }
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const status=msg=>{ try{ window.dispatchEvent(new CustomEvent("hf-ai-status",{detail:msg})); }catch{} };
@@ -1924,6 +1924,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     const data=await res.json().catch(()=>null);
     if(!res.ok){
       const msg=(data&&data.error&&data.error.message)||"";
+      if(res.status===400&&tc&&tc.thinkingLevel&&/think/i.test(msg)&&tc.thinkingLevel!=="low"){ try{ localStorage.setItem("hf:thinkLv:"+model,"low"); }catch{} return once0(model,key,contents,json,signal,tmo); }
       if(res.status===400&&tc&&/think/i.test(msg)){ noThink.add(model); try{ localStorage.setItem("hf:noThink",[...noThink].join(",")); }catch{} return once0(model,key,contents,json,signal,tmo); }
       const e=err(res.status,data); if([500,502,503,504].includes(res.status)||e.code==="rate_limited") e.retry=true; throw e;
     }
