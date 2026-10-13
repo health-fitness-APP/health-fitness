@@ -601,7 +601,7 @@ html,body{overscroll-behavior-y:contain}
 .eq .row.eqtot span,.eq .row.eqtot b{font-weight:800;color:var(--ink)}
 .eq .row.eqtot b{color:var(--basil);font-size:1.15em}
 .swipe{position:relative;overflow:hidden}
-.swipe-bg{position:absolute;top:0;right:0;bottom:0;width:96px;border:0;background:#E5484D;color:#fff;font:inherit;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.swipe-bg{position:absolute;top:1px;right:0;bottom:2px;width:96px;border:0;background:#E5484D;color:#fff;font:inherit;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
 .swipe-bg span{font-size:1.2rem}
 .swipe-fg{position:relative;background:var(--surface-solid);touch-action:pan-y;will-change:transform}
 .mp-list .swipe{margin:0 -16px}
@@ -724,6 +724,15 @@ html,body{overscroll-behavior-y:contain}
 .dprow.on .pl{background:var(--basil);color:var(--basil-ink)}
 .dprow.on .pl::before{content:"✓"}
 .dprow.on .pl{font-size:0}.dprow.on .pl::before{font-size:1rem}
+#stAddTop{margin:4px 0 10px}
+.stsearch{margin:0 0 6px}
+.stsearch input{width:100%}
+details.stfold>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:10px 2px;font-weight:800;font-size:1.05rem}
+details.stfold>summary::-webkit-details-marker{display:none}
+details.stfold>summary b{font-weight:600;color:var(--muted);font-size:.9rem}
+details.stfold>summary .chev{color:var(--muted);font-size:1.3rem;transition:transform .2s}
+details.stfold[open]>summary .chev{transform:rotate(90deg)}
+#recentCard details.stfold>summary{font-size:1.15rem}
 .stchip{display:inline-flex;align-items:center;gap:6px;background:var(--basil-soft)!important;border-color:var(--basil)!important;color:var(--ink)!important}
 .stchip button{border:0;background:none;color:inherit;font-weight:800;cursor:pointer;padding:0 2px}
 .stadd{display:flex;gap:8px;margin-top:10px}
@@ -1004,9 +1013,9 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </section>
   <div id="casaBody"></div>
   <section class="card" id="recentCard">
-    <h2>🧾 Comprati di recente</h2>
+    <details class="stfold" id="recFold" open><summary><span>🧾 Comprati di recente <b id="recFoldN"></b></span><span class="chev">›</span></summary>
     <p class="sub">Dallo scontrino e dalle foto del frigo. Quelli che hai già tra i cibi di sempre non li ripeto.</p>
-    <div class="mp-list st-list" id="recList"></div>
+    <div class="mp-list st-list" id="recList"></div></details>
   </section>
 </main>
 
@@ -1175,8 +1184,11 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <section class="card" id="stapleCard">
       <h2>⭐ I cibi che tieni sempre in casa</h2>
       <p class="sub">Salva qui gli alimenti che compri di solito: il coach controlla se bastano per il tuo obiettivo, ti dice cosa manca o cosa non va bene, e ti prepara la dieta usando soprattutto questi.</p>
+      <button class="btn" id="stAddTop" type="button">＋ Aggiungi alimenti</button>
+      <div class="stsearch"><input class="field" id="stQ" type="search" placeholder="🔍 Cerca tra i tuoi cibi" autocomplete="off"></div>
+      <details class="stfold" id="stFold" open><summary><span>⭐ Di sempre <b id="stFoldN"></b></span><span class="chev">›</span></summary>
       <div class="stsel-h"><span id="stCount"></span><button class="linkbtn" id="stSelBtn" type="button">Seleziona</button></div>
-      <div class="mp-list st-list" id="stList"></div>
+      <div class="mp-list st-list" id="stList"></div></details>
       <div class="stselbar" id="stSelBar" hidden><button class="btn ghost" id="stSelCancel" type="button">Annulla</button><button class="btn danger-fill" id="stSelDel" type="button">Elimina</button></div>
       <input type="hidden" id="stIn"><button hidden id="stAdd" type="button"></button>
       <div id="stSug" hidden></div>
@@ -1632,6 +1644,18 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         <label>Modello principale<select class="field" id="mMain"></select></label>
         <label>Modello veloce<select class="field" id="mQuick"></select></label>
       </div>
+      <h3 style="margin:14px 0 2px;font-size:1rem">🔁 Sostituto di Gemini: OpenRouter (facoltativo)</h3>
+      <p class="note" style="margin:0">Se Gemini è sovraccarico, l'app usa i modelli gratuiti di OpenRouter, anche per le foto. Se anche lui non risponde, passa a Groq.</p>
+      <label>Chiave API OpenRouter<input class="field" id="orKey" type="password" autocomplete="off" placeholder="Incolla qui la chiave (inizia con sk-or-…)"></label>
+      <div class="two"><button class="btn ghost" id="orSave" type="button">Salva e verifica</button><button class="btn ghost" id="orDel" type="button">Togli</button></div>
+      <div class="status" id="orStatus" aria-live="polite"></div>
+      <details>
+        <summary class="note" style="cursor:pointer">Come ottenere la chiave OpenRouter gratuita</summary>
+        <div class="pline"><span class="ic">1</span><span>Apri <b>openrouter.ai</b> e accedi (anche con l'account Google).</span></div>
+        <div class="pline"><span class="ic">2</span><span>Tocca il tuo profilo → <b>Keys</b> → <b>Create Key</b>, dagli un nome (es. HealthFit). Lascia vuoto il limite di credito.</span></div>
+        <div class="pline"><span class="ic">3</span><span>Copia la chiave (inizia con <b>sk-or-</b>), incollala qui sopra e tocca “Salva e verifica”.</span></div>
+        <p class="note">Uso solo i modelli gratuiti (quelli “:free”), quindi non paghi niente. Hanno un limite di richieste al giorno.</p>
+      </details>
       <h3 style="margin:14px 0 2px;font-size:1rem">🛟 Riserva gratuita: Groq (facoltativa)</h3>
       <p class="note" style="margin:0">Quando Gemini è sovraccarico, l'app passa da sola a Groq: è molto veloce e anche questo è gratuito.</p>
       <label>Chiave API Groq<input class="field" id="groqKey" type="password" autocomplete="off" placeholder="Incolla qui la chiave (inizia con gsk_…)"></label>
@@ -1671,7 +1695,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.09 (se la foto non va: descrivilo a parole)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.13 (OpenRouter come sostituto di Gemini)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <div class="status" id="updStatus" aria-live="polite" style="text-align:center"></div>
   </section>
@@ -1967,6 +1991,41 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     throw lastE||{code: hasImg? "no_groq_vision" : "no_groq_model"};
   }
   const lsSetG=(k,v)=>{ try{ localStorage.setItem("hf:"+k,v); }catch{} };
+  const OR="https://openrouter.ai/api/v1";
+  function toOpenAI(contents){ return contents.map(c=>{ const role=c.role==="model"?"assistant":"user";
+    const txt=c.parts.filter(p=>p.text!=null).map(p=>p.text).join("\n"), imgs=c.parts.filter(p=>p.inline_data);
+    if(!imgs.length) return {role,content:txt};
+    return {role,content:[{type:"text",text:txt},...imgs.map(p=>({type:"image_url",image_url:{url:`data:${p.inline_data.mime_type};base64,${p.inline_data.data}`}}))]}; }); }
+  async function orOnce(contents,json,opts){
+    const k=LS("orKey"); if(!k) throw {code:"no_or"};
+    const hasImg=contents.some(c=>c.parts.some(p=>p.inline_data));
+    let list=(LS(hasImg?"orVision":"orText")||"").split(",").filter(Boolean);
+    if(!list.length){ try{ const m=await window.HF_OR(k); list=hasImg? m.vision : m.text; lsSetG("orVision",m.vision.join(",")); lsSetG("orText",m.text.join(",")); }catch{} }
+    if(!list.length) throw {code: hasImg? "no_or_vision" : "no_or_model"};
+    const ts=Date.now(), ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),25000);
+    const body={models:list.slice(0,3),messages:toOpenAI(contents),temperature:json?0.3:0.7,max_tokens:opts.maxTokens||2048};
+    try{ const res=await fetch(`${OR}/chat/completions`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k,"X-Title":"HealthFit"},body:JSON.stringify(body),signal:ctl.signal});
+      const d=await res.json().catch(()=>null); clearTimeout(t);
+      const used=(d&&d.model)||list[0], name="or "+String(used).split("/").pop().replace(":free","");
+      if(!res.ok||(d&&d.error)){ const code=res.status===429||(d&&d.error&&d.error.code===429)? "rate_limited" : "or_"+(res.ok?(d.error.code||"err"):res.status);
+        window.HF_TRACE.push({m:name,ms:Date.now()-ts,ok:false,code});
+        if(/or_(400|404)/.test(code)){ lsSetG("orVision",""); lsSetG("orText",""); }   // modelli cambiati: li ricarico la prossima volta
+        throw {code,message:(d&&d.error&&d.error.message)||""}; }
+      const txt=(d&&d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||"";
+      window.HF_TRACE.push({m:name,ms:Date.now()-ts,ok:true}); return txt;
+    }catch(e){ clearTimeout(t); if(e&&e.code) throw e; window.HF_TRACE.push({m:"openrouter",ms:Date.now()-ts,ok:false,code:"network"}); throw {code:"network"}; }
+  }
+  window.HF_OR=async(k)=>{   // modelli gratuiti disponibili (foto e testo) + verifica chiave
+    if(k){ const r0=await fetch(`${OR}/key`,{headers:{"Authorization":"Bearer "+k}}); if(r0.status===401||r0.status===403) throw {code:"bad_key"}; }
+    const res=await fetch(`${OR}/models`); const d=await res.json().catch(()=>null); if(!res.ok||!d) throw {code:"or_"+res.status};
+    const free=(d.data||[]).filter(m=>/:free$/.test(m.id)||(m.pricing&&+m.pricing.prompt===0&&+m.pricing.completion===0));
+    const hasImg=m=>{ const a=m.architecture||{}; return (a.input_modalities||[]).includes("image")||/image/.test(a.modality||""); };
+    const rank=id=>(/gemini|gemma/i.test(id)?0:/qwen.*vl|qwen2\.5-vl|llama-4|llama-3\.2.*vision/i.test(id)?1:/mistral|pixtral/i.test(id)?2:3);
+    const vision=free.filter(hasImg).map(m=>m.id).sort((a,b)=>rank(a)-rank(b)).slice(0,6);
+    const trank=id=>(/deepseek|llama-3\.3-70b|qwen3|gpt-oss|gemini|gemma-3-27b/i.test(id)?0:1);
+    const text=free.filter(m=>!/embed|whisper|tts/i.test(m.id)).map(m=>m.id).sort((a,b)=>trank(a)-trank(b)).slice(0,6);
+    return {vision,text,count:free.length};
+  };
   async function groqModel(model,contents,json,opts,gk){
     const messages=contents.map(c=>{ const role=c.role==="model"?"assistant":"user";
       const txt=c.parts.filter(p=>p.text!=null).map(p=>p.text).join("\n"), imgs=c.parts.filter(p=>p.inline_data);
@@ -1996,7 +2055,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   async function viaReserves(chain,key,contents,json,opts,lastErr){
     const busy=e=>e&&(/^api_50\d$/.test(e.code||"")||e.code==="timeout"||e.code==="rate_limited"||e.code==="network"||e.code==="quota"||e.retry);
     if(!busy(lastErr)) throw lastErr;
-    if(LS("groqKey")){ status("Gemini è sovraccarico: passo a Groq…"); try{ return await groqOnce(contents,json,opts); }catch(e){ lastErr=e; } }
+    if(LS("orKey")){ status("Gemini è sovraccarico: passo a OpenRouter…"); try{ return await orOnce(contents,json,opts); }catch(e){ lastErr=e; } }
+    if(LS("groqKey")){ status(LS("orKey")? "Provo con Groq…" : "Gemini è sovraccarico: passo a Groq…"); try{ return await groqOnce(contents,json,opts); }catch(e){ lastErr=e; } }
     for(const m of reserveModels(chain)){
       status("I modelli scelti sono sovraccarichi: provo con "+m.replace("gemini-","")+"…");
       try{ const t=await once(m,key,contents,json,opts.signal,20000); try{ localStorage.setItem("hf:lastReserve",m); }catch{} return t; }
@@ -2030,8 +2090,9 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         run(chain[0],true);
         tm=setTimeout(()=>{ if(!done&&started<2){ status("Il server è lento: provo in parallelo anche l'altro modello…"); run(chain[1],true); } },5000);
         // con la riserva Groq: dopo 9 secondi parte anche lei, vince la prima risposta
-        if(LS("groqKey")) setTimeout(()=>{ if(done) return; status("Gemini è lento: provo anche con Groq…"); started++;
-          groqOnce(contents,json,opts).then(t=>finishOk(t,null)).catch(e=>{ if(done) return; failed++; if(failed>=started){ done=true; reject(e); } }); },9000);
+        const alt= LS("orKey")? orOnce : LS("groqKey")? groqOnce : null;
+        if(alt) setTimeout(()=>{ if(done) return; status(alt===orOnce? "Gemini è lento: provo anche con OpenRouter…" : "Gemini è lento: provo anche con Groq…"); started++;
+          alt(contents,json,opts).then(t=>finishOk(t,null)).catch(e=>{ if(done) return; failed++; if(failed>=started){ done=true; reject(e); } }); },9000);
       }).catch(e=>viaReserves(chain,key,contents,json,opts,e));
       try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{}
       if(opts.onText) opts.onText({text,done:true}); return text;
@@ -2122,7 +2183,7 @@ async function pushDirty(){
   const m=jget("mtimes",{}); const rows=[];
   for(const k of d){
     let value=null;
-    if(k==="aiSettings"){ value={apiKey:localStorage.getItem("hf:apiKey")||"",mMain:localStorage.getItem("hf:mMain")||"",mQuick:localStorage.getItem("hf:mQuick")||"",groqKey:localStorage.getItem("hf:groqKey")||"",groqVision:localStorage.getItem("hf:groqVision")||"",groqText:localStorage.getItem("hf:groqText")||""}; }
+    if(k==="aiSettings"){ value={apiKey:localStorage.getItem("hf:apiKey")||"",mMain:localStorage.getItem("hf:mMain")||"",mQuick:localStorage.getItem("hf:mQuick")||"",groqKey:localStorage.getItem("hf:groqKey")||"",groqVision:localStorage.getItem("hf:groqVision")||"",groqText:localStorage.getItem("hf:groqText")||"",orKey:localStorage.getItem("hf:orKey")||""}; }
     else { const raw=localStorage.getItem("diario:"+k); if(raw==null) continue; value=JSON.parse(raw); }
     rows.push({user_id:SY.user.id,key:k,value,updated_at:m[k]||new Date().toISOString()});
   }
@@ -2141,7 +2202,8 @@ async function pull(){
     if(error) throw error;
     for(const r of data){ remote.add(r.key);
       const lt=Date.parse(m[r.key]||"")||0, rt=Date.parse(r.updated_at)||0;
-      if(r.key==="aiSettings"){ if(r.value&&r.value.groqKey&&!localStorage.getItem("hf:groqKey")){ ["groqKey","groqVision","groqText"].forEach(x=>r.value[x]&&localStorage.setItem("hf:"+x,r.value[x])); changed++; }
+      if(r.key==="aiSettings"){ if(r.value&&r.value.orKey&&!localStorage.getItem("hf:orKey")){ localStorage.setItem("hf:orKey",r.value.orKey); changed++; }
+        if(r.value&&r.value.groqKey&&!localStorage.getItem("hf:groqKey")){ ["groqKey","groqVision","groqText"].forEach(x=>r.value[x]&&localStorage.setItem("hf:"+x,r.value[x])); changed++; }
         if(!localStorage.getItem("hf:apiKey")&&r.value&&r.value.apiKey){ ["apiKey","mMain","mQuick"].forEach(x=>r.value[x]&&localStorage.setItem("hf:"+x,r.value[x])); m[r.key]=new Date(rt).toISOString(); changed++; } continue; }
       if(rt>lt+1){ localStorage.setItem("diario:"+r.key,JSON.stringify(r.value)); m[r.key]=new Date(rt).toISOString(); changed++; }
       else if(lt>rt+1){ const d=jget("dirty",[]); if(!d.includes(r.key)){ d.push(r.key); jset("dirty",d); } }
@@ -2710,12 +2772,15 @@ function renderDp(){
   const all=dpEntries().filter(e=>!q||normFood(e.name).includes(q));
   if(!dpEntries().length){ box.appendChild(el("p","note","Non hai ancora cibi di casa: aggiungili in Dieta → Frigo e dispensa, oppure fotografa lo scontrino o il frigo.")); }
   else if(!all.length) box.appendChild(el("p","note","Nessun cibo di casa con questo nome."));
-  [["sempre","⭐ Di sempre"],["recenti","🧾 Comprati di recente"]].forEach(([k,t])=>{ const g=all.filter(e=>e.src===k); if(!g.length) return; box.appendChild(el("p","rq-h",t));
+  [["sempre","⭐ Di sempre"],["recenti","🧾 Comprati di recente"]].forEach(([k,t])=>{ const g=all.filter(e=>e.src===k); if(!g.length) return;
+    const det=el("details","stfold dpfold"); det.open= q? true : (localStorage.getItem("hf:fold:dp"+k)!=="0"); det.addEventListener("toggle",()=>{ try{ localStorage.setItem("hf:fold:dp"+k,det.open?"1":"0"); }catch{} });
+    const sm=el("summary"); sm.innerHTML=`<span></span><span class="chev">›</span>`; sm.querySelector("span").textContent=`${t} (${g.length})`; det.appendChild(sm); box.appendChild(det);
+    const box0=box; { const box=det;
     g.forEach(e=>{ const b=el("button","dprow"); b.type="button"; const has=e.kcal!=null&&e.grams;
       b.innerHTML=`<span class="n"></span><span class="q"></span><span class="pl">+</span>`; b.querySelector(".n").textContent=e.name;
       b.querySelector(".q").textContent= has? `${r(e.kcal)} kcal per ${fmt(e.grams)} g` : (e.qty||"");
       if(dpPicked.some(x=>sameFood(x.name,e.name))) b.classList.add("on");
-      b.onclick=()=>dpPick(e); box.appendChild(b); }); });
+      b.onclick=()=>dpPick(e); box.appendChild(b); }); } void box0; });
   $("dpPickedBox").hidden=!dpPicked.length; if(dpPicked.length) renderFound($("dpPicked"),dpPicked);
 }
 async function dpPick(e){
@@ -2727,7 +2792,7 @@ async function dpPick(e){
       if(!res||!(+res.grams>0)) throw {code:"bad_output"}; v={grams:+res.grams,kcal:+res.kcal||0,p:+res.p||0,c:+res.c||0,f:+res.f||0}; setStatus("dpStatus","");
       const st=stapleItems().find(x=>sameFood(x.name,e.name)); if(st&&st.kcal==null){ Object.assign(st,v); saveStaples(); } }
     catch(err){ setStatus("dpStatus",errCopy(err),true); return; } }
-  dpPicked.push(normItem({name:e.name,...v})); renderDp();
+  { const it=normItem({name:e.name,...v}); it.portion=+v.grams||100; it.portionKnown=true; it.portions=1; dpPicked.push(it); } renderDp();
   setTimeout(()=>{ const pb=$("dpPickedBox"); if(pb&&!pb.hidden) pb.scrollIntoView({behavior:"smooth",block:"nearest"}); },60);
 }
 $("dpConfirm").onclick=()=>{ if(!dpPicked.length) return; const n=dpPicked.length; addItems(dpPicked); dpPicked=[]; toast(n===1?"Aggiunto al pasto":n+" alimenti aggiunti al pasto"); };
@@ -4611,6 +4676,7 @@ function errCopy(e){
   if(c==="quota"||c==="rate_limited") return aiResetText(e);
   if(c==="blocked") return "Il modello ha rifiutato questa richiesta. Prova a riformularla o con un'altra foto.";
   if(c==="network") return "Non riesco a raggiungere il servizio AI: controlla la connessione e riprova.";
+  if(c==="no_or_vision") return "Gemini è sovraccarico e su OpenRouter ora non ci sono modelli gratuiti per le foto. Riprova tra poco oppure descrivilo a parole.";
   if(c==="no_groq_vision") return "Gemini è sovraccarico e Groq al momento non ha modelli che leggono le foto. Riprova tra poco oppure descrivi il piatto a parole: il testo funziona anche con Groq.";
   if(c==="no_groq_model") return "Gemini è sovraccarico e Groq non ha risposto. Riprova tra poco.";
   if(c==="timeout") return "L'AI ci sta mettendo troppo: riprova tra poco.";
@@ -5035,7 +5101,10 @@ function renderStaples(){
   if(stSelMode){ st.forEach(it=>{ const lab=el("label","mp-row stselrow"), cb=el("input"); cb.type="checkbox"; cb.checked=stSel.has(it.id); cb.onchange=()=>{ cb.checked? stSel.add(it.id) : stSel.delete(it.id); renderStaples(); };
       const tx=el("span","mp-tx"); tx.innerHTML=`<span class="n"></span>`; tx.querySelector(".n").textContent=it.name; lab.append(cb,tx); box.appendChild(lab); });
     try{ renderOut(); }catch{} return; }
-  st.forEach((it,i)=>{ const row=el("div","mp-row"), tx=el("div","mp-tx");
+  const qn=normFood(($("stQ")&&$("stQ").value)||""), match=n=>!qn||normFood(n).includes(qn);
+  if(qn){ $("stFold").open=true; $("recFold").open=true; }
+  if(qn&&!st.some(it=>match(it.name))) box.appendChild(el("p","note","Nessuno dei cibi di sempre si chiama così."));
+  st.forEach((it,i)=>{ if(!match(it.name)) return; const row=el("div","mp-row"), tx=el("div","mp-tx");
     tx.innerHTML=`<span class="n"></span><span class="q"></span>`; tx.querySelector(".n").textContent=it.name+(outLow.includes(it.name.toLowerCase())?"  · 🚫 finito oggi":"");
     tx.querySelector(".q").textContent= it.kcal!=null&&it.grams? `${r(it.kcal)} kcal per ${fmt(it.grams)} g · P ${r(it.p)} · C ${r(it.c)} · G ${r(it.f)}` : (sample? "calcolo i valori…" : "valori non disponibili");
     const st0=starBtn({name:it.name,grams:it.grams||100,kcal:it.kcal||0,p:it.p||0,c:it.c||0,f:it.f||0});
@@ -5045,8 +5114,8 @@ function renderStaples(){
     del.onclick=rm; row.append(tx,st0,el("span","mp-div"),del); addLongPress(tx,()=>openStMenu(it)); box.appendChild(makeSwipe(row,rm,it.name)); });
   try{ renderOut(); }catch{} try{ renderRecent(); }catch{}
   if(st.some(x=>x.kcal==null)&&!renderStaples.tried){ renderStaples.tried=true; queueStapleValues(); }
-  const add=el("button","mp-add"); add.type="button"; add.innerHTML=`<span>Aggiungi alimenti</span><b>+</b>`; add.onclick=()=>openAdd({id:"__staples",name:"I cibi di casa"}); box.appendChild(add);
-  if(!st.length) box.insertBefore(el("p","note","Ancora nessun alimento: aggiungili come nei pasti (foto, codice a barre, ricerca, preferiti…)."),add);
+  if(!st.length) box.appendChild(el("p","note","Ancora nessun alimento: aggiungili con il pulsante qui sopra (foto, codice a barre, ricerca, preferiti…)."));
+  $("stFoldN").textContent=st.length? "("+st.length+")" : "";
   { const n=st.length, k=st.reduce((a,x)=>a+(+x.kcal||0),0); const nr=pantry.items.filter(i=>!st.some(z=>sameFood(z.name,i.name))).length;
     if($("stRowSub")) $("stRowSub").textContent= n||nr? `${n} di sempre${nr?` · ${nr} comprati di recente`:""} · tocca per vederli` : "Tocca per aggiungere quelli che compri di solito"; }
   const sg=$("stSug"); sg.innerHTML=""; const low=st.map(x=>x.name.toLowerCase());
@@ -5054,7 +5123,11 @@ function renderStaples(){
   $("stFromPan").hidden=!pantry.items.length; $("stCheck").disabled=!sample||!st.length;
 }
 (function(){ const c=$("stapleCard"); c.querySelector("h2").remove(); $("casaBody").appendChild(c); })();
-$("stRow").onclick=()=>{ stSelMode=false; stSel.clear(); renderStaples(); go("casa"); };
+$("stAddTop").onclick=()=>openAdd({id:"__staples",name:"I cibi di casa"});
+$("stQ").addEventListener("input",()=>renderStaples());
+["stFold","recFold"].forEach(id=>{ const d=$(id); try{ const v=localStorage.getItem("hf:fold:"+id); if(v!==null) d.open=v==="1"; }catch{}
+  d.addEventListener("toggle",()=>{ try{ localStorage.setItem("hf:fold:"+id,d.open?"1":"0"); }catch{} }); });
+$("stRow").onclick=()=>{ stSelMode=false; stSel.clear(); $("stQ").value=""; renderStaples(); go("casa"); };
 $("valRow").onclick=()=>{ $("valOut").innerHTML=""; setStatus("valStatus",""); go("valuta"); };
 $("valBack").onclick=()=>{ if(history.state&&history.state.v==="valuta") history.back(); else go("dieta"); };
 /* selezione multipla */
@@ -5072,9 +5145,11 @@ function setOut(names,update=true){ pantry.outToday={date:todayISO(),names:[...n
 function renderRecent(){
   const box=$("recList"); if(!box) return; box.innerHTML="";
   const st=stapleItems(), list=pantry.items.filter(i=>!st.some(z=>sameFood(z.name,i.name)));
-  $("recentCard").hidden=false;
+  $("recentCard").hidden=false; $("recFoldN").textContent=list.length? "("+list.length+")" : "";
   if(!list.length){ box.appendChild(el("p","note","Niente per ora: fotografa uno scontrino o il frigo in Frigo e dispensa.")); return; }
-  list.forEach(it=>{ const row=el("div","mp-row"), tx=el("div","mp-tx");
+  const qn=normFood(($("stQ")&&$("stQ").value)||""), shown=list.filter(i=>!qn||normFood(i.name).includes(qn));
+  if(qn&&!shown.length){ box.appendChild(el("p","note","Nessun cibo comprato di recente con questo nome.")); return; }
+  shown.forEach(it=>{ const row=el("div","mp-row"), tx=el("div","mp-tx");
     tx.innerHTML=`<span class="n"></span><span class="q"></span>`; tx.querySelector(".n").textContent=it.name;
     tx.querySelector(".q").textContent=[it.qty, it.added? "dal "+new Date(it.added+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"}) : ""].filter(Boolean).join(" · ");
     const keep=el("button","mp-pm rec-keep","⭐"); keep.type="button"; keep.title="Lo tengo sempre: spostalo nei cibi di sempre"; keep.setAttribute("aria-label",it.name+": tienilo tra i cibi di sempre");
@@ -5501,6 +5576,15 @@ $("apiSave").onclick=async()=>{
   }catch(e){ setStatus("apiStatus",errCopy(e)+(e&&e.message?" ("+e.message.slice(0,120)+")":""),true); }
   finally{ $("apiSave").disabled=false; }
 };
+$("orKey").value=localStorage.getItem("hf:orKey")||"";
+$("orSave").onclick=async()=>{ const k=$("orKey").value.trim(); if(!k){ setStatus("orStatus","Incolla prima la chiave OpenRouter.",true); return; }
+  $("orSave").disabled=true; setStatus("orStatus","Verifico la chiave e cerco i modelli gratuiti…");
+  try{ const m=await window.HF_OR(k); lsSet("orKey",k); lsSet("orVision",m.vision.join(",")); lsSet("orText",m.text.join(",")); markDirty("aiSettings"); schedulePush();
+    setStatus("orStatus",`✓ OpenRouter collegato · ${m.count} modelli gratuiti · foto: ${m.vision.length? m.vision[0].split("/").pop().replace(":free","") : "nessuno al momento"} · testo: ${(m.text[0]||"").split("/").pop().replace(":free","")}`); toast("OpenRouter attivo ✓"); }
+  catch(e){ setStatus("orStatus", e&&e.code==="bad_key"? "Chiave OpenRouter non valida: ricopiala da openrouter.ai." : "Non riesco a collegarmi a OpenRouter: "+((e&&(e.message||e.code))||e),true); }
+  finally{ $("orSave").disabled=false; } };
+$("orDel").onclick=()=>{ ["orKey","orVision","orText"].forEach(k=>{ try{ localStorage.removeItem("hf:"+k); }catch{} }); $("orKey").value=""; markDirty("aiSettings"); schedulePush(); setStatus("orStatus","OpenRouter tolto."); };
+if(localStorage.getItem("hf:orKey")) setStatus("orStatus","✓ OpenRouter attivo come sostituto di Gemini");
 $("groqKey").value=localStorage.getItem("hf:groqKey")||"";
 $("groqSave").onclick=async()=>{ const k=$("groqKey").value.trim(); if(!k){ setStatus("groqStatus","Incolla prima la chiave Groq.",true); return; }
   $("groqSave").disabled=true; setStatus("groqStatus","Verifico la chiave…");
