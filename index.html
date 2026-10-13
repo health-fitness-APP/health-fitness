@@ -256,7 +256,7 @@ textarea{resize:vertical;min-height:76px}
 .calc{background:var(--surface2);border-radius:14px;padding:12px 14px;font-size:.92rem}
 .btn{border:0;background:var(--basil);color:var(--basil-ink);border-radius:14px;padding:12px 18px;font-weight:600;width:100%}
 .btn.ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line)}
-.status{color:var(--muted);font-size:.92rem;margin:10px 0 0}
+.status{color:var(--muted);font-size:.92rem;margin:10px 0 0;white-space:pre-line}
 .err{color:var(--warn)}
 .note{font-size:.85rem;color:var(--muted);margin:8px 0 0}
 .stack{display:grid;gap:8px}
@@ -1659,7 +1659,9 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px">HealthFit · versione 2.02 (foto dei pasti più veloci)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.04 (foto: niente più risposte incomplete)</p>
+    <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
+    <div class="status" id="updStatus" aria-live="polite" style="text-align:center"></div>
   </section>
   <section class="card">
     <button class="btn" id="saveProfile">Salva profilo</button>
@@ -1908,7 +1910,9 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     return null; }
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const status=msg=>{ try{ window.dispatchEvent(new CustomEvent("hf-ai-status",{detail:msg})); }catch{} };
-  async function once(model,key,contents,json,signal,tmo){
+  window.HF_TRACE=[];
+  async function once(model,key,contents,json,signal,tmo){ const ts=Date.now(); try{ const out=await once0(model,key,contents,json,signal,tmo); window.HF_TRACE.push({m:model,ms:Date.now()-ts,ok:true}); return out; }catch(e){ window.HF_TRACE.push({m:model,ms:Date.now()-ts,ok:false,code:e&&e.code}); throw e; } }
+  async function once0(model,key,contents,json,signal,tmo){
     const tc=thinkCfg(model);
     const gc={temperature:json?0.3:0.7,...(json?{responseMimeType:"application/json"}:{}),...(tc?{thinkingConfig:tc}:{}),...(once.maxTokens?{maxOutputTokens:once.maxTokens}:{})};
     const ctl=new AbortController(), t=setTimeout(()=>ctl.abort("timeout"),tmo||35000);
@@ -1920,7 +1924,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     const data=await res.json().catch(()=>null);
     if(!res.ok){
       const msg=(data&&data.error&&data.error.message)||"";
-      if(res.status===400&&tc&&/think/i.test(msg)){ noThink.add(model); try{ localStorage.setItem("hf:noThink",[...noThink].join(",")); }catch{} return once(model,key,contents,json,signal,tmo); }
+      if(res.status===400&&tc&&/think/i.test(msg)){ noThink.add(model); try{ localStorage.setItem("hf:noThink",[...noThink].join(",")); }catch{} return once0(model,key,contents,json,signal,tmo); }
       const e=err(res.status,data); if([500,502,503,504].includes(res.status)||e.code==="rate_limited") e.retry=true; throw e;
     }
     const cand=data&&data.candidates&&data.candidates[0];
@@ -1971,8 +1975,12 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     throw lastErr||{code:"network"};
   }
   const sample=async(input,opts)=>({text:await call(input,opts,false)});
-  sample.json=async(input,opts)=>{ const t=await call(input,opts,true);
-    const clean=t.replace(/```json|```/g,"").trim(); try{ return JSON.parse(clean); }catch{ const m=clean.match(/[\[{][\s\S]*[\]}]/); if(m){ try{ return JSON.parse(m[0]); }catch{} } throw {code:"bad_output"}; } };
+  const parseJSON=t=>{ const clean=String(t||"").replace(/```json|```/g,"").trim(); try{ return JSON.parse(clean); }catch{ const m=clean.match(/[\[{][\s\S]*[\]}]/); if(m){ try{ return JSON.parse(m[0]); }catch{} } return undefined; } };
+  sample.json=async(input,opts={})=>{ const t=await call(input,opts,true); let v=parseJSON(t); if(v!==undefined) return v;
+    // risposta tagliata o non valida: riprovo una volta con l'altro modello e senza limite di lunghezza
+    status("Risposta incompleta, riprovo…");
+    const t2=await call(input,{...opts,maxTokens:0,fast:false,modelTier: opts.modelTier==="quick"? "default" : "quick"},true); v=parseJSON(t2);
+    if(v!==undefined) return v; throw {code:"bad_output"}; };
   sample.limits=async()=>({images:{maxCount:8},maxPromptBytes:900000});
   window.claude={use:async name=> name==="sample"? sample : null};
   window.HF_GEMINI={API,LS};
@@ -2673,7 +2681,9 @@ async function analyzeMealPhoto(file, info, prev){
   const tick=setInterval(()=>setStatus("photoStatus",`Sto analizzando la foto… ${Math.round((Date.now()-t0)/1000)} s`),1000);
   try{
     const sz=await imgSize(file), tall=sz.h/Math.max(1,sz.w)>1.45;   // screenshot del telefono: serve più risoluzione per leggere il testo
-    const blob=await shrinkFile(file, tall? 1280 : 768);
+    const blob=await shrinkFile(file, tall? 1280 : 768); const tPrep=Date.now()-t0; window.HF_TRACE=[];
+    analyzeMealPhoto.diag=()=>{ const tr=(window.HF_TRACE||[]).map(x=>`${x.m.replace("gemini-","")}: ${(x.ms/1000).toFixed(1)} s${x.ok?" ✓":" ("+(x.code||"errore")+")"}`).join(" · ");
+      return `Dettagli: foto ${(tPrep/1000).toFixed(1)} s (${Math.round(blob.size/1024)} kB) · ${tr||"nessuna risposta"} · ${navigator.connection&&navigator.connection.effectiveType? "rete "+navigator.connection.effectiveType : ""}`; };
     const res=await sample.json(
 `Analizza l'immagine. Può essere:
 A) la foto di un piatto o di un pasto;
@@ -2684,18 +2694,18 @@ ${info? `Informazioni date dall'utente (hanno la precedenza sulle tue stime, usa
 ` : ""}${prev? `Il tuo risultato precedente era: ${JSON.stringify(prev)}. Correggilo secondo le indicazioni dell'utente e restituisci l'elenco COMPLETO aggiornato.
 ` : ""}Rispondi SOLO con JSON, nomi in italiano: {"kind":"photo"|"values","items":[{"name":"string","grams":number|null,"kcal":number,"p":number,"c":number,"f":number}],"note":"frase breve"}
 p=proteine g, c=carboidrati g, f=grassi g. Se non c'è cibo né valori: {"kind":"none","items":[],"note":"motivo"}.`,
-      {images:[blob], modelTier:"quick", maxTokens:900, fast:true});
+      {images:[blob], modelTier:"quick", maxTokens:2048, fast:true});
     const items=(res&&Array.isArray(res.items))?res.items:[];
     $("photoActions").hidden=false;
     if(!items.length){ setStatus("photoStatus",(res&&res.note)||"Non trovo cibo né valori nella foto. Riprova con un'immagine più nitida."); $("confirmFound").hidden=true; return; }
     const isVals=res.kind==="values";
     photoItems=items.map(x=>{ if(isVals&&!(+x.grams>0)){ const p=+x.p||0,c=+x.c||0,f=+x.f||0; const k=+x.kcal||Math.round(p*4+c*4+f*9); return {id:uid(),name:String(x.name||"Valori da screenshot").slice(0,80),grams:1,kcal:k,p,c,f,manual:true,per:{kcal:k,p,c,f}}; } return normItem(x); });
     const secs=Math.round((Date.now()-t0)/1000);
-    setStatus("photoStatus",(isVals? "Ho letto i valori dall'immagine." : "Ecco cosa ho trovato. Correggi i grammi se serve: i valori si aggiornano.")+` (${secs} s)`);
+    setStatus("photoStatus",(isVals? "Ho letto i valori dall'immagine." : "Ecco cosa ho trovato. Correggi i grammi se serve: i valori si aggiornano.")+` (${secs} s)`+(secs>=15&&analyzeMealPhoto.diag? "\n"+analyzeMealPhoto.diag() : ""));
     renderFound($("found"),photoItems);
     if(res.note){ $("foundNote").textContent=res.note; $("foundNote").hidden=false; }
     $("confirmFound").hidden=false; $("photoFixBox").hidden=false; $("photoFix").value="";
-  }catch(err){ $("photoInfoBox").hidden=false; setStatus("photoStatus",errCopy(err)+(err&&err.code&&!/^(api_50\d|timeout|network|quota|rate_limited|no_key|bad_key)$/.test(err.code)?` [${err.code}${err.message?": "+String(err.message).slice(0,140):""}]`:""),true); $("photoActions").hidden=false; $("confirmFound").hidden=true; }
+  }catch(err){ $("photoInfoBox").hidden=false; setStatus("photoStatus",(analyzeMealPhoto.diag? analyzeMealPhoto.diag()+"\n" : "")+errCopy(err)+(err&&err.code&&!/^(api_50\d|timeout|network|quota|rate_limited|no_key|bad_key)$/.test(err.code)?` [${err.code}${err.message?": "+String(err.message).slice(0,140):""}]`:""),true); $("photoActions").hidden=false; $("confirmFound").hidden=true; }
   finally{ clearInterval(tick); $("photoGo").disabled=$("photoFixGo").disabled=false; }
 }
 $("confirmFound").onclick=()=>addItems(photoItems);
@@ -5662,6 +5672,17 @@ $("avatarFile").onchange=e=>{ const f=e.target.files[0]; if(!f) return;
   img.onerror=()=>toast("Questa immagine non si apre"); img.src=URL.createObjectURL(f); $("avatarFile").value=""; };
 function renderHello(){ const p=state.profile; $("hello").hidden=true; try{ if(p) fillAvatar($("acctAv"),p); else $("acctAv").textContent="👤"; }catch{} }
 $("acctBtn").onclick=()=>go("profilo");
+/* forza l'aggiornamento: scarica l'ultima versione dal sito e svuota la cache dell'app (i dati restano) */
+$("updBtn").onclick=async()=>{
+  const cur=(($("verLine").textContent.match(/versione ([\d.]+)/)||[])[1])||"";
+  setStatus("updStatus","Controllo…");
+  try{ const r0=await fetch("./index.html?nocache="+Date.now(),{cache:"no-store"}); const html=await r0.text(); const nv=((html.match(/versione ([\d.]+)/)||[])[1])||"";
+    if(nv&&nv!==cur){ setStatus("updStatus",`Trovata la versione ${nv}: aggiorno…`);
+      try{ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(x=>x.unregister())); }catch{}
+      try{ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }catch{}
+      setTimeout(()=>location.reload(),600); }
+    else setStatus("updStatus", nv? `Hai già l'ultima versione (${cur}).` : "Non riesco a leggere la versione sul sito.");
+  }catch(e){ setStatus("updStatus","Non riesco a collegarmi al sito: controlla la connessione.",true); } };
 $("hello").onclick=()=>go("profilo");
 function readForm(){ return {...draft, fname:$("fname").value.trim(), lname:$("lname").value.trim(), nick:$("nick").value.trim(), sex:$("sex").value, age:+$("age").value, height:+$("height").value, weight:+$("weight").value, activity:+$("activity").value}; }
 ["sex","age","height","weight","activity"].forEach(id=>$(id).addEventListener("input",updCalc));
