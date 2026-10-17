@@ -733,6 +733,10 @@ details.stfold>summary b{font-weight:600;color:var(--muted);font-size:.9rem}
 details.stfold>summary .chev{color:var(--muted);font-size:1.3rem;transition:transform .2s}
 details.stfold[open]>summary .chev{transform:rotate(90deg)}
 #recentCard details.stfold>summary{font-size:1.15rem}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.form label.chk{display:flex!important;flex-direction:row!important;align-items:center;gap:10px}
+.form label.chk input{width:20px;height:20px;flex:none;margin:0}
+.fe-mode{margin:4px 0}
 .stchip{display:inline-flex;align-items:center;gap:6px;background:var(--basil-soft)!important;border-color:var(--basil)!important;color:var(--ink)!important}
 .stchip button{border:0;background:none;color:inherit;font-weight:800;cursor:pointer;padding:0 2px}
 .stadd{display:flex;gap:8px;margin-top:10px}
@@ -1695,7 +1699,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.13 (OpenRouter come sostituto di Gemini)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.14 (scheda alimento con pressione lunga)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <div class="status" id="updStatus" aria-live="polite" style="text-align:center"></div>
   </section>
@@ -1753,7 +1757,22 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <div class="sheet-inner">
     <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
     <h3 id="stMenuT">Alimento</h3>
-    <div class="stack"><button class="btn" id="stMenuOut" type="button"></button><button class="btn ghost danger" id="stMenuDel" type="button">🗑 Elimina dall'elenco</button></div>
+    <div class="stack"><button class="btn" id="stMenuOut" type="button"></button><button class="btn ghost" id="stMenuEdit" type="button">✎ Modifica i valori nutrizionali</button><button class="btn ghost danger" id="stMenuDel" type="button">🗑 Elimina dall'elenco</button></div>
+  </div>
+</div>
+<div class="sheet" id="feSheet" role="dialog" aria-modal="true" aria-labelledby="feTitle">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="feTitle">Scheda alimento</h3>
+    <div class="form">
+      <label>Nome<input class="field" id="feName"></label>
+      <div class="seg2 fe-mode" role="tablist"><button type="button" data-m="por" aria-selected="true">Per questa quantità</button><button type="button" data-m="100" aria-selected="false">Per 100 g</button></div>
+      <div class="two"><label>Grammi mangiati<input class="field" id="feG" inputmode="decimal"></label><label>Calorie (kcal)<input class="field" id="feK" inputmode="decimal"></label></div>
+      <div class="three"><label>Proteine g<input class="field" id="feP" inputmode="decimal"></label><label>Carboidrati g<input class="field" id="feC" inputmode="decimal"></label><label>Grassi g<input class="field" id="feF" inputmode="decimal"></label></div>
+      <p class="note" id="feInfo"></p>
+      <label class="chk"><input type="checkbox" id="feRemember" checked> Ricorda questi valori per le prossime volte</label>
+      <button class="btn" id="feSave" type="button">Salva</button>
+    </div>
   </div>
 </div>
 <div class="sheet" id="sesExitSheet" role="dialog" aria-modal="true" aria-labelledby="sesExitTitle">
@@ -2529,6 +2548,30 @@ function deleteMealItem(mid,id){
   state.day.meals[mid]=items.filter(x=>x.id!==id); saveDay(); renderAll();
   actionToast(`Eliminato: ${it.name}`,"Annulla",()=>{ const arr=state.day.meals[mid]||[]; arr.splice(Math.min(idx,arr.length),0,it); state.day.meals[mid]=arr; saveDay(); renderAll(); },6000);
 }
+/* ----- scheda alimento: correggi i valori sbagliati (pressione lunga) ----- */
+let feCtx=null, feMode="por";
+function openFoodEdit(it,onSave){
+  feCtx={it,onSave}; feMode="por"; $("feTitle").textContent="Scheda alimento"; $("feName").value=it.name||"";
+  document.querySelectorAll(".fe-mode button").forEach(b=>b.setAttribute("aria-selected",b.dataset.m===feMode));
+  feFill(); openSheet("feSheet"); if(navigator.vibrate) navigator.vibrate(20);
+}
+function feFill(){ const it=feCtx.it, g=+it.grams||100, q= feMode==="100"? 100/g : 1, f1=v=>String(Math.round((+v||0)*q*10)/10).replace(".",",");
+  $("feG").value=String(+it.grams||100).replace(".",","); $("feG").disabled= feMode==="100";
+  $("feK").value=String(Math.round((+it.kcal||0)*q)); $("feP").value=f1(it.p); $("feC").value=f1(it.c); $("feF").value=f1(it.f); feCheck(); }
+function feNum(id){ return +String($(id).value).replace(",",".")||0; }
+function feCheck(){ const k=feNum("feK"), p=feNum("feP"), c=feNum("feC"), f=feNum("feF"), est=Math.round(p*4+c*4+f*9);
+  $("feInfo").textContent= k&&Math.abs(est-k)/Math.max(k,1)>0.15? `Con questi macro le calorie sarebbero circa ${est} kcal: controlla i valori.` : (feMode==="100"? "Valori per 100 g, come sull'etichetta." : "Valori per i grammi indicati."); }
+["feK","feP","feC","feF"].forEach(id=>$(id).addEventListener("input",feCheck));
+document.querySelectorAll(".fe-mode button").forEach(b=>b.onclick=()=>{ if(feMode===b.dataset.m) return; feApplyToItem(); feMode=b.dataset.m; document.querySelectorAll(".fe-mode button").forEach(x=>x.setAttribute("aria-selected",x.dataset.m===feMode)); feFill(); });
+function feApplyToItem(){ const it=feCtx.it, g= feMode==="100"? (+it.grams||100) : Math.max(0.1,feNum("feG")), q= feMode==="100"? g/100 : 1;
+  Object.assign(it,{name:$("feName").value.trim()||it.name, grams:g, kcal:feNum("feK")*q, p:feNum("feP")*q, c:feNum("feC")*q, f:feNum("feF")*q}); }
+$("feSave").onclick=()=>{ if(!feCtx) return; feApplyToItem(); const it=feCtx.it;
+  if($("feRemember").checked&&it.grams>0){ const per={kcal:it.kcal/it.grams,p:it.p/it.grams,c:it.c/it.grams,f:it.f/it.grams};
+    const e={key:fkey(it.name),name:String(it.name).slice(0,80),grams:Math.round(it.grams),per,custom:true}; foods.custom=[e,...foods.custom.filter(x=>x.key!==e.key)];
+    Object.keys(foods.barcodes||{}).forEach(code=>{ const b=foods.barcodes[code]; if(b&&sameFood(b.name,it.name)) foods.barcodes[code]={...b,per}; });
+    saveFoods();
+    try{ stapleItems().forEach(z=>{ if(sameFood(z.name,it.name)){ const gg=+z.grams||it.grams; Object.assign(z,{kcal:Math.round(per.kcal*gg),p:Math.round(per.p*gg*10)/10,c:Math.round(per.c*gg*10)/10,f:Math.round(per.f*gg*10)/10}); } }); saveStaples(); }catch{} }
+  const cb=feCtx.onSave; closeTopSheet(); feCtx=null; if(cb) cb(it); toast("Valori aggiornati ✓"); };
 function mealStep(it){ if(it.manual) return 1; if(+it.portion>0) return (+it.grams||0)>=+it.portion? +it.portion : +it.portion/4; const g=+it.grams||0; return g>=100? 10 : g>=20? 5 : 1; }
 function setItemGrams(mid,id,ng){
   const items=state.day.meals[mid]||[], it=items.find(x=>x.id===id); if(!it) return;
@@ -2608,7 +2651,8 @@ function renderMealPage(){
     const row=el("div","mp-row"), tx=el("button","mp-tx"); tx.type="button";
     tx.innerHTML=`<span class="n"></span><span class="q"></span>`; tx.querySelector(".n").textContent=it.name; tx.querySelector(".q").textContent=qtyText(it);
     tx.setAttribute("aria-label",`${it.name}: ${qtyText(it)}. Tocca per scrivere la quantità`);
-    tx.onclick=()=>{ const v=prompt(it.manual? "Quante porzioni?" : "Quanti grammi?", fmt(it.grams)); if(v==null) return; const n=+String(v).replace(",","."); if(isFinite(n)&&n>=0) setItemGrams(m.id,it.id,n); };
+    addLongPress(tx,()=>openFoodEdit(it,()=>{ saveDay(); renderAll(); }));
+    tx.onclick=()=>{ if(tx._lp){ tx._lp=false; return; } const v=prompt(it.manual? "Quante porzioni?" : "Quanti grammi?", fmt(it.grams)); if(v==null) return; const n=+String(v).replace(",","."); if(isFinite(n)&&n>=0) setItemGrams(m.id,it.id,n); };
     const st= it.manual? el("span","mp-sp") : starBtn(it);
     const minus=el("button","mp-pm","−"), plus=el("button","mp-pm","+"); minus.type=plus.type="button";
     minus.setAttribute("aria-label","Meno "+it.name); plus.setAttribute("aria-label","Più "+it.name);
@@ -5169,12 +5213,14 @@ function openStMenu(it){ stMenuItem=it; const on=outToday().map(x=>x.toLowerCase
   $("stMenuT").textContent=it.name; $("stMenuOut").textContent= on? "✓ Oggi ce l'ho di nuovo" : "🚫 Oggi l'ho finito"; if(navigator.vibrate) navigator.vibrate(25); openSheet("stMenu"); }
 $("stMenuOut").onclick=()=>{ const it=stMenuItem; if(!it) return; const out=outToday(), on=out.map(x=>x.toLowerCase()).includes(it.name.toLowerCase());
   closeTopSheet(); setTimeout(()=>setOut(on? out.filter(x=>x.toLowerCase()!==it.name.toLowerCase()) : [...out,it.name], !on),200); };
+$("stMenuEdit").onclick=()=>{ const it=stMenuItem; if(!it) return; closeTopSheet();
+  setTimeout(()=>openFoodEdit({name:it.name,grams:+it.grams||100,kcal:+it.kcal||0,p:+it.p||0,c:+it.c||0,f:+it.f||0},(nv)=>{ Object.assign(it,{name:nv.name,grams:Math.round(nv.grams),kcal:Math.round(nv.kcal),p:Math.round(nv.p*10)/10,c:Math.round(nv.c*10)/10,f:Math.round(nv.f*10)/10}); saveStaples(); renderStaples(); }),250); };
 $("stMenuDel").onclick=()=>{ const it=stMenuItem; if(!it) return; closeTopSheet(); const idx=stapleItems().findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.staples.splice(idx,1)[0]; saveStaples(); renderStaples();
   actionToast(`Tolto: ${was.name}`,"Annulla",()=>{ pantry.staples.splice(idx,0,was); saveStaples(); renderStaples(); },6000); };
 function addLongPress(node,fn){ let t=null,x0=0,y0=0,fired=false;
   node.addEventListener("touchstart",e=>{ fired=false; x0=e.touches[0].clientX; y0=e.touches[0].clientY; clearTimeout(t); t=setTimeout(()=>{ fired=true; fn(); },500); },{passive:true});
   node.addEventListener("touchmove",e=>{ const tt=e.touches[0]; if(Math.abs(tt.clientX-x0)>8||Math.abs(tt.clientY-y0)>8) clearTimeout(t); },{passive:true});
-  node.addEventListener("touchend",e=>{ clearTimeout(t); if(fired){ e.preventDefault(); } });
+  node.addEventListener("touchend",e=>{ clearTimeout(t); if(fired){ e.preventDefault(); node._lp=true; setTimeout(()=>{ node._lp=false; },600); } });
   node.addEventListener("contextmenu",e=>{ e.preventDefault(); clearTimeout(t); if(!fired) fn(); }); }
 $("outIn").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("outAdd").click(); } });
 $("outGo").onclick=async()=>{
