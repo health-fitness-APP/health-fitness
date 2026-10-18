@@ -821,6 +821,10 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .hc-card .hc-opts{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
 .hc-card .chk{display:flex;gap:8px;align-items:center;font-size:.9rem}
 .hc-card .chk input{width:20px;height:20px}
+.pw-wrap{position:relative;display:block}
+.pw-wrap input{width:100%;padding-right:52px}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:1.25rem;width:40px;height:40px;cursor:pointer;border-radius:10px}
+#sbForgot{margin-top:4px}
 .stchip{display:inline-flex;align-items:center;gap:6px;background:var(--basil-soft)!important;border-color:var(--basil)!important;color:var(--ink)!important}
 .stchip button{border:0;background:none;color:inherit;font-weight:800;cursor:pointer;padding:0 2px}
 .stadd{display:flex;gap:8px;margin-top:10px}
@@ -1923,6 +1927,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <label>Email<input class="field" id="sbEmail" type="email" autocomplete="username"></label>
       <label>Password<input class="field" id="sbPass" type="password" autocomplete="current-password"></label>
       <button class="btn" id="sbGo">Crea il mio account</button>
+      <button class="linkbtn" id="sbForgot" type="button" hidden>Password dimenticata?</button>
     </div>
     <div class="status" id="syncStatus" aria-live="polite"></div>
     <h3 style="margin:18px 0 6px;font-size:1rem">Backup dei dati</h3>
@@ -1932,7 +1937,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.23 (Health Connect nell'app Android)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.25 (recupero password e occhio)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -2011,6 +2016,17 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <p class="note" id="feInfo"></p>
       <label class="chk"><input type="checkbox" id="feRemember" checked> Ricorda questi valori per le prossime volte</label>
       <button class="btn" id="feSave" type="button">Salva</button>
+    </div>
+  </div>
+</div>
+<div class="sheet" id="pwSheet" role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="pwTitle">Scegli la nuova password</h3>
+    <div class="form">
+      <label>Nuova password (almeno 6 caratteri)<input class="field" id="pwNew" type="password" autocomplete="new-password"></label>
+      <button class="btn" id="pwSave" type="button">Salva la nuova password</button>
+      <div class="status" id="pwStatus" aria-live="polite"></div>
     </div>
   </div>
 </div>
@@ -2482,11 +2498,15 @@ async function pull(){
   jset("dirty",d);
   await pushDirty(); SY.last=new Date(); return changed;
 }
-function syncCfg(){ return {url:(localStorage.getItem("hf:sbUrl")||"").trim(),key:(localStorage.getItem("hf:sbKey")||"").trim()}; }
+/* progetto Supabase di HealthFit già impostato: basta accedere con email e password (la chiave pubblica è fatta per stare nelle app; i dati sono protetti per utente) */
+const SB_DEFAULT={url:"https://glwllwwcyguxtamoeuqb.supabase.co",key:"sb_publishable_Q_pka4c-1DIjwDMqDqUt3w_oRDqf8Ma"};
+function syncCfg(){ return {url:(localStorage.getItem("hf:sbUrl")||SB_DEFAULT.url).trim(),key:(localStorage.getItem("hf:sbKey")||SB_DEFAULT.key).trim()}; }
 async function initSync(){
   const c=syncCfg(); if(!c.url||!c.key||!window.supabase) return false;
   try{
     SY.client=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"hf-sb-auth"}});
+    SY.client.auth.onAuthStateChange(ev=>{ if(ev==="PASSWORD_RECOVERY") setTimeout(()=>{ go("profilo"); openSheet("pwSheet"); setTimeout(()=>$("pwNew").focus(),300); },400); });
+    if(/error_code=otp_expired|error=access_denied/.test(location.hash)){ setTimeout(()=>toast("Il link per la password è scaduto: richiedine uno nuovo da “Password dimenticata?”."),1200); history.replaceState(history.state,"",location.pathname); }
     const {data}=await SY.client.auth.getSession(); SY.user=data&&data.session? data.session.user : null;
     if(SY.user){ await Promise.race([pull(),new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),10000))]); }
     return true;
@@ -6476,9 +6496,28 @@ async function sbAuth(mode){
   }catch(e){ SY.user=null; setStatus("syncStatus",syncErr(e),true); renderSync(); }
   finally{ $("sbGo").disabled=false; }
 }
+/* recupero della password: Supabase manda un'email con un link che riapre l'app */
+$("sbForgot").onclick=async()=>{ const email=$("sbEmail").value.trim();
+  if(!/.+@.+\..+/.test(email)){ setStatus("syncStatus","Scrivi prima la tua email qui sopra, poi tocca di nuovo “Password dimenticata?”.",true); $("sbEmail").focus(); return; }
+  try{ const c=syncCfg(); SY.client=SY.client||window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"hf-sb-auth"}});
+    const r0=await SY.client.auth.resetPasswordForEmail(email,{redirectTo:"https://health-fitness-app.github.io/health-fitness/"}); if(r0.error) throw r0.error;
+    setStatus("syncStatus",`Ti ho mandato un'email a ${email} (controlla anche lo spam). Apri il link: si aprirà HealthFit nel browser e potrai scegliere la nuova password. Poi accedi qui con quella.`); }
+  catch(e){ setStatus("syncStatus",syncErr(e),true); } };
+$("pwSave").onclick=async()=>{ const p=$("pwNew").value; if(p.length<6){ setStatus("pwStatus","Almeno 6 caratteri.",true); return; }
+  $("pwSave").disabled=true; try{ const r0=await SY.client.auth.updateUser({password:p}); if(r0.error) throw r0.error;
+    const {data}=await SY.client.auth.getSession(); SY.user=data&&data.session? data.session.user : SY.user; $("pwNew").value=""; history.replaceState(history.state,"",location.pathname);
+    closeTopSheet(); renderSync(); toast("Password cambiata ✓ Ora usala anche nell'app sul telefono"); try{ await pull(); await loadAll(); }catch{} }
+  catch(e){ setStatus("pwStatus",syncErr(e),true); } finally{ $("pwSave").disabled=false; } };
+/* occhio per vedere la password (e le chiavi) mentre scrivi */
+function addEyes(){ document.querySelectorAll('input[type="password"]').forEach(inp=>{ if(inp._eye) return; inp._eye=true;
+  const wrap=document.createElement("span"); wrap.className="pw-wrap"; inp.parentNode.insertBefore(wrap,inp); wrap.appendChild(inp);
+  const b=el("button","pw-eye","👁"); b.type="button"; b.setAttribute("aria-label","Mostra la password"); b.setAttribute("aria-pressed","false");
+  b.onclick=()=>{ const show=inp.type==="password"; inp.type= show? "text" : "password"; b.textContent= show? "🙈" : "👁"; b.setAttribute("aria-pressed",show); b.setAttribute("aria-label",show?"Nascondi la password":"Mostra la password"); inp.focus(); };
+  wrap.appendChild(b); }); }
+addEyes();
 let sbMode="up";
 function setSbMode(m){ sbMode=m; document.querySelectorAll("#sbMode button").forEach(b=>b.setAttribute("aria-selected",b.dataset.m===m));
-  $("sbGo").textContent= m==="up"? "Crea il mio account" : "Accedi";
+  $("sbGo").textContent= m==="up"? "Crea il mio account" : "Accedi"; if($("sbForgot")) $("sbForgot").hidden= m==="up";
   $("sbModeHint").innerHTML= m==="up"
     ? "<b>Stai creando un nuovo account.</b> Scrivi la tua email e <b>inventa ora una password</b> (almeno 6 caratteri): non è quella di Supabase né del database, serve solo per i dati di questa app. Fallo una volta sola, sul primo dispositivo."
     : "<b>Stai accedendo a un account esistente.</b> Usa la stessa email e password che hai creato sull'altro dispositivo: i dati arriveranno da soli.";
