@@ -1,0 +1,59 @@
+name: Crea APK HealthFit
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "healthfit-android.zip"
+      - ".github/workflows/apk.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Estrai il progetto Android
+        working-directory: .
+        run: unzip -o healthfit-android.zip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Installa Capacitor
+        run: npm install --no-audit --no-fund
+
+      - name: Crea il progetto Android
+        run: |
+          rm -rf android
+          npx cap add android
+          python3 scripts/patch_android.py ${{ github.run_number }}
+          npx cap sync android
+
+      - name: Compila l'APK
+        working-directory: app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/HealthFit.apk
+
+      - name: Pubblica l'APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: HealthFit per Android 1.${{ github.run_number }}
+          body: "Scarica il file HealthFit.apk qui sotto e installalo sul telefono (sopra la versione precedente: i dati restano)."
+          files: app/android/app/build/outputs/apk/release/HealthFit.apk
+          make_latest: true
