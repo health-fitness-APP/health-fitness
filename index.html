@@ -818,6 +818,18 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .rcp-import{margin-top:10px}
 .rcp-import>summary{cursor:pointer;font-weight:700;color:var(--basil);padding:6px 0}
 .cd-batt{display:flex;gap:8px;align-items:center;justify-content:space-between;background:#fff1d6;color:#7a4f00;border-radius:12px;padding:8px 10px;font-size:.85rem;text-align:left;margin-top:6px}
+.pf>h2{cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:0;user-select:none}
+.pf>h2::after{content:"›";color:var(--muted);font-size:1.4rem;transform:rotate(90deg);transition:transform .2s}
+.pf.collapsed>h2::after{transform:rotate(0deg)}
+.pf.collapsed>:not(h2){display:none!important}
+.pf:not(.collapsed)>h2{margin-bottom:10px}
+.dev-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.dev-row b{display:block}.dev-row .note{margin:2px 0 0;display:block}
+.dev-btns{display:flex;flex-direction:column;align-items:flex-end;gap:2px}.dev-btns .btn{width:auto;padding:8px 14px}
+.dev-auto{display:flex;gap:8px;align-items:center;font-size:.9rem;margin:10px 0 4px}.dev-auto input{width:20px;height:20px;flex:none}
+#devCard .hc-card h3{margin-top:14px!important}
+.hc-state p{margin:4px 0}
+.hc-on{font-weight:800;color:var(--basil)}.hc-off{font-weight:700;color:var(--muted)}.hc-warn{color:#b42318!important}
 .hc-card .hc-opts{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
 .hc-card .chk{display:flex;gap:8px;align-items:center;font-size:.9rem}
 .hc-card .chk input{width:20px;height:20px}
@@ -1844,6 +1856,17 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button class="add soft" id="trAdd">+ Aggiungi sessione</button>
     <p class="note" id="trSummary"></p>
   </section>
+  <section class="card" id="devCard">
+    <h2>🔌 Dispositivi collegati</h2>
+    <div class="dev-row">
+      <div><b>🫀 Fascia cardio</b><span class="note" id="devHrTxt">Non collegata</span></div>
+      <div class="dev-btns"><button class="btn ghost" id="devHrBtn" type="button">Collega</button><button class="linkbtn" id="devHrForget" type="button" hidden>Dimentica</button></div>
+    </div>
+    <label class="chk dev-auto"><input type="checkbox" id="devHrAuto" checked> Usala in automatico in tutti gli allenamenti (corsa e palestra)</label>
+    <div id="devHcSlot"></div>
+    <p class="note" id="devHcWeb" style="margin:10px 0 0">⌚ Galaxy Watch e Samsung Health si collegano dall'app Android (APK).</p>
+    <div id="devBtSlot"></div>
+  </section>
   <section class="card" id="lookCard">
     <h2>Aspetto</h2>
     <p class="sub">Vale per questo dispositivo.</p>
@@ -1906,6 +1929,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         <label class="chk"><input type="checkbox" id="hcS" checked> Sonno</label>
         <label class="chk"><input type="checkbox" id="hcB" checked> Peso e grasso</label>
       </div>
+      <div class="hc-state" id="hcState"></div>
       <div class="two" style="margin-top:8px"><button class="btn" id="hcConnect" type="button">Collega</button><button class="btn ghost" id="hcSyncNow" type="button">Sincronizza ora</button></div>
       <button class="linkbtn" id="hcSettings" type="button">Gestisci permessi in Health Connect</button>
       <div class="status" id="hcStatus" aria-live="polite"></div>
@@ -1938,7 +1962,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.26 (cambia password da collegato)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.28 (profilo compatto e dispositivi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4340,6 +4364,8 @@ async function hrConnectUI(){ try{ await hrConnect(); }catch(e){ if(e&&e.name===
 /* registrazione: un campione al secondo per la sessione di palestra in corso */
 setInterval(()=>{ if(typeof logCtx!=="undefined"&&logCtx&&logCtx.live&&!logCtx.paused&&hrFresh()){ const h=logCtx.hr=logCtx.hr||{sum:0,n:0,max:0,z:[0,0,0,0,0]}; h.sum+=HR.bpm; h.n++; h.max=Math.max(h.max,HR.bpm); h.z[zoneOf(HR.bpm)]++; } },1000);
 function renderSesHr(){ const box=$("sesHr"); if(!box) return; box.innerHTML="";
+  if(NATHR.on){ const st=NATHR.st||{}, b=+st.bpm||0, z=zoneOf(b||1), rec=b&&b/hrMaxOf()<0.65;
+    box.innerHTML= b? `<span class="dot" style="background:${ZCOL[z]}"></span><b class="num">${b}</b> bpm · ${ZLAB[z]}${rec?" · <span class='ok'>recuperato ✓</span>":""}` : `🫀 ${st.connected? "in attesa del battito…" : "collego la fascia…"}`; return; }
   if(!HR.ch){ const b=el("button","linkbtn","🫀 Collega la fascia cardio"); b.type="button"; b.onclick=hrConnectUI; box.appendChild(b); return; }
   const b=HR.bpm, z=zoneOf(b), rec= b && b/hrMaxOf()<0.65;
   box.innerHTML=`<span class="dot" style="background:${ZCOL[z]}"></span><b class="num">${b||"--"}</b> bpm · ${ZLAB[z]}${rec?" · <span class='ok'>recuperato ✓</span>":""}`; }
@@ -4352,7 +4378,7 @@ function hcReadTypes(){ const t=[]; if(hcOpt("W")) t.push("workouts","heartRate"
 async function hcConnect(){ const H=HCP(); if(!H) return;
   try{ const av=await H.isAvailable(); if(!av||!av.available){ setStatus("hcStatus","Health Connect non è disponibile: su Android 13 o precedenti installa “Health Connect” dal Play Store.",true); return; }
     const st=await H.requestAuthorization({read:hcReadTypes(),write:["weight","bodyFat"],requestHistoryAccess:true});
-    localStorage.setItem("hf:hcOn","1"); setStatus("hcStatus",`Collegato ✓ ${(st&&st.readAuthorized||[]).length} tipi di dati autorizzati. Sincronizzo…`); await hcSync(true); }
+    localStorage.setItem("hf:hcOn","1"); hcRenderState(); setStatus("hcStatus",`Collegato ✓ ${(st&&st.readAuthorized||[]).length} tipi di dati autorizzati. Sincronizzo…`); await hcSync(true); }
   catch(e){ setStatus("hcStatus","Health Connect: "+((e&&e.message)||e),true); } }
 async function hcHr(H,from,to){ try{ const r0=await H.readSamples({dataType:"heartRate",startDate:from,endDate:to,limit:5000,ascending:true}); const ss=(r0&&r0.samples)||[]; if(!ss.length) return null;
   let sum=0,mx=0; const z=[0,0,0,0,0]; ss.forEach((x,i)=>{ const b=+x.value; sum+=b; mx=Math.max(mx,b); const nx=ss[i+1]; const dt=nx? Math.min(60,(new Date(nx.startDate)-new Date(x.startDate))/1000) : 5; z[zoneOf(b)]+=dt; });
@@ -4364,6 +4390,7 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
     // --- allenamenti
     if(hcOpt("W")){ let anchor=null, added=0, all=[]; for(let pg=0;pg<10;pg++){ const r0=await H.queryWorkouts({startDate:iso(from),endDate:iso(now),limit:50,...(anchor?{anchor}:{})}); all=all.concat((r0&&r0.workouts)||[]); anchor=r0&&r0.anchor; if(!anchor) break; }
       const seen=new Set((hist.items||[]).map(w=>w.hcId).filter(Boolean));
+      all.forEach(w=>hcNoteSrc("workouts",w.sourceName||w.sourceId));
       for(const w of all){ const id=w.platformId||(w.startDate+"|"+w.workoutType); if(seen.has(id)) continue;
         const date=dISO(w.startDate), st=new Date(w.startDate), min=Math.round((+w.duration||0)/60); if(min<3) continue;
         const hhmm=String(st.getHours()).padStart(2,"0")+":"+String(st.getMinutes()).padStart(2,"0");
@@ -4385,10 +4412,11 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
     // --- sonno di stanotte
     if(hcOpt("S")&&state.date===todayISO()&&!(state.day.sleep&&state.day.sleep.src!=="health")){ const y=new Date(); y.setDate(y.getDate()-1); y.setHours(18,0,0,0); const n12=new Date(); n12.setHours(14,0,0,0);
       try{ const r0=await H.readSamples({dataType:"sleep",startDate:iso(y),endDate:iso(n12<now?n12:now),limit:500}); const ss=(r0&&r0.samples)||[];
-        let minA=0, deep=0, rem=0; ss.forEach(x=>{ const m=(new Date(x.endDate)-new Date(x.startDate))/60000; if(x.stages&&x.stages.length){ x.stages.forEach(g=>{ const gm=(new Date(g.endDate)-new Date(g.startDate))/60000; if(!/awake|inBed/.test(g.stage||g.state||"")) minA+=gm; if(/deep/.test(g.stage||g.state||"")) deep+=gm; if(/rem/.test(g.stage||g.state||"")) rem+=gm; }); } else if(!/awake|inBed/.test(x.sleepState||"")) minA+= x.unit==="minute"&&+x.value? +x.value : m; });
+        let minA=0, deep=0, rem=0; ss.forEach(x=>hcNoteSrc("sleep",x.sourceName||x.sourceId)); ss.forEach(x=>{ const m=(new Date(x.endDate)-new Date(x.startDate))/60000; if(x.stages&&x.stages.length){ x.stages.forEach(g=>{ const gm=(new Date(g.endDate)-new Date(g.startDate))/60000; if(!/awake|inBed/.test(g.stage||g.state||"")) minA+=gm; if(/deep/.test(g.stage||g.state||"")) deep+=gm; if(/rem/.test(g.stage||g.state||"")) rem+=gm; }); } else if(!/awake|inBed/.test(x.sleepState||"")) minA+= x.unit==="minute"&&+x.value? +x.value : m; });
         if(minA>60){ state.day.sleep={...(state.day.sleep||{}),h:Math.round(minA/6)/10,deep:Math.round(deep)||null,rem:Math.round(rem)||null,src:"health"}; saveDay(); msgs.push(`sonno ${String(Math.round(minA/6)/10).replace(".",",")} h`); } }catch{} }
     // --- peso e grasso
     if(hcOpt("B")){ try{ const r0=await H.readSamples({dataType:"weight",startDate:iso(from),endDate:iso(now),limit:200}); const fr=await H.readSamples({dataType:"bodyFat",startDate:iso(from),endDate:iso(now),limit:200}).catch(()=>({samples:[]}));
+        ((r0&&r0.samples)||[]).forEach(x=>hcNoteSrc("weight",x.sourceName||x.sourceId)); ((fr&&fr.samples)||[]).forEach(x=>hcNoteSrc("bodyFat",x.sourceName||x.sourceId));
         const byDay={}; ((r0&&r0.samples)||[]).forEach(x=>{ const d=dISO(x.startDate); if(!byDay[d]||x.startDate>byDay[d].t) byDay[d]={t:x.startDate,w:+x.value}; });
         ((fr&&fr.samples)||[]).forEach(x=>{ const d=dISO(x.startDate); if(byDay[d]) byDay[d].fat=+x.value; });
         let n=0; Object.entries(byDay).forEach(([d,v])=>{ if(!(v.w>20)) return; const ex=body.entries.find(e=>e.date===d&&e.weight); if(ex) return;
@@ -4396,7 +4424,7 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
         if(n){ save("body",body); try{ syncProfileFromBody(); }catch{} msgs.push(`${n} ${n===1?"pesata":"pesate"}`); } }catch{} }
     // --- battito a riposo
     try{ const r0=await H.readSamples({dataType:"restingHeartRate",startDate:iso(new Date(Date.now()-7*864e5)),endDate:iso(now),limit:20}); const ss=(r0&&r0.samples)||[]; if(ss.length){ const v=Math.round(ss.reduce((a,x)=>a+(+x.value),0)/ss.length); if(v>30&&v<110&&state.profile&&state.profile.hrRest!==v){ state.profile.hrRest=v; save("profile",state.profile); } } }catch{}
-    localStorage.setItem("hf:hcLast",new Date().toISOString());
+    localStorage.setItem("hf:hcLast",new Date().toISOString()); try{ hcRenderState(); }catch{}
     const t=new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
     setStatus("hcStatus",`Ultima sincronizzazione alle ${t}`+(msgs.length? ": "+msgs.join(", ") : ": niente di nuovo"));
     if(msgs.length&&!manual) toast("Da Samsung Health: "+msgs.join(", "));
@@ -4406,6 +4434,37 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
 async function hcWriteBody(entry){ const H=HCP(); if(!H||localStorage.getItem("hf:hcOn")!=="1"||!hcOpt("B")||entry.source==="health") return;
   try{ const dt=new Date(entry.date+"T08:00:00").toISOString(); if(entry.weight) await H.saveSample({dataType:"weight",value:+entry.weight,startDate:dt,endDate:dt});
     if(entry.weight&&entry.fat) await H.saveSample({dataType:"bodyFat",value:Math.round(entry.fat/entry.weight*1000)/10,startDate:dt,endDate:dt}); }catch(e){ console.warn("HC scrittura",e); } }
+/* stato del collegamento: permessi concessi e app da cui arrivano i dati */
+const HC_LAB={workouts:"Allenamenti",heartRate:"Battito",steps:"Passi",sleep:"Sonno",weight:"Peso",bodyFat:"Grasso",distance:"Distanza",calories:"Calorie",restingHeartRate:"Battito a riposo"};
+const prettySrc=x=>{ const n=String(x||""); return /shealth|samsung/i.test(n)? "Samsung Health" : /fitdays|icomon/i.test(n)? "FitDays" : /renpho|qnniu|yolanda/i.test(n)? "Renpho" : /fit|google/i.test(n)? "Google Fit" : /strava/i.test(n)? "Strava" : /garmin/i.test(n)? "Garmin" : /polar/i.test(n)? "Polar" : n.split(".").pop()||"?"; };
+async function hcRenderState(){ const box=$("hcState"); if(!box) return; const H=HCP(); if(!H){ box.innerHTML=""; return; }
+  const on=localStorage.getItem("hf:hcOn")==="1"; $("hcConnect").textContent= on? "Aggiorna permessi" : "Collega"; $("hcSyncNow").hidden=!on;
+  if(!on){ box.innerHTML=`<p class="hc-off">⚪ Non collegato</p>`; return; }
+  let ok=[], no=[]; try{ const st=await H.checkAuthorization({read:hcReadTypes(),write:["weight","bodyFat"]}); ok=(st&&st.readAuthorized)||[]; no=(st&&st.readDenied)||[]; }catch{}
+  const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"), srcTxt=Object.entries(src).map(([k,v])=>`${HC_LAB[k]||k}: ${[...new Set(v)].join(", ")}`).join(" · ");
+  box.innerHTML=`<p class="hc-on">✅ Collegato a Health Connect</p>`+
+    (ok.length? `<p class="note" style="margin:2px 0">Autorizzati: ${ok.map(k=>HC_LAB[k]||k).join(", ")}</p>` : "")+
+    (no.length? `<p class="note hc-warn" style="margin:2px 0">Non autorizzati: ${no.map(k=>HC_LAB[k]||k).join(", ")} → tocca “Aggiorna permessi”</p>` : "")+
+    `<p class="note" style="margin:2px 0">${srcTxt? "Dati ricevuti da: "+srcTxt : "Ancora nessun dato ricevuto: controlla che Samsung Health (e FitDays/Renpho) condividano con Health Connect."}</p>`; }
+function hcNoteSrc(kind,name){ if(!name) return; const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"); src[kind]=[...new Set([...(src[kind]||[]),prettySrc(name)])].slice(-4); localStorage.setItem("hf:hcSrc",JSON.stringify(src)); }
+/* ----- dispositivi: la fascia si collega una volta dal profilo e parte da sola negli allenamenti ----- */
+const hrAuto=()=>localStorage.getItem("hf:hrAuto")!=="0";
+function renderDevices(){ const nm=localStorage.getItem("hf:hrName"), addr=localStorage.getItem("hf:hrAddr"), web=!HRN();
+  const paired= web? !!(HR.ch||nm) : !!addr;
+  $("devHrTxt").textContent= paired? `${nm||"Fascia"} · ${web? (HR.ch? "collegata ora" : "si ricollega all'avvio dell'allenamento") : "pronta: parte da sola negli allenamenti"}` : "Non collegata: indossala e tocca Collega";
+  $("devHrBtn").textContent= paired? "Cambia" : "Collega"; $("devHrForget").hidden=!paired; $("devHrAuto").checked=hrAuto(); }
+$("devHrBtn").onclick=async()=>{ if(HRN()) await hrnConnect(); else { await hrConnectUI(); if(HR.name) localStorage.setItem("hf:hrName",HR.name); } renderDevices(); };
+$("devHrForget").onclick=()=>{ ["hf:hrAddr","hf:hrName"].forEach(k=>localStorage.removeItem(k)); try{ if(HR.dev&&HR.dev.gatt) HR.dev.gatt.disconnect(); }catch{} HR.ch=null; renderDevices(); toast("Fascia dimenticata"); };
+$("devHrAuto").onchange=()=>localStorage.setItem("hf:hrAuto",$("devHrAuto").checked?"1":"0");
+/* palestra: battito registrato dal motore nativo (APK) o ricollegamento automatico (browser) */
+const NATHR={on:false,st:null};
+async function gymHrStart(){ if(!hrAuto()) return;
+  const P=HRN(), addr=localStorage.getItem("hf:hrAddr");
+  if(P&&addr){ if(NATHR.on||(CD&&CD.native&&CD.running)) return; try{ hrnListen(); const st=await P.start({address:addr,title:(logCtx&&logCtx.title)||"Allenamento",lo:-1,hi:-1,hrMax:hrMaxOf(),alerts:false,gps:false}); NATHR.on=true; NATHR.st=st; }catch(e){ console.warn("fascia palestra",e); } return; }
+  if(!P&&!HR.ch&&navigator.bluetooth&&navigator.bluetooth.getDevices){ try{ const ds=await navigator.bluetooth.getDevices(); const nm=localStorage.getItem("hf:hrName"); const d=ds.find(x=>!nm||x.name===nm)||ds[0];
+      if(d){ HR.dev=d; HR.name=d.name||"Fascia"; d.addEventListener("gattserverdisconnected",()=>{ HR.ch=null; hrNotify(); }); await hrAttach(); toast(`${HR.name} collegata ✓`); } }catch{} } }
+async function gymHrStop(save){ if(!NATHR.on) return; const P=HRN(); let st=NATHR.st||{}; try{ st=await P.stop(); }catch{} NATHR.on=false;
+  if(save&&logCtx&&+st.samples>0){ const n=+st.samples; logCtx.hr={sum:(+st.avgHr||0)*n,n,max:+st.maxHr||0,z:(st.zoneSec||[0,0,0,0,0]).map(Number)}; } }
 /* ----- APK: condivisione della foto con l'app Gemini e appunti nativi ----- */
 async function nativeShareGemini(file,txt){ const C=NAT(); if(!C) return false;
   try{ const P=C.Plugins; if(P.Clipboard) await P.Clipboard.write({string:txt});
@@ -4413,11 +4472,19 @@ async function nativeShareGemini(file,txt){ const C=NAT(); if(!C) return false;
     const w=await P.Filesystem.writeFile({path:"pasto-"+Date.now()+".jpg",data:b64,directory:"CACHE"});
     await P.Share.share({title:"Valori nutrizionali",text:txt,files:[w.uri],dialogTitle:"Chiedi a Gemini"}); return true; }
   catch(e){ if(!/cancel/i.test(String(e&&e.message||e))) toast("Condivisione: "+((e&&e.message)||e)); return true; } }
+/* profilo: riquadri che si aprono e chiudono toccando il titolo (stato ricordato) */
+function foldProfile(){ const pf=JSON.parse(localStorage.getItem("hf:pfold")||"{}");
+  document.querySelectorAll("#view-profilo > section.card").forEach(c=>{ const h=c.querySelector(":scope > h2"); if(!h||c._fold) return; c._fold=true; c.classList.add("pf");
+    const key=h.textContent.replace(/[^\wÀ-ÿ ]/g,"").trim(); const open= key in pf? pf[key] : /Chi sei/.test(key);
+    c.classList.toggle("collapsed",!open); h.setAttribute("role","button"); h.tabIndex=0; h.setAttribute("aria-expanded",open);
+    const tog=()=>{ const o=c.classList.toggle("collapsed")===false; h.setAttribute("aria-expanded",o); const m=JSON.parse(localStorage.getItem("hf:pfold")||"{}"); m[key]=o; localStorage.setItem("hf:pfold",JSON.stringify(m)); };
+    h.addEventListener("click",tog); h.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); tog(); } }); }); }
+(function(){ try{ $("devHcSlot").appendChild($("hcCard")); const bt=document.querySelector(".bttest"); if(bt) $("devBtSlot").appendChild(bt); foldProfile(); setTimeout(()=>{ try{ renderDevices(); }catch{} },0); }catch(e){ console.warn("profilo",e); } })();
 /* ----- APK: motore nativo (fascia e GPS a schermo spento) ----- */
 const NAT=()=>{ const C=window.Capacitor; return C&&C.isNativePlatform&&C.isNativePlatform()? C : null; };
 const HRN=()=>{ const C=NAT(); return C&&C.Plugins? C.Plugins.HrRecorder : null; };
 let hrnSub=null;
-function hrnListen(){ const P=HRN(); if(!P||hrnSub) return; try{ hrnSub=P.addListener("tick",st=>{ if(CD&&CD.native){ CD.nat=st; if(view==="cardio") renderCardio(); } }); }catch(e){ console.warn("tick",e); } }
+function hrnListen(){ const P=HRN(); if(!P||hrnSub) return; try{ hrnSub=P.addListener("tick",st=>{ if(CD&&CD.native){ CD.nat=st; if(view==="cardio") renderCardio(); } else if(NATHR.on){ NATHR.st=st; if(view==="sessione") renderSesHr(); } }); }catch(e){ console.warn("tick",e); } }
 async function hrnConnect(){ const P=HRN(); if(!P) return;
   try{ setStatus && toast("Cerco la fascia (8 secondi)… tienila indossata"); const r0=await P.scan(); const ds=(r0&&r0.devices)||[];
     if(!ds.length){ toast("Nessuna fascia trovata: è indossata con gli elettrodi umidi? Il Bluetooth è acceso?"); return; }
@@ -4428,7 +4495,7 @@ async function hrnBattery(){ const P=HRN(); if(!P) return; try{ const b=await P.
 /* ----- corsa con la fascia ----- */
 let CD=null, cdTick=null, cdWatch=null;
 function cdTargetFor(t){ t=String(t||""); return /facile|lungo|recupero/i.test(t)? [0,2,"Resta in Z2: corsa facile"] : /soglia|ritmo gara|progress|tempo/i.test(t)? [3,3,"Zona soglia (Z4) nelle parti veloci"] : /ripetut|interval|fartlek/i.test(t)? [3,4,"Z4–Z5 nelle ripetute, giù nei recuperi"] : null; }
-function openCardio(o){ if(CD&&CD.running&&!confirm("C'è già una corsa con la fascia in corso: la sostituisco?")) { go("cardio"); return; }
+function openCardio(o){ if(!HRN()&&hrAuto()&&!HR.ch) setTimeout(()=>gymHrStart(),300); if(CD&&CD.running&&!confirm("C'è già una corsa con la fascia in corso: la sostituisco?")) { go("cardio"); return; }
   CD={title:o.title||"Corsa",runType:o.runType||"",kmPlan:o.km||null,from:o.from||null,running:false,paused:false,t0:0,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:cdTargetFor(o.runType||o.title)};
   $("cdTitle").textContent=CD.title; go("cardio"); renderCardio(); }
 function cdElapsed(){ if(!CD||!CD.t0) return 0; return ((CD.paused? CD.pAt : Date.now())-CD.t0-CD.pausedMs)/1000; }
@@ -5113,7 +5180,7 @@ function leaveSession(){ sesExitOk=true; const steps=1+sheetStack.length; histor
 const afterSheet=fn=>{ closeTopSheet(); setTimeout(fn,250); };
 function hmsSec(t){ t=Math.max(0,Math.floor(t)); const h=Math.floor(t/3600), m=Math.floor(t%3600/60), s0=t%60; return (h? h+":"+String(m).padStart(2,"0") : String(m).padStart(2,"0"))+":"+String(s0).padStart(2,"0"); }
 function startSesTimer(){
-  clearInterval(sesTick);
+  clearInterval(sesTick); try{ gymHrStart(); }catch{}
   const upd=()=>{ if(!logCtx||!logCtx.live){ clearInterval(sesTick); return; }
     const t=sesElapsed(); if($("sesTimer")) $("sesTimer").textContent=hmsSec(t)+(logCtx.paused?" ⏸":"");
     const r0=Math.ceil((restEnd-Date.now())/1000), re=$("sesRest");
@@ -5200,7 +5267,7 @@ $("logNotes").addEventListener("input",()=>{ if(logCtx){ logCtx.notes=$("logNote
 $("sesEnd").onclick=()=>{ const n=logCtx? logCtx.exercises.reduce((a,x)=>a+x.sets.filter(z=>z.done).length,0) : 0;
   if(!n){ if(confirm("Non hai segnato nessuna serie. Vuoi annullare l'allenamento senza salvarlo?")) cancelSession(); return; }
   if(confirm(`Terminare e salvare l'allenamento? (${n} ${n===1?"serie fatta":"serie fatte"}, ${hmsSec((Date.now()-logCtx.startedAt)/1000)})\n\nPremi Annulla per continuare ad allenarti.`)) $("logSave").click(); };
-function cancelSession(){ if(!logCtx) return; keepAwake(false); logCtx.live=false; clearInterval(sesTick); restEnd=0; try{ localStorage.removeItem("hf:live"); }catch{} renderLiveBanner();
+function cancelSession(){ if(!logCtx) return; try{ gymHrStop(false); }catch{} keepAwake(false); logCtx.live=false; clearInterval(sesTick); restEnd=0; try{ localStorage.removeItem("hf:live"); }catch{} renderLiveBanner();
   toast("Allenamento annullato: non è stato salvato niente"); if(history.state&&history.state.v==="sessione") history.back(); else go("allenamento"); renderProgram(); }
 $("sesCancel").onclick=()=>{ if(confirm("Annullare questo allenamento? Serie, pesi e tempo non verranno salvati.")) cancelSession(); };
 $("sesBack").onclick=()=>openSesExit();
@@ -5209,7 +5276,8 @@ $("sxPause").onclick=()=>{ if(logCtx&&!logCtx.paused){ logCtx.paused=true; logCt
 $("sxStop").onclick=()=>afterSheet(()=>$("logSave").click());
 $("sxCancel").onclick=()=>afterSheet(()=>cancelSession());
 $("logAddEx").onclick=()=>{ logCtx.exercises.push({name:"",custom:true,target:"",rest:"90s",muscles:[],sets:[{kg:"",reps:"",done:false},{kg:"",reps:"",done:false},{kg:"",reps:"",done:false}]}); saveLive(); renderLogger(); setTimeout(()=>{ const ins=document.querySelectorAll(".sx-tt input"); if(ins.length) ins[ins.length-1].focus(); },50); };
-$("logSave").onclick=()=>{
+$("logSave").onclick=async()=>{
+  if(NATHR.on) await gymHrStop(true);
   if(logCtx.circuit) logCtx.exercises=circuitToExercises();
   const exs=logCtx.exercises.map(x=>{
     let sets=x.sets.filter(st=>st.done); if(!sets.length) sets=x.sets.filter(st=> x.cardio? st.text : (st.reps||st.kg));
@@ -7087,6 +7155,7 @@ $("ciboBack").onclick=()=>{ if(history.state&&history.state.v==="cibo") history.
 $("cPrev").onclick=()=>$("prev").click(); $("cNext").onclick=()=>$("next").click(); $("cDayPick").onclick=()=>$("dayPick").click();
 $("dBody").onclick=()=>go("corpo");
 function renderAll(){ document.body.classList.toggle("home",view==="diario"); if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
+ if(view==="profilo"&&HCP()){ try{ hcRenderState(); }catch{} }
  if(view==="attivita"){ try{ renderSleep(); const r0=recoveryNow(); $("csRowSub").textContent=`Recupero ${r0.lvl[0].toLowerCase()} (${r0.score}/100) · record, forma, zone, scarpe`; }catch(e){ console.warn("sonno",e); } }
  if(view==="corsa"){ try{ renderCorsa(); }catch(e){ console.warn("corsa",e); } } if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento"||view==="attivita") renderWorkouts(); if(view==="corpo") renderBody(); }
 renderAll();
@@ -7128,9 +7197,9 @@ async function loadAll(){
       renderAll(); if(w.v==="giorno") renderDayPage(); if(w.v==="pasto") renderMealPage(); } }catch(e){ console.warn("ripristino vista",e); }
   setTimeout(()=>{ try{ weeklyDietRefresh(); }catch{} },4000);
   setTimeout(()=>{ try{ spiderPresetOffer(); }catch{} },1500);
-  if(NAT()){ document.body.classList.add("native"); $("hcCard").hidden=false;
+  if(NAT()){ document.body.classList.add("native"); $("hcCard").hidden=false; $("devHcWeb").hidden=true; renderDevices();
     [["W","hcW"],["A","hcA"],["S","hcS"],["B","hcB"]].forEach(([k,id])=>{ $(id).checked=hcOpt(k); $(id).onchange=()=>{ localStorage.setItem("hf:hc"+k,$(id).checked?"1":"0"); }; });
-    $("hcConnect").textContent= localStorage.getItem("hf:hcOn")==="1"? "Aggiorna permessi" : "Collega";
+    hcRenderState();
     $("hcConnect").onclick=hcConnect; $("hcSyncNow").onclick=()=>hcSync(true); $("hcSettings").onclick=()=>{ const H=HCP(); if(H&&H.openHealthConnectSettings) H.openHealthConnectSettings().catch(()=>{}); };
     if(localStorage.getItem("hf:hcLast")) setStatus("hcStatus","Ultima sincronizzazione: "+new Date(localStorage.getItem("hf:hcLast")).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}));
     setTimeout(()=>hcSync(false),3500);
