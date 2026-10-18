@@ -1914,6 +1914,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div id="syncOn" hidden>
       <p class="sub" id="syncInfo"></p>
       <div class="two"><button class="btn ghost" id="syncNow">Sincronizza ora</button><button class="btn ghost" id="syncOut">Esci</button></div>
+      <button class="linkbtn" id="syncPw" type="button" style="margin-top:8px">🔑 Cambia password</button>
     </div>
     <div id="syncOff" class="form">
       <p class="sub">Con un account Supabase gratuito vedi gli stessi dati su telefono e PC.</p>
@@ -1937,7 +1938,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.25 (recupero password e occhio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.26 (cambia password da collegato)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -6503,6 +6504,7 @@ $("sbForgot").onclick=async()=>{ const email=$("sbEmail").value.trim();
     const r0=await SY.client.auth.resetPasswordForEmail(email,{redirectTo:"https://health-fitness-app.github.io/health-fitness/"}); if(r0.error) throw r0.error;
     setStatus("syncStatus",`Ti ho mandato un'email a ${email} (controlla anche lo spam). Apri il link: si aprirà HealthFit nel browser e potrai scegliere la nuova password. Poi accedi qui con quella.`); }
   catch(e){ setStatus("syncStatus",syncErr(e),true); } };
+$("syncPw").onclick=()=>{ if(!SY.user){ toast("Accedi prima alla sincronizzazione"); return; } $("pwTitle").textContent="Nuova password per "+(SY.user.email||"il tuo account"); setStatus("pwStatus",""); openSheet("pwSheet"); setTimeout(()=>$("pwNew").focus(),300); };
 $("pwSave").onclick=async()=>{ const p=$("pwNew").value; if(p.length<6){ setStatus("pwStatus","Almeno 6 caratteri.",true); return; }
   $("pwSave").disabled=true; try{ const r0=await SY.client.auth.updateUser({password:p}); if(r0.error) throw r0.error;
     const {data}=await SY.client.auth.getSession(); SY.user=data&&data.session? data.session.user : SY.user; $("pwNew").value=""; history.replaceState(history.state,"",location.pathname);
