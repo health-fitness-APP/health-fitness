@@ -409,6 +409,21 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .srow.cardio input{text-align:left;font-size:1rem;font-weight:500}
 .sx-add{border:0;background:var(--surface2);border-radius:16px;padding:12px;font:inherit;font-weight:700;color:var(--ink);cursor:pointer}
 .sx-last{font-size:.8rem;color:var(--muted);margin:0 4px}
+.rest-big{position:fixed;left:10px;right:10px;bottom:calc(172px + env(safe-area-inset-bottom,0px));z-index:16;background:var(--basil);color:var(--basil-ink);border-radius:22px;padding:12px 16px 12px;box-shadow:0 10px 28px rgba(0,0,0,.25)}
+.rest-big.last{animation:rbPulse .5s ease-in-out infinite alternate}
+@keyframes rbPulse{to{transform:scale(1.02)}}
+.rb-top{display:flex;justify-content:space-between;align-items:baseline}
+.rb-top span{font-weight:700;font-size:1rem}
+.rb-top b{font-family:"Bricolage Grotesque",sans-serif;font-size:2.6rem;line-height:1}
+.rb-bar{height:8px;border-radius:5px;background:rgba(255,255,255,.3);margin:8px 0;overflow:hidden}
+.rb-bar i{display:block;height:100%;background:#fff;border-radius:5px;transition:width 1s linear}
+.rb-btns{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:8px}
+.rb-btns button{border:0;border-radius:12px;padding:10px 4px;font:inherit;font-weight:800;background:rgba(255,255,255,.22);color:inherit;cursor:pointer}
+.rb-btns #rbSkip{background:#fff;color:var(--basil)}
+.ses-chat{margin:6px 0 16px}
+.sc-acts{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px}
+.sc-acts .btn{width:auto;padding:8px 12px;font-size:.88rem}
+#scLog{max-height:none}
 .ses-bar{position:fixed;left:0;right:0;bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:14;display:flex;gap:10px;padding:10px 14px;background:var(--surface-solid);border-top:1px solid var(--line)}
 .ses-all{flex:none;width:70px;border:1px solid var(--line);background:var(--surface2);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;font:inherit;color:var(--ink);cursor:pointer}
 .ses-all span{font-size:1.2rem}.ses-all b{font-size:.7rem}
@@ -450,6 +465,30 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .gd-et .prog.up,.sx-prog.up{color:var(--basil);font-weight:600}
 .gd-et .prog.down,.sx-prog.down{color:var(--warn);font-weight:600}
 .sx-prog{margin:0 4px}
+.demo{margin:0 0 12px}
+.demo-img{position:relative;aspect-ratio:3/2;border-radius:18px;overflow:hidden;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.demo-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+.demo-img .f1{animation:demoSwap 2.6s ease-in-out infinite}
+.demo-img.paused .f1{animation-play-state:paused}
+@keyframes demoSwap{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
+.demo-lab{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.55);color:#fff;font-size:.72rem;font-weight:700;border-radius:999px;padding:3px 9px}
+.demo-pp{position:absolute;right:10px;bottom:10px;width:42px;height:42px;border-radius:50%;border:2px solid var(--basil);background:#fff;color:var(--basil);font-weight:900;cursor:pointer}
+.demo-cap{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);margin-top:6px;text-transform:capitalize}
+.demo-cap .linkbtn{text-transform:none;white-space:nowrap}
+.demo-cr{font-size:.68rem;color:var(--muted);margin:2px 0 0}
+.mem{margin:4px 0 10px;padding:10px 12px;border-radius:14px;background:var(--surface2);border:1px solid var(--line)}
+.mem.first{background:none}
+.mem-l{font-size:.78rem;font-weight:700;color:var(--muted)}
+.mem-s{font-weight:800;font-size:1.02rem;margin-top:2px}
+.mem-go{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:8px 10px;border-radius:12px;font-weight:800}
+.mem-go b{font-size:1.1rem}
+.mem-go.up{background:var(--basil-soft);color:var(--basil)}
+.mem-go.hold{background:#e3eefb;color:#1d5fae}
+.mem-go.down{background:#fff1d6;color:#9a6200}
+.mem-t{font-size:.84rem;color:var(--muted);margin-top:4px}
+.mem-more{border:0;background:none;color:var(--basil);font:inherit;font-weight:700;font-size:.85rem;padding:6px 0 0;cursor:pointer}
+.mh-row{display:grid;grid-template-columns:54px 1fr auto;gap:8px;font-size:.82rem;padding:5px 0;border-top:1px solid var(--line)}
+.mh-row span:first-child{color:var(--muted)}
 .btn.danger{color:var(--warn);border-color:var(--warn);margin-top:10px}
 button.mealrow{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:16px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
 #meals>.mealrow:first-child{margin-top:0}
@@ -818,6 +857,24 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .rcp-import{margin-top:10px}
 .rcp-import>summary{cursor:pointer;font-weight:700;color:var(--basil);padding:6px 0}
 .cd-batt{display:flex;gap:8px;align-items:center;justify-content:space-between;background:#fff1d6;color:#7a4f00;border-radius:12px;padding:8px 10px;font-size:.85rem;text-align:left;margin-top:6px}
+.pf-head{padding:34px 4px 14px;text-align:center}
+.pf-head h1{font-size:2.2rem;margin:0}
+.pf-acct{display:flex;align-items:center;gap:14px;width:100%;border:0;border-radius:24px;background:var(--surface-solid);padding:16px;font:inherit;color:var(--ink);text-align:left;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.pf-acct .mini-av{width:54px;height:54px;font-size:1.2rem;flex:none}
+.pf-acct .t{flex:1;min-width:0;display:flex;flex-direction:column}.pf-acct b{font-size:1.15rem}.pf-acct .t span{font-size:.85rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-gh{margin:22px 14px 6px;font-size:.85rem;font-weight:700;color:var(--muted)}
+.pf-group{background:var(--surface-solid);border-radius:24px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.pf-row{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;padding:15px 16px;font:inherit;color:var(--ink);text-align:left;cursor:pointer;position:relative}
+.pf-row+.pf-row::before{content:"";position:absolute;left:64px;right:16px;top:0;height:1px;background:var(--line)}
+.pf-row .ic{width:36px;height:36px;border-radius:12px;background:var(--surface2);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none;opacity:.85}
+.pf-row .ic svg{display:block}
+.pf-row .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.pf-row b{font-size:1rem;font-weight:600}.pf-row .t span{font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-row .chev,.pf-acct .chev{color:var(--muted);font-size:1.4rem}
+.pf-row:active,.pf-acct:active{background:var(--surface2)}
+.pf-foot{text-align:center;margin:20px 10px 30px}
+#psBody>section.card>h2{display:none}
+.ps-save{position:sticky;bottom:calc(82px + env(safe-area-inset-bottom,0px));padding:10px 0}
 .pf>h2{cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:0;user-select:none}
 .pf>h2::after{content:"›";color:var(--muted);font-size:1.4rem;transform:rotate(90deg);transition:transform .2s}
 .pf.collapsed>h2::after{transform:rotate(0deg)}
@@ -826,6 +883,21 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .dev-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .dev-row b{display:block}.dev-row .note{margin:2px 0 0;display:block}
 .dev-btns{display:flex;flex-direction:column;align-items:flex-end;gap:2px}.dev-btns .btn{width:auto;padding:8px 14px}
+.dev-sep{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.dev-card{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.dev-card .pf-gh:first-of-type{margin-top:6px}
+.acc-row{display:flex;align-items:center;gap:14px;width:100%;border:0;background:none;padding:14px 16px;font:inherit;color:var(--ink);text-align:left;cursor:pointer;position:relative}
+.acc-row+.acc-row::before,.acc-panel+.acc-row::before{content:"";position:absolute;left:76px;right:16px;top:0;height:1px;background:var(--line)}
+.acc-ic{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex:none;color:var(--ink);opacity:.85;background:var(--surface-solid)}
+.acc-row .t{flex:1;min-width:0;display:flex;flex-direction:column}.acc-row b{font-size:1.02rem;font-weight:600}.acc-row .t span{font-size:.84rem;color:var(--muted)}
+.acc-row .chev{color:var(--muted);font-size:1.4rem}
+.acc-row:active{background:var(--surface2)}
+.acc-panel{padding:4px 16px 14px 76px}
+.acc-panel .hc-card h3,.acc-panel .hc-card>p.note:first-of-type{display:none}
+.acc-empty{padding:14px 16px;margin:0}
+.acc-search{position:sticky;bottom:calc(92px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;padding:16px 0 4px}
+.acc-search .btn{width:auto;padding:12px 30px;border-radius:999px;background:var(--surface2);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+#devScLog,#devTpLog{max-height:260px}
 .dev-auto{display:flex;gap:8px;align-items:center;font-size:.9rem;margin:10px 0 4px}.dev-auto input{width:20px;height:20px;flex:none}
 #devCard .hc-card h3{margin-top:14px!important}
 .hc-state p{margin:4px 0}
@@ -1638,10 +1710,21 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <div class="ses-hr" id="sesHr"></div>
   <div id="logBody"></div>
   <button class="add soft" id="logAddEx" style="margin:12px 0 14px">+ Aggiungi esercizio</button>
+  <section class="card ses-chat" id="sesChat">
+    <h2>💬 Chiedi al coach</h2>
+    <div class="mc-log" id="scLog"></div>
+    <div class="stadd mc-row"><textarea class="field" id="scIn" rows="1" placeholder="Scrivi al coach (es. quanto recupero tra le serie?)"></textarea><button class="btn" id="scSend" type="button">Invia</button></div>
+    <div class="status" id="scStatus" aria-live="polite"></div>
+  </section>
   <div class="form">
     <label>Note (facoltative)<textarea id="logNotes" placeholder="Es. spalla ok, ultima serie di panca molto dura"></textarea></label>
     <button class="btn" id="logSave">Termina e salva l'allenamento</button>
     <button class="btn ghost danger" id="sesCancel" type="button">Annulla l'allenamento (non salvare)</button>
+  </div>
+  <div class="rest-big" id="restBig" hidden role="timer" aria-live="polite">
+    <div class="rb-top"><span>⏱ Recupero</span><b id="rbTime" class="num">0:00</b></div>
+    <div class="rb-bar"><i id="rbBar"></i></div>
+    <div class="rb-btns"><button type="button" id="rbMinus">−15 s</button><button type="button" id="rbPlus">+15 s</button><button type="button" id="rbSkip">Salta ›</button></div>
   </div>
   <div class="ses-bar"><button class="ses-all" id="sesAll" type="button"><span>☑</span><b>TUTTI</b></button><button class="btn" id="sesNext" type="button">REGISTRA SERIE SUCCESSIVA</button></div>
 </main>
@@ -1658,6 +1741,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="cd-zbars" id="cdZbars"></div>
     <label class="chk" style="margin-top:10px"><input type="checkbox" id="cdGps" checked> Misura distanza e ritmo con il GPS del telefono</label>
     <label class="chk"><input type="checkbox" id="cdAlerts" checked> Avvisami con suono e vibrazione se esco dalla zona</label>
+    <button class="btn ghost" id="cdWatch" type="button" hidden style="margin-top:10px">⌚ Avvia anche sull'orologio</button>
     <div class="cd-btns"><button class="btn" id="cdStart" type="button">AVVIA</button><button class="btn ghost" id="cdPause" type="button" hidden>⏸ Pausa</button><button class="btn danger-fill" id="cdEnd" type="button" hidden>Fine e salva</button></div>
     <p class="note" id="cdNote">Tieni lo schermo acceso con l'app aperta: con lo schermo spento il telefono interrompe fascia e GPS.</p>
     <p class="note" id="cdNoteN" hidden>📱 App installata: puoi spegnere lo schermo e mettere il telefono in tasca. La corsa continua con la notifica “HealthFit sta registrando”, e ti avviso a voce.</p>
@@ -1727,6 +1811,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </section>
 </main>
 
+<!-- ================= SOTTOPAGINA DEL PROFILO ================= -->
+<main id="view-pset" hidden>
+  <header class="cibo-top"><button class="icon-btn" id="psBack" aria-label="Indietro">‹</button><h1 id="psTitle">Profilo</h1></header>
+  <div id="psBody"></div>
+  <div class="ps-save" id="psSaveBar" hidden><button class="btn" id="psSave" type="button">Salva</button></div>
+</main>
+
 <!-- ================= GIORNO DI ALLENAMENTO ================= -->
 <main id="view-giorno" hidden>
   <header class="cibo-top"><button class="icon-btn" id="gdBack" aria-label="Indietro">‹</button></header>
@@ -1758,7 +1849,10 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 
 <!-- ================= PROFILO ================= -->
 <main id="view-profilo" hidden>
-  <header class="top"><h1>Profilo e obiettivi</h1></header>
+  <header class="pf-head"><h1>Profilo</h1></header>
+  <button class="pf-acct" id="pfAcct" type="button"><span class="mini-av" id="pfAv"></span><span class="t"><b id="pfName">Il tuo profilo</b><span id="pfSub"></span></span><span class="chev">›</span></button>
+  <div id="pfList"></div>
+  <div id="pfCards" hidden>
   <section class="coach">
     <button class="link" id="profByChat">Preferisci parlarne? Compila il profilo chattando con il coach</button>
     <p class="note" style="margin:6px 0 0">Ti fa lui le domande. Prima di cambiare qualsiasi dato ti chiede conferma.</p>
@@ -1856,16 +1950,56 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button class="add soft" id="trAdd">+ Aggiungi sessione</button>
     <p class="note" id="trSummary"></p>
   </section>
-  <section class="card" id="devCard">
+  <section class="card dev-card" id="devCard">
     <h2>🔌 Dispositivi collegati</h2>
-    <div class="dev-row">
-      <div><b>🫀 Fascia cardio</b><span class="note" id="devHrTxt">Non collegata</span></div>
-      <div class="dev-btns"><button class="btn ghost" id="devHrBtn" type="button">Collega</button><button class="linkbtn" id="devHrForget" type="button" hidden>Dimentica</button></div>
+    <p class="pf-gh">Accessori registrati</p>
+    <div class="pf-group" id="accReg"></div>
+
+    <p class="pf-gh">Orologi</p>
+    <div class="pf-group">
+      <button class="acc-row" type="button" data-acc="watch"><span class="acc-ic" data-i="watch"></span><span class="t"><b>Galaxy Watch</b><span>Samsung · tramite Samsung Health e Health Connect</span></span><span class="chev">›</span></button>
+      <div class="acc-panel" id="accWatch" hidden><div id="devHcSlot"></div><p class="note" id="devHcWeb" style="margin:6px 0 0">Si collega dall'app Android (APK) installata sul telefono.</p></div>
+      <button class="acc-row" type="button" data-acc="watchapp"><span class="acc-ic" data-i="watch"></span><span class="t"><b>App HealthFit per Galaxy Watch</b><span>Avvia le corse dal telefono sul polso</span></span><span class="chev">›</span></button>
+      <div class="acc-panel" id="accWatchApp" hidden><p class="note" style="margin:0">Si installa una volta sull'orologio con il file <b>HealthFit-orologio.apk</b> (da Releases su GitHub), attivando le opzioni sviluppatore. Poi, nelle corse, tocca “⌚ Avvia sull'orologio”.</p></div>
     </div>
-    <label class="chk dev-auto"><input type="checkbox" id="devHrAuto" checked> Usala in automatico in tutti gli allenamenti (corsa e palestra)</label>
-    <div id="devHcSlot"></div>
-    <p class="note" id="devHcWeb" style="margin:10px 0 0">⌚ Galaxy Watch e Samsung Health si collegano dall'app Android (APK).</p>
-    <div id="devBtSlot"></div>
+
+    <p class="pf-gh">Fasce cardio</p>
+    <div class="pf-group">
+      <button class="acc-row" type="button" data-acc="hr"><span class="acc-ic" data-i="strap"></span><span class="t"><b>H10 · H9 · H7</b><span>Polar</span></span><span class="chev">›</span></button>
+      <button class="acc-row" type="button" data-acc="hr"><span class="acc-ic" data-i="strap"></span><span class="t"><b>HRM-Dual · HRM-Pro</b><span>Garmin</span></span><span class="chev">›</span></button>
+      <button class="acc-row" type="button" data-acc="hr"><span class="acc-ic" data-i="strap"></span><span class="t"><b>H6 · H808S · HW807</b><span>Coospo</span></span><span class="chev">›</span></button>
+      <button class="acc-row" type="button" data-acc="hr"><span class="acc-ic" data-i="arm"></span><span class="t"><b>Altre fasce e bracciali Bluetooth</b><span>Wahoo, Suunto, Scosche, Decathlon…</span></span><span class="chev">›</span></button>
+      <div class="acc-panel" id="accHr" hidden>
+        <p class="note" style="margin:0 0 6px" id="devHrTxt">Non collegata</p>
+        <div class="two"><button class="btn" id="devHrBtn" type="button">Collega</button><button class="btn ghost" id="devHrForget" type="button" hidden>Dimentica</button></div>
+        <label class="chk dev-auto"><input type="checkbox" id="devHrAuto" checked> Usala in automatico in corsa e in palestra</label>
+      </div>
+    </div>
+
+    <p class="pf-gh">Bilance</p>
+    <div class="pf-group">
+      <button class="acc-row" type="button" data-acc="scale"><span class="acc-ic" data-i="scale"></span><span class="t"><b>Lepulse</b><span>FitDays · prova del collegamento</span></span><span class="chev">›</span></button>
+      <button class="acc-row" type="button" data-acc="scalehc"><span class="acc-ic" data-i="scale"></span><span class="t"><b>Altre bilance</b><span>Tramite Health Connect (Renpho, Withings, Samsung…)</span></span><span class="chev">›</span></button>
+      <div class="acc-panel" id="accScale" hidden>
+        <p class="note" style="margin:0 0 6px" id="devScTxt">Per ora: da screenshot o da Health Connect. Prova se si può collegare direttamente:</p>
+        <button class="btn ghost" id="devScBtn" type="button">Prova collegamento</button>
+        <pre class="btlog" id="devScLog" hidden></pre>
+      </div>
+      <div class="acc-panel" id="accScaleHc" hidden><p class="note" style="margin:0">Nell'app della bilancia attiva la condivisione con <b>Health Connect</b> (o Samsung Health): peso e grasso arrivano qui da soli. Controlla in “Galaxy Watch” → Dati ricevuti da.</p></div>
+    </div>
+
+    <p class="pf-gh">Metri smart</p>
+    <div class="pf-group">
+      <button class="acc-row" type="button" data-acc="tape"><span class="acc-ic" data-i="tape"></span><span class="t"><b>Metro a nastro smart</b><span>Renpho · prova del collegamento</span></span><span class="chev">›</span></button>
+      <div class="acc-panel" id="accTape" hidden>
+        <p class="note" style="margin:0 0 6px" id="devTpTxt">Per ora: misure a mano o da screenshot. Prova se si può collegare direttamente:</p>
+        <button class="btn ghost" id="devTpBtn" type="button">Prova collegamento</button>
+        <pre class="btlog" id="devTpLog" hidden></pre>
+      </div>
+    </div>
+    <button class="linkbtn" id="devCopy" type="button" hidden>📋 Copia i risultati da mandare a Claude</button>
+    <div id="devBtSlot" hidden></div>
+    <div class="acc-search"><button class="btn ghost" id="accSearch" type="button">Ricerca accessori</button></div>
   </section>
   <section class="card" id="lookCard">
     <h2>Aspetto</h2>
@@ -1931,6 +2065,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       </div>
       <div class="hc-state" id="hcState"></div>
       <div class="two" style="margin-top:8px"><button class="btn" id="hcConnect" type="button">Collega</button><button class="btn ghost" id="hcSyncNow" type="button">Sincronizza ora</button></div>
+      <button class="linkbtn" id="hcPermsLink" type="button" hidden>Concedi i permessi mancanti</button>
       <button class="linkbtn" id="hcSettings" type="button">Gestisci permessi in Health Connect</button>
       <div class="status" id="hcStatus" aria-live="polite"></div>
     </div>
@@ -1962,7 +2097,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.28 (profilo compatto e dispositivi)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.38 (accessori in stile Samsung)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -1976,6 +2111,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button class="btn" id="saveProfile">Salva profilo</button>
     <p class="note">Le calorie degli allenamenti si sommano all'obiettivo del giorno. I valori sono stime: in caso di patologie confrontati con un medico o un nutrizionista.</p>
   </section>
+  </div>
+  <p class="note pf-foot">I valori sono stime: in caso di patologie confrontati con un medico o un nutrizionista.</p>
 </main>
 </div>
 
@@ -2701,17 +2838,17 @@ function mealList(){ return (state.profile&&state.profile.meals&&state.profile.m
 
 /* ---------- navigazione ---------- */
 let view="diario";
-const SUB_VIEWS=["cibo","pasto","casa","valuta","ricetta","ricetta","gara","corsa","cardio","attivita","attrezzatura","giorno"];
+const SUB_VIEWS=["cibo","pasto","casa","valuta","ricetta","pset","gara","corsa","cardio","attivita","attrezzatura","giorno"];
 function rememberView(v){ if(!state.profile||!goalOf(state.profile)) return; try{ sessionStorage.setItem("hf:where",JSON.stringify({v,meal:typeof mealPageId!=="undefined"?mealPageId:null,wd:typeof progOpenWd!=="undefined"?progOpenWd:null,date:state.date,at:Date.now()})); }catch{} }
 function go(v,fromHistory){ setTimeout(()=>rememberView(v),0);
   if(!fromHistory && v!==view){
     if(v==="diario"){ if(history.state&&history.state.v&&history.state.v!=="diario"&&!sheetStack.length){ history.back(); return; } }
-    else if(["cibo","pasto","casa","valuta","ricetta","gara","corsa","cardio","attivita","attrezzatura","giorno","sessione"].includes(v)||!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
+    else if(["cibo","pasto","casa","valuta","ricetta","pset","gara","corsa","cardio","attivita","attrezzatura","giorno","sessione"].includes(v)||!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
   }
   if(v!=="diario"&&typeof editMode!=="undefined"&&editMode) setEdit(false);
   view=v;
-  ["diario","cibo","pasto","casa","valuta","ricetta","gara","corsa","cardio","attivita","attrezzatura","giorno","sessione","dieta","allenamento","corpo","profilo"].forEach(x=>$("view-"+x).hidden = x!==v);
-  document.querySelectorAll("nav.tabbar button").forEach(b=> b.dataset.v===((v==="cibo"||v==="attivita"||v==="pasto")?"diario":v==="attrezzatura"?"profilo":(v==="giorno"||v==="sessione"||v==="gara")?"allenamento":(v==="corsa"||v==="cardio")?"attivita":(v==="casa"||v==="valuta"||v==="ricetta")?"dieta":v) ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
+  ["diario","cibo","pasto","casa","valuta","ricetta","pset","gara","corsa","cardio","attivita","attrezzatura","giorno","sessione","dieta","allenamento","corpo","profilo"].forEach(x=>$("view-"+x).hidden = x!==v);
+  document.querySelectorAll("nav.tabbar button").forEach(b=> b.dataset.v===((v==="cibo"||v==="attivita"||v==="pasto")?"diario":v==="attrezzatura"?"profilo":(v==="giorno"||v==="sessione"||v==="gara")?"allenamento":(v==="corsa"||v==="cardio")?"attivita":v==="pset"?"profilo":(v==="casa"||v==="valuta"||v==="ricetta")?"dieta":v) ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
   window.scrollTo(0,0);
   if(v==="profilo") fillProfile();
   renderAll();
@@ -4076,8 +4213,16 @@ let imported=null, tlog={sessions:[]}, editDay=null, logCtx=null, impFiles=[];
 function activeProg(){ if(imported&&imported.active&&Array.isArray(imported.days)) return {pr:imported,kind:"imported"}; if(state.program&&Array.isArray(state.program.days)) return {pr:state.program,kind:"ai"}; return null; }
 function saveActive(a){ if(a.kind==="imported") save("programImported",imported); else save("program",state.program); }
 function exTarget(x){ return x.detail ? x.detail : [x.sets? x.sets+" serie × "+(x.reps||"?") : "", x.rest? "recupero "+x.rest:""].filter(Boolean).join(" · "); }
-function lastFor(name){ const n=String(name||"").toLowerCase().trim();
-  for(let i=tlog.sessions.length-1;i>=0;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>String(e.name).toLowerCase().trim()===n); if(ex) return {date:tlog.sessions[i].date, ex}; } return null; }
+/* stesso esercizio anche con nomi leggermente diversi ("Panca piana" = "Panca piana con bilanciere") */
+function exKey(n){ return String(n||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\(.*?\)/g," ").replace(/\b(con|al|alla|allo|ai|alle|il|lo|la|i|gli|le|di|da|in|e|a)\b/g," ").replace(/\b(bilanciere|manubri|manubrio|macchina|cavi|cavo|kettlebell|smith|multipower)\b/g,m=>m.slice(0,4)).replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim(); }
+function sameEx(a,b){ const x=exKey(a), y=exKey(b); if(!x||!y) return false; if(x===y) return true;
+  const strip=t=>t.replace(/\b(bila|manu|macc|cavi|cavo|kett|smit|mult)\b/g,"").replace(/\s+/g," ").trim(); const sx=strip(x), sy=strip(y);
+  if(sx===sy&&sx.length>=5){ const eq=t=>(t.match(/\b(bila|manu|macc|cavi|cavo|kett|smit|mult)\b/)||[""])[0]; return !eq(x)||!eq(y)||eq(x)===eq(y); }
+  return false; }
+function lastFor(name){
+  for(let i=tlog.sessions.length-1;i>=0;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>sameEx(e.name,name)); if(ex) return {date:tlog.sessions[i].date, ex}; } return null; }
+function exHistory(name,max=6){ const out=[];
+  for(let i=tlog.sessions.length-1;i>=0&&out.length<max;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>sameEx(e.name,name)); if(ex&&ex.sets&&ex.sets.length) out.push({date:tlog.sessions[i].date,sets:ex.sets}); } return out; }
 function lastText(name){ const l=lastFor(name); if(!l) return "";
   const sets=(l.ex.sets||[]).map(s=>s.text? s.text : (s.kg? (s.vest?"🦺":"")+fmt(s.kg)+" kg × ":"")+(s.reps||"?")).join(", ");
   return "Ultima volta ("+new Date(l.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"})+"): "+sets; }
@@ -4101,7 +4246,7 @@ const r25=v=>Math.round(v/0.5)*0.5;
 function progFor(x){
   if(x.detail&&!x.sets||isTimed(x)) return null;
   const n=String(x.name||"").toLowerCase().trim(), hist2=[];
-  for(let i=tlog.sessions.length-1;i>=0&&hist2.length<3;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>String(e.name).toLowerCase().trim()===n); if(ex&&ex.sets&&ex.sets.length&&!ex.sets[0].text) hist2.push({date:tlog.sessions[i].date,sets:ex.sets}); }
+  for(let i=tlog.sessions.length-1;i>=0&&hist2.length<3;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>sameEx(e.name,x.name)); if(ex&&ex.sets&&ex.sets.length&&!ex.sets[0].text) hist2.push({date:tlog.sessions[i].date,sets:ex.sets}); }
   if(!hist2.length) return {kind:"new",text:"Prima volta: scegli un peso che ti lasci 1-2 ripetizioni di margine a fine serie."};
   const rr=repRange(x.reps)||[8,12], [lo,hi]=rr, last=hist2[0], kgs=last.sets.map(s=>+s.kg||0), top=Math.max(...kgs);
   const target=+x.sets||last.sets.length, work=last.sets.filter(s=>(+s.kg||0)===top), reps=work.map(s=>+s.reps||0);
@@ -4115,11 +4260,30 @@ function progFor(x){
   const sumR=h=>h.sets.reduce((a,z)=>a+(+z.reps||0),0);
   const stalled= hist2.length>=3 && hist2.every(h=>Math.max(...h.sets.map(s=>+s.kg||0))===top) && !allTop && sumR(hist2[0])<=sumR(hist2[2]);
   const when=new Date(last.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
-  if(allTop) return {kind:"up",kg:r25(top+step),text:`Aumenta a ${fmt(r25(top+step))} kg (+${fmt(step)} kg): nell'ultima seduta (${when}) hai chiuso ${work.length}×${Math.min(...reps)} a ${fmt(top)} kg. Riparti da ${lo} ripetizioni e risali fino a ${hi}.`};
+  if(allTop) return {kind:"up",kg:r25(top+step),text:`Aumenta a ${fmt(r25(top+step))} kg (+${fmt(step)} kg): nell'ultima seduta (${when}) hai chiuso ${work.length}×${Math.min(...reps)} a ${fmt(top)} kg. ${lo<hi? `Riparti da ${lo} ripetizioni e risali fino a ${hi}.` : `Con il peso nuovo è normale fare 1-2 ripetizioni in meno: risali fino a ${hi}.`}`};
   if(stalled) return {kind:"down",kg:r25(top*0.9),text:`Fermo a ${fmt(top)} kg da 3 sedute: scarica a ${fmt(r25(top*0.9))} kg per una settimana, poi riprendi a salire.`};
   if(anyLow>=2) return {kind:"hold",kg:top,text:`Resta a ${fmt(top)} kg: alcune serie sono finite sotto le ${lo} ripetizioni. Se succede di nuovo, togli ${fmt(step)} kg.`};
   return {kind:"hold",kg:top,text:`Resta a ${fmt(top)} kg e punta a ${target}×${hi}: quando ci arrivi in tutte le serie, aumenti di ${fmt(step)} kg.`};
 }
+/* memoria dei carichi: ultima volta, consiglio di oggi (aumenta / resta / scarica) e storico */
+const e1rm=(kg,reps)=>kg&&reps? kg*(1+reps/30) : 0;
+function memBox(x){ const box=el("div","mem"); const h=exHistory(x.name,6), pg=x.prog||progFor(x);
+  if(!h.length){ box.classList.add("first"); box.innerHTML=`<div class="mem-l">📒 Prima volta con questo esercizio</div><div class="mem-t">Scegli un peso che ti lasci 1-2 ripetizioni di margine: dalla prossima volta te lo ricordo io e ti dico se aumentare.</div>`; return box; }
+  const last=h[0], when=new Date(last.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
+  const setsTxt=last.sets.map(z=>z.text? z.text : (+z.kg? fmt(z.kg)+"×" : "")+(z.reps||"?")).join(" · ");
+  const K={up:["📈","Aumenta","up"],hold:["🎯","Resta","hold"],down:["📉","Scarica","down"],new:["📒","",""]}[pg&&pg.kind||"hold"]||["🎯","Resta","hold"];
+  box.innerHTML=`<div class="mem-l">📒 Ultima volta · ${when}</div><div class="mem-s"></div>
+    ${pg&&pg.kind&&pg.kind!=="new"? `<div class="mem-go ${K[2]}"><span>${K[0]} ${K[1]}</span><b>${pg.kg? "oggi "+fmt(pg.kg)+" kg" : ""}</b></div><div class="mem-t"></div>` : ""}
+    ${h.length>1? `<button type="button" class="mem-more">Storico ultime ${h.length} volte ›</button><div class="mem-hist" hidden></div>` : ""}`;
+  box.querySelector(".mem-s").textContent=setsTxt;
+  if(box.querySelector(".mem-t")) box.querySelector(".mem-t").textContent=pg.text;
+  const mb=box.querySelector(".mem-more");
+  if(mb) mb.onclick=e=>{ e.stopPropagation(); const hh=box.querySelector(".mem-hist"); hh.hidden=!hh.hidden; mb.textContent= hh.hidden? `Storico ultime ${h.length} volte ›` : "Nascondi storico";
+    if(!hh.innerHTML){ let prev=null; hh.innerHTML=h.slice().reverse().map(r0=>{ const top=Math.max(...r0.sets.map(z=>+z.kg||0)), best=Math.max(...r0.sets.map(z=>e1rm(+z.kg||0,+z.reps||0)));
+        const tr= prev==null? "" : best>prev*1.01? "↗" : best<prev*0.99? "↘" : "→"; prev=best||prev;
+        return `<div class="mh-row"><span>${new Date(r0.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"})}</span><span>${r0.sets.map(z=>z.text? z.text : (+z.kg? fmt(z.kg)+"×" : "")+(z.reps||"?")).join(" · ")}</span><b>${top? fmt(top)+" kg" : ""} ${tr}</b></div>`; }).reverse().join("")+
+        (()=>{ const b0=Math.max(...h[0].sets.map(z=>e1rm(+z.kg||0,+z.reps||0))), bN=Math.max(...h[h.length-1].sets.map(z=>e1rm(+z.kg||0,+z.reps||0))); return b0&&bN? `<p class="note" style="margin:6px 0 0">Massimale stimato: ${fmt(Math.round(b0))} kg${bN? ` (${b0>=bN?"+":""}${fmt(Math.round(b0-bN))} kg rispetto a ${h.length} sedute fa)`:""}.</p>` : ""; })(); } };
+  return box; }
 function renderRaceRow(){ const host=$("raceRowBox"); if(!host) return; host.innerHTML="";
   const rr=el("button","card raceRow"); rr.type="button";
   const rc=race&&race.goal; const wl=rc? Math.ceil((new Date(rc.date+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5)) : 0;
@@ -4386,11 +4550,12 @@ async function hcHr(H,from,to){ try{ const r0=await H.readSamples({dataType:"hea
 let hcBusy=false;
 async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getItem("hf:hcOn")!=="1") return; hcBusy=true; const msgs=[];
   try{ const now=new Date(), last=localStorage.getItem("hf:hcLast"), from=new Date(Date.now()-(last? 10 : 30)*864e5);
+    const diag={workouts:0,weight:0,bodyFat:0,sleep:0,steps:0};
     const iso=d=>d.toISOString(), dISO=d=>{ const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); };
     // --- allenamenti
     if(hcOpt("W")){ let anchor=null, added=0, all=[]; for(let pg=0;pg<10;pg++){ const r0=await H.queryWorkouts({startDate:iso(from),endDate:iso(now),limit:50,...(anchor?{anchor}:{})}); all=all.concat((r0&&r0.workouts)||[]); anchor=r0&&r0.anchor; if(!anchor) break; }
       const seen=new Set((hist.items||[]).map(w=>w.hcId).filter(Boolean));
-      all.forEach(w=>hcNoteSrc("workouts",w.sourceName||w.sourceId));
+      all.forEach(w=>hcNoteSrc("workouts",w.sourceName||w.sourceId)); diag.workouts=all.length;
       for(const w of all){ const id=w.platformId||(w.startDate+"|"+w.workoutType); if(seen.has(id)) continue;
         const date=dISO(w.startDate), st=new Date(w.startDate), min=Math.round((+w.duration||0)/60); if(min<3) continue;
         const hhmm=String(st.getHours()).padStart(2,"0")+":"+String(st.getMinutes()).padStart(2,"0");
@@ -4407,24 +4572,26 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
       if(added){ save("workoutHistory",hist); msgs.push(`${added} ${added===1?"allenamento":"allenamenti"}`); } }
     // --- passi e attività di oggi
     if(hcOpt("A")){ const d0=new Date(); d0.setHours(0,0,0,0); const sumOf=async t=>{ try{ const r0=await H.queryAggregated({dataType:t,startDate:iso(d0),endDate:iso(now),bucket:"day",aggregation:"sum"}); return ((r0&&r0.samples)||[]).reduce((a,x)=>a+(+x.value||0),0); }catch{ return 0; } };
-      const steps=Math.round(await sumOf("steps")), kc=Math.round(await sumOf("calories")), dist=await sumOf("distance");
+      const steps=Math.round(await sumOf("steps")), kc=Math.round(await sumOf("calories")), dist=await sumOf("distance"); diag.steps=steps;
       if(steps&&state.date===todayISO()){ const a=state.day.activity||{}; state.day.activity={...a,steps:Math.max(steps,+a.steps||0),activeKcal:Math.max(kc,+a.activeKcal||0)||a.activeKcal,distanceKm:dist? Math.max(Math.round(dist/10)/100,+a.distanceKm||0) : a.distanceKm,src:"health",at:new Date().toISOString()}; saveDay(); msgs.push(steps.toLocaleString("it-IT")+" passi"); } }
     // --- sonno di stanotte
     if(hcOpt("S")&&state.date===todayISO()&&!(state.day.sleep&&state.day.sleep.src!=="health")){ const y=new Date(); y.setDate(y.getDate()-1); y.setHours(18,0,0,0); const n12=new Date(); n12.setHours(14,0,0,0);
       try{ const r0=await H.readSamples({dataType:"sleep",startDate:iso(y),endDate:iso(n12<now?n12:now),limit:500}); const ss=(r0&&r0.samples)||[];
-        let minA=0, deep=0, rem=0; ss.forEach(x=>hcNoteSrc("sleep",x.sourceName||x.sourceId)); ss.forEach(x=>{ const m=(new Date(x.endDate)-new Date(x.startDate))/60000; if(x.stages&&x.stages.length){ x.stages.forEach(g=>{ const gm=(new Date(g.endDate)-new Date(g.startDate))/60000; if(!/awake|inBed/.test(g.stage||g.state||"")) minA+=gm; if(/deep/.test(g.stage||g.state||"")) deep+=gm; if(/rem/.test(g.stage||g.state||"")) rem+=gm; }); } else if(!/awake|inBed/.test(x.sleepState||"")) minA+= x.unit==="minute"&&+x.value? +x.value : m; });
+        let minA=0, deep=0, rem=0; diag.sleep=ss.length; ss.forEach(x=>hcNoteSrc("sleep",x.sourceName||x.sourceId)); ss.forEach(x=>{ const m=(new Date(x.endDate)-new Date(x.startDate))/60000; if(x.stages&&x.stages.length){ x.stages.forEach(g=>{ const gm=(new Date(g.endDate)-new Date(g.startDate))/60000; if(!/awake|inBed/.test(g.stage||g.state||"")) minA+=gm; if(/deep/.test(g.stage||g.state||"")) deep+=gm; if(/rem/.test(g.stage||g.state||"")) rem+=gm; }); } else if(!/awake|inBed/.test(x.sleepState||"")) minA+= x.unit==="minute"&&+x.value? +x.value : m; });
         if(minA>60){ state.day.sleep={...(state.day.sleep||{}),h:Math.round(minA/6)/10,deep:Math.round(deep)||null,rem:Math.round(rem)||null,src:"health"}; saveDay(); msgs.push(`sonno ${String(Math.round(minA/6)/10).replace(".",",")} h`); } }catch{} }
     // --- peso e grasso
     if(hcOpt("B")){ try{ const r0=await H.readSamples({dataType:"weight",startDate:iso(from),endDate:iso(now),limit:200}); const fr=await H.readSamples({dataType:"bodyFat",startDate:iso(from),endDate:iso(now),limit:200}).catch(()=>({samples:[]}));
-        ((r0&&r0.samples)||[]).forEach(x=>hcNoteSrc("weight",x.sourceName||x.sourceId)); ((fr&&fr.samples)||[]).forEach(x=>hcNoteSrc("bodyFat",x.sourceName||x.sourceId));
+        diag.weight=((r0&&r0.samples)||[]).length; diag.bodyFat=((fr&&fr.samples)||[]).length; ((r0&&r0.samples)||[]).forEach(x=>hcNoteSrc("weight",x.sourceName||x.sourceId)); ((fr&&fr.samples)||[]).forEach(x=>hcNoteSrc("bodyFat",x.sourceName||x.sourceId));
         const byDay={}; ((r0&&r0.samples)||[]).forEach(x=>{ const d=dISO(x.startDate); if(!byDay[d]||x.startDate>byDay[d].t) byDay[d]={t:x.startDate,w:+x.value}; });
         ((fr&&fr.samples)||[]).forEach(x=>{ const d=dISO(x.startDate); if(byDay[d]) byDay[d].fat=+x.value; });
-        let n=0; Object.entries(byDay).forEach(([d,v])=>{ if(!(v.w>20)) return; const ex=body.entries.find(e=>e.date===d&&e.weight); if(ex) return;
+        let n=0; Object.entries(byDay).forEach(([d,v])=>{ if(!(v.w>20)) return;
+          const same=body.entries.find(e=>e.date===d&&e.weight&&Math.abs(e.weight-v.w)<0.15); if(same) return;
+          const hcOld=body.entries.find(e=>e.date===d&&e.source==="health"); if(hcOld){ hcOld.weight=Math.round(v.w*10)/10; if(v.fat) hcOld.fat=Math.round(v.w*v.fat/10)/10; n++; return; }
           const fatKg= v.fat? Math.round(v.w*v.fat/10)/10 : null; body.entries=[...body.entries,{id:uid(),date:d,source:"health",weight:Math.round(v.w*10)/10,...(fatKg?{fat:fatKg}:{})}]; n++; });
         if(n){ save("body",body); try{ syncProfileFromBody(); }catch{} msgs.push(`${n} ${n===1?"pesata":"pesate"}`); } }catch{} }
     // --- battito a riposo
     try{ const r0=await H.readSamples({dataType:"restingHeartRate",startDate:iso(new Date(Date.now()-7*864e5)),endDate:iso(now),limit:20}); const ss=(r0&&r0.samples)||[]; if(ss.length){ const v=Math.round(ss.reduce((a,x)=>a+(+x.value),0)/ss.length); if(v>30&&v<110&&state.profile&&state.profile.hrRest!==v){ state.profile.hrRest=v; save("profile",state.profile); } } }catch{}
-    localStorage.setItem("hf:hcLast",new Date().toISOString()); try{ hcRenderState(); }catch{}
+    localStorage.setItem("hf:hcLast",new Date().toISOString()); localStorage.setItem("hf:hcDiag",JSON.stringify(diag)); try{ hcRenderState(); }catch{}
     const t=new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
     setStatus("hcStatus",`Ultima sincronizzazione alle ${t}`+(msgs.length? ": "+msgs.join(", ") : ": niente di nuovo"));
     if(msgs.length&&!manual) toast("Da Samsung Health: "+msgs.join(", "));
@@ -4438,24 +4605,69 @@ async function hcWriteBody(entry){ const H=HCP(); if(!H||localStorage.getItem("h
 const HC_LAB={workouts:"Allenamenti",heartRate:"Battito",steps:"Passi",sleep:"Sonno",weight:"Peso",bodyFat:"Grasso",distance:"Distanza",calories:"Calorie",restingHeartRate:"Battito a riposo"};
 const prettySrc=x=>{ const n=String(x||""); return /shealth|samsung/i.test(n)? "Samsung Health" : /fitdays|icomon/i.test(n)? "FitDays" : /renpho|qnniu|yolanda/i.test(n)? "Renpho" : /fit|google/i.test(n)? "Google Fit" : /strava/i.test(n)? "Strava" : /garmin/i.test(n)? "Garmin" : /polar/i.test(n)? "Polar" : n.split(".").pop()||"?"; };
 async function hcRenderState(){ const box=$("hcState"); if(!box) return; const H=HCP(); if(!H){ box.innerHTML=""; return; }
-  const on=localStorage.getItem("hf:hcOn")==="1"; $("hcConnect").textContent= on? "Aggiorna permessi" : "Collega"; $("hcSyncNow").hidden=!on;
+  const on=localStorage.getItem("hf:hcOn")==="1"; $("hcConnect").hidden=on; $("hcSyncNow").hidden=!on; $("hcSyncNow").className= on? "btn" : "btn ghost"; $("hcSettings").textContent= on? "Rivedi i permessi" : "Gestisci permessi in Health Connect";
+  if($("hcPermsLink")) $("hcPermsLink").hidden=!on;
   if(!on){ box.innerHTML=`<p class="hc-off">⚪ Non collegato</p>`; return; }
   let ok=[], no=[]; try{ const st=await H.checkAuthorization({read:hcReadTypes(),write:["weight","bodyFat"]}); ok=(st&&st.readAuthorized)||[]; no=(st&&st.readDenied)||[]; }catch{}
   const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"), srcTxt=Object.entries(src).map(([k,v])=>`${HC_LAB[k]||k}: ${[...new Set(v)].join(", ")}`).join(" · ");
   box.innerHTML=`<p class="hc-on">✅ Collegato a Health Connect</p>`+
     (ok.length? `<p class="note" style="margin:2px 0">Autorizzati: ${ok.map(k=>HC_LAB[k]||k).join(", ")}</p>` : "")+
-    (no.length? `<p class="note hc-warn" style="margin:2px 0">Non autorizzati: ${no.map(k=>HC_LAB[k]||k).join(", ")} → tocca “Aggiorna permessi”</p>` : "")+
+    (no.length? `<p class="note hc-warn" style="margin:2px 0">Non autorizzati: ${no.map(k=>HC_LAB[k]||k).join(", ")} → tocca “Concedi i permessi mancanti”</p>` : "")+
+    (()=>{ const dg=JSON.parse(localStorage.getItem("hf:hcDiag")||"null"); return dg? `<p class="note" style="margin:2px 0">Letto da Health Connect (ultimi giorni): ${dg.workouts} allenamenti · ${dg.weight} pesate · ${dg.bodyFat} misure di grasso · ${dg.sleep} sonni · ${dg.steps.toLocaleString("it-IT")} passi oggi</p>` : ""; })()+
     `<p class="note" style="margin:2px 0">${srcTxt? "Dati ricevuti da: "+srcTxt : "Ancora nessun dato ricevuto: controlla che Samsung Health (e FitDays/Renpho) condividano con Health Connect."}</p>`; }
 function hcNoteSrc(kind,name){ if(!name) return; const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"); src[kind]=[...new Set([...(src[kind]||[]),prettySrc(name)])].slice(-4); localStorage.setItem("hf:hcSrc",JSON.stringify(src)); }
 /* ----- dispositivi: la fascia si collega una volta dal profilo e parte da sola negli allenamenti ----- */
 const hrAuto=()=>localStorage.getItem("hf:hrAuto")!=="0";
-function renderDevices(){ const nm=localStorage.getItem("hf:hrName"), addr=localStorage.getItem("hf:hrAddr"), web=!HRN();
+/* elenco accessori in stile Samsung Health */
+const ACI={watch:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6l.6-2.5h4.8L15 6M9 18l.6 2.5h4.8L15 18M10 12h1.4l.8-1.6 1 3.2.8-1.6H15"/>',
+  strap:'<path d="M2.5 12c3-1.6 6-2.4 9.5-2.4s6.5.8 9.5 2.4"/><rect x="8.5" y="9.6" width="7" height="4.8" rx="2.4"/><path d="M2.5 12c3 1.6 6 2.4 9.5 2.4s6.5-.8 9.5-2.4"/>',
+  arm:'<rect x="8" y="4" width="8" height="16" rx="3"/><circle cx="12" cy="12" r="2"/>',
+  scale:'<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 8.5h6M12 8.5l1.2-1.8"/><circle cx="8" cy="16" r=".8"/><circle cx="16" cy="16" r=".8"/>',
+  tape:'<circle cx="10" cy="11" r="6.5"/><circle cx="10" cy="11" r="2"/><path d="M16.5 11v6.5h4"/>'};
+const acSvg=k=>`<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ACI[k]||ACI.watch}</svg>`;
+function accToggle(id){ const p=$(id); const open=p.hidden; document.querySelectorAll("#devCard .acc-panel").forEach(x=>{ if(x.id!=="accWatch"||id==="accWatch") x.hidden=true; }); p.hidden=!open; if(!p.hidden) setTimeout(()=>p.scrollIntoView({behavior:"smooth",block:"nearest"}),60); }
+function renderAccReg(){ const box=$("accReg"); if(!box) return; box.innerHTML=""; const rows=[];
+  const nm=localStorage.getItem("hf:hrName"); if(nm||HR.ch) rows.push(["strap",nm||HR.name||"Fascia cardio", HR.ch||(typeof NATHR!=="undefined"&&NATHR.on)? "Collegata" : "Pronta · parte da sola negli allenamenti","hr"]);
+  if(localStorage.getItem("hf:hcOn")==="1"){ const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"); rows.push(["watch","Samsung Health",(Object.keys(src).length? "Collegato · dati ricevuti" : "Collegato a Health Connect"),"watch"]); }
+  if(!rows.length){ box.appendChild(el("p","note acc-empty","Nessun accessorio registrato: scegli il tuo qui sotto.")); return; }
+  rows.forEach(([ic,t,sub,k])=>{ const b=el("button","acc-row"); b.type="button"; b.innerHTML=`<span class="acc-ic">${acSvg(ic)}</span><span class="t"><b></b><span></span></span><span class="chev">›</span>`; b.querySelector("b").textContent=t; b.querySelector(".t span").textContent=sub;
+    b.onclick=()=>accToggle(k==="hr"?"accHr":"accWatch"); box.appendChild(b); }); }
+document.querySelectorAll("#devCard .acc-ic[data-i]").forEach(x=>x.innerHTML=acSvg(x.dataset.i));
+document.querySelectorAll("#devCard .acc-row[data-acc]").forEach(b=>b.onclick=()=>accToggle({watch:"accWatch",watchapp:"accWatchApp",hr:"accHr",scale:"accScale",scalehc:"accScaleHc",tape:"accTape"}[b.dataset.acc]));
+$("accSearch").onclick=async()=>{ accToggle("accHr"); $("accHr").hidden=false; await (HRN()? hrnConnect() : hrConnectUI()); try{ if(HR.name) localStorage.setItem("hf:hrName",HR.name); }catch{} renderDevices(); };
+function renderDevices(){ try{ renderAccReg(); }catch{} const nm=localStorage.getItem("hf:hrName"), addr=localStorage.getItem("hf:hrAddr"), web=!HRN();
   const paired= web? !!(HR.ch||nm) : !!addr;
   $("devHrTxt").textContent= paired? `${nm||"Fascia"} · ${web? (HR.ch? "collegata ora" : "si ricollega all'avvio dell'allenamento") : "pronta: parte da sola negli allenamenti"}` : "Non collegata: indossala e tocca Collega";
   $("devHrBtn").textContent= paired? "Cambia" : "Collega"; $("devHrForget").hidden=!paired; $("devHrAuto").checked=hrAuto(); }
 $("devHrBtn").onclick=async()=>{ if(HRN()) await hrnConnect(); else { await hrConnectUI(); if(HR.name) localStorage.setItem("hf:hrName",HR.name); } renderDevices(); };
 $("devHrForget").onclick=()=>{ ["hf:hrAddr","hf:hrName"].forEach(k=>localStorage.removeItem(k)); try{ if(HR.dev&&HR.dev.gatt) HR.dev.gatt.disconnect(); }catch{} HR.ch=null; renderDevices(); toast("Fascia dimenticata"); };
 $("devHrAuto").onchange=()=>localStorage.setItem("hf:hrAuto",$("devHrAuto").checked?"1":"0");
+/* prova di bilancia e metro: elenca i dispositivi vicini, si collega e registra cosa inviano */
+async function devProbe(kind){ const log=$(kind==="scale"?"devScLog":"devTpLog"), btn=$(kind==="scale"?"devScBtn":"devTpBtn"); const W=t=>{ log.hidden=false; log.textContent+=t+"\n"; log.scrollTop=1e9; };
+  const what= kind==="scale"? "la bilancia" : "il metro", act= kind==="scale"? "SALI SULLA BILANCIA (scalzo) e resta fermo finché non finisce la misura, poi scendi e risali" : "FAI 2-3 MISURE diverse (es. attorno a un oggetto a 30 cm e 50 cm) e annota i valori che leggi sul display del metro";
+  log.textContent=""; const P=HRN();
+  if(!P||!P.explore){ // browser: Web Bluetooth
+    if(!navigator.bluetooth){ W("Questo test funziona dall'app Android (aggiornata) o da Chrome sul telefono."); return; }
+    W(`Accendi ${what} e tocca il suo nome nell'elenco che compare.`); const bt=document.querySelector(".bttest"); if(bt){ $("devBtSlot").hidden=false; bt.open=true; } $("btTest").click();
+    const iv=setInterval(()=>{ const t=$("btLog").textContent; if(t){ log.textContent=t; } if(/fine test/.test(t)){ clearInterval(iv); $("devCopy").hidden=false; localStorage.setItem("hf:probe-"+kind,t); } },1000); return; }
+  btn.disabled=true;
+  try{ W(`1) Accendi ${what}${kind==="scale"?" (salendoci sopra un attimo)":""}: cerco i dispositivi vicini per 8 secondi…`);
+    if(kind==="scale") toast("Sali un attimo sulla bilancia per accenderla");
+    const r0=await P.explore(); const ds=(r0&&r0.devices)||[];
+    if(!ds.length){ W("Nessun dispositivo trovato: Bluetooth acceso? Dispositivo acceso e vicino? Chiudi l'app del produttore e riprova."); return; }
+    const list=ds.slice(0,12).map((d,i)=>`${i+1}) ${d.name} (segnale ${d.rssi})`).join("\n");
+    const v=prompt(`Quale è ${what}? Scrivi il numero (il primo è il più vicino):\n`+list,"1"); if(v===null){ W("Annullato."); return; }
+    const d=ds[(+v||1)-1]||ds[0]; W(`Scelto: ${d.name} · ${d.address}`+(d.adv? `\nannuncio: ${d.adv}` : ""));
+    alert(`2) Ora ${act}.\n\nTocca OK e inizia subito: registro per 30 secondi.`);
+    W("Registro per 30 secondi…"); const r1=await P.inspect({address:d.address,seconds:30});
+    (r1&&r1.log||[]).forEach(x=>W(x)); W("— fine test —");
+    if(kind==="tape") W("Valori letti sul display del metro: (scrivili qui quando mandi i risultati)");
+    localStorage.setItem("hf:probe-"+kind,log.textContent); $("devCopy").hidden=false;
+  }catch(e){ W("Errore: "+((e&&e.message)||e)+(/explore|not implemented|is not a function/i.test(String(e&&e.message||e))? "\nServe l'APK aggiornata: scarica l'ultima versione." : "")); }
+  finally{ btn.disabled=false; } }
+$("devScBtn").onclick=()=>devProbe("scale"); $("devTpBtn").onclick=()=>devProbe("tape");
+$("devCopy").onclick=async()=>{ const t=["BILANCIA:\n"+(localStorage.getItem("hf:probe-scale")||"(non provata)"),"METRO:\n"+(localStorage.getItem("hf:probe-tape")||"(non provato)")].join("\n\n");
+  try{ const C=NAT(); if(C&&C.Plugins.Clipboard) await C.Plugins.Clipboard.write({string:t}); else await navigator.clipboard.writeText(t); toast("Copiato: incollalo nella chat con Claude"); }catch{ toast("Fai uno screenshot dei risultati"); } };
 /* palestra: battito registrato dal motore nativo (APK) o ricollegamento automatico (browser) */
 const NATHR={on:false,st:null};
 async function gymHrStart(){ if(!hrAuto()) return;
@@ -4472,14 +4684,91 @@ async function nativeShareGemini(file,txt){ const C=NAT(); if(!C) return false;
     const w=await P.Filesystem.writeFile({path:"pasto-"+Date.now()+".jpg",data:b64,directory:"CACHE"});
     await P.Share.share({title:"Valori nutrizionali",text:txt,files:[w.uri],dialogTitle:"Chiedi a Gemini"}); return true; }
   catch(e){ if(!/cancel/i.test(String(e&&e.message||e))) toast("Condivisione: "+((e&&e.message)||e)); return true; } }
+/* ===== profilo in stile impostazioni: elenco a gruppi, ogni voce apre la sua pagina ===== */
+const PF_GROUPS=[
+  ["Il tuo profilo",[["Chi sei","👤","chi",true],["obiettivo","🎯","goal",true],["I tuoi dati","📏","dati",true]]],
+  ["Alimentazione",[["I tuoi pasti","🍽️","pasti",true],["Integratori","💊","supp",true]]],
+  ["Allenamento",[["Quando ti alleni","🗓️","train",true],["__eq","🏋️","eq",false]]],
+  ["Dispositivi",[["Dispositivi collegati","🔌","dev",false]]],
+  ["App",[["Aspetto","🎨","look",false],["Impostazioni AI e dati","⚙️","ai",false]]]];
+let psCur=null;
+/* icone a linee, nello stesso stile della barra in basso */
+const PFI={
+  chi:'<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/>',
+  goal:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.2"/>',
+  dati:'<rect x="3.5" y="8" width="17" height="8" rx="1.5"/><path d="M7 8v3M10 8v2M13 8v3M16 8v2"/>',
+  pasti:'<path d="M7 3.5v7.5M4.8 3.5v4.2a2.2 2.2 0 0 0 4.4 0V3.5M7 11v9.5"/><path d="M16.5 20.5V3.5c-2.2 1.1-3.3 3.6-3.3 6.6 0 2 1.1 3 3.3 3"/>',
+  supp:'<rect x="3.6" y="8.6" width="16.8" height="6.8" rx="3.4" transform="rotate(-40 12 12)"/><path d="M9.6 9.3l5.1 5.4"/>',
+  train:'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
+  eq:'<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
+  dev:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6l.6-2.5h4.8L15 6M9 18l.6 2.5h4.8L15 18M10 12h1.4l.8-1.6 1 3.2.8-1.6H15"/>',
+  look:'<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-.8-.6-1.2-.6-2 0-.9.7-1.6 1.6-1.6h2.1a3.6 3.6 0 0 0 3.6-3.6C20.5 7 16.7 3.5 12 3.5z"/><circle cx="7.6" cy="11" r="1"/><circle cx="10.2" cy="7.3" r="1"/><circle cx="14.6" cy="7.6" r="1"/>',
+  ai:'<circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"/>',
+  chat:'<path d="M4.5 6.5a2.5 2.5 0 0 1 2.5-2.5h10a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 3.5V16H7a2.5 2.5 0 0 1-2.5-2.5z"/>'};
+const pfSvg=k=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PFI[k]||PFI.chi}</svg>`;
+function pfCardFor(title){ return [...document.querySelectorAll("#pfCards > section.card")].find(c=>{ const h=c.querySelector(":scope > h2"); return h&&h.textContent.toLowerCase().includes(title.toLowerCase()); }); }
+function pfSubtitle(k){ const p=state.profile||{}, d=typeof draft!=="undefined"&&draft? draft : p;
+  try{ switch(k){
+    case "chi": return [displayName(p)||"", p.age? p.age+" anni" : "", p.sex? (p.sex==="f"?"donna":"uomo") : ""].filter(Boolean).join(" · ")||"Nome, foto, età";
+    case "goal": { const g=goalOf(p); return g? g.t : "Scegli il tuo obiettivo"; }
+    case "dati": return [p.height? p.height+" cm" : "", p.weight? String(p.weight).replace(".",",")+" kg" : ""].filter(Boolean).join(" · ")||"Altezza, peso, attività";
+    case "pasti": { const ml=mealList(); const out=ml.filter(m=>m.where&&m.where!=="casa"); return `${ml.length} pasti`+(out.length? " · "+out.map(m=>m.name.toLowerCase()+" "+(m.where==="fuori"?"fuori":"in schiscetta")).join(", ") : ""); }
+    case "supp": { const n=(p.supplements||[]).filter(x=>x&&x.name); return n.length? n.map(x=>x.name.split(" ")[0]).join(", ") : "Nessuno"; }
+    case "train": { const t=trainOf(p); const days=[...new Set(t.sessions.flatMap(x=>x.days))]; return days.length? days.map(x=>["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][x]).join(", ") : "Giorni e orari"; }
+    case "eq": { const n=((p.equipment&&p.equipment.items)||[]).length; return n? n+" attrezzi" : "Nessuno selezionato"; }
+    case "dev": return [localStorage.getItem("hf:hrName")||"", localStorage.getItem("hf:hcOn")==="1"? "Samsung Health" : ""].filter(Boolean).join(" · ")||"Fascia, Galaxy Watch, bilancia";
+    case "look": return "Colori e tema";
+    case "ai": return [localStorage.getItem("hf:apiKey")? "Gemini" : "", localStorage.getItem("hf:orKey")? "OpenRouter" : "", localStorage.getItem("hf:groqKey")? "Groq" : "", (typeof SY!=="undefined"&&SY.user)? "sincronizzato" : ""].filter(Boolean).join(" · ")||"Chiavi AI e sincronizzazione";
+  } }catch{} return ""; }
+function renderPfList(){ const box=$("pfList"); if(!box) return; box.innerHTML="";
+  const p=state.profile||{}; try{ fillAvatar($("pfAv"),p); }catch{} $("pfName").textContent=displayName(p)||"Il tuo profilo"; $("pfSub").textContent=(typeof SY!=="undefined"&&SY.user&&SY.user.email)? SY.user.email : "Tocca per completare i tuoi dati";
+  PF_GROUPS.forEach(([gt,items])=>{ box.appendChild(el("p","pf-gh",gt)); const g=el("div","pf-group");
+    items.forEach(([title,ic,k])=>{ const b=el("button","pf-row"); b.type="button";
+      const label= k==="goal"? "Obiettivo" : k==="eq"? "Attrezzatura" : k==="ai"? "AI e sincronizzazione" : title.replace(/^[^A-Za-zÀ-ÿ]+/,"");
+      b.innerHTML=`<span class="ic">${pfSvg(k)}</span><span class="t"><b></b><span></span></span><span class="chev">›</span>`; b.querySelector("b").textContent=label; b.querySelector(".t span").textContent=pfSubtitle(k);
+      b.onclick=()=>{ if(k==="eq"){ $("eqOpen").click(); return; } openPset(title,label,k); }; g.appendChild(b); });
+    box.appendChild(g); });
+  const chat=el("button","pf-row pf-chat"); chat.type="button"; chat.innerHTML=`<span class="ic">${pfSvg("chat")}</span><span class="t"><b>Compila con il coach</b><span>Ti fa lui le domande e chiede conferma prima di cambiare</span></span><span class="chev">›</span>`; chat.onclick=()=>$("profByChat").click();
+  box.appendChild(el("p","pf-gh","Aiuto")); const g2=el("div","pf-group"); g2.appendChild(chat); box.appendChild(g2); }
+function openPset(title,label,k){ const c=pfCardFor(title); if(!c) return; psCur={card:c,parent:c.parentNode,next:c.nextSibling,k};
+  $("psTitle").textContent=label; c.classList.remove("collapsed"); $("psBody").innerHTML=""; $("psBody").appendChild(c);
+  const needSave=(PF_GROUPS.flatMap(x=>x[1]).find(x=>x[2]===k)||[])[3]; $("psSaveBar").hidden=!needSave; go("pset"); window.scrollTo(0,0); }
+function closePset(){ if(psCur){ psCur.parent.insertBefore(psCur.card,psCur.next); psCur=null; } renderPfList(); }
+$("psBack").onclick=()=>{ if(history.state&&history.state.v==="pset") history.back(); else { go("profilo"); closePset(); } };
+$("psSave").onclick=()=>{ $("saveProfile").click(); setTimeout(()=>{ renderPfList(); },300); };
+$("pfAcct").onclick=()=>openPset("Chi sei","Chi sei","chi");
 /* profilo: riquadri che si aprono e chiudono toccando il titolo (stato ricordato) */
-function foldProfile(){ const pf=JSON.parse(localStorage.getItem("hf:pfold")||"{}");
+function foldProfile(){ return; const pf=JSON.parse(localStorage.getItem("hf:pfold")||"{}");
   document.querySelectorAll("#view-profilo > section.card").forEach(c=>{ const h=c.querySelector(":scope > h2"); if(!h||c._fold) return; c._fold=true; c.classList.add("pf");
     const key=h.textContent.replace(/[^\wÀ-ÿ ]/g,"").trim(); const open= key in pf? pf[key] : /Chi sei/.test(key);
     c.classList.toggle("collapsed",!open); h.setAttribute("role","button"); h.tabIndex=0; h.setAttribute("aria-expanded",open);
     const tog=()=>{ const o=c.classList.toggle("collapsed")===false; h.setAttribute("aria-expanded",o); const m=JSON.parse(localStorage.getItem("hf:pfold")||"{}"); m[key]=o; localStorage.setItem("hf:pfold",JSON.stringify(m)); };
     h.addEventListener("click",tog); h.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); tog(); } }); }); }
 (function(){ try{ $("devHcSlot").appendChild($("hcCard")); const bt=document.querySelector(".bttest"); if(bt) $("devBtSlot").appendChild(bt); foldProfile(); setTimeout(()=>{ try{ renderDevices(); }catch{} },0); }catch(e){ console.warn("profilo",e); } })();
+/* ----- APK: Galaxy Watch (app HealthFit sull'orologio) ----- */
+const WBR=()=>{ const C=NAT(); return C? (C.Plugins&&C.Plugins.WatchBridge)||null : null; };
+async function watchSend(o){ const P=WBR(); if(!P) return;
+  const t=cdTargetFor(o.runType||o.title)||[-1,-1,""];
+  const plan={title:o.title||"Corsa",runType:o.runType||"",km:+o.km||0,pace:o.pace||"",desc:(o.desc||t[2]||"").slice(0,160),lo:t[0],hi:t[1],hrMax:hrMaxOf()};
+  try{ toast("Mando la corsa all'orologio…"); const r0=await P.sendRun({plan:JSON.stringify(plan)}); toast(`⌚ Corsa inviata a ${r0&&r0.watch||"orologio"}: tocca AVVIA sul polso`); }
+  catch(e){ const m=String((e&&e.message)||e); toast(/Nessun orologio/.test(m)? "Orologio non collegato: controlla Bluetooth e Galaxy Wearable" : "Orologio: "+m); } }
+async function saveWatchResult(o){ if(!o||!(+o.seconds>60)) return false;
+  const st=new Date(+o.startedAt||Date.now()), date=st.getFullYear()+"-"+String(st.getMonth()+1).padStart(2,"0")+"-"+String(st.getDate()).padStart(2,"0");
+  const hhmm=String(st.getHours()).padStart(2,"0")+":"+String(st.getMinutes()).padStart(2,"0"), min=Math.round(+o.seconds/60), km=+o.km>0.05? Math.round(+o.km*100)/100 : null;
+  const zones=(o.zoneSec||[]).length===5? o.zoneSec.map(x=>Math.round(+x/6)/10) : null;
+  // stessa corsa già registrata (es. con la fascia sul telefono)? completo i dati mancanti invece di duplicare
+  const near=x=>x.date===date&&x.start&&Math.abs((+x.start.slice(0,2)*60+ +x.start.slice(3))-(st.getHours()*60+st.getMinutes()))<=15;
+  const ex=(hist.items||[]).find(near);
+  if(ex){ let ch=false; if(!ex.distance&&km){ ex.distance=km; ex.pace=paceOf(ex.minutes||min,km); ch=true; } if(!ex.avgHr&&+o.avgHr){ ex.avgHr=+o.avgHr; ex.maxHr=+o.maxHr||null; ex.zones=zones; ch=true; }
+    if(ch){ save("workoutHistory",hist); const doc= date===state.date? state.day : await store.getDoc("day-"+date).catch(()=>null); if(doc){ const w=(doc.workouts||[]).find(x=>x.id===ex.id); if(w) Object.assign(w,{distance:ex.distance,pace:ex.pace,avgHr:ex.avgHr,maxHr:ex.maxHr,zones:ex.zones}); date===state.date? saveDay() : save("day-"+date,doc); } }
+    return ch; }
+  const wt=(state.profile&&state.profile.weight)||70;
+  const item={id:uid(),name:o.title||"Corsa",minutes:min,intensity:"Galaxy Watch",kcal:Math.round(+o.kcal||(km? km*wt : 8*wt*min/60)),distance:km,pace:km? paceOf(min,km) : null,start:hhmm,avgHr:+o.avgHr||null,maxHr:+o.maxHr||null,zones,src:"watch"};
+  try{ if(shoes&&shoes.def) item.shoe=shoes.def; }catch{}
+  hist.items=[...hist.items,{...item,date}]; save("workoutHistory",hist);
+  if(date===state.date){ state.day.workouts=[...(state.day.workouts||[]),item]; saveDay(); } else { const doc=(await store.getDoc("day-"+date).catch(()=>null))||{meals:{},workouts:[]}; doc.workouts=[...(doc.workouts||[]),item]; save("day-"+date,doc); }
+  setTimeout(()=>{ try{ raceCheckRun({...item,date}); }catch{} },500); return true; }
+async function watchPending(){ const P=WBR(); if(!P) return; try{ const r0=await P.pending(); let n=0; for(const o of (r0&&r0.results)||[]) if(await saveWatchResult(o)) n++; if(n){ toast(`⌚ ${n===1?"Corsa":"Corse"} dal Galaxy Watch salvat${n===1?"a":"e"} ✓`); renderAll(); } }catch(e){ console.warn("orologio",e); } }
 /* ----- APK: motore nativo (fascia e GPS a schermo spento) ----- */
 const NAT=()=>{ const C=window.Capacitor; return C&&C.isNativePlatform&&C.isNativePlatform()? C : null; };
 const HRN=()=>{ const C=NAT(); return C&&C.Plugins? C.Plugins.HrRecorder : null; };
@@ -4514,6 +4803,7 @@ function renderCardio(){ if(!CD) return; const nat=CD.native&&CD.nat, isN=!!HRN(
   if(nat){ CD.running=!!CD.nat.running; CD.paused=!!CD.nat.paused; }
   $("cdStart").hidden=CD.running; $("cdPause").hidden=!CD.running; $("cdEnd").hidden=!CD.t0; $("cdPause").textContent=CD.paused? "▶ Riprendi" : "⏸ Pausa"; $("cdStart").textContent=CD.t0? "▶ Riprendi" : "AVVIA";
   if(isN&&!CD.running) hrnBattery();
+  $("cdWatch").hidden=!WBR()||CD.running;
 }
 HR.fns.add(()=>{ if(view==="cardio") renderCardio(); });
 function cdAlert(msg){ if(!$("cdAlerts").checked||Date.now()-CD.lastAlert<45000) return; CD.lastAlert=Date.now(); try{ beep(); setTimeout(beep,350); }catch{} if(navigator.vibrate) navigator.vibrate([300,150,300]); toast(msg); try{ const u=new SpeechSynthesisUtterance(msg); u.lang="it-IT"; speechSynthesis.speak(u); }catch{} }
@@ -4549,6 +4839,7 @@ $("cdEnd").onclick=async()=>{ if(!CD||!CD.t0) return;
 $("cdBack").onclick=()=>{ if(CD&&CD.running&&!confirm("La corsa con la fascia è in corso: esci lo stesso? Puoi tornarci dal Programma.")) return; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita"); };
 async function hrnRestore(){ const P=HRN(); if(!P) return; try{ const st=await P.state(); if(st&&st.running){ hrnListen(); CD={title:st.title||"Corsa",runType:"",kmPlan:null,from:null,running:true,paused:!!st.paused,t0:Date.now()-(+st.seconds||0)*1000,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:null,native:true,nat:st};
   $("cdTitle").textContent=CD.title; go("cardio"); renderCardio(); toast("Corsa in corso ripresa"); } }catch{} }
+$("cdWatch").onclick=()=>{ if(CD) watchSend({title:CD.title,runType:CD.runType,km:CD.kmPlan}); };
 $("cdBattBtn").onclick=()=>{ const P=HRN(); if(P) P.requestBattery().then(()=>setTimeout(hrnBattery,4000)).catch(()=>{}); };
 $("csStrapBtn").onclick=async()=>{ if(HRN()){ await hrnConnect(); $("csStrap").textContent=`🫀 ${localStorage.getItem("hf:hrName")||"Fascia"} ${localStorage.getItem("hf:hrAddr")?"pronta":"non trovata"}`; return; } await hrConnectUI(); $("csStrap").textContent=hrStatus(); };
 $("csFreeRun").onclick=()=>openCardio({title:"Corsa libera",runType:""});
@@ -4845,6 +5136,38 @@ function applySpiderPreset(){
 let tutCache=null;
 async function tutStore(){ if(!tutCache){ try{ tutCache=(await store.getDoc("tutorials"))||{}; }catch{ tutCache={}; } } return tutCache; }
 const tutKey=n=>String(n||"").toLowerCase().replace(/\s+/g," ").trim();
+/* ===== dimostrazione animata: foto di inizio e fine movimento dal Free Exercise DB (pubblico dominio) ===== */
+const EXDB=[["3_4_Sit-Up","w","abdominals"],["90_90_Hamstring","w","hamstrings"],["Ab_Crunch_Machine","m","abdominals"],["Ab_Roller","o","abdominals"],["Adductor","f","adductors"],["Adductor_Groin","o","adductors"],["Advanced_Kettlebell_Windmill","k","abdominals"],["Air_Bike","w","abdominals"],["All_Fours_Quad_Stretch","w","quadriceps"],["Alternate_Hammer_Curl","d","biceps"],["Alternate_Heel_Touchers","w","abdominals"],["Alternate_Incline_Dumbbell_Curl","d","biceps"],["Alternate_Leg_Diagonal_Bound","o","quadriceps"],["Alternating_Cable_Shoulder_Press","c","shoulders"],["Alternating_Deltoid_Raise","d","shoulders"],["Alternating_Floor_Press","k","chest"],["Alternating_Hang_Clean","k","hamstrings"],["Alternating_Kettlebell_Press","k","shoulders"],["Alternating_Kettlebell_Row","k","middle back"],["Alternating_Renegade_Row","k","middle back"],["Ankle_Circles","o","calves"],["Ankle_On_The_Knee","o","glutes"],["Anterior_Tibialis-SMR","o","calves"],["Anti-Gravity_Press","b","shoulders"],["Arm_Circles","o","shoulders"],["Arnold_Dumbbell_Press","d","shoulders"],["Around_The_Worlds","d","chest"],["Atlas_Stone_Trainer","o","lower back"],["Atlas_Stones","o","lower back"],["Axle_Deadlift","o","lower back"],["Back_Flyes_-_With_Bands","n","shoulders"],["Backward_Drag","o","quadriceps"],["Backward_Medicine_Ball_Throw","x","shoulders"],["Balance_Board","o","calves"],["Ball_Leg_Curl","s","hamstrings"],["Band_Assisted_Pull-Up","o","lats"],["Band_Good_Morning","n","hamstrings"],["Band_Good_Morning_Pull_Through","n","hamstrings"],["Band_Hip_Adductions","n","adductors"],["Band_Pull_Apart","n","shoulders"],["Band_Skull_Crusher","n","triceps"],["Barbell_Ab_Rollout","b","abdominals"],["Barbell_Ab_Rollout_-_On_Knees","b","abdominals"],["Barbell_Bench_Press_-_Medium_Grip","b","chest"],["Barbell_Curl","b","biceps"],["Barbell_Curls_Lying_Against_An_Incline","b","biceps"],["Barbell_Deadlift","b","lower back"],["Barbell_Full_Squat","b","quadriceps"],["Barbell_Glute_Bridge","b","glutes"],["Barbell_Guillotine_Bench_Press","b","chest"],["Barbell_Hack_Squat","b","quadriceps"],["Barbell_Hip_Thrust","b","glutes"],["Barbell_Incline_Bench_Press_-_Medium_Grip","b","chest"],["Barbell_Incline_Shoulder_Raise","b","shoulders"],["Barbell_Lunge","b","quadriceps"],["Barbell_Rear_Delt_Row","b","shoulders"],["Barbell_Rollout_from_Bench","b","abdominals"],["Barbell_Seated_Calf_Raise","b","calves"],["Barbell_Shoulder_Press","b","shoulders"],["Barbell_Shrug","b","traps"],["Barbell_Shrug_Behind_The_Back","b","traps"],["Barbell_Side_Bend","b","abdominals"],["Barbell_Side_Split_Squat","b","quadriceps"],["Barbell_Squat","b","quadriceps"],["Barbell_Squat_To_A_Bench","b","quadriceps"],["Barbell_Step_Ups","b","quadriceps"],["Barbell_Walking_Lunge","b","quadriceps"],["Battling_Ropes","o","shoulders"],["Bear_Crawl_Sled_Drags","o","quadriceps"],["Behind_Head_Chest_Stretch","o","chest"],["Bench_Dips","w","triceps"],["Bench_Jump","w","quadriceps"],["Bench_Press_-_Powerlifting","b","triceps"],["Bench_Press_-_With_Bands","n","chest"],["Bench_Press_with_Chains","b","triceps"],["Bench_Sprint","o","quadriceps"],["Bent-Arm_Barbell_Pullover","b","lats"],["Bent-Arm_Dumbbell_Pullover","d","chest"],["Bent-Knee_Hip_Raise","w","abdominals"],["Bent_Over_Barbell_Row","b","middle back"],["Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench","d","shoulders"],["Bent_Over_Low-Pulley_Side_Lateral","c","shoulders"],["Bent_Over_One-Arm_Long_Bar_Row","b","middle back"],["Bent_Over_Two-Arm_Long_Bar_Row","b","middle back"],["Bent_Over_Two-Dumbbell_Row","d","middle back"],["Bent_Over_Two-Dumbbell_Row_With_Palms_In","d","middle back"],["Bent_Press","k","abdominals"],["Bicycling","o","quadriceps"],["Bicycling_Stationary","m","quadriceps"],["Board_Press","b","triceps"],["Body-Up","w","triceps"],["Body_Tricep_Press","w","triceps"],["Bodyweight_Flyes","e","chest"],["Bodyweight_Mid_Row","o","middle back"],["Bodyweight_Squat","w","quadriceps"],["Bodyweight_Walking_Lunge","o","quadriceps"],["Bosu_Ball_Cable_Crunch_With_Side_Bends","c","abdominals"],["Bottoms-Up_Clean_From_The_Hang_Position","k","forearms"],["Bottoms_Up","w","abdominals"],["Box_Jump_Multiple_Response","o","hamstrings"],["Box_Skip","o","hamstrings"],["Box_Squat","b","quadriceps"],["Box_Squat_with_Bands","b","quadriceps"],["Box_Squat_with_Chains","b","quadriceps"],["Brachialis-SMR","f","biceps"],["Bradford_Rocky_Presses","b","shoulders"],["Butt-Ups","w","abdominals"],["Butt_Lift_Bridge","w","glutes"],["Butterfly","m","chest"],["Cable_Chest_Press","c","chest"],["Cable_Crossover","c","chest"],["Cable_Crunch","c","abdominals"],["Cable_Deadlifts","c","quadriceps"],["Cable_Hammer_Curls_-_Rope_Attachment","c","biceps"],["Cable_Hip_Adduction","c","quadriceps"],["Cable_Incline_Pushdown","c","lats"],["Cable_Incline_Triceps_Extension","c","triceps"],["Cable_Internal_Rotation","c","shoulders"],["Cable_Iron_Cross","c","chest"],["Cable_Judo_Flip","c","abdominals"],["Cable_Lying_Triceps_Extension","c","triceps"],["Cable_One_Arm_Tricep_Extension","c","triceps"],["Cable_Preacher_Curl","c","biceps"],["Cable_Rear_Delt_Fly","c","shoulders"],["Cable_Reverse_Crunch","c","abdominals"],["Cable_Rope_Overhead_Triceps_Extension","c","triceps"],["Cable_Rope_Rear-Delt_Rows","c","shoulders"],["Cable_Russian_Twists","c","abdominals"],["Cable_Seated_Crunch","c","abdominals"],["Cable_Seated_Lateral_Raise","c","shoulders"],["Cable_Shoulder_Press","c","shoulders"],["Cable_Shrugs","c","traps"],["Cable_Wrist_Curl","c","forearms"],["Calf-Machine_Shoulder_Shrug","m","traps"],["Calf_Press","m","calves"],["Calf_Press_On_The_Leg_Press_Machine","m","calves"],["Calf_Raise_On_A_Dumbbell","d","calves"],["Calf_Raises_-_With_Bands","n","calves"],["Calf_Stretch_Elbows_Against_Wall","o","calves"],["Calf_Stretch_Hands_Against_Wall","o","calves"],["Calves-SMR","f","calves"],["Car_Deadlift","o","quadriceps"],["Car_Drivers","b","shoulders"],["Carioca_Quick_Step","o","adductors"],["Cat_Stretch","o","lower back"],["Catch_and_Overhead_Throw","x","lats"],["Chain_Handle_Extension","o","triceps"],["Chain_Press","o","chest"],["Chair_Leg_Extended_Stretch","o","hamstrings"],["Chair_Lower_Back_Stretch","o","lats"],["Chair_Squat","m","quadriceps"],["Chair_Upper_Body_Stretch","o","shoulders"],["Chest_And_Front_Of_Shoulder_Stretch","o","chest"],["Chest_Push_from_3_point_stance","x","chest"],["Chest_Push_multiple_response","x","chest"],["Chest_Push_single_response","x","chest"],["Chest_Push_with_Run_Release","x","chest"],["Chest_Stretch_on_Stability_Ball","s","chest"],["Childs_Pose","o","lower back"],["Chin-Up","w","lats"],["Chin_To_Chest_Stretch","o","neck"],["Circus_Bell","o","shoulders"],["Clean","b","hamstrings"],["Clean_Deadlift","b","hamstrings"],["Clean_Pull","b","quadriceps"],["Clean_Shrug","b","traps"],["Clean_and_Jerk","b","shoulders"],["Clean_and_Press","b","shoulders"],["Clean_from_Blocks","b","quadriceps"],["Clock_Push-Up","w","chest"],["Close-Grip_Barbell_Bench_Press","b","triceps"],["Close-Grip_Dumbbell_Press","d","triceps"],["Close-Grip_EZ-Bar_Curl_with_Band","e","biceps"],["Close-Grip_EZ-Bar_Press","e","triceps"],["Close-Grip_EZ_Bar_Curl","b","biceps"],["Close-Grip_Front_Lat_Pulldown","c","lats"],["Close-Grip_Push-Up_off_of_a_Dumbbell","w","triceps"],["Close-Grip_Standing_Barbell_Curl","b","biceps"],["Cocoons","w","abdominals"],["Conans_Wheel","o","quadriceps"],["Concentration_Curls","d","biceps"],["Cross-Body_Crunch","w","abdominals"],["Cross_Body_Hammer_Curl","d","biceps"],["Cross_Over_-_With_Bands","n","chest"],["Crossover_Reverse_Lunge","o","lower back"],["Crucifix","o","shoulders"],["Crunch_-_Hands_Overhead","w","abdominals"],["Crunch_-_Legs_On_Exercise_Ball","w","abdominals"],["Crunches","w","abdominals"],["Cuban_Press","d","shoulders"],["Dancers_Stretch","o","lower back"],["Dead_Bug","w","abdominals"],["Deadlift_with_Bands","b","lower back"],["Deadlift_with_Chains","b","lower back"],["Decline_Barbell_Bench_Press","b","chest"],["Decline_Close-Grip_Bench_To_Skull_Crusher","b","triceps"],["Decline_Crunch","w","abdominals"],["Decline_Dumbbell_Bench_Press","d","chest"],["Decline_Dumbbell_Flyes","d","chest"],["Decline_Dumbbell_Triceps_Extension","d","triceps"],["Decline_EZ_Bar_Triceps_Extension","b","triceps"],["Decline_Oblique_Crunch","w","abdominals"],["Decline_Push-Up","o","chest"],["Decline_Reverse_Crunch","w","abdominals"],["Decline_Smith_Press","m","chest"],["Deficit_Deadlift","b","lower back"],["Depth_Jump_Leap","o","quadriceps"],["Dip_Machine","m","triceps"],["Dips_-_Chest_Version","o","chest"],["Dips_-_Triceps_Version","w","triceps"],["Donkey_Calf_Raises","o","calves"],["Double_Kettlebell_Alternating_Hang_Clean","k","hamstrings"],["Double_Kettlebell_Jerk","k","shoulders"],["Double_Kettlebell_Push_Press","k","shoulders"],["Double_Kettlebell_Snatch","k","shoulders"],["Double_Kettlebell_Windmill","k","abdominals"],["Double_Leg_Butt_Kick","w","quadriceps"],["Downward_Facing_Balance","s","glutes"],["Drag_Curl","b","biceps"],["Drop_Push","o","chest"],["Dumbbell_Alternate_Bicep_Curl","d","biceps"],["Dumbbell_Bench_Press","d","chest"],["Dumbbell_Bench_Press_with_Neutral_Grip","d","chest"],["Dumbbell_Bicep_Curl","d","biceps"],["Dumbbell_Clean","d","hamstrings"],["Dumbbell_Floor_Press","d","triceps"],["Dumbbell_Flyes","d","chest"],["Dumbbell_Incline_Row","d","middle back"],["Dumbbell_Incline_Shoulder_Raise","d","shoulders"],["Dumbbell_Lunges","d","quadriceps"],["Dumbbell_Lying_One-Arm_Rear_Lateral_Raise","d","shoulders"],["Dumbbell_Lying_Pronation","d","forearms"],["Dumbbell_Lying_Rear_Lateral_Raise","d","shoulders"],["Dumbbell_Lying_Supination","d","forearms"],["Dumbbell_One-Arm_Shoulder_Press","d","shoulders"],["Dumbbell_One-Arm_Triceps_Extension","d","triceps"],["Dumbbell_One-Arm_Upright_Row","d","shoulders"],["Dumbbell_Prone_Incline_Curl","d","biceps"],["Dumbbell_Raise","d","shoulders"],["Dumbbell_Rear_Lunge","d","quadriceps"],["Dumbbell_Scaption","d","shoulders"],["Dumbbell_Seated_Box_Jump","d","quadriceps"],["Dumbbell_Seated_One-Leg_Calf_Raise","d","calves"],["Dumbbell_Shoulder_Press","d","shoulders"],["Dumbbell_Shrug","d","traps"],["Dumbbell_Side_Bend","d","abdominals"],["Dumbbell_Squat","d","quadriceps"],["Dumbbell_Squat_To_A_Bench","d","quadriceps"],["Dumbbell_Step_Ups","d","quadriceps"],["Dumbbell_Tricep_Extension_-Pronated_Grip","d","triceps"],["Dynamic_Back_Stretch","o","lats"],["Dynamic_Chest_Stretch","o","chest"],["EZ-Bar_Curl","e","biceps"],["EZ-Bar_Skullcrusher","e","triceps"],["Elbow_Circles","o","shoulders"],["Elbow_to_Knee","w","abdominals"],["Elbows_Back","o","chest"],["Elevated_Back_Lunge","b","quadriceps"],["Elevated_Cable_Rows","c","lats"],["Elliptical_Trainer","m","quadriceps"],["Exercise_Ball_Crunch","s","abdominals"],["Exercise_Ball_Pull-In","s","abdominals"],["Extended_Range_One-Arm_Kettlebell_Floor_Press","k","chest"],["External_Rotation","d","shoulders"],["External_Rotation_with_Band","n","shoulders"],["External_Rotation_with_Cable","c","shoulders"],["Face_Pull","c","shoulders"],["Farmers_Walk","o","forearms"],["Fast_Skipping","w","quadriceps"],["Finger_Curls","b","forearms"],["Flat_Bench_Cable_Flyes","c","chest"],["Flat_Bench_Leg_Pull-In","w","abdominals"],["Flat_Bench_Lying_Leg_Raise","w","abdominals"],["Flexor_Incline_Dumbbell_Curls","d","biceps"],["Floor_Glute-Ham_Raise","o","hamstrings"],["Floor_Press","b","triceps"],["Floor_Press_with_Chains","b","triceps"],["Flutter_Kicks","w","glutes"],["Foot-SMR","o","calves"],["Forward_Drag_with_Press","o","chest"],["Frankenstein_Squat","b","quadriceps"],["Freehand_Jump_Squat","w","quadriceps"],["Frog_Hops","o","quadriceps"],["Frog_Sit-Ups","w","abdominals"],["Front_Barbell_Squat","b","quadriceps"],["Front_Barbell_Squat_To_A_Bench","b","quadriceps"],["Front_Box_Jump","o","hamstrings"],["Front_Cable_Raise","c","shoulders"],["Front_Cone_Hops_or_hurdle_hops","o","quadriceps"],["Front_Dumbbell_Raise","d","shoulders"],["Front_Incline_Dumbbell_Raise","d","shoulders"],["Front_Leg_Raises","w","hamstrings"],["Front_Plate_Raise","o","shoulders"],["Front_Raise_And_Pullover","b","chest"],["Front_Squat_Clean_Grip","b","quadriceps"],["Front_Squats_With_Two_Kettlebells","k","quadriceps"],["Front_Two-Dumbbell_Raise","d","shoulders"],["Full_Range-Of-Motion_Lat_Pulldown","c","lats"],["Gironda_Sternum_Chins","o","lats"],["Glute_Ham_Raise","m","hamstrings"],["Glute_Kickback","w","glutes"],["Goblet_Squat","k","quadriceps"],["Good_Morning","b","hamstrings"],["Good_Morning_off_Pins","b","hamstrings"],["Gorilla_Chin_Crunch","w","abdominals"],["Groin_and_Back_Stretch","o","adductors"],["Groiners","w","adductors"],["Hack_Squat","m","quadriceps"],["Hammer_Curls","d","biceps"],["Hammer_Grip_Incline_DB_Bench_Press","d","chest"],["Hamstring-SMR","f","hamstrings"],["Hamstring_Stretch","o","hamstrings"],["Handstand_Push-Ups","w","shoulders"],["Hang_Clean","b","quadriceps"],["Hang_Clean_-_Below_the_Knees","b","quadriceps"],["Hang_Snatch","b","hamstrings"],["Hang_Snatch_-_Below_Knees","b","hamstrings"],["Hanging_Bar_Good_Morning","b","hamstrings"],["Hanging_Leg_Raise","w","abdominals"],["Hanging_Pike","w","abdominals"],["Heaving_Snatch_Balance","b","quadriceps"],["Heavy_Bag_Thrust","o","chest"],["High_Cable_Curls","c","biceps"],["Hip_Circles_prone","w","abductors"],["Hip_Extension_with_Bands","n","glutes"],["Hip_Flexion_with_Band","n","quadriceps"],["Hip_Lift_with_Band","n","glutes"],["Hug_A_Ball","s","lower back"],["Hug_Knees_To_Chest","o","lower back"],["Hurdle_Hops","o","hamstrings"],["Hyperextensions_Back_Extensions","o","lower back"],["Hyperextensions_With_No_Hyperextension_Bench","w","lower back"],["IT_Band_and_Glute_Stretch","o","abductors"],["Iliotibial_Tract-SMR","f","abductors"],["Inchworm","w","hamstrings"],["Incline_Barbell_Triceps_Extension","b","triceps"],["Incline_Bench_Pull","b","middle back"],["Incline_Cable_Chest_Press","c","chest"],["Incline_Cable_Flye","c","chest"],["Incline_Dumbbell_Bench_With_Palms_Facing_In","d","chest"],["Incline_Dumbbell_Curl","d","biceps"],["Incline_Dumbbell_Flyes","d","chest"],["Incline_Dumbbell_Flyes_-_With_A_Twist","d","chest"],["Incline_Dumbbell_Press","d","chest"],["Incline_Hammer_Curls","d","biceps"],["Incline_Inner_Biceps_Curl","d","biceps"],["Incline_Push-Up","w","chest"],["Incline_Push-Up_Close-Grip","w","triceps"],["Incline_Push-Up_Depth_Jump","o","chest"],["Incline_Push-Up_Medium","w","chest"],["Incline_Push-Up_Reverse_Grip","w","chest"],["Incline_Push-Up_Wide","w","chest"],["Intermediate_Groin_Stretch","o","hamstrings"],["Intermediate_Hip_Flexor_and_Quad_Stretch","o","quadriceps"],["Internal_Rotation_with_Band","n","shoulders"],["Inverted_Row","o","middle back"],["Inverted_Row_with_Straps","o","middle back"],["Iron_Cross","d","shoulders"],["Iron_Crosses_stretch","o","quadriceps"],["Isometric_Chest_Squeezes","w","chest"],["Isometric_Neck_Exercise_-_Front_And_Back","w","neck"],["Isometric_Neck_Exercise_-_Sides","w","neck"],["Isometric_Wipers","w","chest"],["JM_Press","b","triceps"],["Jackknife_Sit-Up","w","abdominals"],["Janda_Sit-Up","w","abdominals"],["Jefferson_Squats","b","quadriceps"],["Jerk_Balance","b","shoulders"],["Jerk_Dip_Squat","b","quadriceps"],["Jogging_Treadmill","m","quadriceps"],["Keg_Load","o","lower back"],["Kettlebell_Arnold_Press","k","shoulders"],["Kettlebell_Dead_Clean","k","hamstrings"],["Kettlebell_Figure_8","k","abdominals"],["Kettlebell_Hang_Clean","k","hamstrings"],["Kettlebell_One-Legged_Deadlift","k","hamstrings"],["Kettlebell_Pass_Between_The_Legs","k","abdominals"],["Kettlebell_Pirate_Ships","k","shoulders"],["Kettlebell_Pistol_Squat","k","quadriceps"],["Kettlebell_Seated_Press","k","shoulders"],["Kettlebell_Seesaw_Press","k","shoulders"],["Kettlebell_Sumo_High_Pull","k","traps"],["Kettlebell_Thruster","k","shoulders"],["Kettlebell_Turkish_Get-Up_Lunge_style","k","shoulders"],["Kettlebell_Turkish_Get-Up_Squat_style","k","shoulders"],["Kettlebell_Windmill","k","abdominals"],["Kipping_Muscle_Up","o","lats"],["Knee_Across_The_Body","o","glutes"],["Knee_Circles","w","calves"],["Knee_Hip_Raise_On_Parallel_Bars","o","abdominals"],["Knee_Tuck_Jump","w","hamstrings"],["Kneeling_Arm_Drill","o","shoulders"],["Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists","c","abdominals"],["Kneeling_Cable_Triceps_Extension","c","triceps"],["Kneeling_Forearm_Stretch","o","forearms"],["Kneeling_High_Pulley_Row","c","lats"],["Kneeling_Hip_Flexor","o","quadriceps"],["Kneeling_Jump_Squat","b","glutes"],["Kneeling_Single-Arm_High_Pulley_Row","c","lats"],["Kneeling_Squat","b","glutes"],["Landmine_180s","b","abdominals"],["Landmine_Linear_Jammer","b","shoulders"],["Lateral_Bound","w","adductors"],["Lateral_Box_Jump","o","adductors"],["Lateral_Cone_Hops","o","adductors"],["Lateral_Raise_-_With_Bands","n","shoulders"],["Latissimus_Dorsi-SMR","f","lats"],["Leg-Over_Floor_Press","k","chest"],["Leg-Up_Hamstring_Stretch","o","hamstrings"],["Leg_Extensions","m","quadriceps"],["Leg_Lift","w","glutes"],["Leg_Press","m","quadriceps"],["Leg_Pull-In","w","abdominals"],["Leverage_Chest_Press","m","chest"],["Leverage_Deadlift","m","quadriceps"],["Leverage_Decline_Chest_Press","m","chest"],["Leverage_High_Row","m","middle back"],["Leverage_Incline_Chest_Press","m","chest"],["Leverage_Iso_Row","m","lats"],["Leverage_Shoulder_Press","m","shoulders"],["Leverage_Shrug","m","traps"],["Linear_3-Part_Start_Technique","o","hamstrings"],["Linear_Acceleration_Wall_Drill","o","hamstrings"],["Linear_Depth_Jump","o","quadriceps"],["Log_Lift","o","shoulders"],["London_Bridges","o","lats"],["Looking_At_Ceiling","o","quadriceps"],["Low_Cable_Crossover","c","chest"],["Low_Cable_Triceps_Extension","c","triceps"],["Low_Pulley_Row_To_Neck","c","shoulders"],["Lower_Back-SMR","f","lower back"],["Lower_Back_Curl","w","abdominals"],["Lunge_Pass_Through","k","hamstrings"],["Lunge_Sprint","m","quadriceps"],["Lying_Bent_Leg_Groin","o","adductors"],["Lying_Cable_Curl","c","biceps"],["Lying_Cambered_Barbell_Row","b","middle back"],["Lying_Close-Grip_Bar_Curl_On_High_Pulley","c","biceps"],["Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head","b","triceps"],["Lying_Close-Grip_Barbell_Triceps_Press_To_Chin","e","triceps"],["Lying_Crossover","w","abductors"],["Lying_Dumbbell_Tricep_Extension","d","triceps"],["Lying_Face_Down_Plate_Neck_Resistance","o","neck"],["Lying_Face_Up_Plate_Neck_Resistance","o","neck"],["Lying_Glute","w","glutes"],["Lying_Hamstring","o","hamstrings"],["Lying_High_Bench_Barbell_Curl","b","biceps"],["Lying_Leg_Curls","m","hamstrings"],["Lying_Machine_Squat","m","quadriceps"],["Lying_One-Arm_Lateral_Raise","d","shoulders"],["Lying_Prone_Quadriceps","w","quadriceps"],["Lying_Rear_Delt_Raise","d","shoulders"],["Lying_Supine_Dumbbell_Curl","d","biceps"],["Lying_T-Bar_Row","m","middle back"],["Lying_Triceps_Press","e","triceps"],["Machine_Bench_Press","m","chest"],["Machine_Bicep_Curl","m","biceps"],["Machine_Preacher_Curls","m","biceps"],["Machine_Shoulder_Military_Press","m","shoulders"],["Machine_Triceps_Extension","m","triceps"],["Medicine_Ball_Chest_Pass","x","chest"],["Medicine_Ball_Full_Twist","x","abdominals"],["Medicine_Ball_Scoop_Throw","x","shoulders"],["Middle_Back_Shrug","d","middle back"],["Middle_Back_Stretch","o","middle back"],["Mixed_Grip_Chin","o","middle back"],["Monster_Walk","n","abductors"],["Mountain_Climbers","o","quadriceps"],["Moving_Claw_Series","o","hamstrings"],["Muscle_Snatch","b","hamstrings"],["Muscle_Up","o","lats"],["Narrow_Stance_Hack_Squats","m","quadriceps"],["Narrow_Stance_Leg_Press","m","quadriceps"],["Narrow_Stance_Squats","b","quadriceps"],["Natural_Glute_Ham_Raise","w","hamstrings"],["Neck-SMR","o","neck"],["Neck_Press","b","chest"],["Oblique_Crunches","w","abdominals"],["Oblique_Crunches_-_On_The_Floor","w","abdominals"],["Olympic_Squat","b","quadriceps"],["On-Your-Back_Quad_Stretch","o","quadriceps"],["On_Your_Side_Quad_Stretch","o","quadriceps"],["One-Arm_Dumbbell_Row","d","middle back"],["One-Arm_Flat_Bench_Dumbbell_Flye","d","chest"],["One-Arm_High-Pulley_Cable_Side_Bends","c","abdominals"],["One-Arm_Incline_Lateral_Raise","d","shoulders"],["One-Arm_Kettlebell_Clean","k","hamstrings"],["One-Arm_Kettlebell_Clean_and_Jerk","k","shoulders"],["One-Arm_Kettlebell_Floor_Press","k","chest"],["One-Arm_Kettlebell_Jerk","k","shoulders"],["One-Arm_Kettlebell_Military_Press_To_The_Side","k","shoulders"],["One-Arm_Kettlebell_Para_Press","k","shoulders"],["One-Arm_Kettlebell_Push_Press","k","shoulders"],["One-Arm_Kettlebell_Row","k","middle back"],["One-Arm_Kettlebell_Snatch","k","shoulders"],["One-Arm_Kettlebell_Split_Jerk","k","shoulders"],["One-Arm_Kettlebell_Split_Snatch","k","shoulders"],["One-Arm_Kettlebell_Swings","k","hamstrings"],["One-Arm_Long_Bar_Row","b","middle back"],["One-Arm_Medicine_Ball_Slam","x","abdominals"],["One-Arm_Open_Palm_Kettlebell_Clean","k","hamstrings"],["One-Arm_Overhead_Kettlebell_Squats","k","quadriceps"],["One-Arm_Side_Deadlift","b","quadriceps"],["One-Arm_Side_Laterals","d","shoulders"],["One-Legged_Cable_Kickback","c","glutes"],["One_Arm_Against_Wall","o","lats"],["One_Arm_Chin-Up","o","middle back"],["One_Arm_Dumbbell_Bench_Press","d","chest"],["One_Arm_Dumbbell_Preacher_Curl","d","biceps"],["One_Arm_Floor_Press","b","triceps"],["One_Arm_Lat_Pulldown","c","lats"],["One_Arm_Pronated_Dumbbell_Triceps_Extension","d","triceps"],["One_Arm_Supinated_Dumbbell_Triceps_Extension","d","triceps"],["One_Half_Locust","o","quadriceps"],["One_Handed_Hang","o","lats"],["One_Knee_To_Chest","o","glutes"],["One_Leg_Barbell_Squat","b","quadriceps"],["Open_Palm_Kettlebell_Clean","k","hamstrings"],["Otis-Up","o","abdominals"],["Overhead_Cable_Curl","c","biceps"],["Overhead_Lat","o","lats"],["Overhead_Slam","x","lats"],["Overhead_Squat","b","quadriceps"],["Overhead_Stretch","o","abdominals"],["Overhead_Triceps","w","triceps"],["Pallof_Press","c","abdominals"],["Pallof_Press_With_Rotation","c","abdominals"],["Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench","d","forearms"],["Palms-Down_Wrist_Curl_Over_A_Bench","b","forearms"],["Palms-Up_Barbell_Wrist_Curl_Over_A_Bench","b","forearms"],["Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench","d","forearms"],["Parallel_Bar_Dip","o","triceps"],["Pelvic_Tilt_Into_Bridge","o","lower back"],["Peroneals-SMR","f","calves"],["Peroneals_Stretch","o","calves"],["Physioball_Hip_Bridge","s","glutes"],["Pin_Presses","b","triceps"],["Piriformis-SMR","f","glutes"],["Plank","w","abdominals"],["Plate_Pinch","o","forearms"],["Plate_Twist","o","abdominals"],["Platform_Hamstring_Slides","o","hamstrings"],["Plie_Dumbbell_Squat","d","quadriceps"],["Plyo_Kettlebell_Pushups","k","chest"],["Plyo_Push-up","w","chest"],["Posterior_Tibialis_Stretch","o","calves"],["Power_Clean","b","hamstrings"],["Power_Clean_from_Blocks","b","hamstrings"],["Power_Jerk","b","quadriceps"],["Power_Partials","d","shoulders"],["Power_Snatch","b","hamstrings"],["Power_Snatch_from_Blocks","b","quadriceps"],["Power_Stairs","o","hamstrings"],["Preacher_Curl","b","biceps"],["Preacher_Hammer_Dumbbell_Curl","d","biceps"],["Press_Sit-Up","b","abdominals"],["Prone_Manual_Hamstring","o","hamstrings"],["Prowler_Sprint","o","hamstrings"],["Pull_Through","c","glutes"],["Pullups","w","lats"],["Push-Up_Wide","w","chest"],["Push-Ups_-_Close_Triceps_Position","w","triceps"],["Push-Ups_With_Feet_Elevated","w","chest"],["Push-Ups_With_Feet_On_An_Exercise_Ball","s","chest"],["Push_Press","b","shoulders"],["Push_Press_-_Behind_the_Neck","b","shoulders"],["Push_Up_to_Side_Plank","w","chest"],["Pushups","w","chest"],["Pushups_Close_and_Wide_Hand_Positions","w","chest"],["Pyramid","s","lower back"],["Quad_Stretch","o","quadriceps"],["Quadriceps-SMR","f","quadriceps"],["Quick_Leap","o","quadriceps"],["Rack_Delivery","b","shoulders"],["Rack_Pull_with_Bands","b","lower back"],["Rack_Pulls","b","lower back"],["Rear_Leg_Raises","w","quadriceps"],["Recumbent_Bike","m","quadriceps"],["Return_Push_from_Stance","x","shoulders"],["Reverse_Band_Bench_Press","b","triceps"],["Reverse_Band_Box_Squat","b","quadriceps"],["Reverse_Band_Deadlift","b","lower back"],["Reverse_Band_Power_Squat","b","quadriceps"],["Reverse_Band_Sumo_Deadlift","b","hamstrings"],["Reverse_Barbell_Curl","b","biceps"],["Reverse_Barbell_Preacher_Curls","e","biceps"],["Reverse_Cable_Curl","c","biceps"],["Reverse_Crunch","w","abdominals"],["Reverse_Flyes","d","shoulders"],["Reverse_Flyes_With_External_Rotation","d","shoulders"],["Reverse_Grip_Bent-Over_Rows","b","middle back"],["Reverse_Grip_Triceps_Pushdown","c","triceps"],["Reverse_Hyperextension","m","hamstrings"],["Reverse_Machine_Flyes","m","shoulders"],["Reverse_Plate_Curls","o","biceps"],["Reverse_Triceps_Bench_Press","b","triceps"],["Rhomboids-SMR","f","middle back"],["Rickshaw_Carry","o","forearms"],["Rickshaw_Deadlift","o","quadriceps"],["Ring_Dips","o","triceps"],["Rocket_Jump","w","quadriceps"],["Rocking_Standing_Calf_Raise","b","calves"],["Rocky_Pull-Ups_Pulldowns","o","lats"],["Romanian_Deadlift","b","hamstrings"],["Romanian_Deadlift_from_Deficit","b","hamstrings"],["Rope_Climb","o","lats"],["Rope_Crunch","c","abdominals"],["Rope_Jumping","o","quadriceps"],["Rope_Straight-Arm_Pulldown","c","lats"],["Round_The_World_Shoulder_Stretch","o","shoulders"],["Rowing_Stationary","m","quadriceps"],["Runners_Stretch","o","hamstrings"],["Running_Treadmill","m","quadriceps"],["Russian_Twist","w","abdominals"],["Sandbag_Load","o","quadriceps"],["Scapular_Pull-Up","o","traps"],["Scissor_Kick","w","abdominals"],["Scissors_Jump","w","quadriceps"],["Seated_Band_Hamstring_Curl","o","hamstrings"],["Seated_Barbell_Military_Press","b","shoulders"],["Seated_Barbell_Twist","b","abdominals"],["Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension","d","triceps"],["Seated_Bent-Over_Rear_Delt_Raise","d","shoulders"],["Seated_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension","d","triceps"],["Seated_Biceps","w","biceps"],["Seated_Cable_Rows","c","middle back"],["Seated_Cable_Shoulder_Press","c","shoulders"],["Seated_Calf_Raise","m","calves"],["Seated_Calf_Stretch","o","calves"],["Seated_Close-Grip_Concentration_Barbell_Curl","b","biceps"],["Seated_Dumbbell_Curl","d","biceps"],["Seated_Dumbbell_Inner_Biceps_Curl","d","biceps"],["Seated_Dumbbell_Palms-Down_Wrist_Curl","d","forearms"],["Seated_Dumbbell_Palms-Up_Wrist_Curl","d","forearms"],["Seated_Dumbbell_Press","d","shoulders"],["Seated_Flat_Bench_Leg_Pull-In","w","abdominals"],["Seated_Floor_Hamstring_Stretch","o","hamstrings"],["Seated_Front_Deltoid","w","shoulders"],["Seated_Glute","w","glutes"],["Seated_Good_Mornings","b","lower back"],["Seated_Hamstring","o","hamstrings"],["Seated_Hamstring_and_Calf_Stretch","o","hamstrings"],["Seated_Head_Harness_Neck_Resistance","o","neck"],["Seated_Leg_Curl","m","hamstrings"],["Seated_Leg_Tucks","w","abdominals"],["Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl","d","forearms"],["Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl","d","forearms"],["Seated_One-arm_Cable_Pulley_Rows","c","middle back"],["Seated_Overhead_Stretch","o","abdominals"],["Seated_Palm-Up_Barbell_Wrist_Curl","b","forearms"],["Seated_Palms-Down_Barbell_Wrist_Curl","b","forearms"],["Seated_Side_Lateral_Raise","d","shoulders"],["Seated_Triceps_Press","d","triceps"],["Seated_Two-Arm_Palms-Up_Low-Pulley_Wrist_Curl","c","forearms"],["See-Saw_Press_Alternating_Side_Press","d","shoulders"],["Shotgun_Row","c","lats"],["Shoulder_Circles","o","shoulders"],["Shoulder_Press_-_With_Bands","n","shoulders"],["Shoulder_Raise","o","shoulders"],["Shoulder_Stretch","o","shoulders"],["Side-Lying_Floor_Stretch","o","lats"],["Side_Bridge","w","abdominals"],["Side_Hop-Sprint","o","quadriceps"],["Side_Jackknife","w","abdominals"],["Side_Lateral_Raise","d","shoulders"],["Side_Laterals_to_Front_Raise","d","shoulders"],["Side_Leg_Raises","w","adductors"],["Side_Lying_Groin_Stretch","o","adductors"],["Side_Neck_Stretch","o","neck"],["Side_Standing_Long_Jump","o","quadriceps"],["Side_To_Side_Chins","o","lats"],["Side_Wrist_Pull","o","shoulders"],["Side_to_Side_Box_Shuffle","o","quadriceps"],["Single-Arm_Cable_Crossover","c","chest"],["Single-Arm_Linear_Jammer","b","shoulders"],["Single-Arm_Push-Up","w","chest"],["Single-Cone_Sprint_Drill","o","quadriceps"],["Single-Leg_High_Box_Squat","o","quadriceps"],["Single-Leg_Hop_Progression","o","quadriceps"],["Single-Leg_Lateral_Hop","o","quadriceps"],["Single-Leg_Leg_Extension","m","quadriceps"],["Single-Leg_Stride_Jump","o","quadriceps"],["Single_Dumbbell_Raise","d","shoulders"],["Single_Leg_Butt_Kick","w","quadriceps"],["Single_Leg_Glute_Bridge","w","glutes"],["Single_Leg_Push-off","o","quadriceps"],["Sit-Up","w","abdominals"],["Sit_Squats","o","quadriceps"],["Skating","o","quadriceps"],["Sled_Drag_-_Harness","o","quadriceps"],["Sled_Overhead_Backward_Walk","o","shoulders"],["Sled_Overhead_Triceps_Extension","o","triceps"],["Sled_Push","o","quadriceps"],["Sled_Reverse_Flye","o","shoulders"],["Sled_Row","o","middle back"],["Sledgehammer_Swings","o","abdominals"],["Smith_Incline_Shoulder_Raise","b","shoulders"],["Smith_Machine_Behind_the_Back_Shrug","m","traps"],["Smith_Machine_Bench_Press","m","chest"],["Smith_Machine_Bent_Over_Row","m","middle back"],["Smith_Machine_Calf_Raise","m","calves"],["Smith_Machine_Close-Grip_Bench_Press","m","triceps"],["Smith_Machine_Decline_Press","m","chest"],["Smith_Machine_Hang_Power_Clean","m","hamstrings"],["Smith_Machine_Hip_Raise","m","abdominals"],["Smith_Machine_Incline_Bench_Press","m","chest"],["Smith_Machine_Leg_Press","m","quadriceps"],["Smith_Machine_One-Arm_Upright_Row","m","shoulders"],["Smith_Machine_Overhead_Shoulder_Press","m","shoulders"],["Smith_Machine_Pistol_Squat","m","quadriceps"],["Smith_Machine_Reverse_Calf_Raises","m","calves"],["Smith_Machine_Squat","m","quadriceps"],["Smith_Machine_Stiff-Legged_Deadlift","m","hamstrings"],["Smith_Machine_Upright_Row","m","traps"],["Smith_Single-Leg_Split_Squat","m","quadriceps"],["Snatch","b","quadriceps"],["Snatch_Balance","b","quadriceps"],["Snatch_Deadlift","b","hamstrings"],["Snatch_Pull","b","hamstrings"],["Snatch_Shrug","b","traps"],["Snatch_from_Blocks","b","quadriceps"],["Speed_Band_Overhead_Triceps","n","triceps"],["Speed_Box_Squat","b","quadriceps"],["Speed_Squats","b","quadriceps"],["Spell_Caster","d","abdominals"],["Spider_Crawl","w","abdominals"],["Spider_Curl","e","biceps"],["Spinal_Stretch","o","middle back"],["Split_Clean","b","quadriceps"],["Split_Jerk","b","quadriceps"],["Split_Jump","w","quadriceps"],["Split_Snatch","b","hamstrings"],["Split_Squat_with_Dumbbells","d","quadriceps"],["Split_Squats","o","hamstrings"],["Squat_Jerk","b","quadriceps"],["Squat_with_Bands","b","quadriceps"],["Squat_with_Chains","b","quadriceps"],["Squat_with_Plate_Movers","b","quadriceps"],["Squats_-_With_Bands","n","quadriceps"],["Stairmaster","m","quadriceps"],["Standing_Alternating_Dumbbell_Press","d","shoulders"],["Standing_Barbell_Calf_Raise","b","calves"],["Standing_Barbell_Press_Behind_Neck","b","shoulders"],["Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension","d","triceps"],["Standing_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension","d","triceps"],["Standing_Biceps_Cable_Curl","c","biceps"],["Standing_Biceps_Stretch","o","biceps"],["Standing_Bradford_Press","b","shoulders"],["Standing_Cable_Chest_Press","c","chest"],["Standing_Cable_Lift","c","abdominals"],["Standing_Cable_Wood_Chop","c","abdominals"],["Standing_Calf_Raises","m","calves"],["Standing_Concentration_Curl","d","biceps"],["Standing_Dumbbell_Calf_Raise","d","calves"],["Standing_Dumbbell_Press","d","shoulders"],["Standing_Dumbbell_Reverse_Curl","d","biceps"],["Standing_Dumbbell_Straight-Arm_Front_Delt_Raise_Above_Head","d","shoulders"],["Standing_Dumbbell_Triceps_Extension","d","triceps"],["Standing_Dumbbell_Upright_Row","d","traps"],["Standing_Elevated_Quad_Stretch","o","quadriceps"],["Standing_Front_Barbell_Raise_Over_Head","b","shoulders"],["Standing_Gastrocnemius_Calf_Stretch","o","calves"],["Standing_Hamstring_and_Calf_Stretch","o","hamstrings"],["Standing_Hip_Circles","w","abductors"],["Standing_Hip_Flexors","o","quadriceps"],["Standing_Inner-Biceps_Curl","d","biceps"],["Standing_Lateral_Stretch","o","abdominals"],["Standing_Leg_Curl","m","hamstrings"],["Standing_Long_Jump","w","quadriceps"],["Standing_Low-Pulley_Deltoid_Raise","c","shoulders"],["Standing_Low-Pulley_One-Arm_Triceps_Extension","c","triceps"],["Standing_Military_Press","b","shoulders"],["Standing_Olympic_Plate_Hand_Squeeze","o","forearms"],["Standing_One-Arm_Cable_Curl","c","biceps"],["Standing_One-Arm_Dumbbell_Curl_Over_Incline_Bench","d","biceps"],["Standing_One-Arm_Dumbbell_Triceps_Extension","d","triceps"],["Standing_Overhead_Barbell_Triceps_Extension","b","triceps"],["Standing_Palm-In_One-Arm_Dumbbell_Press","d","shoulders"],["Standing_Palms-In_Dumbbell_Press","d","shoulders"],["Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl","b","forearms"],["Standing_Pelvic_Tilt","o","lower back"],["Standing_Rope_Crunch","c","abdominals"],["Standing_Soleus_And_Achilles_Stretch","o","calves"],["Standing_Toe_Touches","o","hamstrings"],["Standing_Towel_Triceps_Extension","w","triceps"],["Standing_Two-Arm_Overhead_Throw","x","shoulders"],["Star_Jump","w","quadriceps"],["Step-up_with_Knee_Raise","w","glutes"],["Step_Mill","m","quadriceps"],["Stiff-Legged_Barbell_Deadlift","b","hamstrings"],["Stiff-Legged_Dumbbell_Deadlift","d","hamstrings"],["Stiff_Leg_Barbell_Good_Morning","b","lower back"],["Stomach_Vacuum","w","abdominals"],["Straight-Arm_Dumbbell_Pullover","d","chest"],["Straight-Arm_Pulldown","c","lats"],["Straight_Bar_Bench_Mid_Rows","b","middle back"],["Straight_Raises_on_Incline_Bench","b","shoulders"],["Stride_Jump_Crossover","o","quadriceps"],["Sumo_Deadlift","b","hamstrings"],["Sumo_Deadlift_with_Bands","b","hamstrings"],["Sumo_Deadlift_with_Chains","b","hamstrings"],["Superman","w","lower back"],["Supine_Chest_Throw","x","triceps"],["Supine_One-Arm_Overhead_Throw","x","abdominals"],["Supine_Two-Arm_Overhead_Throw","x","abdominals"],["Suspended_Fallout","o","abdominals"],["Suspended_Push-Up","o","chest"],["Suspended_Reverse_Crunch","o","abdominals"],["Suspended_Row","o","middle back"],["Suspended_Split_Squat","o","quadriceps"],["Svend_Press","o","chest"],["T-Bar_Row_with_Handle","b","middle back"],["Tate_Press","d","triceps"],["The_Straddle","o","hamstrings"],["Thigh_Abductor","m","abductors"],["Thigh_Adductor","m","adductors"],["Tire_Flip","o","quadriceps"],["Toe_Touchers","w","abdominals"],["Torso_Rotation","s","abdominals"],["Trail_Running_Walking","o","quadriceps"],["Trap_Bar_Deadlift","o","quadriceps"],["Tricep_Dumbbell_Kickback","d","triceps"],["Tricep_Side_Stretch","o","triceps"],["Triceps_Overhead_Extension_with_Rope","c","triceps"],["Triceps_Pushdown","c","triceps"],["Triceps_Pushdown_-_Rope_Attachment","c","triceps"],["Triceps_Pushdown_-_V-Bar_Attachment","c","triceps"],["Triceps_Stretch","o","triceps"],["Tuck_Crunch","w","abdominals"],["Two-Arm_Dumbbell_Preacher_Curl","d","biceps"],["Two-Arm_Kettlebell_Clean","k","shoulders"],["Two-Arm_Kettlebell_Jerk","k","shoulders"],["Two-Arm_Kettlebell_Military_Press","k","shoulders"],["Two-Arm_Kettlebell_Row","k","middle back"],["Underhand_Cable_Pulldowns","c","lats"],["Upper_Back-Leg_Grab","o","hamstrings"],["Upper_Back_Stretch","o","middle back"],["Upright_Barbell_Row","b","shoulders"],["Upright_Cable_Row","c","traps"],["Upright_Row_-_With_Bands","n","traps"],["Upward_Stretch","o","shoulders"],["V-Bar_Pulldown","c","lats"],["V-Bar_Pullup","w","lats"],["Vertical_Swing","d","hamstrings"],["Walking_Treadmill","m","quadriceps"],["Weighted_Ball_Hyperextension","s","lower back"],["Weighted_Ball_Side_Bend","s","abdominals"],["Weighted_Bench_Dip","o","triceps"],["Weighted_Crunches","x","abdominals"],["Weighted_Jump_Squat","b","quadriceps"],["Weighted_Pull_Ups","o","lats"],["Weighted_Sissy_Squat","b","quadriceps"],["Weighted_Sit-Ups_-_With_Bands","o","abdominals"],["Weighted_Squat","o","quadriceps"],["Wide-Grip_Barbell_Bench_Press","b","chest"],["Wide-Grip_Decline_Barbell_Bench_Press","b","chest"],["Wide-Grip_Decline_Barbell_Pullover","b","chest"],["Wide-Grip_Lat_Pulldown","c","lats"],["Wide-Grip_Pulldown_Behind_The_Neck","c","lats"],["Wide-Grip_Rear_Pull-Up","w","lats"],["Wide-Grip_Standing_Barbell_Curl","b","biceps"],["Wide_Stance_Barbell_Squat","b","quadriceps"],["Wide_Stance_Stiff_Legs","b","hamstrings"],["Wind_Sprints","w","abdominals"],["Windmills","o","abductors"],["Worlds_Greatest_Stretch","o","hamstrings"],["Wrist_Circles","w","forearms"],["Wrist_Roller","o","forearms"],["Wrist_Rotations_with_Straight_Bar","b","forearms"],["Yoke_Walk","o","quadriceps"],["Zercher_Squats","b","quadriceps"],["Zottman_Curl","d","biceps"],["Zottman_Preacher_Curl","d","biceps"]];
+const EXDB_URL="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+const EXEQ={b:"bilanciere",d:"manubri",m:"macchina",c:"cavi",w:"corpo libero",k:"kettlebell",e:"bilanciere EZ",n:"elastici",x:"palla medica",s:"fitball",f:"rullo",o:"altro"};
+const IT_EN=[[/panca piana|distension[ei] su panca|bench/,"bench press"],[/panca inclinata/,"incline bench press"],[/panca declinata/,"decline bench press"],[/presa stretta/,"close grip"],[/stacco rumeno/,"romanian deadlift"],[/stacco/,"deadlift"],[/squat bulgaro|bulgaro/,"split squat"],[/front squat|squat frontale/,"front squat"],[/goblet/,"goblet squat"],[/squat/,"squat"],[/affond/,"lunge"],[/leg press|pressa/,"leg press"],[/leg extension/,"leg extensions"],[/leg curl/,"leg curl"],[/hip thrust|ponte glute/,"hip thrust glute bridge"],[/buongiorno|good morning/,"good morning"],[/trazion|pull.?up/,"pullups"],[/chin.?up/,"chin up"],[/lat machine|lat pull/,"lat pulldown"],[/rematore|row/,"row"],[/pulley|seated row/,"seated cable rows"],[/military|lento avanti|shoulder press|overhead/,"shoulder press"],[/arnold/,"arnold press"],[/alzate laterali|laterali/,"lateral raise"],[/alzate frontali|frontali/,"front raise"],[/croci|fly|aperture/,"fly"],[/curl a martello|hammer/,"hammer curl"],[/curl/,"curl"],[/french press|skull/,"skull crusher"],[/push.?down|pushdown/,"pushdown"],[/dip|parallele/,"dips"],[/piegament|push.?up/,"pushups"],[/plank/,"plank"],[/crunch/,"crunch"],[/sit.?up/,"sit-up"],[/russian twist/,"russian twist"],[/calf|polpacci/,"calf raise"],[/face pull/,"face pull"],[/scrollate|shrug/,"shrug"],[/burpee/,"burpee"],[/swing/,"kettlebell swing"],[/zercher/,"zercher"],[/farmer|carry/,"farmers walk"],[/mountain climber/,"mountain climbers"],[/stretching|allungamento/,"stretch"]];
+const EQ_IT=[[/manubr/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere/,"b"],[/macchina|machine|smith/,"m"],[/cav[io]|pulley/,"c"],[/kettlebell/,"k"],[/elastic/,"n"],[/corpo libero/,"w"]];
+const tok=t=>String(t||"").toLowerCase().replace(/[_\-]/g," ").replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(w=>w.length>1&&!["the","with","on","a","to","of","and"].includes(w));
+const EXCOMMON=new Set(["Barbell_Bench_Press_-_Medium_Grip","Barbell_Squat","Barbell_Deadlift","Pullups","Pushups","Dumbbell_Bicep_Curl","Side_Lateral_Raise","Romanian_Deadlift","Bent_Over_Barbell_Row","One-Arm_Dumbbell_Row","Wide-Grip_Lat_Pulldown","Barbell_Hip_Thrust","Dumbbell_Lunges","Standing_Military_Press","Dumbbell_Shoulder_Press","Plank","Dips_-_Triceps_Version","Dumbbell_Bench_Press","Incline_Dumbbell_Press","Barbell_Incline_Bench_Press_-_Medium_Grip","Leg_Press","Leg_Extensions","Lying_Leg_Curls","Seated_Cable_Rows","Triceps_Pushdown","Hammer_Curls","Good_Morning","Goblet_Squat","Close-Grip_Barbell_Bench_Press","Front_Barbell_Squat","Chin-Up","Face_Pull","Standing_Calf_Raises","Crunches","Russian_Twist","One-Arm_Kettlebell_Swings","Farmers_Walk","Dumbbell_Flyes","Arnold_Dumbbell_Press","Front_Dumbbell_Raise","Barbell_Shrug","EZ-Bar_Skullcrusher","Mountain_Climbers","Split_Squat_with_Dumbbells","Zercher_Squats"]);
+const EQW={b:"barbell",d:"dumbbell",m:"machine",c:"cable",k:"kettlebell",e:"ez bar",n:"band"};
+function exdbScore(en,eq,row){ const eqw=new Set(tok(EQW[eq]||"")), a=new Set([...tok(en),...eqw]), b=tok(row[0]); let sc=0; b.forEach(w=>{ if(a.has(w)) sc+= eqw.has(w)&&!tok(en).includes(w)? 1 : 2.2; else if([...a].some(z=>z.length>3&&(w.startsWith(z.slice(0,4))||z.startsWith(w.slice(0,4))))) sc+=1; });
+  if(sc<=0) return -9; const miss=b.filter(w=>!a.has(w)).length; sc-=miss*0.7; if(!miss) sc+=1.5; if(EXCOMMON.has(row[0])) sc+=1.3; if(eq&&row[1]===eq) sc+=0.8; else if(eq&&row[1]!=="o"&&!(eq==="m"&&row[1]==="c")) sc-=0.6; return sc; }
+function exdbCands(en,eq,n=6){ return EXDB.map(r0=>[exdbScore(en,eq,r0),r0]).sort((x,y)=>y[0]-x[0]).slice(0,n).filter(x=>x[0]>1).map(x=>x[1]); }
+function guessEn(name){ const n=String(name||"").toLowerCase(); const out=[]; IT_EN.forEach(([re,en])=>{ if(re.test(n)){ const last=en.split(" ").pop(); if(!out.join(" ").includes(last)) out.push(en); } }); return out.join(" ")||n; }
+function guessEq(name,x){ const n=(String(name||"")+" "+String((x&&x.equip)||"")).toLowerCase(); const m=EQ_IT.find(([re])=>re.test(n)); return m? m[1] : ""; }
+async function exdbFind(name,x){ const key="hf:exdb:"+exKey(name), saved=localStorage.getItem(key); if(saved) return {id:saved,cands:null};
+  let en=guessEn(name), eq=guessEq(name,x);
+  if(sample){ try{ const r0=await sample.json(`Nome inglese standard (come nei database di esercizi) dell'esercizio "${String(name).replace(/"/g,"'")}"${x&&x.equip?" con "+x.equip:""}. Rispondi SOLO con JSON: {"en":"es. Close-Grip Dumbbell Bench Press","equipment":"barbell|dumbbell|machine|cable|body only|kettlebells|e-z curl bar|bands|other"}`,{modelTier:"quick",maxTokens:120});
+      if(r0&&r0.en){ en=r0.en+" "+en; const m={barbell:"b",dumbbell:"d",machine:"m",cable:"c","body only":"w",kettlebells:"k","e-z curl bar":"e",bands:"n"}[String(r0.equipment||"").toLowerCase()]; if(m) eq=m; } }catch{} }
+  const cands=exdbCands(en,eq,6); if(cands.length) localStorage.setItem(key,cands[0][0]); return {id:cands[0]&&cands[0][0],cands}; }
+function exdbDemo(name,x){ const wrap=el("div","demo"); wrap.innerHTML=`<div class="demo-img"><p class="note">Cerco la dimostrazione…</p></div>`;
+  (async()=>{ const f=await exdbFind(name,x), box=wrap.querySelector(".demo-img");
+    if(!f.id){ box.innerHTML=`<p class="note">Nessuna dimostrazione trovata per questo esercizio: usa il video qui sotto.</p>`; return; }
+    const show=id=>{ const r0=EXDB.find(z=>z[0]===id)||[id,"o",""];
+      box.innerHTML=`<img class="f0" alt="Posizione iniziale" src="${EXDB_URL}${id}/0.jpg"><img class="f1" alt="Posizione finale" src="${EXDB_URL}${id}/1.jpg"><span class="demo-lab">inizio ⇄ fine</span><button type="button" class="demo-pp" aria-label="Pausa">❚❚</button>`;
+      const pp=box.querySelector(".demo-pp"); pp.onclick=()=>{ box.classList.toggle("paused"); pp.textContent= box.classList.contains("paused")? "▶" : "❚❚"; pp.setAttribute("aria-label",box.classList.contains("paused")?"Riproduci":"Pausa"); };
+      box.querySelectorAll("img").forEach(im=>im.onerror=()=>{ box.innerHTML=`<p class="note">Immagini non disponibili ora (serve internet).</p>`; });
+      const cap=wrap.querySelector(".demo-cap"); cap.innerHTML=""; const t=el("span",null,`${id.replace(/_/g," ")} · ${EXEQ[r0[1]]||""}${r0[2]?" · "+r0[2]:""}`); cap.appendChild(t);
+      const ch=el("button","linkbtn","Non è questo? Cambia"); ch.type="button"; ch.onclick=async()=>{ const cs=f.cands||exdbCands(guessEn(name),guessEq(name,x),8); if(!cs.length) return;
+        const v=prompt("Scegli l'esercizio giusto (numero):\n"+cs.map((c,i)=>`${i+1}) ${c[0].replace(/_/g," ")} · ${EXEQ[c[1]]||""}`).join("\n"),"1"); const c=cs[(+v||0)-1]; if(c){ localStorage.setItem("hf:exdb:"+exKey(name),c[0]); show(c[0]); } };
+      cap.appendChild(ch); };
+    show(f.id); })();
+  const cap=el("div","demo-cap"); wrap.appendChild(cap); wrap.appendChild(el("p","demo-cr","Foto: Free Exercise DB (pubblico dominio)")); return wrap; }
 async function openTutorial(name,x){
   x=x||{name}; $("tutTitle").textContent=name; const box=$("tutBody"); box.innerHTML="";
   const ms=exMuscles(x), eq=exEquip(x);
@@ -4852,7 +5175,9 @@ async function openTutorial(name,x){
   const meta=top.querySelector(".tut-meta");
   if(ms.length) meta.appendChild(el("div","tut-m","💪 "+ms.join(", ")));
   if(eq) meta.appendChild(el("div","tut-m","🏋️ "+eq));
-  if(x.sets||x.reps) meta.appendChild(el("div","tut-m","📋 "+[x.sets?x.sets+" serie":"", x.reps?"× "+x.reps:"", x.rest?"· recupero "+x.rest:""].filter(Boolean).join(" ")));
+  { const ns=Array.isArray(x.sets)? x.sets.length : x.sets, rp=x.reps||x.repsLabel||(Array.isArray(x.sets)&&x.sets[0]&&x.sets[0].reps)||"";
+    if(ns||rp) meta.appendChild(el("div","tut-m","📋 "+[ns?ns+" serie":"", rp?"× "+rp:"", x.rest?"⏱ recupero "+x.rest:""].filter(Boolean).join(" "))); }
+  box.appendChild(exdbDemo(name,x));
   box.appendChild(top);
   const acts=el("div","tut-acts");
   const yt=el("a","btn","▶ Guarda il video"); yt.href="https://www.youtube.com/results?search_query="+encodeURIComponent(name+" esecuzione corretta tutorial"); yt.target="_blank"; yt.rel="noopener";
@@ -4969,7 +5294,7 @@ function renderCircuitSession(){
   const pb=el("div","cir-bar"); pb.innerHTML=c.rounds.map((_,k)=>`<i class="${c.done[k]?"ok":k===cur&&!allDone?"now":""}"></i>`).join(""); top.appendChild(pb);
   box.appendChild(top);
   if(resting){ const r0=el("div","card cir-rest"); r0.innerHTML=`<div class="l">Riposo</div><div class="t num" id="cirRestT">${hmsSec((restEnd-Date.now())/1000)}</div><div class="nx">Poi giro ${cur+1}: ${c.rounds[cur].map((v,i)=>`${v} ${c.exercises[i]}`).join(" → ")}</div><div class="two"><button class="btn ghost" type="button" id="cirPlus">+30 s</button><button class="btn" type="button" id="cirSkip">Salta il riposo</button></div>`;
-    box.appendChild(r0); $("cirSkip").onclick=()=>{ restEnd=0; $("sesRest").hidden=true; renderCircuitSession(); }; $("cirPlus").onclick=()=>{ restEnd+=30000; }; }
+    box.appendChild(r0); $("cirSkip").onclick=()=>{ restEnd=0; $("sesRest").hidden=true; $("restBig").hidden=true; renderCircuitSession(); }; $("cirPlus").onclick=()=>{ restEnd+=30000; }; }
   if(!allDone){
     const card=el("div","card cir-round"+(resting?" dim":"")); card.appendChild(el("h3",null,`Giro ${cur+1}`));
     c.checks[cur]=c.checks[cur]||[];
@@ -4984,11 +5309,11 @@ function renderCircuitSession(){
   $("sesAll").hidden=false; $("logAddEx").hidden=true;
 }
 function completeAllCircuit(){ const c=logCtx.circuit; if(!confirm("Segnare tutti i giri del circuito come completati?")) return;
-  c.done=c.rounds.map(()=>true); c.checks=c.rounds.map(()=>c.exercises.map(()=>true)); c.cur=c.rounds.length-1; restEnd=0; $("sesRest").hidden=true;
+  c.done=c.rounds.map(()=>true); c.checks=c.rounds.map(()=>c.exercises.map(()=>true)); c.cur=c.rounds.length-1; restEnd=0; $("sesRest").hidden=true; $("restBig").hidden=true;
   saveLive(); renderCircuitSession(); toast("Tutti i giri completati ✓ Ora tocca Termina e salva"); window.scrollTo({top:0,behavior:"smooth"}); }
 function circuitNext(){
   const c=logCtx.circuit, total=c.rounds.length; unlockAudio();
-  if(restEnd&&restEnd>Date.now()){ restEnd=0; $("sesRest").hidden=true; renderCircuitSession(); return; }
+  if(restEnd&&restEnd>Date.now()){ restEnd=0; $("sesRest").hidden=true; $("restBig").hidden=true; renderCircuitSession(); return; }
   if(c.done.length>=total&&c.done.every(Boolean)){ $("logSave").click(); return; }
   c.done[c.cur]=true; c.checks[c.cur]=c.exercises.map(()=>true);
   if(c.cur+1<total){ c.cur++; restEnd= c.rest? Date.now()+c.rest*1000 : 0; if(navigator.vibrate) navigator.vibrate(40); }
@@ -5048,6 +5373,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
   const go=el("div","run-go");
   go.innerHTML=`<button class="btn" type="button" id="runStart">AVVIA</button>
    <button class="btn ghost" type="button" id="runHrBtn" style="margin-top:8px">🫀 Corri con la fascia cardio</button>
+   <button class="btn ghost" type="button" id="runWatchBtn" style="margin-top:8px" hidden>⌚ Avvia sull'orologio</button>
    <div class="run-how" id="runHow" hidden>
      <div class="pline"><span class="ic">1</span><span>Sul <b>Galaxy Watch</b> apri l'allenamento <b>Corsa</b> e imposta come obiettivo <b>${p.km?fmt(p.km)+" km":p.min+" minuti"}</b>${p.ps?` con ritmo <b>${paceTxt(p.ps)}/km</b>`:""}.</span></div>
      <div class="pline"><span class="ic">2</span><span>Corri seguendo le fasi qui sopra 🏃</span></div>
@@ -5061,6 +5387,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
    </div>`;
   box.appendChild(go);
   $("runHrBtn").onclick=()=>openCardio({title:d.title||d.runType||"Corsa",runType:d.runType||"",km:p.km||null,from:{a,pr,d,di,iso}});
+  if(WBR()){ $("runWatchBtn").hidden=false; $("runWatchBtn").onclick=()=>watchSend({title:d.title||d.runType||"Corsa",runType:d.runType||"",km:p.km||d.distanceKm||null,pace:d.pace||p.pace||"",desc:d.description||""}); }
   $("runStart").onclick=()=>{ $("runHow").hidden=false; $("runHow").scrollIntoView({behavior:"smooth",block:"start"}); };
   $("runShotBtn").hidden=!imgLimits||!sample; $("runShotBtn").onclick=()=>$("runShot").click();
   $("runShot").onchange=async e=>{ const files=[...e.target.files].slice(0,3); $("runShot").value=""; if(!files.length) return;
@@ -5171,6 +5498,38 @@ function openLogger(a,di){
 }
 /* allenamento in corso: cronometro, recupero, salvataggio automatico della bozza */
 let sesTick=null, restEnd=0, liveT=null;
+/* ----- coach durante la sessione: sa cosa stai facendo e può impostare recupero e carico ----- */
+function sesCurEx(){ if(!logCtx) return null; const exs=logCtx.exercises||[]; return exs.find(x=>(x.sets||[]).some(st=>!st.done))||exs[exs.length-1]||null; }
+function sesContext(){ const c=sesCurEx(), el=Math.round(sesElapsed()/60);
+  const exs=(logCtx.exercises||[]).map(x=>{ const done=(x.sets||[]).filter(st=>st.done); return `${x.name}${x.rest?` (recupero ${x.rest})`:""}: ${done.length}/${(x.sets||[]).length} serie fatte${done.length?" – "+done.map(st=>[st.kg?st.kg+" kg":"",st.reps?st.reps+" rip":"",st.text||""].filter(Boolean).join(" ")).join(", "):""}${x.target?` · obiettivo ${x.target}`:""}`; }).join("\n");
+  const hrNow= (typeof NATHR!=="undefined"&&NATHR.on&&NATHR.st&&NATHR.st.bpm)? NATHR.st.bpm : (typeof hrFresh==="function"&&hrFresh()? HR.bpm : null);
+  return `Sei il coach personale della persona e ti sta scrivendo DURANTE l'allenamento, tra una serie e l'altra: rispondi in italiano in 2-4 righe, pratico e diretto, con numeri precisi (secondi di recupero, kg, ripetizioni, tempo di esecuzione).
+Allenamento in corso: ${logCtx.title} (${logCtx.kind||""}), iniziato da ${el} minuti${logCtx.circuit?" · circuito a giri":""}.
+Esercizio attuale: ${c? c.name+(c.equip?" ("+c.equip+")":"") : "nessuno"}.
+Esercizi:
+${exs}
+${hrNow? `Battito adesso: ${hrNow} bpm (FC max ${hrMaxOf()}).` : ""}
+Profilo: ${profileSummary()}. Recupero: ${recoveryText()}. Oggi ha mangiato ${r(totals().kcal)} kcal. ${eventText()}.
+Se consigli un tempo di recupero per l'esercizio attuale mettilo in "rest" (secondi); se consigli un carico per le prossime serie mettilo in "kg". Se lamenta dolore, prudenza e alternative.
+Rispondi SOLO con JSON: {"reply":"testo","rest":number|null,"kg":number|null}`; }
+function renderSesCoach(){ const log=$("scLog"); log.innerHTML=""; const ch=(logCtx&&logCtx.chat)||[];
+  if(!ch.length) log.appendChild(el("p","note","Scrivimi quello che vuoi mentre ti alleni: recupero, carico, tecnica, un fastidio, un'alternativa…"));
+  ch.forEach(m=>{ const b=el("div","bubble "+(m.role==="user"?"me":"ai"),m.content); log.appendChild(b);
+    if(m.role!=="user"&&((m.rest&&!m.restDone)||(m.kg&&!m.kgDone))){ const row=el("div","sc-acts"); const c=sesCurEx();
+      if(m.rest&&!m.restDone&&c){ const bt=el("button","btn ghost",`⏱ Recupero ${m.rest} s per ${c.name}`); bt.type="button"; bt.onclick=()=>{ c.rest=m.rest+"s"; m.restDone=true; saveLive(); try{ renderLogger(); }catch{} renderSesCoach(); toast("Recupero aggiornato ✓"); }; row.appendChild(bt); }
+      if(m.kg&&!m.kgDone&&c){ const bt=el("button","btn ghost",`🏋️ ${String(m.kg).replace(".",",")} kg nelle prossime serie`); bt.type="button"; bt.onclick=()=>{ (c.sets||[]).filter(st=>!st.done).forEach(st=>st.kg=m.kg); m.kgDone=true; saveLive(); try{ renderLogger(); }catch{} renderSesCoach(); toast("Carico aggiornato ✓"); }; row.appendChild(bt); }
+      log.appendChild(row); } });
+  }
+$("scSend").onclick=async()=>{ const v=$("scIn").value.trim(); if(!v||!logCtx) return; if(!sample){ setStatus("scStatus","Serve la chiave AI (Profilo → Impostazioni).",true); return; }
+  logCtx.chat=logCtx.chat||[]; logCtx.chat.push({role:"user",content:v}); $("scIn").value=""; renderSesCoach(); setStatus("scStatus","Il coach risponde…"); $("scSend").disabled=true;
+  try{ const hist0=logCtx.chat.slice(-10).map(m=>`${m.role==="user"?"Atleta":"Coach"}: ${m.content}`).join("\n");
+    const res=await sample.json(sesContext()+"\n\nConversazione:\n"+hist0,{modelTier:"quick",maxTokens:600});
+    logCtx.chat.push({role:"assistant",content:(res&&res.reply)||"Non ho capito, riprova.",rest:+res.rest>0? Math.round(+res.rest) : null,kg:+res.kg>0? Math.round(+res.kg*2)/2 : null});
+    saveLive(); setStatus("scStatus",""); renderSesCoach(); try{ if(navigator.vibrate) navigator.vibrate(30); }catch{} setTimeout(()=>{ const l=$("scLog").lastElementChild; if(l) l.scrollIntoView({behavior:"smooth",block:"nearest"}); },80); }
+  catch(e){ logCtx.chat.pop(); setStatus("scStatus",errCopy(e),true); renderSesCoach(); }
+  finally{ $("scSend").disabled=false; } };
+$("scIn").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); $("scSend").click(); } });
+setTimeout(()=>{ try{ attachMic("scIn"); }catch{} },0);
 function saveLive(){ clearTimeout(liveT); liveT=setTimeout(()=>{ try{ if(logCtx&&logCtx.live) localStorage.setItem("hf:live",JSON.stringify(logCtx)); else localStorage.removeItem("hf:live"); }catch{} },300); }
 function sesElapsed(){ if(!logCtx) return 0; return ((logCtx.paused? logCtx.pausedAt : Date.now())-logCtx.startedAt)/1000; }
 function resumeSession(){ if(logCtx&&logCtx.paused){ logCtx.startedAt+=Date.now()-logCtx.pausedAt; logCtx.paused=false; logCtx.pausedAt=null; saveLive(); toast("Allenamento ripreso ▶"); } }
@@ -5179,13 +5538,18 @@ function openSesExit(){ if(!logCtx) return; const cir=logCtx.circuit, n= cir? ci
 function leaveSession(){ sesExitOk=true; const steps=1+sheetStack.length; history.go(-steps); setTimeout(()=>{ sesExitOk=false; if(view==="sessione") go("allenamento"); },400); }
 const afterSheet=fn=>{ closeTopSheet(); setTimeout(fn,250); };
 function hmsSec(t){ t=Math.max(0,Math.floor(t)); const h=Math.floor(t/3600), m=Math.floor(t%3600/60), s0=t%60; return (h? h+":"+String(m).padStart(2,"0") : String(m).padStart(2,"0"))+":"+String(s0).padStart(2,"0"); }
+let restSeen=0, restTot=1;
+function restAdj(ms){ if(!restEnd) return; restEnd+=ms; if(restEnd<=Date.now()+500){ restEnd=0; $("restBig").hidden=true; try{ if(logCtx&&logCtx.circuit) renderCircuitSession(); }catch{} } else { $("rbTime").textContent=hmsSec(Math.ceil((restEnd-Date.now())/1000)); } }
+$("rbMinus").onclick=()=>restAdj(-15000); $("rbPlus").onclick=()=>{ restAdj(15000); restTot+=15000; };
+$("rbSkip").onclick=()=>{ restEnd=0; $("restBig").hidden=true; $("sesRest").hidden=true; try{ if(logCtx&&logCtx.circuit) renderCircuitSession(); }catch{} };
 function startSesTimer(){
   clearInterval(sesTick); try{ gymHrStart(); }catch{}
   const upd=()=>{ if(!logCtx||!logCtx.live){ clearInterval(sesTick); return; }
     const t=sesElapsed(); if($("sesTimer")) $("sesTimer").textContent=hmsSec(t)+(logCtx.paused?" ⏸":"");
     const r0=Math.ceil((restEnd-Date.now())/1000), re=$("sesRest");
-    if(restEnd&&r0>0){ re.hidden=false; re.textContent="Recupero "+hmsSec(r0); }
-    else if(restEnd){ restEnd=0; re.hidden=true; if(navigator.vibrate) navigator.vibrate([400,150,400,150,400]); beep(); toast("Riposo finito: si riparte! 💪"); if(logCtx&&logCtx.circuit) renderCircuitSession(); }
+    if(restEnd&&restEnd!==restSeen){ restSeen=restEnd; restTot=Math.max(1000,restEnd-Date.now()); }
+    if(restEnd&&r0>0){ re.hidden=true; $("restBig").hidden=false; $("rbTime").textContent=hmsSec(r0); $("rbBar").style.width=Math.max(0,Math.min(100,(restEnd-Date.now())/restTot*100))+"%"; $("restBig").classList.toggle("last",r0<=5); }
+    else if(restEnd){ restEnd=0; re.hidden=true; $("restBig").hidden=true; if(navigator.vibrate) navigator.vibrate([400,150,400,150,400]); beep(); toast("Riposo finito: si riparte! 💪"); if(logCtx&&logCtx.circuit) renderCircuitSession(); }
     const ct=$("cirRestT"); if(ct&&restEnd) ct.textContent=hmsSec(Math.max(0,(restEnd-Date.now())/1000));
     renderLiveBanner(); };
   upd(); sesTick=setInterval(upd,1000);
@@ -5210,7 +5574,7 @@ function nextSet(){ for(let xi=0;xi<logCtx.exercises.length;xi++){ const x=logCt
 function markSet(xi,si,val){ const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
   if(st.done){ const last=x.sets.every(z=>z.done); restEnd= last&&xi===logCtx.exercises.length-1? 0 : Date.now()+restSecs(x.rest)*1000; if(navigator.vibrate) navigator.vibrate(30); }
   saveLive(); renderLogger(); }
-function renderLogger(){
+function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
   if(logCtx&&logCtx.circuit){ renderCircuitSession(); return; }
   $("sesAll").hidden=false; $("logAddEx").hidden=false;
   const box=$("logBody"); box.innerHTML=""; const nx=nextSet();
@@ -5231,13 +5595,13 @@ function renderLogger(){
     const tutB=el("button","sx-more tut","▶"); tutB.type="button"; tutB.setAttribute("aria-label","Tutorial di "+(x.name||"esercizio")); tutB.onclick=e=>{ e.stopPropagation(); if(x.name) openTutorial(x.name,x); };
     h.append(el("span","chev","⌃"),fig,tt,tutB,more); h.onclick=()=>{ x.closed=!x.closed; renderLogger(); }; card.appendChild(h);
     const body=el("div","sx-body");
-    const lt=lastText(x.name); if(lt&&!x.custom) body.appendChild(el("div","sx-last",lt));
+    if(!x.custom&&!x.cardio) body.appendChild(memBox(x)); else { const lt=lastText(x.name); if(lt&&!x.custom) body.appendChild(el("div","sx-last",lt)); }
     if(x.bw||x.custom){ const v=el("div","vestrow"+(+x.vest>0?" on":""));
       v.innerHTML=`<span>🦺 Gilet zavorrato</span><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" aria-label="Kg del gilet"><span class="u">kg</span>`;
       const vi=v.querySelector("input"); vi.value= +x.vest>0? x.vest : "";
       vi.onchange=()=>{ x.vest=Math.max(0,+String(vi.value).replace(",",".")||0); x.bw=true; x.sets.forEach(z=>{ if(!z.done||!z.kg) z.kg= x.vest||""; }); saveLive(); renderLogger(); };
       body.appendChild(v); }
-    if(x.prog&&!x.custom&&x.prog.kind!=="new") body.appendChild(el("div","sx-prog "+x.prog.kind,(x.prog.kind==="up"?"📈 ":x.prog.kind==="down"?"📉 ":"🎯 ")+x.prog.text));
+    if(false&&x.prog&&!x.custom&&x.prog.kind!=="new") body.appendChild(el("div","sx-prog "+x.prog.kind,(x.prog.kind==="up"?"📈 ":x.prog.kind==="down"?"📉 ":"🎯 ")+x.prog.text));
     x.sets.forEach((st,si)=>{
       const row=el("div","srow"+(st.done?" done":"")+(nx&&nx.xi===xi&&nx.si===si?" next":"")+(x.cardio?" cardio":""));
       const dot=el("button","dot","✓"); dot.type="button"; dot.setAttribute("aria-label",`Serie ${si+1} ${st.done?"fatta":"da fare"}`); dot.onclick=()=>markSet(xi,si);
@@ -5252,14 +5616,14 @@ function renderLogger(){
     card.appendChild(body); box.appendChild(card);
   });
   if(nx){ const all=el("button","btn ghost allbtn","✓ Ho completato tutti gli esercizi"); all.type="button";
-    all.onclick=()=>{ if(!confirm("Segnare tutte le serie di tutti gli esercizi come fatte?")) return; logCtx.exercises.forEach(x=>x.sets.forEach(z=>z.done=true)); restEnd=0; $("sesRest").hidden=true; saveLive(); renderLogger(); toast("Tutte le serie segnate ✓ Ora tocca Termina e salva"); };
+    all.onclick=()=>{ if(!confirm("Segnare tutte le serie di tutti gli esercizi come fatte?")) return; logCtx.exercises.forEach(x=>x.sets.forEach(z=>z.done=true)); restEnd=0; $("sesRest").hidden=true; $("restBig").hidden=true; saveLive(); renderLogger(); toast("Tutte le serie segnate ✓ Ora tocca Termina e salva"); };
     box.appendChild(all); }
   $("sesNext").textContent= nx? "REGISTRA SERIE SUCCESSIVA" : "TERMINA E SALVA";
 }
 $("sesNext").onclick=()=>{ if(logCtx&&logCtx.circuit){ circuitNext(); return; } const nx=nextSet(); if(!nx){ $("logSave").click(); return; } markSet(nx.xi,nx.si,true);
   const n2=nextSet(); if(n2){ const x=logCtx.exercises[n2.xi]; if(x.closed){ x.closed=false; renderLogger(); } setTimeout(()=>{ const r0=document.querySelector(".srow.next"); if(r0) r0.scrollIntoView({behavior:"smooth",block:"center"}); },60); } };
 $("sesAll").onclick=()=>{ if(logCtx&&logCtx.circuit){ completeAllCircuit(); return; } const any=logCtx.exercises.some(x=>x.sets.some(z=>!z.done)); logCtx.exercises.forEach(x=>x.sets.forEach(z=>z.done=any)); restEnd=0; saveLive(); renderLogger(); toast(any?"Tutte le serie segnate come fatte":"Serie riaperte"); };
-$("sesRest").onclick=()=>{ restEnd=0; $("sesRest").hidden=true; };
+$("sesRest").onclick=()=>{ restEnd=0; $("sesRest").hidden=true; $("restBig").hidden=true; };
 $("sesTimeEdit").onclick=()=>{ const d0=new Date(logCtx.startedAt), cur=String(d0.getHours()).padStart(2,"0")+":"+String(d0.getMinutes()).padStart(2,"0");
   const v=prompt("A che ora hai iniziato? (HH:MM)",cur); if(!v||!/^\d{1,2}:\d{2}$/.test(v.trim())) return; const [hh,mm]=v.trim().split(":").map(Number);
   const nd=new Date(); nd.setHours(hh,mm,0,0); if(nd.getTime()>Date.now()) nd.setDate(nd.getDate()-1); logCtx.startedAt=nd.getTime(); saveLive(); startSesTimer(); };
@@ -7155,6 +7519,7 @@ $("ciboBack").onclick=()=>{ if(history.state&&history.state.v==="cibo") history.
 $("cPrev").onclick=()=>$("prev").click(); $("cNext").onclick=()=>$("next").click(); $("cDayPick").onclick=()=>$("dayPick").click();
 $("dBody").onclick=()=>go("corpo");
 function renderAll(){ document.body.classList.toggle("home",view==="diario"); if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
+ if(view==="profilo"){ try{ if(psCur) closePset(); else renderPfList(); }catch(e){ console.warn("profilo lista",e); } }
  if(view==="profilo"&&HCP()){ try{ hcRenderState(); }catch{} }
  if(view==="attivita"){ try{ renderSleep(); const r0=recoveryNow(); $("csRowSub").textContent=`Recupero ${r0.lvl[0].toLowerCase()} (${r0.score}/100) · record, forma, zone, scarpe`; }catch(e){ console.warn("sonno",e); } }
  if(view==="corsa"){ try{ renderCorsa(); }catch(e){ console.warn("corsa",e); } } if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento"||view==="attivita") renderWorkouts(); if(view==="corpo") renderBody(); }
@@ -7200,9 +7565,10 @@ async function loadAll(){
   if(NAT()){ document.body.classList.add("native"); $("hcCard").hidden=false; $("devHcWeb").hidden=true; renderDevices();
     [["W","hcW"],["A","hcA"],["S","hcS"],["B","hcB"]].forEach(([k,id])=>{ $(id).checked=hcOpt(k); $(id).onchange=()=>{ localStorage.setItem("hf:hc"+k,$(id).checked?"1":"0"); }; });
     hcRenderState();
-    $("hcConnect").onclick=hcConnect; $("hcSyncNow").onclick=()=>hcSync(true); $("hcSettings").onclick=()=>{ const H=HCP(); if(H&&H.openHealthConnectSettings) H.openHealthConnectSettings().catch(()=>{}); };
+    $("hcConnect").onclick=hcConnect; $("hcPermsLink").onclick=hcConnect; $("hcSyncNow").onclick=()=>hcSync(true); $("hcSettings").onclick=()=>{ const H=HCP(); if(H&&H.openHealthConnectSettings) H.openHealthConnectSettings().catch(()=>{}); };
     if(localStorage.getItem("hf:hcLast")) setStatus("hcStatus","Ultima sincronizzazione: "+new Date(localStorage.getItem("hf:hcLast")).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}));
     setTimeout(()=>hcSync(false),3500);
+    try{ const W=WBR(); if(W){ W.addListener("watchResult",async o=>{ if(await saveWatchResult(o)){ toast("⌚ Corsa dal Galaxy Watch salvata ✓"); renderAll(); } }); setTimeout(watchPending,2500); NAT().Plugins.App.addListener("resume",()=>watchPending()); } }catch(e){ console.warn("orologio",e); }
     try{ NAT().Plugins.App.addListener("resume",()=>{ const l=+new Date(localStorage.getItem("hf:hcLast")||0); if(Date.now()-l>10*60000) hcSync(false); }); }catch{}
     setTimeout(()=>{ hrnRestore(); },900);
     try{ NAT().Plugins.App.addListener("backButton",()=>{ if(view==="diario"&&!sheetStack.length) NAT().Plugins.App.minimizeApp(); else history.back(); }); }catch{}
