@@ -51,11 +51,23 @@ jobs:
           ./gradlew assembleRelease --no-daemon --stacktrace
           cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/HealthFit.apk
 
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Compila l'app per l'orologio
+        working-directory: app/wear
+        run: |
+          gradle assembleRelease -PbuildNumber=${{ github.run_number }} --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk ../android/app/build/outputs/apk/release/HealthFit-orologio.apk
+
       - name: Pubblica l'APK
         uses: softprops/action-gh-release@v3
         with:
           tag_name: apk-${{ github.run_number }}
           name: HealthFit per Android 1.${{ github.run_number }}
-          body: "Scarica il file HealthFit.apk qui sotto e installalo sul telefono (sopra la versione precedente: i dati restano)."
-          files: app/android/app/build/outputs/apk/release/HealthFit.apk
+          body: "HealthFit.apk va sul telefono (sopra la versione precedente: i dati restano). HealthFit-orologio.apk va sul Galaxy Watch."
+          files: |
+            app/android/app/build/outputs/apk/release/HealthFit.apk
+            app/android/app/build/outputs/apk/release/HealthFit-orologio.apk
           make_latest: true
