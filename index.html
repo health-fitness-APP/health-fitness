@@ -1651,6 +1651,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button type="button" role="menuitem" id="bmDel">Elimina questa misurazione</button>
       <button type="button" role="menuitem" id="bmAdd">Inserisci dati</button>
       <button type="button" role="menuitem" id="bmShot">Carica uno screenshot</button>
+      <button type="button" role="menuitem" id="bmImport">Importa valori (testo da Claude)</button>
     </div>
   </header>
   <div class="daynav" style="justify-content:center;margin:2px 0 10px">
@@ -2125,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.48 (metro da Corpo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.50 (importa valori)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4749,7 +4750,8 @@ function biaCalibrated(imp,w){ const raw=biaRaw(imp,w); if(!raw) return null; co
   const f=k=> c[k]&&c[k].n? raw[k]*c[k].r : raw[k]; raw.bodyAge=bodyAgeOf(f("bmr"),f("fat"),w);
   return {fat:Math.round(f("fat")*10)/10, water:Math.round(f("water")*10)/10, muscle:Math.round(f("muscle")*10)/10, bmr:Math.round(c.bmr&&c.bmr.n? raw.bmr*c.bmr.r : raw.bmr), bodyAge:Math.round(raw.bodyAge+(c.bodyAge&&c.bodyAge.n? c.bodyAge.d : 0)), n:Math.min(...["fat","water","muscle"].map(k=>(c[k]&&c[k].n)||0))}; }
 /* screenshot di FitDays nello stesso giorno di una pesata dalla bilancia -> affino la calibrazione */
-function biaLearn(shot){ const sc=body.entries.find(e=>e.date===shot.date&&e.source==="bilancia"&&e.imp); if(!sc) return false;
+function biaLearn(shot){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new Date(b+"T12:00:00"))/864e5);
+  const sc=body.entries.filter(e=>e.source==="bilancia"&&e.imp&&dd(e.date,shot.date)<=2).sort((a,b)=>dd(a.date,shot.date)-dd(b.date,shot.date))[0]; if(!sc) return false;
   const raw=biaRaw(sc.imp,shot.weight||sc.weight); if(!raw) return false; body.cal=body.cal||{}; let learned=false;
   ["fat","water","muscle","bmr"].forEach(k=>{ if(shot[k]>0&&raw[k]>0){ const r0=shot[k]/raw[k]; if(r0<0.4||r0>2.5) return; const c=body.cal[k]||{r:1,n:0}; c.r=(c.r*c.n+r0)/(c.n+1); c.n=Math.min(c.n+1,10); body.cal[k]=c; learned=true; } });
   if(shot.bodyAge>0){ const cal0=biaCalibrated(sc.imp,shot.weight||sc.weight), base=cal0? cal0.bodyAge-((body.cal.bodyAge&&body.cal.bodyAge.n)? body.cal.bodyAge.d : 0) : raw.bodyAge; const c=body.cal.bodyAge||{d:0,n:0}; c.d=(c.d*c.n+(shot.bodyAge-base))/(c.n+1); c.n=Math.min(c.n+1,10); body.cal.bodyAge=c; learned=true; }
@@ -6085,7 +6087,7 @@ function errCopy(e){
 }
 
 /* ================= CORPO ================= */
-const METRICS=[["weight","Peso","kg"],["bmr","Metabolismo basale","kcal"],["bodyAge","Età corporea","anni"],["fat","Grasso corporeo","%"],["muscle","Massa muscolare","kg"],["water","Acqua","%"],["visceral","Grasso viscerale",""],["shoulders","Spalle","cm"],["chest","Petto","cm"],["waist","Vita","cm"],["hips","Fianchi / bacino","cm"],["arm","Braccio","cm"],["forearm","Avambraccio","cm"],["thigh","Coscia","cm"],["calf","Polpaccio","cm"],["neck","Collo","cm"],["abdomen","Addome","cm"],["armL","Braccio sinistro","cm"],["armR","Braccio destro","cm"],["thighL","Coscia sinistra","cm"],["thighR","Coscia destra","cm"],["calfL","Polpaccio sinistro","cm"],["calfR","Polpaccio destro","cm"],
+const METRICS=[["weight","Peso","kg"],["bmr","Metabolismo basale","kcal"],["bodyAge","Età corporea","anni"],["bone","Massa ossea","kg"],["protein","Proteine","%"],["subfat","Grasso sottocutaneo","%"],["fat","Grasso corporeo","%"],["muscle","Massa muscolare","kg"],["water","Acqua","%"],["visceral","Grasso viscerale",""],["shoulders","Spalle","cm"],["chest","Petto","cm"],["waist","Vita","cm"],["hips","Fianchi / bacino","cm"],["arm","Braccio","cm"],["forearm","Avambraccio","cm"],["thigh","Coscia","cm"],["calf","Polpaccio","cm"],["neck","Collo","cm"],["abdomen","Addome","cm"],["armL","Braccio sinistro","cm"],["armR","Braccio destro","cm"],["thighL","Coscia sinistra","cm"],["thighR","Coscia destra","cm"],["calfL","Polpaccio sinistro","cm"],["calfR","Polpaccio destro","cm"],
 ["sfArmL","Grasso braccio sx (% std)","%","seg"],["sfArmR","Grasso braccio dx (% std)","%","seg"],["sfTrunk","Grasso tronco (% std)","%","seg"],["sfLegL","Grasso gamba sx (% std)","%","seg"],["sfLegR","Grasso gamba dx (% std)","%","seg"],
 ["smArmL","Muscoli braccio sx (% std)","%","seg"],["smArmR","Muscoli braccio dx (% std)","%","seg"],["smTrunk","Muscoli tronco (% std)","%","seg"],["smLegL","Muscoli gamba sx (% std)","%","seg"],["smLegR","Muscoli gamba dx (% std)","%","seg"]];
 function syncProfileFromBody(){ const last=latestBody(); if(state.profile&&last.weight&&state.profile.weight!==last.weight.v){ state.profile.weight=last.weight.v; save("profile",state.profile); return true; } return false; }
@@ -6102,7 +6104,7 @@ function derivedVal(x,k){
   if(k==="bmi"){ const h=hM(); return x.weight&&h? x.weight/(h*h) : null; }
   return x[k]!=null? +x[k] : null;
 }
-const DMETA={weight:["Peso","kg"],muscle:["Massa muscolare","kg"],fatKg:["Massa grassa","kg"],waterKg:["Acqua corporea","kg"],fat:["Grasso corporeo","%"],bmi:["IMC",""],water:["Acqua","%"],visceral:["Grasso viscerale",""],bodyAge:["Età corporea","anni"]};
+const DMETA={weight:["Peso","kg"],muscle:["Massa muscolare","kg"],fatKg:["Massa grassa","kg"],waterKg:["Acqua corporea","kg"],fat:["Grasso corporeo","%"],bmi:["IMC",""],water:["Acqua","%"],visceral:["Grasso viscerale",""],bodyAge:["Età corporea","anni"],bone:["Massa ossea","kg"],protein:["Proteine","%"],subfat:["Grasso sottocutaneo","%"]};
 function refRange(k,w){
   const p=state.profile||{}, m=p.sex!=="f", age=+p.age||35, h=hM();
   const fr= m? (age<40?[8,20]:age<60?[11,22]:[13,25]) : (age<40?[21,33]:age<60?[23,34]:[24,36]);
@@ -6117,6 +6119,9 @@ function refRange(k,w){
     case "waterKg": return w? [wr[0]*w/100, wr[1]*w/100] : null;
     case "visceral": return [1,9];
     case "bodyAge": return [Math.max(18,age-5),age];
+    case "protein": return [16,20];
+    case "subfat": return m? [7,15] : [15,25];
+    case "bone": return w? (m? [w*0.04,w*0.06] : [w*0.035,w*0.05]) : null;
   }
   return null;
 }
@@ -6177,7 +6182,7 @@ function renderBody(){
       : "Nessuna misurazione prima di "+fd(bd)+"."; }
   const fill=(card,box,keys)=>{ const b=$(box); b.innerHTML=""; keys.forEach(k=>{ const r0=metricRow(k,es); if(r0) b.appendChild(r0); }); $(card).hidden=!b.children.length; };
   fill("bCompCard","bComp",["weight","muscle","fatKg","waterKg"]);
-  fill("bAnaCard","bAna",["fat","bmi","water","visceral","bodyAge"]);
+  fill("bAnaCard","bAna",["fat","bmi","water","visceral","subfat","protein","bone","bodyAge"]);
   // metabolismo basale: letto dalla bilancia o stimato
   const p=state.profile||{}; let bmr=last.bmr?last.bmr.v:null, est=false;
   if(!bmr){ const w=last.weight&&last.weight.v, f=last.fat&&last.fat.v;
@@ -6259,6 +6264,17 @@ $("bmDel").onclick=()=>{ $("bMenu").hidden=true; const bd=bodyDay(), ids=body.en
   const lbl=new Date(bd+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
   if(confirm(`Eliminare la misurazione di ${lbl}?`)) deleteBodyEntries(ids); };
 $("bmAdd").onclick=()=>{ $("bMenu").hidden=true; const f=$("bDate"); if(f){ f.closest("section").scrollIntoView({behavior:"smooth",block:"start"}); } };
+/* importa una misurazione da un testo JSON (es. preparato da Claude dagli screenshot della bilancia) */
+$("bmImport").onclick=async()=>{ $("bMenu").hidden=true; let t="";
+  try{ const C=NAT(); t= C&&C.Plugins.Clipboard? ((await C.Plugins.Clipboard.read())||{}).value||"" : await navigator.clipboard.readText(); }catch{}
+  if(!/\{[\s\S]*"weight"[\s\S]*\}/.test(t)) t=prompt("Incolla qui il testo con i valori (inizia con { e finisce con })","")||"";
+  let o; try{ o=JSON.parse(t.slice(t.indexOf("{"),t.lastIndexOf("}")+1)); }catch{ toast("Testo non valido: copialo tutto, dalla { alla }"); return; }
+  const entry={id:uid(),date:/^\d{4}-\d{2}-\d{2}$/.test(o.date||"")? o.date : todayISO(),source:"screenshot"}; const read=[];
+  METRICS.filter(m=>!m[3]).forEach(([k,l,u])=>{ const v=+o[k]; if(o[k]!=null&&isFinite(v)&&v>0){ entry[k]=Math.round(v*10)/10; read.push(l+" "+fmt(entry[k])+(u?" "+u:"")); } });
+  if(!read.length){ toast("Nessun valore riconosciuto nel testo"); return; }
+  if(!confirm(`Importo la misurazione del ${new Date(entry.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"long"})}?\n\n${read.join("\n")}`)) return;
+  body.entries=[...body.entries,entry]; let cal=false; try{ cal=biaLearn(entry); }catch{} save("body",body); bodyDate=null; try{ syncProfileFromBody(); }catch{} renderAll();
+  toast(`Importati ${read.length} valori ✓`+(cal? " · calibrazione della bilancia aggiornata" : "")); };
 $("bmShot").onclick=()=>{ $("bMenu").hidden=true; const b=$("bShotBtn"); if(b&&!b.hidden) b.click(); else toast("Serve la chiave AI per leggere gli screenshot"); };
 function drawChart(pts,unit,band){
   const W=340,H=180,L=36,R=10,T=12,B=24;
@@ -6292,7 +6308,7 @@ $("bShot").onchange=async e=>{
     const res=await sample.json(
 `Queste sono schermate di app per bilance intelligenti o metri smart (es. FitDays, Renpho). Leggi i valori della misurazione mostrata.
 Rispondi SOLO con JSON, usando null per i valori assenti:
-{"date":"YYYY-MM-DD o null","weight":kg,"fat":percentuale grasso corporeo,"muscle":massa muscolare in kg,"water":percentuale acqua,"visceral":indice grasso viscerale,"bodyAge":età corporea o età metabolica in anni,"bmr":metabolismo basale in kcal,"waist":cm,"hips":cm (fianchi o bacino),"shoulders":cm,"chest":cm,"arm":cm (braccio/bicipite, media),"forearm":cm,"thigh":cm (media),"calf":cm (media),"neck":cm,"abdomen":cm (addome),"armL":cm,"armR":cm,"thighL":cm,"thighR":cm,"calfL":cm,"calfR":cm,
+{"date":"YYYY-MM-DD o null","weight":kg,"fat":percentuale grasso corporeo,"muscle":massa del MUSCOLO SCHELETRICO in kg (se la bilancia dà il muscolo scheletrico in %, convertilo: % × peso / 100; NON usare "massa muscolare" totale o massa magra, che sono molto più alte),"bone":massa ossea in kg,"protein":proteine in %,"subfat":grasso sottocutaneo in %,"water":percentuale acqua,"visceral":indice grasso viscerale,"bodyAge":età corporea o età metabolica in anni,"bmr":metabolismo basale in kcal,"waist":cm,"hips":cm (fianchi o bacino),"shoulders":cm,"chest":cm,"arm":cm (braccio/bicipite, media),"forearm":cm,"thigh":cm (media),"calf":cm (media),"neck":cm,"abdomen":cm (addome),"armL":cm,"armR":cm,"thighL":cm,"thighR":cm,"calfL":cm,"calfR":cm,
 "sfArmL":%,"sfArmR":%,"sfTrunk":%,"sfLegL":%,"sfLegR":%,"smArmL":%,"smArmR":%,"smTrunk":%,"smLegL":%,"smLegR":%}
 I campi sf*/sm* sono l'analisi segmentale (bilance come FitDays): "rapporto standard di grassi" (sf) e "rapporto standard muscolare" (sm) di braccio sinistro/destro, tronco, gamba sinistra/destra, in percentuale (es. 37,6% e 107,7%). L = sinistra, R = destra.
 Se ci sono misure destra e sinistra, riportale nei campi L/R e metti la media nel campo generico (arm, thigh, calf).
@@ -6301,6 +6317,7 @@ Se la massa muscolare è solo in percentuale e c'è il peso, convertila in kg. S
     const okDate=res.date&&/^\d{4}-\d{2}-\d{2}$/.test(res.date)&&res.date<=todayISO();
     const entry={id:uid(),date:okDate?res.date:todayISO(),source:"screenshot"}, read=[]; bodyDate=null;
     METRICS.forEach(([k,l,u])=>{ const v=+res[k]; if(res[k]!=null&&isFinite(v)&&v>0){ entry[k]=Math.round(v*10)/10; read.push(l+" "+fmt(entry[k])+(u?" "+u:"")); } });
+    if(entry.muscle&&entry.weight&&entry.muscle>entry.weight*0.6){ delete entry.muscle; }
     if(!read.length){ setStatus("bShotStatus","Non ho trovato valori in questa immagine. Prova con la schermata del dettaglio della pesata."); return; }
     body.entries=[...body.entries,entry]; save("body",body); bodyDate=null; try{ hcWriteBody(entry); }catch{}
     try{ if(biaLearn(entry)) toast("Calibrazione aggiornata: le prossime pesate useranno i calcoli allineati a FitDays ✓"); }catch(e){ console.warn("calibrazione",e); }
