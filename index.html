@@ -1701,7 +1701,11 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <input type="file" id="bShot" accept="image/*" multiple hidden>
     <button class="btn" id="bShotBtn">Leggi da screenshot</button>
     <div class="status" id="bShotStatus" aria-live="polite"></div>
+    <button class="btn" id="bScaleBtn" type="button" hidden style="margin-top:8px">⚖️ Pesati con la bilancia</button>
+    <p class="note" id="bScaleNote" hidden style="margin:4px 2px 0">Tocca il pulsante e <b>poi</b> sali sulla bilancia, scalzo (chiudi prima FitDays).</p>
+    <button class="btn ghost" id="bScaleSetup" type="button" hidden style="margin-top:8px">⚖️ Collega la bilancia (una volta sola)</button>
     <button class="btn ghost" id="bTapeBtn" type="button" hidden style="margin-top:8px">📏 Misura con il metro</button>
+    <button class="btn ghost" id="bTapeSetup" type="button" hidden style="margin-top:8px">📏 Collega il metro (una volta sola)</button>
     <div class="tape-box" id="bTapeBox" hidden>
       <p class="note" style="margin:0 0 6px">Scegli la parte, avvolgi il metro e tocca “Misura”: tieni il nastro fermo qualche secondo, leggo da solo.</p>
       <div class="chips" id="bTapeParts"></div>
@@ -2121,7 +2125,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.46 (misure con il metro)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.48 (metro da Corpo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4764,6 +4768,9 @@ async function scaleWeigh(){ const P=HRN(), addr=localStorage.getItem("hf:scaleA
   catch(e){ toast("Bilancia: "+((e&&e.message)||e)); }
   finally{ btn.disabled=false; btn.textContent="⚖️ Pesati adesso"; } }
 $("devWeigh").onclick=scaleWeigh;
+$("bScaleBtn").onclick=async()=>{ const b=$("bScaleBtn"); b.disabled=true; b.textContent="⏳ Sali ora sulla bilancia…"; try{ await scaleWeigh(); } finally{ b.disabled=false; b.textContent="⚖️ Pesati con la bilancia"; } };
+$("bTapeSetup").onclick=()=>{ go("profilo"); setTimeout(()=>{ try{ openPset("Dispositivi collegati","Dispositivi collegati","dev"); const row=[...document.querySelectorAll("#devCard .acc-row")].find(x=>/Metro a nastro/.test(x.textContent)); if(row) accToggle("accTape",row); toast("Tocca “Prova collegamento”, premi il tasto del metro e scegli ES-Tape"); }catch{} },300); };
+$("bScaleSetup").onclick=()=>{ go("profilo"); setTimeout(()=>{ try{ openPset("Dispositivi collegati","Dispositivi collegati","dev"); const row=[...document.querySelectorAll("#devCard .acc-row")].find(x=>/Lepulse/.test(x.textContent)); if(row){ accToggle("accScale",row); } toast("Tocca “Prova collegamento” e scegli F8: dopo ti basta “Pesati”"); }catch{} },300); };
 $("devScBtn").onclick=()=>devProbe("scale"); $("devTpBtn").onclick=()=>devProbe("tape");
 $("devCopy").onclick=async()=>{ const t=["BILANCIA:\n"+(localStorage.getItem("hf:probe-scale")||"(non provata)"),"METRO:\n"+(localStorage.getItem("hf:probe-tape")||"(non provato)")].join("\n\n");
   try{ const C=NAT(); if(C&&C.Plugins.Clipboard) await C.Plugins.Clipboard.write({string:t}); else await navigator.clipboard.writeText(t); toast("Copiato: incollalo nella chat con Claude"); }catch{ toast("Fai uno screenshot dei risultati"); } };
@@ -6159,6 +6166,8 @@ function renderBody(){
   const bd=bodyDay(), all=sortedEntries(), es=all.filter(e=>e.date<=bd), last=latestBodyFrom(es); renderBodyNav();
   if(!$("bDate").value) $("bDate").value=todayISO();
   $("bShotBtn").hidden=!imgLimits||!sample; $("bTapeBtn").hidden=!(localStorage.getItem("hf:tapeAddr")&&HRN());
+  { const nat=!!HRN(); $("bTapeSetup").hidden=!(nat&&!localStorage.getItem("hf:tapeAddr")); }
+  { const hasSc=!!localStorage.getItem("hf:scaleAddr"), nat=!!HRN(); $("bScaleBtn").hidden=!(hasSc&&nat); $("bScaleNote").hidden=!(hasSc&&nat); $("bScaleSetup").hidden=!(nat&&!hasSc); }
   const lastE=es[es.length-1];
   { const lastAll=all[all.length-1], fd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), src=e=>e&&e.source==="screenshot"?" · da screenshot":e&&e.source==="health"?" · da Samsung Health":e&&e.source==="bilancia"?" · dalla bilancia"+(e.est?((body.cal&&body.cal.fat&&body.cal.fat.n)? " (composizione stimata, calibrata su FitDays)" : " (composizione stimata: carica uno screenshot FitDays dello stesso giorno per calibrarla)") : ""):"";
     const cur=es[es.length-1];
