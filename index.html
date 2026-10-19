@@ -857,6 +857,13 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .rcp-import{margin-top:10px}
 .rcp-import>summary{cursor:pointer;font-weight:700;color:var(--basil);padding:6px 0}
 .cd-batt{display:flex;gap:8px;align-items:center;justify-content:space-between;background:#fff1d6;color:#7a4f00;border-radius:12px;padding:8px 10px;font-size:.85rem;text-align:left;margin-top:6px}
+.b-head{position:relative;display:flex;justify-content:space-between;align-items:center}
+.b-menu{font-size:1.4rem;font-weight:900}
+.b-pop{position:absolute;right:0;top:100%;z-index:30;min-width:250px;background:var(--surface-solid);border-radius:22px;box-shadow:0 12px 34px rgba(0,0,0,.18);padding:8px 0;display:flex;flex-direction:column}
+.b-pop button{border:0;background:none;text-align:left;font:inherit;font-size:1.02rem;padding:14px 22px;color:var(--ink);cursor:pointer}
+.b-pop button:disabled{color:var(--muted)}
+.b-pop button:first-child{color:#c4302b}
+.b-pop button:first-child:disabled{color:var(--muted)}
 .pf-head{padding:34px 4px 14px;text-align:center}
 .pf-head h1{font-size:2.2rem;margin:0}
 .pf-acct{display:flex;align-items:center;gap:14px;width:100%;border:0;border-radius:24px;background:var(--surface-solid);padding:16px;font:inherit;color:var(--ink);text-align:left;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.04)}
@@ -884,6 +891,8 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .dev-row b{display:block}.dev-row .note{margin:2px 0 0;display:block}
 .dev-btns{display:flex;flex-direction:column;align-items:flex-end;gap:2px}.dev-btns .btn{width:auto;padding:8px 14px}
 .dev-sep{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.tape-box{margin-top:10px;padding:12px;border-radius:16px;background:var(--surface2)}
+.tape-box .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
 .dev-card{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 .dev-card .pf-gh:first-of-type{margin-top:6px}
 .acc-row{display:flex;align-items:center;gap:14px;width:100%;border:0;background:none;padding:14px 16px;font:inherit;color:var(--ink);text-align:left;cursor:pointer;position:relative}
@@ -895,7 +904,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .acc-panel{padding:4px 16px 14px 76px}
 .acc-panel .hc-card h3,.acc-panel .hc-card>p.note:first-of-type{display:none}
 .acc-empty{padding:14px 16px;margin:0}
-.acc-search{position:sticky;bottom:calc(92px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;padding:16px 0 4px}
+.acc-search{display:flex;justify-content:center;padding:18px 0 8px}
 .acc-search .btn{width:auto;padding:12px 30px;border-radius:999px;background:var(--surface2);box-shadow:0 4px 14px rgba(0,0,0,.12)}
 #devScLog,#devTpLog{max-height:260px}
 .dev-auto{display:flex;gap:8px;align-items:center;font-size:.9rem;margin:10px 0 4px}.dev-auto input{width:20px;height:20px;flex:none}
@@ -1637,7 +1646,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 
 <!-- ================= CORPO ================= -->
 <main id="view-corpo" hidden>
-  <header class="top"><h1>Corpo e misure</h1></header>
+  <header class="top b-head"><h1>Corpo e misure</h1><button class="icon-btn b-menu" id="bMenuBtn" type="button" aria-label="Altre opzioni" aria-haspopup="true">⋮</button>
+    <div class="b-pop" id="bMenu" hidden role="menu">
+      <button type="button" role="menuitem" id="bmDel">Elimina questa misurazione</button>
+      <button type="button" role="menuitem" id="bmAdd">Inserisci dati</button>
+      <button type="button" role="menuitem" id="bmShot">Carica uno screenshot</button>
+    </div>
+  </header>
   <div class="daynav" style="justify-content:center;margin:2px 0 10px">
     <button class="icon-btn" id="bPrev" aria-label="Giorno precedente">‹</button>
     <button class="daypick" id="bDayPick" aria-label="Scegli il giorno dal calendario"><h1 id="bDayLabel">Oggi</h1></button>
@@ -1686,6 +1701,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <input type="file" id="bShot" accept="image/*" multiple hidden>
     <button class="btn" id="bShotBtn">Leggi da screenshot</button>
     <div class="status" id="bShotStatus" aria-live="polite"></div>
+    <button class="btn ghost" id="bTapeBtn" type="button" hidden style="margin-top:8px">📏 Misura con il metro</button>
+    <div class="tape-box" id="bTapeBox" hidden>
+      <p class="note" style="margin:0 0 6px">Scegli la parte, avvolgi il metro e tocca “Misura”: tieni il nastro fermo qualche secondo, leggo da solo.</p>
+      <div class="chips" id="bTapeParts"></div>
+      <div class="two" style="margin-top:8px"><button class="btn" id="bTapeGo" type="button">Misura</button><button class="btn ghost" id="bTapeDone" type="button">Fine</button></div>
+      <div class="status" id="bTapeStatus" aria-live="polite"></div>
+    </div>
     <div class="form" id="bForm" style="margin-top:14px">
       <label>Data<input id="bDate" type="date"></label>
       <div class="two" id="bFields"></div>
@@ -1982,6 +2004,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="acc-row" type="button" data-acc="scalehc"><span class="acc-ic" data-i="scale"></span><span class="t"><b>Altre bilance</b><span>Tramite Health Connect (Renpho, Withings, Samsung…)</span></span><span class="chev">›</span></button>
       <div class="acc-panel" id="accScale" hidden>
         <p class="note" style="margin:0 0 6px" id="devScTxt">Per ora: da screenshot o da Health Connect. Prova se si può collegare direttamente:</p>
+        <button class="btn" id="devWeigh" type="button" hidden>⚖️ Pesati adesso</button>
+        <p class="note" id="devWeighNote" hidden style="margin:6px 0 8px">Tocca il pulsante e poi sali subito sulla bilancia, scalzo: leggo il peso in automatico.</p>
         <button class="btn ghost" id="devScBtn" type="button">Prova collegamento</button>
         <pre class="btlog" id="devScLog" hidden></pre>
       </div>
@@ -2097,7 +2121,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.38 (accessori in stile Samsung)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.46 (misure con il metro)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -2842,7 +2866,7 @@ const SUB_VIEWS=["cibo","pasto","casa","valuta","ricetta","pset","gara","corsa",
 function rememberView(v){ if(!state.profile||!goalOf(state.profile)) return; try{ sessionStorage.setItem("hf:where",JSON.stringify({v,meal:typeof mealPageId!=="undefined"?mealPageId:null,wd:typeof progOpenWd!=="undefined"?progOpenWd:null,date:state.date,at:Date.now()})); }catch{} }
 function go(v,fromHistory){ setTimeout(()=>rememberView(v),0);
   if(!fromHistory && v!==view){
-    if(v==="diario"){ if(history.state&&history.state.v&&history.state.v!=="diario"&&!sheetStack.length){ history.back(); return; } }
+    if(v==="diario"){ try{ history.replaceState({v:"diario"},""); }catch{} }
     else if(["cibo","pasto","casa","valuta","ricetta","pset","gara","corsa","cardio","attivita","attrezzatura","giorno","sessione"].includes(v)||!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
   }
   if(v!=="diario"&&typeof editMode!=="undefined"&&editMode) setEdit(false);
@@ -2853,7 +2877,7 @@ function go(v,fromHistory){ setTimeout(()=>rememberView(v),0);
   if(v==="profilo") fillProfile();
   renderAll();
 }
-document.querySelectorAll("nav.tabbar button").forEach(b=>b.onclick=()=>go(b.dataset.v));
+document.querySelectorAll("nav.tabbar button").forEach(b=>b.onclick=()=>{ if(b.dataset.v==="corpo"){ try{ bodyDate=null; }catch{} } go(b.dataset.v); });
 $("goWorkout").onclick=()=>{ go("attivita"); setTimeout(()=>{ $("aTellCard").scrollIntoView({behavior:"smooth",block:"start"}); },150); };
 
 /* ================= DIARIO ================= */
@@ -4586,9 +4610,10 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
         ((fr&&fr.samples)||[]).forEach(x=>{ const d=dISO(x.startDate); if(byDay[d]) byDay[d].fat=+x.value; });
         let n=0; Object.entries(byDay).forEach(([d,v])=>{ if(!(v.w>20)) return;
           const same=body.entries.find(e=>e.date===d&&e.weight&&Math.abs(e.weight-v.w)<0.15); if(same) return;
-          const hcOld=body.entries.find(e=>e.date===d&&e.source==="health"); if(hcOld){ hcOld.weight=Math.round(v.w*10)/10; if(v.fat) hcOld.fat=Math.round(v.w*v.fat/10)/10; n++; return; }
-          const fatKg= v.fat? Math.round(v.w*v.fat/10)/10 : null; body.entries=[...body.entries,{id:uid(),date:d,source:"health",weight:Math.round(v.w*10)/10,...(fatKg?{fat:fatKg}:{})}]; n++; });
-        if(n){ save("body",body); try{ syncProfileFromBody(); }catch{} msgs.push(`${n} ${n===1?"pesata":"pesate"}`); } }catch{} }
+          if((body.ignored||[]).some(t=>t.date===d&&Math.abs(t.w-v.w)<0.15)) return;
+          const hcOld=body.entries.find(e=>e.date===d&&e.source==="health"); if(hcOld){ hcOld.weight=Math.round(v.w*10)/10; if(v.fat) hcOld.fat=Math.round(v.fat*10)/10; n++; return; }
+          body.entries=[...body.entries,{id:uid(),date:d,source:"health",weight:Math.round(v.w*10)/10,...(v.fat?{fat:Math.round(v.fat*10)/10}:{})}]; n++; });
+        if(n){ save("body",body); bodyDate=null; try{ syncProfileFromBody(); }catch{} msgs.push(`${n} ${n===1?"pesata":"pesate"}`); } }catch{} }
     // --- battito a riposo
     try{ const r0=await H.readSamples({dataType:"restingHeartRate",startDate:iso(new Date(Date.now()-7*864e5)),endDate:iso(now),limit:20}); const ss=(r0&&r0.samples)||[]; if(ss.length){ const v=Math.round(ss.reduce((a,x)=>a+(+x.value),0)/ss.length); if(v>30&&v<110&&state.profile&&state.profile.hrRest!==v){ state.profile.hrRest=v; save("profile",state.profile); } } }catch{}
     localStorage.setItem("hf:hcLast",new Date().toISOString()); localStorage.setItem("hf:hcDiag",JSON.stringify(diag)); try{ hcRenderState(); }catch{}
@@ -4600,21 +4625,22 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
   finally{ hcBusy=false; } }
 async function hcWriteBody(entry){ const H=HCP(); if(!H||localStorage.getItem("hf:hcOn")!=="1"||!hcOpt("B")||entry.source==="health") return;
   try{ const dt=new Date(entry.date+"T08:00:00").toISOString(); if(entry.weight) await H.saveSample({dataType:"weight",value:+entry.weight,startDate:dt,endDate:dt});
-    if(entry.weight&&entry.fat) await H.saveSample({dataType:"bodyFat",value:Math.round(entry.fat/entry.weight*1000)/10,startDate:dt,endDate:dt}); }catch(e){ console.warn("HC scrittura",e); } }
+    if(entry.weight&&entry.fat) await H.saveSample({dataType:"bodyFat",value:+entry.fat,startDate:dt,endDate:dt}); }catch(e){ console.warn("HC scrittura",e); } }
 /* stato del collegamento: permessi concessi e app da cui arrivano i dati */
 const HC_LAB={workouts:"Allenamenti",heartRate:"Battito",steps:"Passi",sleep:"Sonno",weight:"Peso",bodyFat:"Grasso",distance:"Distanza",calories:"Calorie",restingHeartRate:"Battito a riposo"};
 const prettySrc=x=>{ const n=String(x||""); return /shealth|samsung/i.test(n)? "Samsung Health" : /fitdays|icomon/i.test(n)? "FitDays" : /renpho|qnniu|yolanda/i.test(n)? "Renpho" : /fit|google/i.test(n)? "Google Fit" : /strava/i.test(n)? "Strava" : /garmin/i.test(n)? "Garmin" : /polar/i.test(n)? "Polar" : n.split(".").pop()||"?"; };
 async function hcRenderState(){ const box=$("hcState"); if(!box) return; const H=HCP(); if(!H){ box.innerHTML=""; return; }
   const on=localStorage.getItem("hf:hcOn")==="1"; $("hcConnect").hidden=on; $("hcSyncNow").hidden=!on; $("hcSyncNow").className= on? "btn" : "btn ghost"; $("hcSettings").textContent= on? "Rivedi i permessi" : "Gestisci permessi in Health Connect";
-  if($("hcPermsLink")) $("hcPermsLink").hidden=!on;
+  if($("hcPermsLink")) $("hcPermsLink").hidden=true;
   if(!on){ box.innerHTML=`<p class="hc-off">⚪ Non collegato</p>`; return; }
   let ok=[], no=[]; try{ const st=await H.checkAuthorization({read:hcReadTypes(),write:["weight","bodyFat"]}); ok=(st&&st.readAuthorized)||[]; no=(st&&st.readDenied)||[]; }catch{}
+  if($("hcPermsLink")) $("hcPermsLink").hidden=!no.length; $("hcSettings").textContent="Apri Health Connect";
   const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"), srcTxt=Object.entries(src).map(([k,v])=>`${HC_LAB[k]||k}: ${[...new Set(v)].join(", ")}`).join(" · ");
   box.innerHTML=`<p class="hc-on">✅ Collegato a Health Connect</p>`+
     (ok.length? `<p class="note" style="margin:2px 0">Autorizzati: ${ok.map(k=>HC_LAB[k]||k).join(", ")}</p>` : "")+
     (no.length? `<p class="note hc-warn" style="margin:2px 0">Non autorizzati: ${no.map(k=>HC_LAB[k]||k).join(", ")} → tocca “Concedi i permessi mancanti”</p>` : "")+
     (()=>{ const dg=JSON.parse(localStorage.getItem("hf:hcDiag")||"null"); return dg? `<p class="note" style="margin:2px 0">Letto da Health Connect (ultimi giorni): ${dg.workouts} allenamenti · ${dg.weight} pesate · ${dg.bodyFat} misure di grasso · ${dg.sleep} sonni · ${dg.steps.toLocaleString("it-IT")} passi oggi</p>` : ""; })()+
-    `<p class="note" style="margin:2px 0">${srcTxt? "Dati ricevuti da: "+srcTxt : "Ancora nessun dato ricevuto: controlla che Samsung Health (e FitDays/Renpho) condividano con Health Connect."}</p>`; }
+    `<p class="note" style="margin:2px 0">${srcTxt? "Dati ricevuti da: "+srcTxt : "Ancora nessun dato da Samsung Health: in Health Connect → Autorizzazioni app → Samsung Health attiva la SCRITTURA di esercizio, peso, sonno e battito, poi apri Samsung Health e tocca Sincronizza ora qui."}</p>`; }
 function hcNoteSrc(kind,name){ if(!name) return; const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"); src[kind]=[...new Set([...(src[kind]||[]),prettySrc(name)])].slice(-4); localStorage.setItem("hf:hcSrc",JSON.stringify(src)); }
 /* ----- dispositivi: la fascia si collega una volta dal profilo e parte da sola negli allenamenti ----- */
 const hrAuto=()=>localStorage.getItem("hf:hrAuto")!=="0";
@@ -4625,17 +4651,23 @@ const ACI={watch:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6
   scale:'<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 8.5h6M12 8.5l1.2-1.8"/><circle cx="8" cy="16" r=".8"/><circle cx="16" cy="16" r=".8"/>',
   tape:'<circle cx="10" cy="11" r="6.5"/><circle cx="10" cy="11" r="2"/><path d="M16.5 11v6.5h4"/>'};
 const acSvg=k=>`<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ACI[k]||ACI.watch}</svg>`;
-function accToggle(id){ const p=$(id); const open=p.hidden; document.querySelectorAll("#devCard .acc-panel").forEach(x=>{ if(x.id!=="accWatch"||id==="accWatch") x.hidden=true; }); p.hidden=!open; if(!p.hidden) setTimeout(()=>p.scrollIntoView({behavior:"smooth",block:"nearest"}),60); }
+function accToggle(id,row){ const p=$(id); const open=p.hidden||(row&&p.previousElementSibling!==row);
+  document.querySelectorAll("#devCard .acc-panel").forEach(x=>x.hidden=true);
+  if(row&&p.previousElementSibling!==row) row.after(p);
+  p.hidden=!open; if(!p.hidden) setTimeout(()=>p.scrollIntoView({behavior:"smooth",block:"nearest"}),60); }
 function renderAccReg(){ const box=$("accReg"); if(!box) return; box.innerHTML=""; const rows=[];
   const nm=localStorage.getItem("hf:hrName"); if(nm||HR.ch) rows.push(["strap",nm||HR.name||"Fascia cardio", HR.ch||(typeof NATHR!=="undefined"&&NATHR.on)? "Collegata" : "Pronta · parte da sola negli allenamenti","hr"]);
+  if(localStorage.getItem("hf:tapeAddr")) rows.push(["tape",(localStorage.getItem("hf:tapeName")||"Metro")+" · Renpho","Pronto · usalo da Corpo → Misura con il metro","tape"]);
+  if(localStorage.getItem("hf:scaleAddr")) rows.push(["scale",(localStorage.getItem("hf:scaleName")||"Bilancia")+" · Lepulse","Pronta · tocca per pesarti","scale"]);
   if(localStorage.getItem("hf:hcOn")==="1"){ const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"); rows.push(["watch","Samsung Health",(Object.keys(src).length? "Collegato · dati ricevuti" : "Collegato a Health Connect"),"watch"]); }
   if(!rows.length){ box.appendChild(el("p","note acc-empty","Nessun accessorio registrato: scegli il tuo qui sotto.")); return; }
   rows.forEach(([ic,t,sub,k])=>{ const b=el("button","acc-row"); b.type="button"; b.innerHTML=`<span class="acc-ic">${acSvg(ic)}</span><span class="t"><b></b><span></span></span><span class="chev">›</span>`; b.querySelector("b").textContent=t; b.querySelector(".t span").textContent=sub;
-    b.onclick=()=>accToggle(k==="hr"?"accHr":"accWatch"); box.appendChild(b); }); }
+    b.onclick=()=>{ if(k==="tape"){ go("corpo"); setTimeout(()=>{ $("bTapeBox").hidden=false; renderTapeParts(); $("bTapeBox").scrollIntoView({behavior:"smooth",block:"center"}); },300); return; } accToggle(k==="hr"?"accHr":k==="scale"?"accScale":"accWatch",b); }; box.appendChild(b); }); }
 document.querySelectorAll("#devCard .acc-ic[data-i]").forEach(x=>x.innerHTML=acSvg(x.dataset.i));
-document.querySelectorAll("#devCard .acc-row[data-acc]").forEach(b=>b.onclick=()=>accToggle({watch:"accWatch",watchapp:"accWatchApp",hr:"accHr",scale:"accScale",scalehc:"accScaleHc",tape:"accTape"}[b.dataset.acc]));
-$("accSearch").onclick=async()=>{ accToggle("accHr"); $("accHr").hidden=false; await (HRN()? hrnConnect() : hrConnectUI()); try{ if(HR.name) localStorage.setItem("hf:hrName",HR.name); }catch{} renderDevices(); };
-function renderDevices(){ try{ renderAccReg(); }catch{} const nm=localStorage.getItem("hf:hrName"), addr=localStorage.getItem("hf:hrAddr"), web=!HRN();
+document.querySelectorAll("#devCard .acc-row[data-acc]").forEach(b=>b.onclick=()=>accToggle({watch:"accWatch",watchapp:"accWatchApp",hr:"accHr",scale:"accScale",scalehc:"accScaleHc",tape:"accTape"}[b.dataset.acc],b));
+$("accSearch").onclick=async()=>{ $("accHr").hidden=false; await (HRN()? hrnConnect() : hrConnectUI()); try{ if(HR.name) localStorage.setItem("hf:hrName",HR.name); }catch{} renderDevices(); };
+function renderDevices(){ try{ renderAccReg(); }catch{}
+  try{ const sa=!!localStorage.getItem("hf:scaleAddr")&&!!HRN(); $("devWeigh").hidden=!sa; $("devWeighNote").hidden=!sa; if(sa) $("devScTxt").textContent=`${localStorage.getItem("hf:scaleName")||"Bilancia"} collegata: pesati con il pulsante qui sotto.`; }catch{} const nm=localStorage.getItem("hf:hrName"), addr=localStorage.getItem("hf:hrAddr"), web=!HRN();
   const paired= web? !!(HR.ch||nm) : !!addr;
   $("devHrTxt").textContent= paired? `${nm||"Fascia"} · ${web? (HR.ch? "collegata ora" : "si ricollega all'avvio dell'allenamento") : "pronta: parte da sola negli allenamenti"}` : "Non collegata: indossala e tocca Collega";
   $("devHrBtn").textContent= paired? "Cambia" : "Collega"; $("devHrForget").hidden=!paired; $("devHrAuto").checked=hrAuto(); }
@@ -4658,6 +4690,8 @@ async function devProbe(kind){ const log=$(kind==="scale"?"devScLog":"devTpLog")
     const list=ds.slice(0,12).map((d,i)=>`${i+1}) ${d.name} (segnale ${d.rssi})`).join("\n");
     const v=prompt(`Quale è ${what}? Scrivi il numero (il primo è il più vicino):\n`+list,"1"); if(v===null){ W("Annullato."); return; }
     const d=ds[(+v||1)-1]||ds[0]; W(`Scelto: ${d.name} · ${d.address}`+(d.adv? `\nannuncio: ${d.adv}` : ""));
+    if(kind==="scale"){ localStorage.setItem("hf:scaleAddr",d.address); localStorage.setItem("hf:scaleName",d.name||"Bilancia"); }
+    if(kind==="tape"){ localStorage.setItem("hf:tapeAddr",d.address); localStorage.setItem("hf:tapeName",d.name||"Metro"); }
     alert(`2) Ora ${act}.\n\nTocca OK e inizia subito: registro per 30 secondi.`);
     W("Registro per 30 secondi…"); const r1=await P.inspect({address:d.address,seconds:30});
     (r1&&r1.log||[]).forEach(x=>W(x)); W("— fine test —");
@@ -4665,6 +4699,71 @@ async function devProbe(kind){ const log=$(kind==="scale"?"devScLog":"devTpLog")
     localStorage.setItem("hf:probe-"+kind,log.textContent); $("devCopy").hidden=false;
   }catch(e){ W("Errore: "+((e&&e.message)||e)+(/explore|not implemented|is not a function/i.test(String(e&&e.message||e))? "\nServe l'APK aggiornata: scarica l'ultima versione." : "")); }
   finally{ btn.disabled=false; } }
+/* metro Renpho (ES-Tape): manda testo "*LLLLL;?????;MMMMPM" con la lunghezza in centesimi di cm */
+function parseTapeLog(lines){ const vals=[];
+  (lines||[]).forEach(l=>{ const m=String(l).match(/⇢\s*[0-9a-f]{4}:\s*([0-9a-f ]+)/i); if(!m) return; const t=m[1].trim().split(/\s+/).map(x=>String.fromCharCode(parseInt(x,16))).join("");
+    const mm=t.match(/\*(\d{5});(\d{5});(\d{4})/); if(mm){ const v=+mm[1]/100; if(v>2&&v<250) vals.push(v); } });
+  if(!vals.length) return null;
+  // valore stabile: l'ultimo ripetuto almeno 5 volte di fila
+  let best=vals[vals.length-1], run=1, stable=null; for(let i=vals.length-1;i>0;i--){ if(vals[i]===vals[i-1]){ run++; if(run>=5){ stable=vals[i]; break; } } else run=1; }
+  return {cm:Math.round((stable??best)*10)/10, stable:stable!=null}; }
+let tapePart="waist";
+function renderTapeParts(){ const box=$("bTapeParts"); box.innerHTML=""; METRICS.filter(m=>m[2]==="cm"&&!m[3]).forEach(([k,l])=>{ const b=el("button","chip"+(k===tapePart?" on":""),l+($("b_"+k)&&$("b_"+k).value? " · "+String($("b_"+k).value).replace(".",",") : "")); b.type="button"; b.onclick=()=>{ tapePart=k; renderTapeParts(); }; box.appendChild(b); }); }
+$("bTapeBtn").onclick=()=>{ $("bTapeBox").hidden=!$("bTapeBox").hidden; if(!$("bTapeBox").hidden) renderTapeParts(); };
+$("bTapeDone").onclick=()=>{ $("bTapeBox").hidden=true; $("bSave").scrollIntoView({behavior:"smooth",block:"center"}); };
+$("bTapeGo").onclick=async()=>{ const P=HRN(), addr=localStorage.getItem("hf:tapeAddr"); if(!P||!P.inspect||!addr){ toast("Prima fai la prova del metro in Dispositivi collegati"); return; }
+  const lab=(METRICS.find(m=>m[0]===tapePart)||[,"Misura"])[1]; $("bTapeGo").disabled=true; setStatus("bTapeStatus",`📏 ${lab}: premi il tasto del metro, avvolgi il nastro e tienilo fermo…`);
+  try{ const r0=await P.inspect({address:addr,seconds:15}); const res=parseTapeLog((r0&&r0.log)||[]);
+    if(!res){ setStatus("bTapeStatus","Non ho ricevuto la misura: accendi il metro (tasto) e riprova.",true); return; }
+    $("b_"+tapePart).value=res.cm; setStatus("bTapeStatus",`✓ ${lab}: ${String(res.cm).replace(".",",")} cm${res.stable?"":" (nastro non fermo: controlla)"}. Scegli la parte successiva o tocca Fine e poi Salva.`);
+    try{ navigator.vibrate&&navigator.vibrate(60); }catch{}
+    const order=METRICS.filter(m=>m[2]==="cm"&&!m[3]).map(m=>m[0]), nx=order.find(k=>!$("b_"+k).value); if(nx) tapePart=nx; renderTapeParts(); }
+  catch(e){ setStatus("bTapeStatus","Metro: "+((e&&e.message)||e),true); }
+  finally{ $("bTapeGo").disabled=false; } };
+/* bilancia F8 (FitDays/Lepulse): peso in grammi su 3 byte nei pacchetti a2 (in tempo reale) e a3 (finale, con 8 impedenze) */
+function parseScaleLog(lines){ let live=null, fin=null, imp=null;
+  (lines||[]).forEach(l=>{ const m=String(l).match(/⇢\s*(ffb2|ffb3):\s*([0-9a-f ]+)/i); if(!m) return; const b=m[2].trim().split(/\s+/).map(x=>parseInt(x,16));
+    if(b[3]===0xa2&&b.length>8){ const w=((b[6]<<16)|(b[7]<<8)|b[8])/1000; if(w>20&&w<250) live=w; }
+    if(b[3]===0xa3&&b.length>18&&b[2]===0){ const w=((b[5]<<16)|(b[6]<<8)|b[7])/1000; if(w>20&&w<250){ fin=w; imp=[11,13,15,17].map(i=>((b[i]<<8)|b[i+1])/10); } }
+    if(b[2]===1&&b[0]===0xf7&&b.length>12&&imp&&imp.length===4){ imp=imp.concat([5,7,9,11].map(i=>((b[i]<<8)|b[i+1])/10)); } });
+  return {weight:fin||live, final:!!fin, imp}; }
+/* composizione corporea dalle impedenze (bilancia a 8 elettrodi): equazioni pubblicate + calibrazione personale su FitDays.
+   impedenze: [braccio, braccio, gamba, gamba] a bassa frequenza, poi le stesse ad alta frequenza */
+function biaRaw(imp,w){ const p=state.profile||{}, h=+p.height, age=+p.age||35, male=p.sex!=="f"; if(!imp||imp.length<8||!h||!w) return null;
+  const avg=(a,b)=>(a+b)/2, zLo=avg(imp[0],imp[1])+avg(imp[2],imp[3])+25, zHi=avg(imp[4],imp[5])+avg(imp[6],imp[7])+20, z50=zLo+0.57*(zHi-zLo), ri=h*h/z50;
+  const ffm= male? -10.68+0.65*ri+0.26*w+0.02*z50 : -9.53+0.69*ri+0.17*w+0.02*z50;   // Sun 2003
+  const tbw= male? 1.203+0.449*ri+0.176*w : 3.747+0.45*ri+0.113*w;                     // Sun 2003
+  const smm= ri*0.401+(male?3.825:0)-0.071*age+5.102;                                   // Janssen 2000
+  const fatPct=Math.max(3,Math.min(60,(w-ffm)/w*100));
+  const bmr=370+21.6*ffm, mif=10*w+6.25*h+(male?5:-161), fatRef=male?15:25;
+  const bodyAge=Math.max(18,Math.min(90,(mif-bmr)/5+(fatPct-fatRef)*0.4));
+  return {fat:fatPct, water:Math.max(30,Math.min(75,tbw/w*100)), muscle:smm, bmr, ffm, bodyAge}; }
+function bodyAgeOf(bmr,fat,w){ const p=state.profile||{}, h=+p.height, male=p.sex!=="f"; if(!bmr||!h||!w) return null;
+  const age=+p.age||35, mif=10*w+6.25*h-5*age+(male?5:-161);
+  return Math.max(18,Math.min(90,age+(mif-bmr)/10+((fat||0)-(male?15:25))*0.3)); }
+function biaCalibrated(imp,w){ const raw=biaRaw(imp,w); if(!raw) return null; const c=body.cal||{};
+  const f=k=> c[k]&&c[k].n? raw[k]*c[k].r : raw[k]; raw.bodyAge=bodyAgeOf(f("bmr"),f("fat"),w);
+  return {fat:Math.round(f("fat")*10)/10, water:Math.round(f("water")*10)/10, muscle:Math.round(f("muscle")*10)/10, bmr:Math.round(c.bmr&&c.bmr.n? raw.bmr*c.bmr.r : raw.bmr), bodyAge:Math.round(raw.bodyAge+(c.bodyAge&&c.bodyAge.n? c.bodyAge.d : 0)), n:Math.min(...["fat","water","muscle"].map(k=>(c[k]&&c[k].n)||0))}; }
+/* screenshot di FitDays nello stesso giorno di una pesata dalla bilancia -> affino la calibrazione */
+function biaLearn(shot){ const sc=body.entries.find(e=>e.date===shot.date&&e.source==="bilancia"&&e.imp); if(!sc) return false;
+  const raw=biaRaw(sc.imp,shot.weight||sc.weight); if(!raw) return false; body.cal=body.cal||{}; let learned=false;
+  ["fat","water","muscle","bmr"].forEach(k=>{ if(shot[k]>0&&raw[k]>0){ const r0=shot[k]/raw[k]; if(r0<0.4||r0>2.5) return; const c=body.cal[k]||{r:1,n:0}; c.r=(c.r*c.n+r0)/(c.n+1); c.n=Math.min(c.n+1,10); body.cal[k]=c; learned=true; } });
+  if(shot.bodyAge>0){ const cal0=biaCalibrated(sc.imp,shot.weight||sc.weight), base=cal0? cal0.bodyAge-((body.cal.bodyAge&&body.cal.bodyAge.n)? body.cal.bodyAge.d : 0) : raw.bodyAge; const c=body.cal.bodyAge||{d:0,n:0}; c.d=(c.d*c.n+(shot.bodyAge-base))/(c.n+1); c.n=Math.min(c.n+1,10); body.cal.bodyAge=c; learned=true; }
+  if(learned){ const est=biaCalibrated(sc.imp,sc.weight); if(est) Object.assign(sc,{fat:est.fat,water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true}); save("body",body); }
+  return learned; }
+async function scaleWeigh(){ const P=HRN(), addr=localStorage.getItem("hf:scaleAddr"); if(!P||!P.inspect||!addr){ toast("Serve l'app Android aggiornata e la prova della bilancia"); return; }
+  const btn=$("devWeigh"); btn.disabled=true; btn.textContent="⏳ Sali sulla bilancia…"; toast("Sali ora sulla bilancia, scalzo, e resta fermo");
+  try{ const r0=await P.inspect({address:addr,seconds:25}); const res=parseScaleLog((r0&&r0.log)||[]);
+    if(!res.weight){ toast("Non ho ricevuto il peso: riprova salendo subito dopo aver toccato il pulsante"); return; }
+    const w=Math.round(res.weight*10)/10;
+    if(!confirm(`La bilancia dice ${String(w).replace(".",",")} kg${res.final?"":" (lettura non definitiva)"}.\nÈ il numero sul display? Salvo la pesata di oggi?`)) return;
+    const entry={id:uid(),date:todayISO(),source:"bilancia",weight:w,...(res.imp&&res.imp.length?{imp:res.imp}:{})};
+    const est=res.imp&&res.imp.length>=8? biaCalibrated(res.imp,w) : null; if(est) Object.assign(entry,{fat:est.fat,water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true});
+    body.entries=[...body.entries.filter(e=>!(e.date===entry.date&&e.source==="bilancia")),entry]; save("body",body); bodyDate=null;
+    try{ syncProfileFromBody(); }catch{} try{ hcWriteBody(entry); }catch{} renderAll(); toast(`Pesata salvata: ${String(w).replace(".",",")} kg ✓`+(entry.est? ` · grasso ${String(entry.fat).replace(".",",")}% (stima${(biaCalibrated(res.imp,w)||{}).n? " calibrata" : ""})` : "")); }
+  catch(e){ toast("Bilancia: "+((e&&e.message)||e)); }
+  finally{ btn.disabled=false; btn.textContent="⚖️ Pesati adesso"; } }
+$("devWeigh").onclick=scaleWeigh;
 $("devScBtn").onclick=()=>devProbe("scale"); $("devTpBtn").onclick=()=>devProbe("tape");
 $("devCopy").onclick=async()=>{ const t=["BILANCIA:\n"+(localStorage.getItem("hf:probe-scale")||"(non provata)"),"METRO:\n"+(localStorage.getItem("hf:probe-tape")||"(non provato)")].join("\n\n");
   try{ const C=NAT(); if(C&&C.Plugins.Clipboard) await C.Plugins.Clipboard.write({string:t}); else await navigator.clipboard.writeText(t); toast("Copiato: incollalo nella chat con Claude"); }catch{ toast("Fai uno screenshot dei risultati"); } };
@@ -5979,7 +6078,7 @@ function errCopy(e){
 }
 
 /* ================= CORPO ================= */
-const METRICS=[["weight","Peso","kg"],["bmr","Metabolismo basale","kcal"],["fat","Grasso corporeo","%"],["muscle","Massa muscolare","kg"],["water","Acqua","%"],["visceral","Grasso viscerale",""],["shoulders","Spalle","cm"],["chest","Petto","cm"],["waist","Vita","cm"],["hips","Fianchi / bacino","cm"],["arm","Braccio","cm"],["forearm","Avambraccio","cm"],["thigh","Coscia","cm"],["calf","Polpaccio","cm"],["neck","Collo","cm"],["abdomen","Addome","cm"],["armL","Braccio sinistro","cm"],["armR","Braccio destro","cm"],["thighL","Coscia sinistra","cm"],["thighR","Coscia destra","cm"],["calfL","Polpaccio sinistro","cm"],["calfR","Polpaccio destro","cm"],
+const METRICS=[["weight","Peso","kg"],["bmr","Metabolismo basale","kcal"],["bodyAge","Età corporea","anni"],["fat","Grasso corporeo","%"],["muscle","Massa muscolare","kg"],["water","Acqua","%"],["visceral","Grasso viscerale",""],["shoulders","Spalle","cm"],["chest","Petto","cm"],["waist","Vita","cm"],["hips","Fianchi / bacino","cm"],["arm","Braccio","cm"],["forearm","Avambraccio","cm"],["thigh","Coscia","cm"],["calf","Polpaccio","cm"],["neck","Collo","cm"],["abdomen","Addome","cm"],["armL","Braccio sinistro","cm"],["armR","Braccio destro","cm"],["thighL","Coscia sinistra","cm"],["thighR","Coscia destra","cm"],["calfL","Polpaccio sinistro","cm"],["calfR","Polpaccio destro","cm"],
 ["sfArmL","Grasso braccio sx (% std)","%","seg"],["sfArmR","Grasso braccio dx (% std)","%","seg"],["sfTrunk","Grasso tronco (% std)","%","seg"],["sfLegL","Grasso gamba sx (% std)","%","seg"],["sfLegR","Grasso gamba dx (% std)","%","seg"],
 ["smArmL","Muscoli braccio sx (% std)","%","seg"],["smArmR","Muscoli braccio dx (% std)","%","seg"],["smTrunk","Muscoli tronco (% std)","%","seg"],["smLegL","Muscoli gamba sx (% std)","%","seg"],["smLegR","Muscoli gamba dx (% std)","%","seg"]];
 function syncProfileFromBody(){ const last=latestBody(); if(state.profile&&last.weight&&state.profile.weight!==last.weight.v){ state.profile.weight=last.weight.v; save("profile",state.profile); return true; } return false; }
@@ -5996,7 +6095,7 @@ function derivedVal(x,k){
   if(k==="bmi"){ const h=hM(); return x.weight&&h? x.weight/(h*h) : null; }
   return x[k]!=null? +x[k] : null;
 }
-const DMETA={weight:["Peso","kg"],muscle:["Massa muscolare","kg"],fatKg:["Massa grassa","kg"],waterKg:["Acqua corporea","kg"],fat:["Grasso corporeo","%"],bmi:["IMC",""],water:["Acqua","%"],visceral:["Grasso viscerale",""]};
+const DMETA={weight:["Peso","kg"],muscle:["Massa muscolare","kg"],fatKg:["Massa grassa","kg"],waterKg:["Acqua corporea","kg"],fat:["Grasso corporeo","%"],bmi:["IMC",""],water:["Acqua","%"],visceral:["Grasso viscerale",""],bodyAge:["Età corporea","anni"]};
 function refRange(k,w){
   const p=state.profile||{}, m=p.sex!=="f", age=+p.age||35, h=hM();
   const fr= m? (age<40?[8,20]:age<60?[11,22]:[13,25]) : (age<40?[21,33]:age<60?[23,34]:[24,36]);
@@ -6010,6 +6109,7 @@ function refRange(k,w){
     case "water": return wr;
     case "waterKg": return w? [wr[0]*w/100, wr[1]*w/100] : null;
     case "visceral": return [1,9];
+    case "bodyAge": return [Math.max(18,age-5),age];
   }
   return null;
 }
@@ -6018,8 +6118,9 @@ function metricRow(k,es){
   const v=vals[vals.length-1], prev=vals.length>1? vals[vals.length-2] : null, [label,unit]=DMETA[k];
   const lastW=(es.filter(x=>x.weight).slice(-1)[0]||{}).weight, rg=refRange(k,lastW);
   const row=el("div","mrow");
-  const dd=prev==null? 0 : Math.round((v-prev)*10)/10;
-  const d= prev==null? "" : (dd>0?"+":dd<0?"−":"")+Math.abs(dd).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1});
+  const jump= prev!=null&&Math.abs(v-prev)>Math.max(3,Math.abs(prev)*0.15)&&k!=="weight";
+  const dd=prev==null||jump? 0 : Math.round((v-prev)*10)/10;
+  const d= prev==null||jump? "" : (dd>0?"+":dd<0?"−":"")+Math.abs(dd).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1});
   let zone="", col="var(--basil)";
   if(rg){ const good=k==="muscle";
     if(v<rg[0]){ zone= good? "sotto la media" : "sotto la norma"; col= good? "var(--warn)" : "var(--c3)"; }
@@ -6057,9 +6158,9 @@ function latestBodyFrom(es){ const last={}; es.forEach(x=>METRICS.forEach(([k])=
 function renderBody(){
   const bd=bodyDay(), all=sortedEntries(), es=all.filter(e=>e.date<=bd), last=latestBodyFrom(es); renderBodyNav();
   if(!$("bDate").value) $("bDate").value=todayISO();
-  $("bShotBtn").hidden=!imgLimits||!sample;
+  $("bShotBtn").hidden=!imgLimits||!sample; $("bTapeBtn").hidden=!(localStorage.getItem("hf:tapeAddr")&&HRN());
   const lastE=es[es.length-1];
-  { const lastAll=all[all.length-1], fd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), src=e=>e&&e.source==="screenshot"?" · da screenshot":"";
+  { const lastAll=all[all.length-1], fd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), src=e=>e&&e.source==="screenshot"?" · da screenshot":e&&e.source==="health"?" · da Samsung Health":e&&e.source==="bilancia"?" · dalla bilancia"+(e.est?((body.cal&&body.cal.fat&&body.cal.fat.n)? " (composizione stimata, calibrata su FitDays)" : " (composizione stimata: carica uno screenshot FitDays dello stesso giorno per calibrarla)") : ""):"";
     const cur=es[es.length-1];
     $("bLastDate").textContent = !all.length? "Nessuna misurazione ancora."
       : (cur&&cur.date===lastAll.date)? "Ultima misurazione caricata: "+fd(lastAll.date)+src(lastAll)
@@ -6067,7 +6168,7 @@ function renderBody(){
       : "Nessuna misurazione prima di "+fd(bd)+"."; }
   const fill=(card,box,keys)=>{ const b=$(box); b.innerHTML=""; keys.forEach(k=>{ const r0=metricRow(k,es); if(r0) b.appendChild(r0); }); $(card).hidden=!b.children.length; };
   fill("bCompCard","bComp",["weight","muscle","fatKg","waterKg"]);
-  fill("bAnaCard","bAna",["fat","bmi","water","visceral"]);
+  fill("bAnaCard","bAna",["fat","bmi","water","visceral","bodyAge"]);
   // metabolismo basale: letto dalla bilancia o stimato
   const p=state.profile||{}; let bmr=last.bmr?last.bmr.v:null, est=false;
   if(!bmr){ const w=last.weight&&last.weight.v, f=last.fat&&last.fat.v;
@@ -6129,14 +6230,27 @@ function renderBody(){
   [...es].reverse().forEach(x=>{
     const li=el("li"), t=el("div","t");
     const parts=METRICS.filter(m=>!m[3]&&x[m[0]]!=null).map(([k,l,u])=>l.split(" ")[0]+(/L$/.test(k)?" sx":/R$/.test(k)?" dx":"")+" "+fmt(x[k])+(u?" "+u:"")); if(METRICS.some(m=>m[3]&&x[m[0]]!=null)) parts.push("analisi segmentale");
-    t.append(el("div","a",new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+(x.source&&x.source!=="manuale"?" · da screenshot":"")), el("div","b",parts.join(" · ")));
+    t.append(el("div","a",new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+(x.source==="health"?" · da Samsung Health":x.source==="bilancia"?" · dalla bilancia":x.source&&x.source!=="manuale"?" · da screenshot":"")), el("div","b",parts.join(" · ")));
     t.querySelector(".b").style.whiteSpace="normal";
     const del=el("button","del","×"); del.setAttribute("aria-label","Elimina misurazione");
-    del.onclick=()=>{ body.entries=body.entries.filter(e=>e.id!==x.id); save("body",body); syncProfileFromBody(); renderAll(); };
+    del.onclick=()=>deleteBodyEntries([x.id]);
     li.append(t,del); ul.appendChild(li);
   });
   if(!es.length) ul.appendChild(el("li","empty","Ancora nessun dato."));
 }
+function deleteBodyEntries(ids){ const gone=body.entries.filter(e=>ids.includes(e.id)); if(!gone.length) return;
+  body.entries=body.entries.filter(e=>!ids.includes(e.id));
+  body.ignored=[...(body.ignored||[]),...gone.filter(e=>e.source==="health"&&e.weight).map(e=>({date:e.date,w:e.weight}))].slice(-200);
+  save("body",body); bodyDate=null; try{ syncProfileFromBody(); }catch{} renderAll();
+  actionToast(gone.length===1? "Misurazione eliminata" : `${gone.length} misurazioni eliminate`,"Annulla",()=>{ body.entries=[...body.entries,...gone]; body.ignored=(body.ignored||[]).filter(t=>!gone.some(e=>e.date===t.date&&e.weight===t.w)); save("body",body); try{ syncProfileFromBody(); }catch{} renderAll(); },6000); }
+$("bMenuBtn").onclick=e=>{ e.stopPropagation(); const m=$("bMenu"); m.hidden=!m.hidden; const bd=bodyDay(), n=body.entries.filter(x=>x.date===bd).length;
+  $("bmDel").textContent= n? `Elimina la misurazione del ${new Date(bd+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"long"})}` : "Nessuna misurazione in questa data"; $("bmDel").disabled=!n; };
+document.addEventListener("click",e=>{ const m=$("bMenu"); if(m&&!m.hidden&&!m.contains(e.target)) m.hidden=true; });
+$("bmDel").onclick=()=>{ $("bMenu").hidden=true; const bd=bodyDay(), ids=body.entries.filter(x=>x.date===bd).map(x=>x.id); if(!ids.length) return;
+  const lbl=new Date(bd+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+  if(confirm(`Eliminare la misurazione di ${lbl}?`)) deleteBodyEntries(ids); };
+$("bmAdd").onclick=()=>{ $("bMenu").hidden=true; const f=$("bDate"); if(f){ f.closest("section").scrollIntoView({behavior:"smooth",block:"start"}); } };
+$("bmShot").onclick=()=>{ $("bMenu").hidden=true; const b=$("bShotBtn"); if(b&&!b.hidden) b.click(); else toast("Serve la chiave AI per leggere gli screenshot"); };
 function drawChart(pts,unit,band){
   const W=340,H=180,L=36,R=10,T=12,B=24;
   const vs=pts.map(p=>p.v); let mn=Math.min(...vs), mx=Math.max(...vs); if(mx-mn<1){ mn-=0.5; mx+=0.5; }
@@ -6169,7 +6283,7 @@ $("bShot").onchange=async e=>{
     const res=await sample.json(
 `Queste sono schermate di app per bilance intelligenti o metri smart (es. FitDays, Renpho). Leggi i valori della misurazione mostrata.
 Rispondi SOLO con JSON, usando null per i valori assenti:
-{"date":"YYYY-MM-DD o null","weight":kg,"fat":percentuale grasso corporeo,"muscle":massa muscolare in kg,"water":percentuale acqua,"visceral":indice grasso viscerale,"bmr":metabolismo basale in kcal,"waist":cm,"hips":cm (fianchi o bacino),"shoulders":cm,"chest":cm,"arm":cm (braccio/bicipite, media),"forearm":cm,"thigh":cm (media),"calf":cm (media),"neck":cm,"abdomen":cm (addome),"armL":cm,"armR":cm,"thighL":cm,"thighR":cm,"calfL":cm,"calfR":cm,
+{"date":"YYYY-MM-DD o null","weight":kg,"fat":percentuale grasso corporeo,"muscle":massa muscolare in kg,"water":percentuale acqua,"visceral":indice grasso viscerale,"bodyAge":età corporea o età metabolica in anni,"bmr":metabolismo basale in kcal,"waist":cm,"hips":cm (fianchi o bacino),"shoulders":cm,"chest":cm,"arm":cm (braccio/bicipite, media),"forearm":cm,"thigh":cm (media),"calf":cm (media),"neck":cm,"abdomen":cm (addome),"armL":cm,"armR":cm,"thighL":cm,"thighR":cm,"calfL":cm,"calfR":cm,
 "sfArmL":%,"sfArmR":%,"sfTrunk":%,"sfLegL":%,"sfLegR":%,"smArmL":%,"smArmR":%,"smTrunk":%,"smLegL":%,"smLegR":%}
 I campi sf*/sm* sono l'analisi segmentale (bilance come FitDays): "rapporto standard di grassi" (sf) e "rapporto standard muscolare" (sm) di braccio sinistro/destro, tronco, gamba sinistra/destra, in percentuale (es. 37,6% e 107,7%). L = sinistra, R = destra.
 Se ci sono misure destra e sinistra, riportale nei campi L/R e metti la media nel campo generico (arm, thigh, calf).
@@ -6180,6 +6294,7 @@ Se la massa muscolare è solo in percentuale e c'è il peso, convertila in kg. S
     METRICS.forEach(([k,l,u])=>{ const v=+res[k]; if(res[k]!=null&&isFinite(v)&&v>0){ entry[k]=Math.round(v*10)/10; read.push(l+" "+fmt(entry[k])+(u?" "+u:"")); } });
     if(!read.length){ setStatus("bShotStatus","Non ho trovato valori in questa immagine. Prova con la schermata del dettaglio della pesata."); return; }
     body.entries=[...body.entries,entry]; save("body",body); bodyDate=null; try{ hcWriteBody(entry); }catch{}
+    try{ if(biaLearn(entry)) toast("Calibrazione aggiornata: le prossime pesate useranno i calcoli allineati a FitDays ✓"); }catch(e){ console.warn("calibrazione",e); }
     const upd=syncProfileFromBody();
     setStatus("bShotStatus","Salvato in automatico: "+read.join(", ")+"."+(upd?" Peso aggiornato nel profilo e obiettivi ricalcolati.":"")+" Se un valore è sbagliato, elimina la misurazione dallo storico.");
     toast(upd?"Misure salvate e profilo aggiornato":"Misure salvate"); renderAll(); queueProgress();
@@ -7304,7 +7419,7 @@ function renderDash(){
   let any=false;
   defs.forEach(([k,u,col,ic])=>{
     const vals=se.filter(x=>x[k]!=null).map(x=>+x[k]); if(!vals.length) return; any=true;
-    const v=vals[vals.length-1], prev=vals.length>1? vals[vals.length-2] : null, dlt= prev==null? "" : (v-prev>0?"+":v-prev<0?"−":"")+(Math.round(Math.abs(v-prev)*10)/10).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1});
+    const v=vals[vals.length-1], prev0=vals.length>1? vals[vals.length-2] : null, prev= prev0!=null&&k!=="weight"&&Math.abs(v-prev0)>Math.max(3,Math.abs(prev0)*0.15)? null : prev0, dlt= prev==null? "" : (v-prev>0?"+":v-prev<0?"−":"")+(Math.round(Math.abs(v-prev)*10)/10).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1});
     const row=el("div","row"); row.innerHTML=`<span class="ic" style="background:${col}">${ic}</span><span class="v num">${fmt(v)}<small>${u}</small>${dlt?`<em>${dlt}</em>`:""}</span><span>${spark(vals.slice(-10),col)}</span>`;
     rows.appendChild(row);
   });
