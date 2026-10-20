@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.52 (fonte della distanza)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.53 (distanza stimata dai passi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4609,7 +4609,10 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
         catch{ try{ const r1=await H.queryAggregated({dataType:t,startDate:iso(d0),endDate:iso(now),bucket:"day",aggregation:"sum"}); return {v:((r1&&r1.samples)||[]).reduce((a,x)=>a+(+x.value||0),0),src:""}; }catch{ return {v:0,src:""}; } } };
       const st=await bySource("steps"), kc=await bySource("calories"), ds=await bySource("distance"), steps=Math.round(st.v); diag.steps=steps;
       if(steps&&state.date===todayISO()){ const a=state.day.activity||{}, fromHc=a.src==="health"||!a.src;
-        state.day.activity={...a,steps: fromHc? steps : Math.max(steps,+a.steps||0), activeKcal: kc.v? Math.round(kc.v) : a.activeKcal, distanceKm: ds.v? Math.round(ds.v/10)/100 : a.distanceKm, src:"health", via:prettySrc(st.src), distVia:prettySrc(ds.src), at:new Date().toISOString()};
+        const stepsSamsung=/shealth|samsung/i.test(st.src), distSamsung=/shealth|samsung/i.test(ds.src);
+        let km= ds.v? Math.round(ds.v/10)/100 : (+a.distanceKm||0), dvia=prettySrc(ds.src);
+        if(stepsSamsung&&!distSamsung){ const e=estDayKm(steps,state.day.workouts); if(e>km){ km=e; dvia="stima"; } }
+        state.day.activity={...a,steps: fromHc? steps : Math.max(steps,+a.steps||0), activeKcal: kc.v? Math.round(kc.v) : a.activeKcal, distanceKm: km||a.distanceKm, src:"health", via:prettySrc(st.src), distVia:dvia, at:new Date().toISOString()};
         saveDay(); msgs.push(steps.toLocaleString("it-IT")+" passi"); } }
     // --- sonno di stanotte
     if(hcOpt("S")&&state.date===todayISO()&&!(state.day.sleep&&state.day.sleep.src!=="health")){ const y=new Date(); y.setDate(y.getDate()-1); y.setHours(18,0,0,0); const n12=new Date(); n12.setHours(14,0,0,0);
@@ -4639,6 +4642,16 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
 async function hcWriteBody(entry){ const H=HCP(); if(!H||localStorage.getItem("hf:hcOn")!=="1"||!hcOpt("B")||entry.source==="health") return;
   try{ const dt=new Date(entry.date+"T08:00:00").toISOString(); if(entry.weight) await H.saveSample({dataType:"weight",value:+entry.weight,startDate:dt,endDate:dt});
     if(entry.weight&&entry.fat) await H.saveSample({dataType:"bodyFat",value:+entry.fat,startDate:dt,endDate:dt}); }catch(e){ console.warn("HC scrittura",e); } }
+/* distanza della giornata stimata dai passi di Samsung Health: allenamenti con la loro distanza + il resto dei passi a passo di camminata,
+   corretta con un fattore personale imparato dagli screenshot di Samsung Health (passi + km dello stesso giorno) */
+function estDayKm(steps,workouts){ const h=+(state.profile&&state.profile.height)||175; let km=0, wSteps=0;
+  (workouts||[]).forEach(x=>{ const d=+x.distance||0; if(!d) return; const n=String(x.name||"").toLowerCase();
+    if(/cors|run|marat|jog|trail/.test(n)){ km+=d; wSteps+=d*100000/(h*0.65); } else if(/camm|walk|escurs|trekking/.test(n)){ km+=d; wSteps+=d*100000/(h*0.415); } });
+  const rest=Math.max(0,(+steps||0)-wSteps); const f=+localStorage.getItem("hf:strideCal")||1;
+  return Math.round((km+rest*h*0.415/100000*f)*100)/100; }
+function learnStride(steps,kmReal,workouts){ if(!(steps>500&&kmReal>0.5)) return; localStorage.setItem("hf:strideCal","1"); const e=estDayKm(steps,workouts); if(!e) return;
+  const r0=kmReal/e; if(r0<0.6||r0>1.8) return; const n=+localStorage.getItem("hf:strideN")||0, old=+localStorage.getItem("hf:strideCalOld")||1;
+  const v=(old*n+r0)/(n+1); localStorage.setItem("hf:strideCal",String(v)); localStorage.setItem("hf:strideCalOld",String(v)); localStorage.setItem("hf:strideN",String(Math.min(n+1,10))); }
 /* stato del collegamento: permessi concessi e app da cui arrivano i dati */
 const HC_LAB={workouts:"Allenamenti",heartRate:"Battito",steps:"Passi",sleep:"Sonno",weight:"Peso",bodyFat:"Grasso",distance:"Distanza",calories:"Calorie",restingHeartRate:"Battito a riposo"};
 const prettySrc=x=>{ const n=String(x||""); return /^android$|^com\.android|healthdata|^platform/i.test(n)? "il telefono" : /shealth|samsung/i.test(n)? "Samsung Health" : /fitdays|icomon/i.test(n)? "FitDays" : /renpho|qnniu|yolanda/i.test(n)? "Renpho" : /fit|google/i.test(n)? "Google Fit" : /strava/i.test(n)? "Strava" : /garmin/i.test(n)? "Garmin" : /polar/i.test(n)? "Polar" : n.split(".").pop()||"?"; };
@@ -7603,7 +7616,7 @@ function renderActivity(){
   $("aTot").textContent= tot? r(tot).toLocaleString("it-IT")+" kcal" : "–";
   $("aDist").textContent= m.km? (Math.round(m.km*100)/100).toLocaleString("it-IT")+" km" : "–";
   const asrc=(state.day&&state.day.activity)||{};
-  $("aSrc").textContent= m.imported&&asrc.src==="health"? `Dati da ${asrc.via&&asrc.via!=="?"? asrc.via : "Samsung Health"} (Health Connect), aggiornati alle ${new Date(asrc.at||Date.now()).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}. Le calorie totali sono la stima per tutta la giornata.`+(asrc.distVia&&asrc.via&&asrc.distVia!==asrc.via? ` La distanza arriva ${asrc.distVia==="?"? "da un'altra fonte" : asrc.distVia==="il telefono"? "dal telefono" : "da "+asrc.distVia} perché ${asrc.via} non la condivide con Health Connect.` : "") : m.imported? "Dati importati dallo screenshot, uniti agli allenamenti registrati." : m.stepsEst? "Passi stimati da corsa e camminata registrate (non contano quelli del resto della giornata). Per i passi esatti carica uno screenshot qui sotto." : "Valori dagli allenamenti registrati. Per passi e attività di tutta la giornata carica uno screenshot qui sotto.";
+  $("aSrc").textContent= m.imported&&asrc.src==="health"? `Dati da ${asrc.via&&asrc.via!=="?"? asrc.via : "Samsung Health"} (Health Connect), aggiornati alle ${new Date(asrc.at||Date.now()).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}. Le calorie totali sono la stima per tutta la giornata.`+(asrc.distVia&&asrc.via&&asrc.distVia!==asrc.via? (asrc.distVia==="stima"? ` La distanza è stimata dai passi (Samsung Health non la condivide)${(+localStorage.getItem("hf:strideN")||0)? ", calibrata sui tuoi screenshot" : ": carica una volta lo screenshot di Samsung Health per renderla precisa"}.` : ` La distanza arriva ${asrc.distVia==="?"? "da un'altra fonte" : asrc.distVia==="il telefono"? "dal telefono" : "da "+asrc.distVia} perché ${asrc.via} non la condivide con Health Connect.`) : "") : m.imported? "Dati importati dallo screenshot, uniti agli allenamenti registrati." : m.stepsEst? "Passi stimati da corsa e camminata registrate (non contano quelli del resto della giornata). Per i passi esatti carica uno screenshot qui sotto." : "Valori dagli allenamenti registrati. Per passi e attività di tutta la giornata carica uno screenshot qui sotto.";
   if(m.stepsEst) $("aSteps").textContent="~"+$("aSteps").textContent;
   const ul=$("aWorkouts"); ul.innerHTML="";
   const ws=[...(state.day.workouts||[])].sort((a,b)=>(b.start||"")<(a.start||"")?-1:1);
@@ -7648,7 +7661,7 @@ Rispondi SOLO con JSON: {"day":{"steps":number|null,"activeMin":number|null,"act
     if(!res) throw {code:"bad_output"};
     const msgs=[];
     const dd=res.day||{}, a={}; ["steps","activeMin","activeKcal","totalKcal","distanceKm","floors"].forEach(k=>{ if(dd[k]!=null&&isFinite(+dd[k])) a[k]=+dd[k]; });
-    if(Object.keys(a).length){ state.day.activity={...a,at:new Date().toISOString()}; saveDay(); msgs.push(`giornata: ${a.steps!=null?r(a.steps).toLocaleString("it-IT")+" passi":""}${a.activeMin!=null?", "+a.activeMin+" min":""}${a.activeKcal!=null?", "+a.activeKcal+" kcal da attività":""}`); }
+    if(Object.keys(a).length){ try{ if(a.steps&&a.distanceKm) learnStride(+a.steps,+a.distanceKm,state.day.workouts); }catch{} state.day.activity={...a,at:new Date().toISOString()}; saveDay(); msgs.push(`giornata: ${a.steps!=null?r(a.steps).toLocaleString("it-IT")+" passi":""}${a.activeMin!=null?", "+a.activeMin+" min":""}${a.activeKcal!=null?", "+a.activeKcal+" kcal da attività":""}`); }
     const ws=(Array.isArray(res.workouts)?res.workouts:[]).filter(w=>w&&(+w.minutes>0||+w.distanceKm>0));
     let added=0;
     ws.forEach(w=>{ const min=+w.minutes||0, dup=(state.day.workouts||[]).some(x=>String(x.name).toLowerCase()===String(w.name||"").toLowerCase()&&Math.abs((+x.minutes||0)-min)<=2);
