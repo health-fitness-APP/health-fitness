@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.50 (importa valori)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.51 (passi senza doppioni)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4600,9 +4600,17 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
         added++; if(date>=shiftDate(todayISO(),-1)) setTimeout(()=>{ try{ raceCheckRun({...item,date}); }catch{} },500); }
       if(added){ save("workoutHistory",hist); msgs.push(`${added} ${added===1?"allenamento":"allenamenti"}`); } }
     // --- passi e attività di oggi
-    if(hcOpt("A")){ const d0=new Date(); d0.setHours(0,0,0,0); const sumOf=async t=>{ try{ const r0=await H.queryAggregated({dataType:t,startDate:iso(d0),endDate:iso(now),bucket:"day",aggregation:"sum"}); return ((r0&&r0.samples)||[]).reduce((a,x)=>a+(+x.value||0),0); }catch{ return 0; } };
-      const steps=Math.round(await sumOf("steps")), kc=Math.round(await sumOf("calories")), dist=await sumOf("distance"); diag.steps=steps;
-      if(steps&&state.date===todayISO()){ const a=state.day.activity||{}; state.day.activity={...a,steps:Math.max(steps,+a.steps||0),activeKcal:Math.max(kc,+a.activeKcal||0)||a.activeKcal,distanceKm:dist? Math.max(Math.round(dist/10)/100,+a.distanceKm||0) : a.distanceKm,src:"health",at:new Date().toISOString()}; saveDay(); msgs.push(steps.toLocaleString("it-IT")+" passi"); } }
+    if(hcOpt("A")){ const d0=new Date(); d0.setHours(0,0,0,0);
+      /* telefono e orologio scrivono gli stessi passi: non li sommo, prendo Samsung Health se c'è, altrimenti la fonte con il totale più alto */
+      const bySource=async t=>{ try{ const r0=await H.readSamples({dataType:t,startDate:iso(d0),endDate:iso(now),limit:10000}); const tot={};
+          ((r0&&r0.samples)||[]).forEach(x=>{ const k=String(x.sourceName||x.sourceId||"?"); tot[k]=(tot[k]||0)+(+x.value||0); });
+          const keys=Object.keys(tot); if(!keys.length) return {v:0,src:""}; const sh=keys.find(k=>/shealth|samsung/i.test(k));
+          const k= sh || keys.sort((a,b)=>tot[b]-tot[a])[0]; return {v:tot[k],src:k}; }
+        catch{ try{ const r1=await H.queryAggregated({dataType:t,startDate:iso(d0),endDate:iso(now),bucket:"day",aggregation:"sum"}); return {v:((r1&&r1.samples)||[]).reduce((a,x)=>a+(+x.value||0),0),src:""}; }catch{ return {v:0,src:""}; } } };
+      const st=await bySource("steps"), kc=await bySource("calories"), ds=await bySource("distance"), steps=Math.round(st.v); diag.steps=steps;
+      if(steps&&state.date===todayISO()){ const a=state.day.activity||{}, fromHc=a.src==="health"||!a.src;
+        state.day.activity={...a,steps: fromHc? steps : Math.max(steps,+a.steps||0), activeKcal: kc.v? Math.round(kc.v) : a.activeKcal, distanceKm: ds.v? Math.round(ds.v/10)/100 : a.distanceKm, src:"health", via:prettySrc(st.src), at:new Date().toISOString()};
+        saveDay(); msgs.push(steps.toLocaleString("it-IT")+" passi"); } }
     // --- sonno di stanotte
     if(hcOpt("S")&&state.date===todayISO()&&!(state.day.sleep&&state.day.sleep.src!=="health")){ const y=new Date(); y.setDate(y.getDate()-1); y.setHours(18,0,0,0); const n12=new Date(); n12.setHours(14,0,0,0);
       try{ const r0=await H.readSamples({dataType:"sleep",startDate:iso(y),endDate:iso(n12<now?n12:now),limit:500}); const ss=(r0&&r0.samples)||[];
@@ -7594,7 +7602,8 @@ function renderActivity(){
   let tot=m.total; if(!tot){ const tg=targets(state.profile); tot= tg? Math.round(tg.tdee + m.kcal) : null; }
   $("aTot").textContent= tot? r(tot).toLocaleString("it-IT")+" kcal" : "–";
   $("aDist").textContent= m.km? (Math.round(m.km*100)/100).toLocaleString("it-IT")+" km" : "–";
-  $("aSrc").textContent= m.imported? "Dati importati dallo screenshot, uniti agli allenamenti registrati." : m.stepsEst? "Passi stimati da corsa e camminata registrate (non contano quelli del resto della giornata). Per i passi esatti carica uno screenshot qui sotto." : "Valori dagli allenamenti registrati. Per passi e attività di tutta la giornata carica uno screenshot qui sotto.";
+  const asrc=(state.day&&state.day.activity)||{};
+  $("aSrc").textContent= m.imported&&asrc.src==="health"? `Dati da ${asrc.via&&asrc.via!=="?"? asrc.via : "Samsung Health"} (Health Connect), aggiornati alle ${new Date(asrc.at||Date.now()).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}. Le calorie totali sono la stima per tutta la giornata.` : m.imported? "Dati importati dallo screenshot, uniti agli allenamenti registrati." : m.stepsEst? "Passi stimati da corsa e camminata registrate (non contano quelli del resto della giornata). Per i passi esatti carica uno screenshot qui sotto." : "Valori dagli allenamenti registrati. Per passi e attività di tutta la giornata carica uno screenshot qui sotto.";
   if(m.stepsEst) $("aSteps").textContent="~"+$("aSteps").textContent;
   const ul=$("aWorkouts"); ul.innerHTML="";
   const ws=[...(state.day.workouts||[])].sort((a,b)=>(b.start||"")<(a.start||"")?-1:1);
