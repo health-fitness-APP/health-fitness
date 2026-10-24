@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.60 (ritmo da tenere anche senza distanza nel piano)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.61 (ritmi e durate delle corse corretti)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5073,7 +5073,9 @@ $("corsaBack").onclick=()=>{ if(history.state&&history.state.v==="corsa") histor
 /* ===== allenatore gara: obiettivi, ritmi (VDOT) e piano a settimane ===== */
 let race=null;
 const raceLabel=km=>({5:"5 km",10:"10 km","21.0975":"Mezza maratona","42.195":"Maratona"})[String(km)]||(fmt(km)+" km");
-function tSec(t){ const p=String(t||"").trim().split(":").map(Number); if(p.some(isNaN)||!p.length||!p[0]&&p.length===1) return 0; return p.length===3? p[0]*3600+p[1]*60+p[2] : p.length===2? (p[0]>=10&&!String(t).includes("h")? p[0]*60+p[1] : p[0]*60+p[1]) : p[0]*60; }
+function tSec(t,km){ const p=String(t||"").trim().split(":").map(Number); if(p.some(isNaN)||!p.length||!p[0]&&p.length===1) return 0;
+  if(p.length===2&&km>0&&(p[0]*60+p[1])/km<150) return p[0]*3600+p[1]*60;   // "1:05" per 10 km = 1 ora e 5, non 1 minuto e 5
+  return p.length===3? p[0]*3600+p[1]*60+p[2] : p.length===2? p[0]*60+p[1] : p[0]*60; }
 function hms2(sec){ sec=Math.round(sec); const h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s0=sec%60; return (h? h+":"+String(m).padStart(2,"0") : m)+":"+String(s0).padStart(2,"0"); }
 const paceStr=secPerKm=>`${Math.floor(secPerKm/60)}:${String(Math.round(secPerKm%60)).padStart(2,"0")}`;
 function vdotOf(km,sec){ const t=sec/60, v=km*1000/t; const vo2=-4.6+0.182258*v+0.000104*v*v, pct=0.8+0.1894393*Math.exp(-0.012778*t)+0.2989558*Math.exp(-0.1932605*t); return vo2/pct; }
@@ -5099,7 +5101,7 @@ function renderRace(){
 $("rcDist").onchange=()=>{ $("rcKmL").hidden=$("rcDist").value!=="x"; };
 function readRaceForm(){
   const km= $("rcDist").value==="x"? +String($("rcKm").value).replace(",",".") : +$("rcDist").value;
-  const recKm=+String($("rcRecKm").value).replace(",","."), recSec=tSec($("rcRecT").value);
+  const recKm=+String($("rcRecKm").value).replace(",","."), recSec=tSec($("rcRecT").value,recKm);
   const days=[...$("rcDays").querySelectorAll("button.on")].map(b=>+b.dataset.wd);
   return {km, date:$("rcDate").value, name:$("rcName").value.trim(), target:$("rcTarget").value.trim(), level:$("rcLevel").value, recKm, recSec, runs:+$("rcRuns").value, days, longWd:+$("rcLong").value};
 }
@@ -5112,7 +5114,7 @@ $("rcCalc").onclick=()=>{
   race={...(race||{}),goal:g}; save("race",race); showPaces(g); renderProgram();
 };
 function showPaces(g){
-  const P=racePaces(g.vdot), tgt=tSec(g.target), weeks=Math.ceil((new Date(g.date+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5));
+  const P=racePaces(g.vdot), tgt=tSec(g.target,g.km), weeks=Math.ceil((new Date(g.date+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5));
   const gap= tgt? (g.pred-tgt)/g.pred : 0;
   const verdict= !tgt? `Con la forma di oggi chiuderesti in circa ${hms2(g.pred)}.` : gap<=0.01? `✅ Obiettivo alla tua portata: oggi saresti già a ${hms2(g.pred)}.` : gap<=0.06? `💪 Obiettivo ambizioso ma realistico in ${weeks} settimane (oggi ${hms2(g.pred)}).` : `⚠️ Obiettivo molto ambizioso: oggi saresti a ${hms2(g.pred)}. Ti consiglio di partire da ${hms2(g.pred*0.97)} e rivederlo strada facendo.`;
   const rp= tgt? tgt/g.km : g.pred/g.km;
@@ -5121,7 +5123,7 @@ function showPaces(g){
   $("rcPaces").querySelector(".rc-verdict").textContent=verdict; $("rcPaceCard").hidden=false; $("rcPlanBtn").disabled=!sample;
 }
 $("rcPlanBtn").onclick=async()=>{
-  const g=race&&race.goal; if(!g||!sample) return; const P=racePaces(g.vdot), tgt=tSec(g.target)||g.pred;
+  const g=race&&race.goal; if(!g||!sample) return; const P=racePaces(g.vdot), tgt=tSec(g.target,g.km)||g.pred;
   const weeks=Math.max(1,Math.min(26,Math.ceil((new Date(g.date+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5))));
   const names=["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
   $("rcPlanBtn").disabled=true; const t0=Date.now(); const tick=setInterval(()=>setStatus("rcStatus",`Preparo ${weeks} settimane di allenamento… ${Math.round((Date.now()-t0)/1000)} s`),1000);
@@ -5152,6 +5154,13 @@ function renderRacePlan(){
       row.querySelector("b").textContent=r.runType||"Corsa"; row.querySelector("small").textContent=r.desc||""; d.appendChild(row); });
     box.appendChild(d); });
 }
+/* piani gara creati con un tempo letto male ("1:00" su 10 km preso come 1 minuto): correggo tempo, VDOT e ritmi impossibili */
+function raceRepair(){ const g=race&&race.goal; if(!g) return false; let ch=false;
+  if(g.recKm>0&&g.recSec>0&&g.recSec/g.recKm<150){ g.recSec*=60; g.vdot=Math.round(vdotOf(g.recKm,g.recSec)*10)/10; g.pred=Math.round(predictSec(g.vdot,g.km)); ch=true; }
+  if(race.plan&&g.vdot>=20&&g.vdot<=90){ const P=racePaces(g.vdot), gp=(tSec(g.target,g.km)||g.pred)/g.km;
+    const byType=t=>/facile|recupero/i.test(t)? (P.facile[0]+P.facile[1])/2 : /lungo/i.test(t)? (P.lungo[0]+P.lungo[1])/2 : /soglia|fartlek|progress/i.test(t)? P.soglia : /ripetut/i.test(t)? P.ripetute : /gara/i.test(t)? gp : (P.facile[0]+P.facile[1])/2;
+    (race.plan.weeks||[]).forEach(w=>(w.runs||[]).forEach(r=>{ if(!paceSec(r.pace)){ r.pace=paceStr(byType(r.runType||"")); ch=true; } })); }
+  if(ch) save("race",race); return ch; }
 function applyRaceWeek(manual){
   const pl=race&&race.plan; if(!pl) return; const i=raceWeekIdx(); const w=pl.weeks[i]; if(!w){ if(manual) toast("Questa settimana non è nel piano"); return; }
   let a=activeProg(); if(!a){ state.program={name:"Il mio programma",summary:"",days:[],weekMap:{0:null,1:null,2:null,3:null,4:null,5:null,6:null},startDate:mondayOf(todayISO())}; save("program",state.program); a=activeProg(); }
@@ -5534,7 +5543,10 @@ const paceSec=p=>{ const t=String(p||"").trim(), m=t.match(/(\d+)[:'’](\d{1,2}
 const paceTxt=sec=> sec? `${String(Math.floor(sec/60)).padStart(2,"0")}'${String(Math.round(sec%60)).padStart(2,"0")}"` : "";
 // km della seduta: dal campo distanza o, se manca, dal testo ("Lungo 9 km")
 const kmFromText=t=>{ const m=String(t||"").match(/(\d+(?:[.,]\d+)?)\s*km\b/i); const v=m? +m[1].replace(",",".") : 0; return v>0&&v<100? v : 0; };
-function runPlan(d){ const km=+d.distanceKm||kmFromText([d.title,d.runType,d.description].join(" ")), ps=paceSec(d.pace)||paceOk(km&&d.minutes? d.minutes*60/km : 0), min=+d.minutes||(km&&ps? Math.round(km*ps/60) : 0); return {km,ps,min}; }
+function runPlan(d){ const km=+d.distanceKm||kmFromText([d.title,d.runType,d.description].join(" "));
+  // durata scritta in ore invece che in minuti (es. 1 per 8 km = 1 ora): la converto; se resta impossibile la ignoro
+  let dm=+d.minutes||0; if(km&&dm&&!paceOk(dm*60/km)) dm= paceOk(dm*3600/km)? dm*60 : 0;
+  const ps=paceSec(d.pace)||paceOk(km&&dm? dm*60/km : 0), min=dm||(km&&ps? Math.round(km*ps/60) : 0); return {km,ps,min}; }
 function segLen(sg,ps){ return +sg.minutes||(+sg.km? +sg.km*((paceSec(sg.pace)||ps||390)/60) : 5); }
 const SEG_COL={warmup:"var(--c3)",cooldown:"var(--c3)",work:"var(--basil)",recovery:"var(--c2)"}, SEG_H={warmup:.42,cooldown:.36,work:.92,recovery:.4}, SEG_L={warmup:"Riscaldamento",work:"Allenamento",recovery:"Recupero",cooldown:"Raffreddamento"};
 function runSegs(d){ const p=runPlan(d); let sg=Array.isArray(d.segments)&&d.segments.length? d.segments : [{kind:"warmup",label:"Jogging leggero di 5 minuti",minutes:5},{kind:"work",label:(d.runType||"Corsa")+(p.km?` di ${fmt(p.km)} km`:p.min?` di ${p.min} minuti`:""),km:p.km||null,minutes:p.km?null:p.min,pace:d.pace},{kind:"cooldown",label:"Camminata di defaticamento",minutes:5}]; return sg; }
@@ -7771,7 +7783,7 @@ async function loadAll(){
   const hl=await store.getDoc("homeLayout"); applyHomeOrder(hl&&hl.order);
   try{ const rr=await store.getDoc("recipes"); if(rr&&Array.isArray(rr.list)) recipes=rr; }catch{}
   try{ const sh=await store.getDoc("shoes"); if(sh&&Array.isArray(sh.list)) shoes=sh; }catch{}
-  try{ race=await store.getDoc("race"); if(race&&race.plan&&race.applied!==mondayOf(todayISO())) setTimeout(async()=>{ try{ if((race.adapt||"auto")!=="off") await raceWeeklyAdapt(false); applyRaceWeek(false); }catch{} },2500); }catch{}
+  try{ race=await store.getDoc("race"); if(raceRepair()&&race.plan&&race.applied===mondayOf(todayISO())) setTimeout(()=>{ try{ applyRaceWeek(false); }catch(e){ console.warn("gara",e); } },1500); if(race&&race.plan&&race.applied!==mondayOf(todayISO())) setTimeout(async()=>{ try{ if((race.adapt||"auto")!=="off") await raceWeeklyAdapt(false); applyRaceWeek(false); }catch{} },2500); }catch{}
   try{ uiOrder=(await store.getDoc("uiOrder"))||{}; initReorder(); }catch(e){ console.warn("ordine",e); }
   const fd=await store.getDoc("foods"); foods={favs:(fd&&fd.favs)||[],recents:(fd&&fd.recents)||[],saved:(fd&&fd.saved)||[],barcodes:(fd&&fd.barcodes)||{},custom:(fd&&fd.custom)||[]};
   const [p,diet,prog,ch]=await Promise.all([store.getDoc("profile"),store.getDoc("diet"),store.getDoc("program"),store.getDoc("coach")]);
