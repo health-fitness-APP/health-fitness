@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.55 (tempo senza pause e calorie vere delle corse)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.56 (allenamenti come in Samsung Health)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4220,11 +4220,13 @@ function renderWorkouts(){
   $("wEmpty").hidden=ws.length>0;
   ws.forEach(w=>{
     const li=el("li"), tx=el("div","t");
-    const extra=[timeRange(w.start,w.end), FED[w.fed]||"", w.distance? fmt(w.distance)+" km":"", w.pace? "passo "+w.pace:"", w.avgHr? "FC media "+w.avgHr:""].filter(Boolean).join(" · ");
-    tx.append(el("div","a",w.name), el("div","b",`${w.minutes||"?"} min · ${extra||w.intensity||""}`));
+    const kmTxt=w.hcId&&w.distance? (+w.distance).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) : w.distance? fmt(w.distance) : "";
+    const extra=[timeRange(w.start,w.end), FED[w.fed]||"", kmTxt? kmTxt+" km":"", w.pace? "passo "+w.pace:"", w.avgHr? "FC media "+w.avgHr:""].filter(Boolean).join(" · ");
+    tx.append(el("div","a",w.name), el("div","b",`${w.sec? fmtHMS(w.sec) : (w.minutes||"?")+" min"} · ${extra||w.intensity||""}`));
     const del=el("button","del","×"); del.setAttribute("aria-label","Rimuovi "+w.name);
     del.onclick=()=>{ state.day.workouts=ws.filter(x=>x.id!==w.id); saveDay(); hist.items=hist.items.filter(x=>x.id!==w.id); save("workoutHistory",hist); renderAll(); };
-    li.append(tx, el("span","k","+"+r(w.kcal)+" kcal"), del);
+    const kc=el("span","k"); if(w.kcalShown&&w.kcalShown!==r(w.kcal)){ kc.append(el("span",null,w.kcalShown+" kcal")); const sm=el("small",null,"+"+r(w.kcal)+" al fabbisogno"); sm.style.cssText="display:block;font-weight:400;font-size:.72em;opacity:.7;white-space:nowrap"; sm.title="Le calorie che bruceresti comunque a riposo sono già nel fabbisogno"; kc.append(sm); } else kc.textContent="+"+r(w.kcal)+" kcal";
+    li.append(tx, kc, del);
     ul.appendChild(makeSwipe(li,()=>{ const idx=(state.day.workouts||[]).findIndex(x=>x.id===w.id), hIdx=hist.items.findIndex(x=>x.id===w.id), hItem=hist.items[hIdx];
       state.day.workouts=(state.day.workouts||[]).filter(x=>x.id!==w.id); saveDay(); hist.items=hist.items.filter(x=>x.id!==w.id); save("workoutHistory",hist); renderAll();
       actionToast(`Eliminato: ${w.name}`,"Annulla",()=>{ const arr=state.day.workouts||[]; arr.splice(Math.max(0,idx),0,w); state.day.workouts=arr; saveDay(); if(hItem){ hist.items.splice(Math.max(0,hIdx),0,hItem); save("workoutHistory",hist); } renderAll(); },6000); },w.name));
@@ -4600,8 +4602,10 @@ function hcKcal(x,w,km,min,isRun){ // calorie dell'allenamento (attive), dalla s
   const est=isRun&&km? 0.95*km*wt : 0; // stima corsa: circa 0,95 kcal per kg per km
   if(est&&k<0.7*est){ k=est; src="stima da distanza e peso"; }
   if(!k) { k=km? km*wt : 6*wt*min/60; src="stima"; }
-  return {kcal:Math.round(k),src}; }
-const fmtHMS=sec=>{ sec=Math.round(sec); const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),z=sec%60; return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(z).padStart(2,"0"); };
+  // come lo mostra Samsung Health: le calorie totali dell'allenamento (riposo compreso)
+  const shown=x&&x.totalKcal>0? x.totalKcal : x&&x.activeKcal>0? x.activeKcal+rest : k+rest;
+  return {kcal:Math.round(k),shown:Math.round(Math.max(shown,k)),src}; }
+function fmtHMS(sec){ sec=Math.round(sec); const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),z=sec%60; return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(z).padStart(2,"0"); };
 async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getItem("hf:hcOn")!=="1") return; hcBusy=true; const msgs=[];
   try{ const now=new Date(), last=localStorage.getItem("hf:hcLast"), from=new Date(Date.now()-(last? 10 : 30)*864e5);
     const diag={workouts:0,weight:0,bodyFat:0,sleep:0,steps:0};
@@ -4613,10 +4617,10 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
       const seen=new Set((hist.items||[]).map(w=>w.hcId).filter(Boolean));
       // correggi gli allenamenti già importati con durata e distanza vere
       for(const w of all){ const id=w.platformId||(w.startDate+"|"+w.workoutType), x=ex[w.platformId]; if(!x||!seen.has(id)) continue;
-        const it=(hist.items||[]).find(i=>i.hcId===id); if(!it||(it.hcV||0)>=3) continue;
+        const it=(hist.items||[]).find(i=>i.hcId===id); if(!it||(it.hcV||0)>=4) continue;
         const d=hcBestDist(x,+w.totalDistance||0), km=d.m? Math.round(d.m/10)/100 : it.distance, a=hcActive(x,+w.duration||it.minutes*60), sec=a.sec;
         const kc=hcKcal(x,w,km,sec/60,/running/.test(w.workoutType));
-        const upd={minutes:Math.round(sec/60),sec:Math.round(sec),timeSrc:a.src,distance:km,distSrc:d.src,kcal:kc.kcal,kcalSrc:kc.src,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : it.pace,hcV:3};
+        const upd={minutes:Math.round(sec/60),sec:Math.round(sec),timeSrc:a.src,distance:km,distSrc:d.src,kcal:kc.kcal,kcalShown:kc.shown,kcalSrc:kc.src,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : it.pace,hcV:4};
         Object.assign(it,upd); fixes.push([it.date,id,upd]); }
       for(const [date,id,upd] of fixes){
         if(date===state.date){ (state.day.workouts||[]).forEach(o=>{ if(o.hcId===id) Object.assign(o,upd); }); saveDay(); }
@@ -4630,7 +4634,7 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
         const dup=(hist.items||[]).some(x=>x.date===date&&!x.hcId&&((x.start&&Math.abs((+x.start.slice(0,2)*60+ +x.start.slice(3))-(st.getHours()*60+st.getMinutes()))<=15)||Math.abs((+x.minutes||0)-min)<=3&&(!x.distance||!w.totalDistance||Math.abs(x.distance-w.totalDistance/1000)<0.5)));
         if(dup) continue;
         let kc; const dd=hcBestDist(x,+w.totalDistance||0), km=dd.m? Math.round(dd.m/10)/100 : null, hr=await hcHr(H,w.startDate,w.endDate), wt=(state.profile&&state.profile.weight)||70;
-        const item={id:uid(),hcId:id,name:HC_TYPES[w.workoutType]||"Allenamento",minutes:min,intensity:"da Samsung Health",kcal:(kc=hcKcal(x,w,km,sec/60,/running/.test(w.workoutType))).kcal,kcalSrc:kc.src,timeSrc:act.src,distance:km,distSrc:dd.src||null,sec:Math.round(sec),hcV:x?3:1,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : null,start:hhmm,avgHr:hr&&hr.avg||null,maxHr:hr&&hr.max||null,zones:hr&&hr.zones||null};
+        const item={id:uid(),hcId:id,name:HC_TYPES[w.workoutType]||"Allenamento",minutes:min,intensity:"da Samsung Health",kcal:(kc=hcKcal(x,w,km,sec/60,/running/.test(w.workoutType))).kcal,kcalShown:kc.shown,kcalSrc:kc.src,timeSrc:act.src,distance:km,distSrc:dd.src||null,sec:Math.round(sec),hcV:x?4:1,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : null,start:hhmm,avgHr:hr&&hr.avg||null,maxHr:hr&&hr.max||null,zones:hr&&hr.zones||null};
         try{ if(shoes&&shoes.def&&isRun(item)) item.shoe=shoes.def; }catch{}
         hist.items=[...hist.items,{...item,date}];
         if(date===state.date){ state.day.workouts=[...(state.day.workouts||[]),item]; saveDay(); }
