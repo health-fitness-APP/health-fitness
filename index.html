@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.57 (corsa sul Galaxy Watch come in Samsung Health)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.58 (voce sull'orologio e ritmi corretti)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5526,9 +5526,13 @@ function circuitToExercises(){ syncCircuitToProgram(); const c=logCtx.circuit; r
 /* ----- corsa: presentazione, avvio e risultati dall'orologio ----- */
 function runsRecent(){ const its=((hist&&hist.items)||[]).filter(w=>+w.distance>0&&w.date>=shiftDate(todayISO(),-28));
   return its.length? its.slice(-8).map(w=>`${w.date}: ${fmt(w.distance)} km in ${Math.round(w.minutes)} min${w.pace?" ("+w.pace+"/km)":""}`).join("; ") : "nessuna corsa registrata nelle ultime 4 settimane"; }
-const paceSec=p=>{ const m=String(p||"").match(/(\d+)[:'’](\d{1,2})/); return m? +m[1]*60+ +m[2] : 0; };
+// ritmo al km in secondi; scarta i valori impossibili (meno di 2:30 o più di 20:00 al km), es. "+0:08" o "0:08"
+const paceOk=sec=> sec>=150&&sec<=1200? sec : 0;
+const paceSec=p=>{ const t=String(p||"").trim(), m=t.match(/(\d+)[:'’](\d{1,2})/); if(m) return paceOk(+m[1]*60+ +m[2]);
+  const d=t.match(/^(\d{1,2})[.,](\d{2})(\s*min)?/); if(d) return paceOk(+d[1]*60+ +d[2]);
+  const n=t.match(/^(\d{1,2}(?:[.,]\d)?)(\s*min)?(\s*\/\s*km)?$/); return n? paceOk(Math.round(+n[1].replace(",",".")*60)) : 0; };
 const paceTxt=sec=> sec? `${String(Math.floor(sec/60)).padStart(2,"0")}'${String(Math.round(sec%60)).padStart(2,"0")}"` : "";
-function runPlan(d){ const km=+d.distanceKm||0, ps=paceSec(d.pace)||(km&&d.minutes? d.minutes*60/km : 0), min=+d.minutes||(km&&ps? Math.round(km*ps/60) : 0); return {km,ps,min}; }
+function runPlan(d){ const km=+d.distanceKm||0, ps=paceSec(d.pace)||paceOk(km&&d.minutes? d.minutes*60/km : 0), min=+d.minutes||(km&&ps? Math.round(km*ps/60) : 0); return {km,ps,min}; }
 function segLen(sg,ps){ return +sg.minutes||(+sg.km? +sg.km*((paceSec(sg.pace)||ps||390)/60) : 5); }
 const SEG_COL={warmup:"var(--c3)",cooldown:"var(--c3)",work:"var(--basil)",recovery:"var(--c2)"}, SEG_H={warmup:.42,cooldown:.36,work:.92,recovery:.4}, SEG_L={warmup:"Riscaldamento",work:"Allenamento",recovery:"Recupero",cooldown:"Raffreddamento"};
 function runSegs(d){ const p=runPlan(d); let sg=Array.isArray(d.segments)&&d.segments.length? d.segments : [{kind:"warmup",label:"Jogging leggero di 5 minuti",minutes:5},{kind:"work",label:(d.runType||"Corsa")+(p.km?` di ${fmt(p.km)} km`:p.min?` di ${p.min} minuti`:""),km:p.km||null,minutes:p.km?null:p.min,pace:d.pace},{kind:"cooldown",label:"Camminata di defaticamento",minutes:5}]; return sg; }
@@ -5567,7 +5571,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
     <div class="run-chart">${p.ps?`<div class="run-pace">Ritmo<br>${paceTxt(p.ps)}</div>`:""}${runShapeSVG(d,320,170,true)}</div><div class="run-leg"></div>`;
   c.querySelector(".run-h b").textContent=d.runType||"Corsa"; c.querySelector(".run-desc").textContent=d.description||"";
   const lg=c.querySelector(".run-leg"); runSegs(d).forEach(g=>{ const row=el("div","rl"); row.innerHTML=`<i style="background:${SEG_COL[g.kind]||"var(--basil)"}"></i><span class="k"></span><span class="t"></span>`;
-    row.querySelector(".k").textContent=SEG_L[g.kind]||g.kind; row.querySelector(".t").textContent=[g.label, g.pace?paceTxt(paceSec(g.pace))+"/km":"", g.hr||""].filter(Boolean).join(" · "); lg.appendChild(row); });
+    row.querySelector(".k").textContent=SEG_L[g.kind]||g.kind; row.querySelector(".t").textContent=[g.label, g.pace&&(paceSec(g.pace)||p.ps)?paceTxt(paceSec(g.pace)||p.ps)+"/km":"", g.hr||""].filter(Boolean).join(" · "); lg.appendChild(row); });
   box.appendChild(c);
   if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta${res.on?" "+dayTxt(res.on):""} ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; box.appendChild(rc); }
   // avvio con Galaxy Watch e risultati
@@ -5587,7 +5591,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
      <div class="status" id="runStatus" aria-live="polite"></div>
    </div>`;
   box.appendChild(go);
-  const wo={title:d.title||d.runType||"Corsa",runType:d.runType||"",km:p.km||d.distanceKm||null,pace:d.pace||p.pace||"",desc:d.description||"",from:{a,pr,d,di,iso}};
+  const wo={title:d.title||d.runType||"Corsa",runType:d.runType||"",km:p.km||d.distanceKm||null,pace:p.ps? paceStr(p.ps) : "",desc:d.description||"",from:{a,pr,d,di,iso}};
   $("runHrBtn").onclick=async()=>{ if(await askWatch(wo)) return; openCardio({title:wo.title,runType:wo.runType,km:p.km||null,from:wo.from,noWatch:true}); };
   if(WBR()){ $("runWatchBtn").hidden=false; $("runWatchBtn").onclick=()=>watchSend(wo); }
   $("runStart").onclick=async()=>{ if(await askWatch(wo)) return; $("runHow").hidden=false; $("runHow").scrollIntoView({behavior:"smooth",block:"start"}); };
