@@ -782,6 +782,11 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .raceRow .mt{flex:1;min-width:0;display:flex;flex-direction:column}.raceRow b{font-size:1.05rem}.raceRow .ms{font-size:.82rem;color:var(--muted)}.raceRow .chev{color:var(--muted);font-size:1.4rem}
 #rcDays .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
 .rc-verdict{font-weight:600;margin:0 0 10px}
+.rc-date{display:flex;gap:8px;align-items:center;position:relative}.rc-date .field{flex:1;min-width:0}
+.rc-date input[type=date]{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+.tbox{display:flex;gap:4px;align-items:center}.tbox .field{width:0;flex:1;min-width:0;text-align:center;padding-left:4px;padding-right:4px}.tbox span{color:var(--muted);font-size:.85rem}
+.rc-hint{font-size:.8rem;color:var(--muted);margin:2px 0 0;min-height:1em}.rc-hint.bad{color:#c0392b;font-weight:600}
+.rc-level{display:flex;align-items:center;min-height:44px;font-weight:600}
 .rc-pred{background:var(--surface2);border-radius:16px;padding:12px;text-align:center;margin-bottom:8px}
 .rc-pred span{display:block;font-size:.82rem;color:var(--muted)}.rc-pred b{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:2rem}
 .rc-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:.92rem}.rc-row b{white-space:nowrap}
@@ -1799,13 +1804,15 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <h2>🏁 Il tuo obiettivo</h2>
     <div class="form">
       <div class="two"><label>Gara<select class="field" id="rcDist"><option value="5">5 km</option><option value="10">10 km</option><option value="21.0975">Mezza maratona</option><option value="42.195" selected>Maratona</option><option value="x">Altra distanza</option></select></label>
-        <label>Data della gara<input class="field" id="rcDate" type="date"></label></div>
+        <label>Data della gara<span class="rc-date"><input class="field" id="rcDateTxt" inputmode="numeric" placeholder="gg/mm/aaaa" maxlength="10" autocomplete="off"><button class="icon-btn" type="button" id="rcDateBtn" aria-label="Scegli dal calendario">📅</button><input type="date" id="rcDate" tabindex="-1" aria-hidden="true"></span></label></div>
+      <p class="rc-hint" id="rcDateHint"></p>
       <label id="rcKmL" hidden>Distanza (km)<input class="field" id="rcKm" inputmode="decimal"></label>
       <label>Nome (facoltativo)<input class="field" id="rcName" placeholder="Es. Maratona di Milano"></label>
-      <div class="two"><label>Tempo obiettivo<input class="field" id="rcTarget" placeholder="es. 3:59:00 (vuoto = finirla)"></label>
-        <label>Livello<select class="field" id="rcLevel"><option value="principiante">Principiante</option><option value="intermedio" selected>Intermedio</option><option value="esperto">Esperto</option></select></label></div>
+      <div class="two"><div><p class="lab" style="margin:0 0 4px">Tempo obiettivo</p><div class="tbox" data-for="rcTarget" data-label="Tempo obiettivo"></div><input type="hidden" id="rcTarget"><p class="rc-hint" id="rcTargetHint">Vuoto = finirla</p></div>
+        <div><p class="lab" style="margin:0 0 4px">Livello (automatico)</p><div class="field rc-level" id="rcLevelTxt">–</div><select id="rcLevel" hidden><option value="principiante">Principiante</option><option value="intermedio" selected>Intermedio</option><option value="esperto">Esperto</option></select></div></div>
       <p class="lab" style="margin:6px 0 0">Gara recente (per calcolare i tuoi ritmi)</p>
-      <div class="two"><label>Distanza km<input class="field" id="rcRecKm" inputmode="decimal"></label><label>Tempo<input class="field" id="rcRecT" placeholder="es. 1:57:00"></label></div>
+      <div class="two"><label>Distanza km<input class="field" id="rcRecKm" inputmode="decimal"></label><div><p class="lab" style="margin:0 0 4px">Tempo</p><div class="tbox" data-for="rcRecT" data-label="Tempo della gara recente"></div><input type="hidden" id="rcRecT"></div></div>
+      <p class="rc-hint" id="rcRecHint"></p>
       <p class="note" id="rcRecNote" style="margin:0"></p>
       <label>Corse a settimana<select class="field" id="rcRuns"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
       <p class="lab" style="margin:6px 0 4px">Giorni in cui puoi correre</p>
@@ -2126,7 +2133,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.61 (ritmi e durate delle corse corretti)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.62 (piano gara: tempi a prova di errore e livello automatico)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5089,16 +5096,50 @@ function renderRace(){
   const g=(race&&race.goal)||{};
   if(!$("rcDays").children.length){ [1,2,3,4,5,6,0].forEach(wd=>{ const b=el("button","chip",["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][wd]); b.type="button"; b.dataset.wd=wd; b.onclick=()=>{ b.classList.toggle("on"); b.setAttribute("aria-pressed",b.classList.contains("on")); }; $("rcDays").appendChild(b); }); }
   const km=g.km||42.195; $("rcDist").value= ["5","10","21.0975","42.195"].includes(String(km))? String(km) : "x"; $("rcKmL").hidden=$("rcDist").value!=="x"; $("rcKm").value=$("rcDist").value==="x"? km : "";
-  $("rcDate").value=g.date||""; $("rcName").value=g.name||""; $("rcTarget").value=g.target||""; $("rcLevel").value=g.level||"intermedio"; $("rcRuns").value=String(g.runs||3); $("rcLong").value=String(g.longWd??0);
+  $("rcDate").value=g.date||""; $("rcDateTxt").value=isoToIt(g.date||""); $("rcDateHint").textContent=""; $("rcName").value=g.name||""; tboxSet("rcTarget",tSec(g.target||"",km)); $("rcLevel").value=g.level||"intermedio"; $("rcRuns").value=String(g.runs||3); $("rcLong").value=String(g.longWd??0);
   const days=g.days||[2,4,0]; $("rcDays").querySelectorAll("button").forEach(b=>{ const on=days.includes(+b.dataset.wd); b.classList.toggle("on",on); b.setAttribute("aria-pressed",on); });
   const br=bestRecentRun();
-  if(g.recKm){ $("rcRecKm").value=String(g.recKm).replace(".",","); $("rcRecT").value=hms2(g.recSec); }
-  else if(br){ $("rcRecKm").value=String(Math.round(br.km*100)/100).replace(".",","); $("rcRecT").value=hms2(br.sec); }
+  if(g.recKm){ $("rcRecKm").value=String(g.recKm).replace(".",","); tboxSet("rcRecT",g.recSec); }
+  else if(br){ $("rcRecKm").value=String(Math.round(br.km*100)/100).replace(".",","); tboxSet("rcRecT",br.sec); }
+  rcLive();
   $("rcRecNote").textContent= br? `Dai tuoi allenamenti: la prestazione migliore recente è ${fmt(Math.round(br.km*10)/10)} km in ${hms2(br.sec)} (${new Date(br.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"})}).` : "Inserisci una gara o un allenamento tirato recente (almeno 5 km).";
   if(g.vdot) showPaces(g); else $("rcPaceCard").hidden=true;
   renderRacePlan(); renderRaceFeed();
 }
-$("rcDist").onchange=()=>{ $("rcKmL").hidden=$("rcDist").value!=="x"; };
+$("rcDist").onchange=()=>{ $("rcKmL").hidden=$("rcDist").value!=="x"; rcLive(); };
+/* tempi a prova di errore: ore, minuti e secondi in caselle separate (niente più "1:00" letto come 1 minuto) */
+function tboxSet(id,sec){ const box=document.querySelector(`.tbox[data-for="${id}"]`); if(!box||!box.children.length) return; const ins=box.querySelectorAll("input"); sec=Math.round(+sec||0);
+  ins[0].value= sec? String(Math.floor(sec/3600)) : ""; ins[1].value= sec? String(Math.floor(sec%3600/60)) : ""; ins[2].value= sec? String(sec%60).padStart(2,"0") : ""; $(id).value= sec? hms3(sec) : ""; }
+function hms3(sec){ sec=Math.round(sec); return Math.floor(sec/3600)+":"+String(Math.floor(sec%3600/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
+document.querySelectorAll(".tbox").forEach(box=>{ const id=box.dataset.for;
+  [["ore","h",2],["minuti","min",2],["secondi","s",2]].forEach(([nm,u,ml],i)=>{ const inp=el("input","field"); inp.inputMode="numeric"; inp.maxLength=ml; inp.placeholder= i===0? "0" : "00"; inp.setAttribute("aria-label",box.dataset.label+": "+nm);
+    inp.addEventListener("input",()=>{ inp.value=inp.value.replace(/\D/g,""); if(i>0&&+inp.value>59) inp.value="59";
+      const v=[...box.querySelectorAll("input")].map(x=>+x.value||0), sec=v[0]*3600+v[1]*60+v[2]; $(id).value= sec? hms3(sec) : ""; if(inp.value.length>=ml&&i<2) box.querySelectorAll("input")[i+1].focus(); rcLive(); });
+    box.appendChild(inp); const sp=el("span",null,u); box.appendChild(sp); }); });
+/* data: si scrive da tastiera (gg/mm/aaaa) o si sceglie dal calendario */
+function isoToIt(iso){ return iso? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : ""; }
+function itToIso(t){ const m=String(t||"").match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(!m) return ""; const d=new Date(+m[3],+m[2]-1,+m[1]);
+  if(d.getFullYear()!==+m[3]||d.getMonth()!==+m[2]-1||d.getDate()!==+m[1]) return ""; return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0"); }
+$("rcDateTxt").addEventListener("input",e=>{ const t=$("rcDateTxt"); let d=t.value.replace(/\D/g,"").slice(0,8);
+  if(e.inputType!=="deleteContentBackward") t.value= d.length>4? d.slice(0,2)+"/"+d.slice(2,4)+"/"+d.slice(4) : d.length>2? d.slice(0,2)+"/"+d.slice(2) : d;
+  const iso=itToIso(t.value); $("rcDate").value=iso;
+  $("rcDateHint").textContent= t.value.length===10&&!iso? "Data non valida: scrivila come gg/mm/aaaa" : iso&&iso<=todayISO()? "La data della gara deve essere nel futuro" : iso? new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) : "";
+  $("rcDateHint").classList.toggle("bad",(t.value.length===10&&!iso)||(!!iso&&iso<=todayISO())); rcLive(); });
+$("rcDate").addEventListener("change",()=>{ $("rcDateTxt").value=isoToIt($("rcDate").value); $("rcDateTxt").dispatchEvent(new Event("input")); });
+$("rcDateBtn").onclick=()=>{ const d=$("rcDate"); try{ if(d.showPicker){ d.showPicker(); return; } }catch{} d.click(); };
+/* livello calcolato dai tempi (VDOT della corsa recente) e dall'obiettivo; ritmi mostrati mentre scrivi */
+function levelOf(vdot){ return !vdot? "intermedio" : vdot<38? "principiante" : vdot<50? "intermedio" : "esperto"; }
+function rcLive(){ const g=readRaceForm(), recPace= g.recKm>0&&g.recSec>0? g.recSec/g.recKm : 0, okRec=paceOk(recPace);
+  $("rcRecHint").textContent= !recPace? "" : okRec? `Ritmo medio ${paceStr(recPace)}/km` : `⚠️ Ritmo di ${paceStr(recPace)}/km impossibile: controlla ore, minuti e km`;
+  $("rcRecHint").classList.toggle("bad",!!recPace&&!okRec);
+  const tgt=tSec(g.target), tp= tgt&&g.km? tgt/g.km : 0, okT=paceOk(tp);
+  $("rcTargetHint").textContent= !tgt? "Vuoto = finirla" : okT? `Ritmo gara ${paceStr(tp)}/km` : `⚠️ Ritmo di ${paceStr(tp)}/km impossibile: controlla il tempo`;
+  $("rcTargetHint").classList.toggle("bad",!!tgt&&!okT);
+  const v= okRec&&g.recKm>=3? vdotOf(g.recKm,g.recSec) : 0, lv=levelOf(v); $("rcLevel").value=lv;
+  let txt= v? lv.charAt(0).toUpperCase()+lv.slice(1) : "Dai tuoi tempi";
+  if(v&&okT){ const pred=predictSec(v,g.km), gap=(pred-tgt)/pred; if(gap>0.06) txt+=" · obiettivo molto ambizioso"; else if(gap>0.01) txt+=" · obiettivo ambizioso"; }
+  $("rcLevelTxt").textContent=txt; }
+["rcRecKm","rcKm"].forEach(id=>$(id).addEventListener("input",rcLive));
 function readRaceForm(){
   const km= $("rcDist").value==="x"? +String($("rcKm").value).replace(",",".") : +$("rcDist").value;
   const recKm=+String($("rcRecKm").value).replace(",","."), recSec=tSec($("rcRecT").value,recKm);
@@ -5107,8 +5148,11 @@ function readRaceForm(){
 }
 $("rcCalc").onclick=()=>{
   const g=readRaceForm();
-  if(!g.km||!g.date){ toast("Indica gara e data"); return; } if(g.date<=todayISO()){ toast("La data della gara deve essere nel futuro"); return; }
+  if(!g.km){ toast("Indica la gara"); return; } if(!g.date){ toast("Scrivi la data della gara come gg/mm/aaaa"); $("rcDateTxt").focus(); return; } if(g.date<=todayISO()){ toast("La data della gara deve essere nel futuro"); return; }
   if(!(g.recKm>=3&&g.recSec>0)){ toast("Inserisci una gara o corsa recente (km e tempo)"); return; }
+  if(!paceOk(g.recSec/g.recKm)){ toast("Il tempo della corsa recente non torna con i km: controlla ore e minuti"); return; }
+  const tg=tSec(g.target); if(tg&&!paceOk(tg/g.km)){ toast("Il tempo obiettivo non torna con la distanza: controlla ore e minuti"); return; }
+  g.level=levelOf(vdotOf(g.recKm,g.recSec));
   if(!g.days.includes(g.longWd)) g.days.push(g.longWd);
   g.vdot=Math.round(vdotOf(g.recKm,g.recSec)*10)/10; g.pred=Math.round(predictSec(g.vdot,g.km));
   race={...(race||{}),goal:g}; save("race",race); showPaces(g); renderProgram();
