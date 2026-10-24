@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.54 (durata e distanza vere degli allenamenti)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.55 (tempo senza pause e calorie vere delle corse)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4589,6 +4589,18 @@ function hcBestDist(x,fallbackM){ // metri e fonte
     if(x.routeM>0) return {m:x.routeM,src:"GPS"}; }
   return fallbackM>0? {m:fallbackM,src:"totale"} : {m:0,src:""}; }
 const r2=v=>Math.round((+v||0)*100)/100;
+function hcActive(x,durSec){ // secondi di attività senza pause
+  if(x){ for(const [v,src] of [[x.activeSec,"pause"],[x.lapsSec,"giri"],[x.movingSec,"velocità"]]) if(v>60&&v<=durSec+1) return {sec:+v,src}; }
+  return {sec:+durSec||0,src:"inizio-fine"}; }
+function hcKcal(x,w,km,min,isRun){ // calorie dell'allenamento (attive), dalla sola app che l'ha registrato
+  const wt=(state.profile&&state.profile.weight)||70, rest=wt*24/1440*min; // consumo a riposo nel tempo dell'allenamento
+  let k=x&&x.activeKcal>0? +x.activeKcal : 0, src="Samsung (attive)";
+  if(x&&x.totalKcal>0&&x.totalKcal-rest>k){ k=x.totalKcal-rest; src="Samsung (totali − riposo)"; }
+  if(!k&&+w.totalEnergyBurned>0){ k=+w.totalEnergyBurned; src="Health Connect"; }
+  const est=isRun&&km? 0.95*km*wt : 0; // stima corsa: circa 0,95 kcal per kg per km
+  if(est&&k<0.7*est){ k=est; src="stima da distanza e peso"; }
+  if(!k) { k=km? km*wt : 6*wt*min/60; src="stima"; }
+  return {kcal:Math.round(k),src}; }
 const fmtHMS=sec=>{ sec=Math.round(sec); const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),z=sec%60; return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(z).padStart(2,"0"); };
 async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getItem("hf:hcOn")!=="1") return; hcBusy=true; const msgs=[];
   try{ const now=new Date(), last=localStorage.getItem("hf:hcLast"), from=new Date(Date.now()-(last? 10 : 30)*864e5);
@@ -4601,9 +4613,10 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
       const seen=new Set((hist.items||[]).map(w=>w.hcId).filter(Boolean));
       // correggi gli allenamenti già importati con durata e distanza vere
       for(const w of all){ const id=w.platformId||(w.startDate+"|"+w.workoutType), x=ex[w.platformId]; if(!x||!seen.has(id)) continue;
-        const it=(hist.items||[]).find(i=>i.hcId===id); if(!it||it.hcV===2) continue;
-        const d=hcBestDist(x,+w.totalDistance||0), km=d.m? Math.round(d.m/10)/100 : it.distance, sec=+x.activeSec||it.minutes*60;
-        const upd={minutes:Math.round(sec/60),sec:Math.round(sec),distance:km,distSrc:d.src,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : it.pace,hcV:2};
+        const it=(hist.items||[]).find(i=>i.hcId===id); if(!it||(it.hcV||0)>=3) continue;
+        const d=hcBestDist(x,+w.totalDistance||0), km=d.m? Math.round(d.m/10)/100 : it.distance, a=hcActive(x,+w.duration||it.minutes*60), sec=a.sec;
+        const kc=hcKcal(x,w,km,sec/60,/running/.test(w.workoutType));
+        const upd={minutes:Math.round(sec/60),sec:Math.round(sec),timeSrc:a.src,distance:km,distSrc:d.src,kcal:kc.kcal,kcalSrc:kc.src,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : it.pace,hcV:3};
         Object.assign(it,upd); fixes.push([it.date,id,upd]); }
       for(const [date,id,upd] of fixes){
         if(date===state.date){ (state.day.workouts||[]).forEach(o=>{ if(o.hcId===id) Object.assign(o,upd); }); saveDay(); }
@@ -4611,20 +4624,21 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
       if(fixes.length){ save("workoutHistory",hist); msgs.push(`${fixes.length} ${fixes.length===1?"allenamento corretto":"allenamenti corretti"}`); }
       all.forEach(w=>hcNoteSrc("workouts",w.sourceName||w.sourceId)); diag.workouts=all.length;
       for(const w of all){ const id=w.platformId||(w.startDate+"|"+w.workoutType); if(seen.has(id)) continue;
-        const x=ex[w.platformId], sec=x&&x.activeSec>0? +x.activeSec : (+w.duration||0), date=dISO(w.startDate), st=new Date(w.startDate), min=Math.round(sec/60); if(min<3) continue;
+        const x=ex[w.platformId], act=hcActive(x,+w.duration||0), sec=act.sec, date=dISO(w.startDate), st=new Date(w.startDate), min=Math.round(sec/60); if(min<3) continue;
         const hhmm=String(st.getHours()).padStart(2,"0")+":"+String(st.getMinutes()).padStart(2,"0");
         // già registrato a mano o da screenshot? (stesso giorno, orario o durata simili)
         const dup=(hist.items||[]).some(x=>x.date===date&&!x.hcId&&((x.start&&Math.abs((+x.start.slice(0,2)*60+ +x.start.slice(3))-(st.getHours()*60+st.getMinutes()))<=15)||Math.abs((+x.minutes||0)-min)<=3&&(!x.distance||!w.totalDistance||Math.abs(x.distance-w.totalDistance/1000)<0.5)));
         if(dup) continue;
-        const dd=hcBestDist(x,+w.totalDistance||0), km=dd.m? Math.round(dd.m/10)/100 : null, hr=await hcHr(H,w.startDate,w.endDate), wt=(state.profile&&state.profile.weight)||70;
-        const item={id:uid(),hcId:id,name:HC_TYPES[w.workoutType]||"Allenamento",minutes:min,intensity:"da Samsung Health",kcal:Math.round(+w.totalEnergyBurned||(km? km*wt : 6*wt*min/60)),distance:km,distSrc:dd.src||null,sec:Math.round(sec),hcV:x?2:1,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : null,start:hhmm,avgHr:hr&&hr.avg||null,maxHr:hr&&hr.max||null,zones:hr&&hr.zones||null};
+        let kc; const dd=hcBestDist(x,+w.totalDistance||0), km=dd.m? Math.round(dd.m/10)/100 : null, hr=await hcHr(H,w.startDate,w.endDate), wt=(state.profile&&state.profile.weight)||70;
+        const item={id:uid(),hcId:id,name:HC_TYPES[w.workoutType]||"Allenamento",minutes:min,intensity:"da Samsung Health",kcal:(kc=hcKcal(x,w,km,sec/60,/running/.test(w.workoutType))).kcal,kcalSrc:kc.src,timeSrc:act.src,distance:km,distSrc:dd.src||null,sec:Math.round(sec),hcV:x?3:1,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : null,start:hhmm,avgHr:hr&&hr.avg||null,maxHr:hr&&hr.max||null,zones:hr&&hr.zones||null};
         try{ if(shoes&&shoes.def&&isRun(item)) item.shoe=shoes.def; }catch{}
         hist.items=[...hist.items,{...item,date}];
         if(date===state.date){ state.day.workouts=[...(state.day.workouts||[]),item]; saveDay(); }
         else { const doc=(await store.getDoc("day-"+date).catch(()=>null))||{meals:{},workouts:[]}; doc.workouts=[...(doc.workouts||[]),item]; save("day-"+date,doc); }
         added++; if(date>=shiftDate(todayISO(),-1)) setTimeout(()=>{ try{ raceCheckRun({...item,date}); }catch{} },500); }
       try{ const runs=all.filter(w=>/running/.test(w.workoutType)&&ex[w.platformId]).slice(-3).map(w=>{ const x=ex[w.platformId], d=hcBestDist(x,+w.totalDistance||0);
-        return {start:w.startDate,tempo:fmtHMS(x.activeSec||0),pause:fmtHMS(x.pauseSec||0),km:r2(d.m/1000),fonte:d.src,giri:x.lapsM?r2(x.lapsM/1000):null,samsung:x.distOriginM?r2(x.distOriginM/1000):null,velocita:x.speedM?r2(x.speedM/1000):null,gps:x.routeM?r2(x.routeM/1000):null,tutte:x.distAllM?r2(x.distAllM/1000):null}; });
+        const a=hcActive(x,+w.duration||0), k=hcKcal(x,w,d.m/1000,a.sec/60,true);
+        return {start:w.startDate,tempo:fmtHMS(a.sec),tempoDa:a.src,totale:fmtHMS(x.totalSec||0),km:r2(d.m/1000),fonte:d.src,kcal:k.kcal,kcalDa:k.src,attiveS:x.activeKcal?Math.round(x.activeKcal):null,totaliS:x.totalKcal?Math.round(x.totalKcal):null,campioniVel:x.speedSamples||0,giriN:x.laps||0,giri:x.lapsM?r2(x.lapsM/1000):null,samsung:x.distOriginM?r2(x.distOriginM/1000):null,velocita:x.speedM?r2(x.speedM/1000):null,gps:x.routeM?r2(x.routeM/1000):null,tutte:x.distAllM?r2(x.distAllM/1000):null}; });
         if(runs.length) localStorage.setItem("hf:hcRunDiag",JSON.stringify(runs)); }catch{}
       if(added){ save("workoutHistory",hist); msgs.push(`${added} ${added===1?"allenamento":"allenamenti"}`); } }
     // --- passi e attività di oggi
@@ -4663,7 +4677,7 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
     localStorage.setItem("hf:hcLast",new Date().toISOString()); localStorage.setItem("hf:hcDiag",JSON.stringify(diag)); try{ hcRenderState(); }catch{}
     const t=new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
     let runLine=""; if(manual){ if(!HCW()) runLine=" · Per tempo e distanza esatti delle corse aggiorna l’APK all’ultima versione.";
-      else { try{ const d=JSON.parse(localStorage.getItem("hf:hcRunDiag")||"[]").pop(); if(d) runLine=` · Ultima corsa letta: ${d.tempo} (pause ${d.pause}), ${String(d.km).replace(".",",")} km da ${d.fonte}.`; }catch{} } }
+      else { try{ const d=JSON.parse(localStorage.getItem("hf:hcRunDiag")||"[]").pop(); if(d) runLine=` · Ultima corsa letta: ${d.tempo} (da ${d.tempoDa}), ${String(d.km).replace(".",",")} km (da ${d.fonte}), ${d.kcal} kcal (da ${d.kcalDa}).`; }catch{} } }
     setStatus("hcStatus",`Ultima sincronizzazione alle ${t}`+(msgs.length? ": "+msgs.join(", ") : ": niente di nuovo")+runLine);
     if(msgs.length&&!manual) toast("Da Samsung Health: "+msgs.join(", "));
     if(msgs.length) renderAll();
@@ -4695,6 +4709,8 @@ async function hcRenderState(){ const box=$("hcState"); if(!box) return; const H
   box.innerHTML=`<p class="hc-on">✅ Collegato a Health Connect</p>`+
     (ok.length? `<p class="note" style="margin:2px 0">Autorizzati: ${ok.map(k=>HC_LAB[k]||k).join(", ")}</p>` : "")+
     (no.length? `<p class="note hc-warn" style="margin:2px 0">Non autorizzati: ${no.map(k=>HC_LAB[k]||k).join(", ")} → tocca “Concedi i permessi mancanti”</p>` : "")+
+    (()=>{ try{ const d=JSON.parse(localStorage.getItem("hf:hcRunDiag")||"[]").pop(); if(!d) return "";
+      return `<p class="note" style="margin:2px 0">Ultima corsa letta (${new Date(d.start).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}): ${d.tempo} su ${d.totale} (da ${d.tempoDa}) · ${String(d.km).replace(".",",")} km (da ${d.fonte}) · ${d.kcal} kcal (da ${d.kcalDa}) · Samsung: attive ${d.attiveS??"–"}, totali ${d.totaliS??"–"} · velocità ${d.campioniVel} campioni · giri ${d.giriN}</p>`; }catch{ return ""; } })()+
     (()=>{ const dg=JSON.parse(localStorage.getItem("hf:hcDiag")||"null"); return dg? `<p class="note" style="margin:2px 0">Letto da Health Connect (ultimi giorni): ${dg.workouts} allenamenti · ${dg.weight} pesate · ${dg.bodyFat} misure di grasso · ${dg.sleep} sonni · ${dg.steps.toLocaleString("it-IT")} passi oggi</p>` : ""; })()+
     `<p class="note" style="margin:2px 0">${srcTxt? "Dati ricevuti da: "+srcTxt : "Ancora nessun dato da Samsung Health: in Health Connect → Autorizzazioni app → Samsung Health attiva la SCRITTURA di esercizio, peso, sonno e battito, poi apri Samsung Health e tocca Sincronizza ora qui."}</p>`; }
 function hcNoteSrc(kind,name){ if(!name) return; const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"); src[kind]=[...new Set([...(src[kind]||[]),prettySrc(name)])].slice(-4); localStorage.setItem("hf:hcSrc",JSON.stringify(src)); }
