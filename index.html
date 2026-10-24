@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.59 (ritmo da tenere nelle corse del piano)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.60 (ritmo da tenere anche senza distanza nel piano)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -2752,7 +2752,7 @@ function dayPlanFor(wd){
   const pr=a&&a.pr, di= pr&&pr.weekMap? pr.weekMap[wd] : null, d= di!=null&&pr.days? pr.days[di] : null;
   if(d&&d.kind==="run"){ const rp=runPlan(d), lv=Math.max(1,Math.min(5,+d.intensity||2)), MET=[0,6,8,9.5,11,12.5][lv];
     const kcal= rp.km? rp.km*w*(0.95+0.05*lv) : (rp.min||sesMin||45)*MET*w/60;
-    return {kind:"run", label:`Corsa – ${d.runType||"corsa"}${rp.km?" "+fmt(rp.km)+" km":""}${rp.min?" ("+rp.min+" min)":""}`, minutes:rp.min||sesMin||45, kcal, when, intensity:lv}; }
+    return {kind:"run", label:`Corsa – ${d.runType||"corsa"}${rp.km?" "+fmt(rp.km)+" km":""}${rp.min?" ("+rp.min+" min)":""}${rp.ps?" a "+paceStr(rp.ps)+"/km":""}`, minutes:rp.min||sesMin||45, kcal, when, intensity:lv}; }
   if(d){ const min=+d.minutes||sesMin||60, rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*w/60;
     return {kind:"strength", label:`Forza – ${String(d.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"")} (${min} min)`, minutes:min, kcal:kpm*min, when}; }
   if(pr&&pr.weekMap&&di==null&&!ses.length) return {kind:"rest",label:"riposo",minutes:0,kcal:0,when:""};
@@ -4452,7 +4452,7 @@ function buildMonth(a,pr,names,doneOn){
     order.forEach((wd,k)=>{ const iso=shiftDate(mon,k), di=pr.weekMap? pr.weekMap[wd] : null, d= di!=null? pr.days[di] : null;
       const row=el("button","mdrow"+(d?"":" rest")+(iso===today?" today":"")); row.type="button";
       let label="Riposo";
-      if(d&&d.kind==="run"){ const p=runPlan(d); label=`🏃 ${d.runType||"Corsa"}${p.km?` ~${(Math.round(p.km*kmF*10)/10).toLocaleString("it-IT")} km`:p.min?` ~${Math.round(p.min*kmF)} min`:""}`; }
+      if(d&&d.kind==="run"){ const p=runPlan(d); label=`🏃 ${d.runType||"Corsa"}${p.km?` ~${(Math.round(p.km*kmF*10)/10).toLocaleString("it-IT")} km`:p.min?` ~${Math.round(p.min*kmF)} min`:""}${p.ps?` · ${paceStr(p.ps)}/km`:""}`; }
       else if(d&&d.kind==="circuit") label=`🔁 ${d.title}${deload?" (meno giri)":""}`;
       else if(d) label=`🏋️ ${String(d.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"")}${deload?" · scarico":""}`;
       const done= d&&iso<=today&&doneOn(iso,d.title);
@@ -5532,7 +5532,9 @@ const paceSec=p=>{ const t=String(p||"").trim(), m=t.match(/(\d+)[:'’](\d{1,2}
   const d=t.match(/^(\d{1,2})[.,](\d{2})(\s*min)?/); if(d) return paceOk(+d[1]*60+ +d[2]);
   const n=t.match(/^(\d{1,2}(?:[.,]\d)?)(\s*min)?(\s*\/\s*km)?$/); return n? paceOk(Math.round(+n[1].replace(",",".")*60)) : 0; };
 const paceTxt=sec=> sec? `${String(Math.floor(sec/60)).padStart(2,"0")}'${String(Math.round(sec%60)).padStart(2,"0")}"` : "";
-function runPlan(d){ const km=+d.distanceKm||0, ps=paceSec(d.pace)||paceOk(km&&d.minutes? d.minutes*60/km : 0), min=+d.minutes||(km&&ps? Math.round(km*ps/60) : 0); return {km,ps,min}; }
+// km della seduta: dal campo distanza o, se manca, dal testo ("Lungo 9 km")
+const kmFromText=t=>{ const m=String(t||"").match(/(\d+(?:[.,]\d+)?)\s*km\b/i); const v=m? +m[1].replace(",",".") : 0; return v>0&&v<100? v : 0; };
+function runPlan(d){ const km=+d.distanceKm||kmFromText([d.title,d.runType,d.description].join(" ")), ps=paceSec(d.pace)||paceOk(km&&d.minutes? d.minutes*60/km : 0), min=+d.minutes||(km&&ps? Math.round(km*ps/60) : 0); return {km,ps,min}; }
 function segLen(sg,ps){ return +sg.minutes||(+sg.km? +sg.km*((paceSec(sg.pace)||ps||390)/60) : 5); }
 const SEG_COL={warmup:"var(--c3)",cooldown:"var(--c3)",work:"var(--basil)",recovery:"var(--c2)"}, SEG_H={warmup:.42,cooldown:.36,work:.92,recovery:.4}, SEG_L={warmup:"Riscaldamento",work:"Allenamento",recovery:"Recupero",cooldown:"Raffreddamento"};
 function runSegs(d){ const p=runPlan(d); let sg=Array.isArray(d.segments)&&d.segments.length? d.segments : [{kind:"warmup",label:"Jogging leggero di 5 minuti",minutes:5},{kind:"work",label:(d.runType||"Corsa")+(p.km?` di ${fmt(p.km)} km`:p.min?` di ${p.min} minuti`:""),km:p.km||null,minutes:p.km?null:p.min,pace:d.pace},{kind:"cooldown",label:"Camminata di defaticamento",minutes:5}]; return sg; }
