@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.53 (distanza stimata dai passi)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.54 (durata e distanza vere degli allenamenti)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4577,27 +4577,55 @@ async function hcHr(H,from,to){ try{ const r0=await H.readSamples({dataType:"hea
   let sum=0,mx=0; const z=[0,0,0,0,0]; ss.forEach((x,i)=>{ const b=+x.value; sum+=b; mx=Math.max(mx,b); const nx=ss[i+1]; const dt=nx? Math.min(60,(new Date(nx.startDate)-new Date(x.startDate))/1000) : 5; z[zoneOf(b)]+=dt; });
   return {avg:Math.round(sum/ss.length),max:Math.round(mx),zones:z.map(x=>Math.round(x/6)/10)}; }catch{ return null; } }
 let hcBusy=false;
+// dettagli veri dell'allenamento (APK 1.7+): tempo attivo senza pause e distanza della sola app che l'ha registrato
+const HCW=()=>{ const C=NAT(); return C? (C.Plugins&&C.Plugins.HcWorkout)||(C.registerPlugin&&C.registerPlugin("HcWorkout")) : null; };
+async function hcExtras(from,to){ const HW=HCW(), map={}; if(!HW) return map;
+  try{ const r=await HW.sessions({startDate:from,endDate:to}); ((r&&r.sessions)||[]).forEach(x=>{ if(x&&x.id) map[x.id]=x; }); }catch(e){ console.warn("HcWorkout",e); }
+  return map; }
+function hcBestDist(x,fallbackM){ // metri e fonte
+  if(x){ if(x.lapsM>0) return {m:x.lapsM,src:"giri"};
+    const c=[[x.distOriginM,"Samsung Health"],[x.speedM,"velocità"]].filter(v=>v[0]>0).sort((a,b)=>b[0]-a[0]);
+    if(c.length) return {m:c[0][0],src:c[0][1]};
+    if(x.routeM>0) return {m:x.routeM,src:"GPS"}; }
+  return fallbackM>0? {m:fallbackM,src:"totale"} : {m:0,src:""}; }
+const r2=v=>Math.round((+v||0)*100)/100;
+const fmtHMS=sec=>{ sec=Math.round(sec); const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),z=sec%60; return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(z).padStart(2,"0"); };
 async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getItem("hf:hcOn")!=="1") return; hcBusy=true; const msgs=[];
   try{ const now=new Date(), last=localStorage.getItem("hf:hcLast"), from=new Date(Date.now()-(last? 10 : 30)*864e5);
     const diag={workouts:0,weight:0,bodyFat:0,sleep:0,steps:0};
     const iso=d=>d.toISOString(), dISO=d=>{ const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); };
     // --- allenamenti
     if(hcOpt("W")){ let anchor=null, added=0, all=[]; for(let pg=0;pg<10;pg++){ const r0=await H.queryWorkouts({startDate:iso(from),endDate:iso(now),limit:50,...(anchor?{anchor}:{})}); all=all.concat((r0&&r0.workouts)||[]); anchor=r0&&r0.anchor; if(!anchor) break; }
+      const ex=await hcExtras(iso(from),iso(now)), fixes=[];
+      if(manual&&HCW()) HCW().requestExtra().catch(()=>{});
       const seen=new Set((hist.items||[]).map(w=>w.hcId).filter(Boolean));
+      // correggi gli allenamenti già importati con durata e distanza vere
+      for(const w of all){ const id=w.platformId||(w.startDate+"|"+w.workoutType), x=ex[w.platformId]; if(!x||!seen.has(id)) continue;
+        const it=(hist.items||[]).find(i=>i.hcId===id); if(!it||it.hcV===2) continue;
+        const d=hcBestDist(x,+w.totalDistance||0), km=d.m? Math.round(d.m/10)/100 : it.distance, sec=+x.activeSec||it.minutes*60;
+        const upd={minutes:Math.round(sec/60),sec:Math.round(sec),distance:km,distSrc:d.src,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : it.pace,hcV:2};
+        Object.assign(it,upd); fixes.push([it.date,id,upd]); }
+      for(const [date,id,upd] of fixes){
+        if(date===state.date){ (state.day.workouts||[]).forEach(o=>{ if(o.hcId===id) Object.assign(o,upd); }); saveDay(); }
+        else { const doc=await store.getDoc("day-"+date).catch(()=>null); if(doc&&Array.isArray(doc.workouts)){ doc.workouts.forEach(o=>{ if(o.hcId===id) Object.assign(o,upd); }); save("day-"+date,doc); } } }
+      if(fixes.length){ save("workoutHistory",hist); msgs.push(`${fixes.length} ${fixes.length===1?"allenamento corretto":"allenamenti corretti"}`); }
       all.forEach(w=>hcNoteSrc("workouts",w.sourceName||w.sourceId)); diag.workouts=all.length;
       for(const w of all){ const id=w.platformId||(w.startDate+"|"+w.workoutType); if(seen.has(id)) continue;
-        const date=dISO(w.startDate), st=new Date(w.startDate), min=Math.round((+w.duration||0)/60); if(min<3) continue;
+        const x=ex[w.platformId], sec=x&&x.activeSec>0? +x.activeSec : (+w.duration||0), date=dISO(w.startDate), st=new Date(w.startDate), min=Math.round(sec/60); if(min<3) continue;
         const hhmm=String(st.getHours()).padStart(2,"0")+":"+String(st.getMinutes()).padStart(2,"0");
         // già registrato a mano o da screenshot? (stesso giorno, orario o durata simili)
         const dup=(hist.items||[]).some(x=>x.date===date&&!x.hcId&&((x.start&&Math.abs((+x.start.slice(0,2)*60+ +x.start.slice(3))-(st.getHours()*60+st.getMinutes()))<=15)||Math.abs((+x.minutes||0)-min)<=3&&(!x.distance||!w.totalDistance||Math.abs(x.distance-w.totalDistance/1000)<0.5)));
         if(dup) continue;
-        const km=w.totalDistance? Math.round(w.totalDistance/10)/100 : null, hr=await hcHr(H,w.startDate,w.endDate), wt=(state.profile&&state.profile.weight)||70;
-        const item={id:uid(),hcId:id,name:HC_TYPES[w.workoutType]||"Allenamento",minutes:min,intensity:"da Samsung Health",kcal:Math.round(+w.totalEnergyBurned||(km? km*wt : 6*wt*min/60)),distance:km,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(min,km) : null,start:hhmm,avgHr:hr&&hr.avg||null,maxHr:hr&&hr.max||null,zones:hr&&hr.zones||null};
+        const dd=hcBestDist(x,+w.totalDistance||0), km=dd.m? Math.round(dd.m/10)/100 : null, hr=await hcHr(H,w.startDate,w.endDate), wt=(state.profile&&state.profile.weight)||70;
+        const item={id:uid(),hcId:id,name:HC_TYPES[w.workoutType]||"Allenamento",minutes:min,intensity:"da Samsung Health",kcal:Math.round(+w.totalEnergyBurned||(km? km*wt : 6*wt*min/60)),distance:km,distSrc:dd.src||null,sec:Math.round(sec),hcV:x?2:1,pace:km&&/running|walking|hiking/.test(w.workoutType)? paceOf(sec/60,km) : null,start:hhmm,avgHr:hr&&hr.avg||null,maxHr:hr&&hr.max||null,zones:hr&&hr.zones||null};
         try{ if(shoes&&shoes.def&&isRun(item)) item.shoe=shoes.def; }catch{}
         hist.items=[...hist.items,{...item,date}];
         if(date===state.date){ state.day.workouts=[...(state.day.workouts||[]),item]; saveDay(); }
         else { const doc=(await store.getDoc("day-"+date).catch(()=>null))||{meals:{},workouts:[]}; doc.workouts=[...(doc.workouts||[]),item]; save("day-"+date,doc); }
         added++; if(date>=shiftDate(todayISO(),-1)) setTimeout(()=>{ try{ raceCheckRun({...item,date}); }catch{} },500); }
+      try{ const runs=all.filter(w=>/running/.test(w.workoutType)&&ex[w.platformId]).slice(-3).map(w=>{ const x=ex[w.platformId], d=hcBestDist(x,+w.totalDistance||0);
+        return {start:w.startDate,tempo:fmtHMS(x.activeSec||0),pause:fmtHMS(x.pauseSec||0),km:r2(d.m/1000),fonte:d.src,giri:x.lapsM?r2(x.lapsM/1000):null,samsung:x.distOriginM?r2(x.distOriginM/1000):null,velocita:x.speedM?r2(x.speedM/1000):null,gps:x.routeM?r2(x.routeM/1000):null,tutte:x.distAllM?r2(x.distAllM/1000):null}; });
+        if(runs.length) localStorage.setItem("hf:hcRunDiag",JSON.stringify(runs)); }catch{}
       if(added){ save("workoutHistory",hist); msgs.push(`${added} ${added===1?"allenamento":"allenamenti"}`); } }
     // --- passi e attività di oggi
     if(hcOpt("A")){ const d0=new Date(); d0.setHours(0,0,0,0);
@@ -4634,7 +4662,9 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
     try{ const r0=await H.readSamples({dataType:"restingHeartRate",startDate:iso(new Date(Date.now()-7*864e5)),endDate:iso(now),limit:20}); const ss=(r0&&r0.samples)||[]; if(ss.length){ const v=Math.round(ss.reduce((a,x)=>a+(+x.value),0)/ss.length); if(v>30&&v<110&&state.profile&&state.profile.hrRest!==v){ state.profile.hrRest=v; save("profile",state.profile); } } }catch{}
     localStorage.setItem("hf:hcLast",new Date().toISOString()); localStorage.setItem("hf:hcDiag",JSON.stringify(diag)); try{ hcRenderState(); }catch{}
     const t=new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
-    setStatus("hcStatus",`Ultima sincronizzazione alle ${t}`+(msgs.length? ": "+msgs.join(", ") : ": niente di nuovo"));
+    let runLine=""; if(manual){ if(!HCW()) runLine=" · Per tempo e distanza esatti delle corse aggiorna l’APK all’ultima versione.";
+      else { try{ const d=JSON.parse(localStorage.getItem("hf:hcRunDiag")||"[]").pop(); if(d) runLine=` · Ultima corsa letta: ${d.tempo} (pause ${d.pause}), ${String(d.km).replace(".",",")} km da ${d.fonte}.`; }catch{} } }
+    setStatus("hcStatus",`Ultima sincronizzazione alle ${t}`+(msgs.length? ": "+msgs.join(", ") : ": niente di nuovo")+runLine);
     if(msgs.length&&!manual) toast("Da Samsung Health: "+msgs.join(", "));
     if(msgs.length) renderAll();
   }catch(e){ setStatus("hcStatus","Errore nella sincronizzazione: "+((e&&e.message)||e),true); }
