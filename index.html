@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.58 (voce sull'orologio e ritmi corretti)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.59 (ritmo da tenere nelle corse del piano)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4395,7 +4395,7 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
     runDays.forEach((wd,k)=>{ const di=pr.weekMap[wd], d=pr.days[di], iso=isoOf(wd), res=(pr.runResults||{})[runKey(iso,di)], p=runPlan(d);
       const row=el("button","runrow"); row.type="button";
       const isNext=!res&&!nextMarked&&iso>=todayISO(); if(isNext) nextMarked=true;
-      row.innerHTML=`<span class="ri">${runShapeSVG(d,46,26,false)}</span><span class="rt"><b></b><span class="ty"></span><span class="mt">${[p.km?p.km.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" km":"", p.min?hms(p.min):"", res&&res.on?"fatta "+dayTxt(res.on):""].filter(Boolean).join(" | ")}</span></span>${res&&res.score!=null?`<span class="score">${res.score}</span>`:res?`<span class="score">✓</span>`:isNext?`<span class="nextb">A seguire</span>`:""}`;
+      row.innerHTML=`<span class="ri">${runShapeSVG(d,46,26,false)}</span><span class="rt"><b></b><span class="ty"></span><span class="mt">${[p.km?p.km.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" km":"", p.min?hms(p.min):"", p.ps?paceTxt(p.ps)+"/km":"", res&&res.on?"fatta "+dayTxt(res.on):""].filter(Boolean).join(" | ")}</span></span>${res&&res.score!=null?`<span class="score">${res.score}</span>`:res?`<span class="score">✓</span>`:isNext?`<span class="nextb">A seguire</span>`:""}`;
       row.querySelector("b").textContent=`${names[wd]} · Corsa ${k+1}`; row.querySelector(".ty").textContent=d.runType||"Corsa";
       row.onclick=()=>{ progOpenWd=wd; editDay=null; go("giorno"); renderDayPage(); };
       rc.appendChild(row); });
@@ -4408,7 +4408,7 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
     const focus= d? String(d.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"") : "";
     card.innerHTML=`<span class="tx"><b></b><span class="sb"></span></span><span class="ck ${done?"done":d?"":"rest"}">${done?"✓":d?(today?"oggi":""):"☾"}</span>`;
     card.querySelector("b").textContent=names[wd]+(today?" · oggi":"");
-    card.querySelector(".sb").textContent= d&&d.kind==="circuit"? `🔁 Circuito · ${(d.circuit&&d.circuit.rounds.length)||0} giri · ${(d.circuit&&d.circuit.exercises.length)||0} esercizi` : d&&d.kind==="run"? `🏃 ${d.runType||"Corsa"}`+(()=>{ const p=runPlan(d); return (p.km?` · ${fmt(p.km)} km`:"")+(p.min?` | ${hms(p.min)}`:""); })() : d? focus+(d.minutes?` · ${d.minutes} min`:"")+(d.exercises&&d.exercises.length?` · ${d.exercises.length} ${d.exercises.length===1?"esercizio":"esercizi"}`:"") : "Giorno di riposo";
+    card.querySelector(".sb").textContent= d&&d.kind==="circuit"? `🔁 Circuito · ${(d.circuit&&d.circuit.rounds.length)||0} giri · ${(d.circuit&&d.circuit.exercises.length)||0} esercizi` : d&&d.kind==="run"? `🏃 ${d.runType||"Corsa"}`+(()=>{ const p=runPlan(d); return (p.km?` · ${fmt(p.km)} km`:"")+(p.min?` | ${hms(p.min)}`:"")+(p.ps?` | ${paceTxt(p.ps)}/km`:""); })() : d? focus+(d.minutes?` · ${d.minutes} min`:"")+(d.exercises&&d.exercises.length?` · ${d.exercises.length} ${d.exercises.length===1?"esercizio":"esercizi"}`:"") : "Giorno di riposo";
     { const rr=d&&d.kind==="run"&&(pr.runResults||{})[runKey(iso,di)]; if(rr&&rr.on) card.querySelector(".sb").textContent+=" · fatta "+dayTxt(rr.on); }
     if(doneElse[iso]) card.querySelector(".sb").textContent+=" · ✓ recuperata: "+doneElse[iso].join(", ");
     if(d&&logCtx&&logCtx.live&&logCtx.title===(d.title||"Allenamento")) card.querySelector(".sb").textContent+= logCtx.paused? " · ⏸ in pausa" : " · ⏱ in corso";
@@ -4982,7 +4982,7 @@ async function hrnBattery(){ const P=HRN(); if(!P) return; try{ const b=await P.
 let CD=null, cdTick=null, cdWatch=null;
 function cdTargetFor(t){ t=String(t||""); return /facile|lungo|recupero/i.test(t)? [0,2,"Resta in Z2: corsa facile"] : /soglia|ritmo gara|progress|tempo/i.test(t)? [3,3,"Zona soglia (Z4) nelle parti veloci"] : /ripetut|interval|fartlek/i.test(t)? [3,4,"Z4–Z5 nelle ripetute, giù nei recuperi"] : null; }
 function openCardio(o){ if(!HRN()&&hrAuto()&&!HR.ch) setTimeout(()=>gymHrStart(),300); if(CD&&CD.running&&!confirm("C'è già una corsa con la fascia in corso: la sostituisco?")) { go("cardio"); return; }
-  CD={title:o.title||"Corsa",runType:o.runType||"",kmPlan:o.km||null,from:o.from||null,noWatch:!!o.noWatch,running:false,paused:false,t0:0,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:cdTargetFor(o.runType||o.title)};
+  CD={title:o.title||"Corsa",runType:o.runType||"",kmPlan:o.km||null,pacePlan:o.pace||"",from:o.from||null,noWatch:!!o.noWatch,running:false,paused:false,t0:0,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:cdTargetFor(o.runType||o.title)};
   $("cdTitle").textContent=CD.title; go("cardio"); renderCardio(); }
 function cdElapsed(){ if(!CD||!CD.t0) return 0; return ((CD.paused? CD.pAt : Date.now())-CD.t0-CD.pausedMs)/1000; }
 function renderCardio(){ if(!CD) return; const nat=CD.native&&CD.nat, isN=!!HRN();
@@ -4994,7 +4994,7 @@ function renderCardio(){ if(!CD) return; const nat=CD.native&&CD.nat, isN=!!HRN(
     else { if(addr) $("cdConn").appendChild(el("p","note",`🫀 ${nm||"Fascia"} pronta`)); const bt=el("button",addr?"linkbtn":"btn",addr?"Cambia fascia":"🫀 Cerca la fascia"); bt.type="button"; bt.onclick=hrnConnect; $("cdConn").appendChild(bt); } }
   else if(!HR.ch){ const bt=el("button","btn","🫀 Collega la fascia"); bt.type="button"; bt.onclick=hrConnectUI; $("cdConn").appendChild(bt); } else $("cdConn").appendChild(el("p","note",hrStatus()));
   $("cdBpm").textContent=b||"--"; $("cdBpmBox").style.setProperty("--zc", z>=0? ZCOL[z] : "var(--line)"); $("cdZone").textContent= z>=0? ZLAB[z] : (HR.ch? "in attesa del battito…" : "collega la fascia");
-  $("cdTarget").textContent= CD.target? "🎯 "+CD.target[2] : ""; const el0= nat? +CD.nat.seconds||0 : cdElapsed(), km= nat? +CD.nat.km||0 : CD.km, zz= nat? (CD.nat.zoneSec||[0,0,0,0,0]).map(Number) : CD.z;
+  $("cdTarget").textContent=[CD.target? "🎯 "+CD.target[2] : "", CD.pacePlan? "⏱ ritmo da tenere "+CD.pacePlan+"/km" : ""].filter(Boolean).join(" · "); const el0= nat? +CD.nat.seconds||0 : cdElapsed(), km= nat? +CD.nat.km||0 : CD.km, zz= nat? (CD.nat.zoneSec||[0,0,0,0,0]).map(Number) : CD.z;
   $("cdTime").textContent=hms2(el0); $("cdKm").textContent=km? fmt(Math.round(km*100)/100) : "–"; $("cdPace").textContent=km>0.2? paceStr(el0/km) : "–"; $("cdAvg").textContent= nat? (CD.nat.avgHr||"–") : (CD.n? Math.round(CD.sum/CD.n) : "–");
   const tot=zz.reduce((a,x)=>a+x,0)||1; $("cdZbars").innerHTML=zz.map((x,i)=>`<div><i style="height:${Math.round(x/tot*100)}%;background:${ZCOL[i]}"></i><small>Z${i+1}</small></div>`).join("");
   if(nat){ CD.running=!!CD.nat.running; CD.paused=!!CD.nat.paused; }
@@ -5014,7 +5014,7 @@ function cdGps(on){ if(cdWatch!=null){ try{ navigator.geolocation.clearWatch(cdW
       if(d>0.003&&d<0.2) CD.km+=d; } CD.last={lat:c.latitude,lon:c.longitude}; },()=>{},{enableHighAccuracy:true,maximumAge:1000,timeout:15000}); }
 $("cdStart").onclick=async()=>{ if(!CD) return;
   if(!CD.t0&&!CD.native&&!CD.noWatch&&WBR()){ CD.noWatch=true;
-    if(await askWatch({title:CD.title,runType:CD.runType,km:CD.kmPlan,from:CD.from})){ CD=null; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita"); return; } }
+    if(await askWatch({title:CD.title,runType:CD.runType,km:CD.kmPlan,pace:CD.pacePlan,from:CD.from})){ CD=null; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita"); return; } }
   const P=HRN(); if(P){ hrnListen();
     if(CD.native&&CD.paused){ await P.resume(); return; }
     try{ const t=CD.target||[-1,-1]; const st=await P.start({address:localStorage.getItem("hf:hrAddr")||"",title:CD.title,lo:t[0],hi:t[1],hrMax:hrMaxOf(),alerts:$("cdAlerts").checked,gps:$("cdGps").checked});
@@ -5039,7 +5039,7 @@ $("cdEnd").onclick=async()=>{ if(!CD||!CD.t0) return;
 $("cdBack").onclick=()=>{ if(CD&&CD.running&&!confirm("La corsa con la fascia è in corso: esci lo stesso? Puoi tornarci dal Programma.")) return; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita"); };
 async function hrnRestore(){ const P=HRN(); if(!P) return; try{ const st=await P.state(); if(st&&st.running){ hrnListen(); CD={title:st.title||"Corsa",runType:"",kmPlan:null,from:null,running:true,paused:!!st.paused,t0:Date.now()-(+st.seconds||0)*1000,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:null,native:true,nat:st};
   $("cdTitle").textContent=CD.title; go("cardio"); renderCardio(); toast("Corsa in corso ripresa"); } }catch{} }
-$("cdWatch").onclick=()=>{ if(CD) watchSend({title:CD.title,runType:CD.runType,km:CD.kmPlan,from:CD.from}); };
+$("cdWatch").onclick=()=>{ if(CD) watchSend({title:CD.title,runType:CD.runType,km:CD.kmPlan,pace:CD.pacePlan,from:CD.from}); };
 $("cdBattBtn").onclick=()=>{ const P=HRN(); if(P) P.requestBattery().then(()=>setTimeout(hrnBattery,4000)).catch(()=>{}); };
 $("csStrapBtn").onclick=async()=>{ if(HRN()){ await hrnConnect(); $("csStrap").textContent=`🫀 ${localStorage.getItem("hf:hrName")||"Fascia"} ${localStorage.getItem("hf:hrAddr")?"pronta":"non trovata"}`; return; } await hrConnectUI(); $("csStrap").textContent=hrStatus(); };
 $("csFreeRun").onclick=()=>openCardio({title:"Corsa libera",runType:""});
@@ -5567,7 +5567,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
   const lv=Math.max(1,Math.min(5,+d.intensity||2));
   c.innerHTML=`<div class="run-h"><b></b><span class="flames" aria-label="Intensità ${lv} su 5">${"<i class='on'>🔥</i>".repeat(lv)}${"<i>🔥</i>".repeat(5-lv)}</span></div><p class="run-desc"></p>
     <div class="run-big num">${p.km? (Math.round(p.km*100)/100).toLocaleString("it-IT",{minimumFractionDigits:2})+" km" : (p.min? p.min+" min" : "")}</div>
-    <div class="run-sub">${[p.min?hms(p.min):"", p.ps?paceTxt(p.ps):""].filter(Boolean).join(" | ")}</div>
+    <div class="run-sub">${[p.min?hms(p.min):"", p.ps?"ritmo medio "+paceTxt(p.ps)+"/km":""].filter(Boolean).join(" | ")}</div>
     <div class="run-chart">${p.ps?`<div class="run-pace">Ritmo<br>${paceTxt(p.ps)}</div>`:""}${runShapeSVG(d,320,170,true)}</div><div class="run-leg"></div>`;
   c.querySelector(".run-h b").textContent=d.runType||"Corsa"; c.querySelector(".run-desc").textContent=d.description||"";
   const lg=c.querySelector(".run-leg"); runSegs(d).forEach(g=>{ const row=el("div","rl"); row.innerHTML=`<i style="background:${SEG_COL[g.kind]||"var(--basil)"}"></i><span class="k"></span><span class="t"></span>`;
@@ -5592,7 +5592,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
    </div>`;
   box.appendChild(go);
   const wo={title:d.title||d.runType||"Corsa",runType:d.runType||"",km:p.km||d.distanceKm||null,pace:p.ps? paceStr(p.ps) : "",desc:d.description||"",from:{a,pr,d,di,iso}};
-  $("runHrBtn").onclick=async()=>{ if(await askWatch(wo)) return; openCardio({title:wo.title,runType:wo.runType,km:p.km||null,from:wo.from,noWatch:true}); };
+  $("runHrBtn").onclick=async()=>{ if(await askWatch(wo)) return; openCardio({title:wo.title,runType:wo.runType,km:p.km||null,pace:wo.pace,from:wo.from,noWatch:true}); };
   if(WBR()){ $("runWatchBtn").hidden=false; $("runWatchBtn").onclick=()=>watchSend(wo); }
   $("runStart").onclick=async()=>{ if(await askWatch(wo)) return; $("runHow").hidden=false; $("runHow").scrollIntoView({behavior:"smooth",block:"start"}); };
   $("runShotBtn").hidden=!imgLimits||!sample; $("runShotBtn").onclick=()=>$("runShot").click();
