@@ -2126,7 +2126,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.56 (allenamenti come in Samsung Health)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.57 (corsa sul Galaxy Watch come in Samsung Health)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4385,6 +4385,8 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
   const now=new Date(todayISO()+"T12:00:00"), mon=new Date(now); mon.setDate(now.getDate()-((now.getDay()+6)%7));
   const isoOf=wd=>{ const d=new Date(mon); d.setDate(mon.getDate()+((wd+6)%7)); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
   const doneOn=(iso,title)=> Object.keys(pr.runResults||{}).some(k=>k.startsWith(iso+"|")&&pr.days[+k.split("|")[1]]&&pr.days[+k.split("|")[1]].title===title) || tlog.sessions.some(x=>x.date===iso&&(!title||x.title===title)) || ((hist&&hist.items)||[]).some(x=>x.date===iso&&(!title||x.name===title));
+  // corse rimandate: fatte in un giorno diverso da quello del piano
+  const doneElse={}; Object.entries(pr.runResults||{}).forEach(([k,v])=>{ if(v&&v.on){ const dd=pr.days[+k.split("|")[1]]; (doneElse[v.on]=doneElse[v.on]||[]).push((dd&&dd.runType)||(dd&&dd.title)||"Corsa"); } });
   // corse della settimana (stile elenco allenamenti di corsa)
   const runDays=order.filter(wd=>{ const i=pr.weekMap[wd]; return i!=null&&pr.days[i]&&pr.days[i].kind==="run"; });
   if(runDays.length){
@@ -4393,7 +4395,7 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
     runDays.forEach((wd,k)=>{ const di=pr.weekMap[wd], d=pr.days[di], iso=isoOf(wd), res=(pr.runResults||{})[runKey(iso,di)], p=runPlan(d);
       const row=el("button","runrow"); row.type="button";
       const isNext=!res&&!nextMarked&&iso>=todayISO(); if(isNext) nextMarked=true;
-      row.innerHTML=`<span class="ri">${runShapeSVG(d,46,26,false)}</span><span class="rt"><b></b><span class="ty"></span><span class="mt">${[p.km?p.km.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" km":"", p.min?hms(p.min):""].filter(Boolean).join(" | ")}</span></span>${res&&res.score!=null?`<span class="score">${res.score}</span>`:res?`<span class="score">✓</span>`:isNext?`<span class="nextb">A seguire</span>`:""}`;
+      row.innerHTML=`<span class="ri">${runShapeSVG(d,46,26,false)}</span><span class="rt"><b></b><span class="ty"></span><span class="mt">${[p.km?p.km.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" km":"", p.min?hms(p.min):"", res&&res.on?"fatta "+dayTxt(res.on):""].filter(Boolean).join(" | ")}</span></span>${res&&res.score!=null?`<span class="score">${res.score}</span>`:res?`<span class="score">✓</span>`:isNext?`<span class="nextb">A seguire</span>`:""}`;
       row.querySelector("b").textContent=`${names[wd]} · Corsa ${k+1}`; row.querySelector(".ty").textContent=d.runType||"Corsa";
       row.onclick=()=>{ progOpenWd=wd; editDay=null; go("giorno"); renderDayPage(); };
       rc.appendChild(row); });
@@ -4401,12 +4403,14 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
   }
   const wk=el("div","wklist");
   order.forEach(wd=>{
-    const di=pr.weekMap[wd], d= di!=null? pr.days[di] : null, iso=isoOf(wd), today=iso===todayISO(), done= d? doneOn(iso,d.title) : false;
+    const di=pr.weekMap[wd], d= di!=null? pr.days[di] : null, iso=isoOf(wd), today=iso===todayISO(), done= d? doneOn(iso,d.title) : !!doneElse[iso];
     const card=el("button","wkday"+(progOpenWd===wd?" open":"")+(today?" today":"")); card.type="button";
     const focus= d? String(d.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"") : "";
     card.innerHTML=`<span class="tx"><b></b><span class="sb"></span></span><span class="ck ${done?"done":d?"":"rest"}">${done?"✓":d?(today?"oggi":""):"☾"}</span>`;
     card.querySelector("b").textContent=names[wd]+(today?" · oggi":"");
     card.querySelector(".sb").textContent= d&&d.kind==="circuit"? `🔁 Circuito · ${(d.circuit&&d.circuit.rounds.length)||0} giri · ${(d.circuit&&d.circuit.exercises.length)||0} esercizi` : d&&d.kind==="run"? `🏃 ${d.runType||"Corsa"}`+(()=>{ const p=runPlan(d); return (p.km?` · ${fmt(p.km)} km`:"")+(p.min?` | ${hms(p.min)}`:""); })() : d? focus+(d.minutes?` · ${d.minutes} min`:"")+(d.exercises&&d.exercises.length?` · ${d.exercises.length} ${d.exercises.length===1?"esercizio":"esercizi"}`:"") : "Giorno di riposo";
+    { const rr=d&&d.kind==="run"&&(pr.runResults||{})[runKey(iso,di)]; if(rr&&rr.on) card.querySelector(".sb").textContent+=" · fatta "+dayTxt(rr.on); }
+    if(doneElse[iso]) card.querySelector(".sb").textContent+=" · ✓ recuperata: "+doneElse[iso].join(", ");
     if(d&&logCtx&&logCtx.live&&logCtx.title===(d.title||"Allenamento")) card.querySelector(".sb").textContent+= logCtx.paused? " · ⏸ in pausa" : " · ⏱ in corso";
     card.setAttribute("aria-expanded",progOpenWd===wd);
     card.onclick=()=>{ progOpenWd=wd; editDay=null; go("giorno"); renderDayPage(); };
@@ -4928,13 +4932,27 @@ function foldProfile(){ return; const pf=JSON.parse(localStorage.getItem("hf:pfo
 const WBR=()=>{ const C=NAT(); return C? (C.Plugins&&C.Plugins.WatchBridge)||null : null; };
 async function watchSend(o){ const P=WBR(); if(!P) return;
   const t=cdTargetFor(o.runType||o.title)||[-1,-1,""];
-  const plan={title:o.title||"Corsa",runType:o.runType||"",km:+o.km||0,pace:o.pace||"",desc:(o.desc||t[2]||"").slice(0,160),lo:t[0],hi:t[1],hrMax:hrMaxOf()};
+  const plan={title:o.title||"Corsa",runType:o.runType||"",km:+o.km||0,pace:o.pace||"",desc:(o.desc||t[2]||"").slice(0,160),lo:t[0],hi:t[1],hrMax:hrMaxOf(),
+    hrAddr:localStorage.getItem("hf:hrAddr")||"",hrName:localStorage.getItem("hf:hrName")||""};
+  // corsa del piano: l'orologio la rimanda indietro e il risultato va su quella seduta (nel giorno in cui corri davvero)
+  if(o.from&&o.from.d) plan.ref={iso:o.from.iso,di:o.from.di,t:o.from.d.title||""};
   try{ toast("Mando la corsa all'orologio…"); const r0=await P.sendRun({plan:JSON.stringify(plan)}); toast(`⌚ Corsa inviata a ${r0&&r0.watch||"orologio"}: tocca AVVIA sul polso`); }
   catch(e){ const m=String((e&&e.message)||e); toast(/Nessun orologio/.test(m)? "Orologio non collegato: controlla Bluetooth e Galaxy Wearable" : "Orologio: "+m); } }
+async function watchNodes(){ const P=WBR(); if(!P) return []; try{ const r0=await P.nodes(); return (r0&&r0.nodes)||[]; }catch{ return []; } }
+/* prima di correre con il telefono: se c'è l'orologio collegato chiede se continuare lì (sì = si apre HealthFit sul polso) */
+async function askWatch(o){ const ns=await watchNodes(); if(!ns.length) return false;
+  if(!confirm(`⌚ ${ns[0].name||"Galaxy Watch"} collegato.\nContinuare sull'orologio?\n\nOK: si apre HealthFit sul polso con la corsa pronta.\nAnnulla: registri la corsa con il telefono.`)) return false;
+  await watchSend(o); return true; }
+function dayTxt(iso){ const d=new Date(iso+"T12:00:00"); return ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"][d.getDay()]+" "+d.getDate(); }
 async function saveWatchResult(o){ if(!o||!(+o.seconds>60)) return false;
   const st=new Date(+o.startedAt||Date.now()), date=st.getFullYear()+"-"+String(st.getMonth()+1).padStart(2,"0")+"-"+String(st.getDate()).padStart(2,"0");
   const hhmm=String(st.getHours()).padStart(2,"0")+":"+String(st.getMinutes()).padStart(2,"0"), min=Math.round(+o.seconds/60), km=+o.km>0.05? Math.round(+o.km*100)/100 : null;
   const zones=(o.zoneSec||[]).length===5? o.zoneSec.map(x=>Math.round(+x/6)/10) : null;
+  try{ const rf=o.ref, A=rf&&activeProg(), dd=A&&A.pr.days&&A.pr.days[+rf.di];
+    if(dd&&(dd.title||"")===(rf.t||"")){ const pr=A.pr, k=runKey(rf.iso,+rf.di); pr.runResults=pr.runResults||{};
+      if(!pr.runResults[k]){ const pace=km? paceOf(min,km) : null;
+        pr.runResults[k]={km,minutes:min,pace,avgHr:+o.avgHr||null,maxHr:+o.maxHr||null,kcal:Math.round(+o.kcal||0)||null,score:runScore(dd,{km,minutes:min,pace}),at:date,...(rf.iso!==date?{on:date}:{})};
+        saveActive(A); } } }catch(e){ console.warn("piano corsa",e); }
   // stessa corsa già registrata (es. con la fascia sul telefono)? completo i dati mancanti invece di duplicare
   const near=x=>x.date===date&&x.start&&Math.abs((+x.start.slice(0,2)*60+ +x.start.slice(3))-(st.getHours()*60+st.getMinutes()))<=15;
   const ex=(hist.items||[]).find(near);
@@ -4964,7 +4982,7 @@ async function hrnBattery(){ const P=HRN(); if(!P) return; try{ const b=await P.
 let CD=null, cdTick=null, cdWatch=null;
 function cdTargetFor(t){ t=String(t||""); return /facile|lungo|recupero/i.test(t)? [0,2,"Resta in Z2: corsa facile"] : /soglia|ritmo gara|progress|tempo/i.test(t)? [3,3,"Zona soglia (Z4) nelle parti veloci"] : /ripetut|interval|fartlek/i.test(t)? [3,4,"Z4–Z5 nelle ripetute, giù nei recuperi"] : null; }
 function openCardio(o){ if(!HRN()&&hrAuto()&&!HR.ch) setTimeout(()=>gymHrStart(),300); if(CD&&CD.running&&!confirm("C'è già una corsa con la fascia in corso: la sostituisco?")) { go("cardio"); return; }
-  CD={title:o.title||"Corsa",runType:o.runType||"",kmPlan:o.km||null,from:o.from||null,running:false,paused:false,t0:0,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:cdTargetFor(o.runType||o.title)};
+  CD={title:o.title||"Corsa",runType:o.runType||"",kmPlan:o.km||null,from:o.from||null,noWatch:!!o.noWatch,running:false,paused:false,t0:0,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:cdTargetFor(o.runType||o.title)};
   $("cdTitle").textContent=CD.title; go("cardio"); renderCardio(); }
 function cdElapsed(){ if(!CD||!CD.t0) return 0; return ((CD.paused? CD.pAt : Date.now())-CD.t0-CD.pausedMs)/1000; }
 function renderCardio(){ if(!CD) return; const nat=CD.native&&CD.nat, isN=!!HRN();
@@ -4995,6 +5013,8 @@ function cdGps(on){ if(cdWatch!=null){ try{ navigator.geolocation.clearWatch(cdW
     if(CD.last){ const R=6371, dLa=(c.latitude-CD.last.lat)*Math.PI/180, dLo=(c.longitude-CD.last.lon)*Math.PI/180, a=Math.sin(dLa/2)**2+Math.cos(CD.last.lat*Math.PI/180)*Math.cos(c.latitude*Math.PI/180)*Math.sin(dLo/2)**2, d=2*R*Math.asin(Math.sqrt(a));
       if(d>0.003&&d<0.2) CD.km+=d; } CD.last={lat:c.latitude,lon:c.longitude}; },()=>{},{enableHighAccuracy:true,maximumAge:1000,timeout:15000}); }
 $("cdStart").onclick=async()=>{ if(!CD) return;
+  if(!CD.t0&&!CD.native&&!CD.noWatch&&WBR()){ CD.noWatch=true;
+    if(await askWatch({title:CD.title,runType:CD.runType,km:CD.kmPlan,from:CD.from})){ CD=null; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita"); return; } }
   const P=HRN(); if(P){ hrnListen();
     if(CD.native&&CD.paused){ await P.resume(); return; }
     try{ const t=CD.target||[-1,-1]; const st=await P.start({address:localStorage.getItem("hf:hrAddr")||"",title:CD.title,lo:t[0],hi:t[1],hrMax:hrMaxOf(),alerts:$("cdAlerts").checked,gps:$("cdGps").checked});
@@ -5012,13 +5032,14 @@ $("cdEnd").onclick=async()=>{ if(!CD||!CD.t0) return;
   if(v===null) return; km=+String(v).replace(",",".")||km||null;
   const zones=CD.z.map(x=>Math.round(x/6)/10), avg=CD.n? Math.round(CD.sum/CD.n) : null, mx=CD.max||null;
   clearInterval(cdTick); cdGps(false); keepAwake(false); CD.running=false;
-  if(CD.from){ const f=CD.from; saveRunResult(f.a,f.pr,f.d,f.di,f.iso,{km,minutes:Math.round(min),avgHr:avg,maxHr:mx,zones:CD.n?zones:null}); }
+  if(state.date!==todayISO()){ state.date=todayISO(); try{ await loadDay(); }catch(e){ console.warn("giorno",e); } }
+  if(CD.from){ const f=CD.from; saveRunResult(f.a,f.pr,f.d,f.di,f.iso,{km,minutes:Math.round(min),avgHr:avg,maxHr:mx,zones:CD.n?zones:null,live:true}); }
   else { const w=(state.profile&&state.profile.weight)||70; addWorkout({name:CD.title, minutes:Math.round(min), intensity:"corsa con fascia", kcal: km? km*w : 8*w*min/60, distance:km, pace: km? paceOf(min,km) : null, avgHr:avg, maxHr:mx, zones:CD.n?zones:null}); }
   CD=null; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita"); };
 $("cdBack").onclick=()=>{ if(CD&&CD.running&&!confirm("La corsa con la fascia è in corso: esci lo stesso? Puoi tornarci dal Programma.")) return; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita"); };
 async function hrnRestore(){ const P=HRN(); if(!P) return; try{ const st=await P.state(); if(st&&st.running){ hrnListen(); CD={title:st.title||"Corsa",runType:"",kmPlan:null,from:null,running:true,paused:!!st.paused,t0:Date.now()-(+st.seconds||0)*1000,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:null,native:true,nat:st};
   $("cdTitle").textContent=CD.title; go("cardio"); renderCardio(); toast("Corsa in corso ripresa"); } }catch{} }
-$("cdWatch").onclick=()=>{ if(CD) watchSend({title:CD.title,runType:CD.runType,km:CD.kmPlan}); };
+$("cdWatch").onclick=()=>{ if(CD) watchSend({title:CD.title,runType:CD.runType,km:CD.kmPlan,from:CD.from}); };
 $("cdBattBtn").onclick=()=>{ const P=HRN(); if(P) P.requestBattery().then(()=>setTimeout(hrnBattery,4000)).catch(()=>{}); };
 $("csStrapBtn").onclick=async()=>{ if(HRN()){ await hrnConnect(); $("csStrap").textContent=`🫀 ${localStorage.getItem("hf:hrName")||"Fascia"} ${localStorage.getItem("hf:hrAddr")?"pronta":"non trovata"}`; return; } await hrConnectUI(); $("csStrap").textContent=hrStatus(); };
 $("csFreeRun").onclick=()=>openCardio({title:"Corsa libera",runType:""});
@@ -5528,7 +5549,8 @@ function saveRunResult(a,pr,d,di,iso,r){
   const w=(state.profile&&state.profile.weight)||70, km=+r.km||null, min=+r.minutes||runPlan(d).min||0;
   const pace= km&&min? paceOf(min,km) : (r.pace||null), kcal=+r.kcal|| (km? km*w*1.0 : 7*w*min/60);
   const score=runScore(d,{km,minutes:min,pace});
-  pr.runResults=pr.runResults||{}; pr.runResults[runKey(iso,di)]={km,minutes:min,pace,avgHr:+r.avgHr||null,maxHr:+r.maxHr||null,kcal:Math.round(kcal),score,at:todayISO()};
+  const today=todayISO();
+  pr.runResults=pr.runResults||{}; pr.runResults[runKey(iso,di)]={km,minutes:min,pace,avgHr:+r.avgHr||null,maxHr:+r.maxHr||null,kcal:Math.round(kcal),score,at:today,...(r.live&&iso!==today?{on:today}:{})};
   saveActive(a);
   addWorkout({name:d.title||d.runType||"Corsa", minutes:Math.round(min), intensity:r.zones?"corsa con fascia":"corsa programma", kcal, distance:km, pace, avgHr:+r.avgHr||null, maxHr:+r.maxHr||null, zones:r.zones||null});
   toast(score!=null? `Corsa salvata · punteggio ${score}/100` : "Corsa salvata ✓");
@@ -5547,7 +5569,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
   const lg=c.querySelector(".run-leg"); runSegs(d).forEach(g=>{ const row=el("div","rl"); row.innerHTML=`<i style="background:${SEG_COL[g.kind]||"var(--basil)"}"></i><span class="k"></span><span class="t"></span>`;
     row.querySelector(".k").textContent=SEG_L[g.kind]||g.kind; row.querySelector(".t").textContent=[g.label, g.pace?paceTxt(paceSec(g.pace))+"/km":"", g.hr||""].filter(Boolean).join(" · "); lg.appendChild(row); });
   box.appendChild(c);
-  if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; box.appendChild(rc); }
+  if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta${res.on?" "+dayTxt(res.on):""} ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; box.appendChild(rc); }
   // avvio con Galaxy Watch e risultati
   const go=el("div","run-go");
   go.innerHTML=`<button class="btn" type="button" id="runStart">AVVIA</button>
@@ -5565,9 +5587,10 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
      <div class="status" id="runStatus" aria-live="polite"></div>
    </div>`;
   box.appendChild(go);
-  $("runHrBtn").onclick=()=>openCardio({title:d.title||d.runType||"Corsa",runType:d.runType||"",km:p.km||null,from:{a,pr,d,di,iso}});
-  if(WBR()){ $("runWatchBtn").hidden=false; $("runWatchBtn").onclick=()=>watchSend({title:d.title||d.runType||"Corsa",runType:d.runType||"",km:p.km||d.distanceKm||null,pace:d.pace||p.pace||"",desc:d.description||""}); }
-  $("runStart").onclick=()=>{ $("runHow").hidden=false; $("runHow").scrollIntoView({behavior:"smooth",block:"start"}); };
+  const wo={title:d.title||d.runType||"Corsa",runType:d.runType||"",km:p.km||d.distanceKm||null,pace:d.pace||p.pace||"",desc:d.description||"",from:{a,pr,d,di,iso}};
+  $("runHrBtn").onclick=async()=>{ if(await askWatch(wo)) return; openCardio({title:wo.title,runType:wo.runType,km:p.km||null,from:wo.from,noWatch:true}); };
+  if(WBR()){ $("runWatchBtn").hidden=false; $("runWatchBtn").onclick=()=>watchSend(wo); }
+  $("runStart").onclick=async()=>{ if(await askWatch(wo)) return; $("runHow").hidden=false; $("runHow").scrollIntoView({behavior:"smooth",block:"start"}); };
   $("runShotBtn").hidden=!imgLimits||!sample; $("runShotBtn").onclick=()=>$("runShot").click();
   $("runShot").onchange=async e=>{ const files=[...e.target.files].slice(0,3); $("runShot").value=""; if(!files.length) return;
     setStatus("runStatus","Leggo il riepilogo dell'orologio…");
