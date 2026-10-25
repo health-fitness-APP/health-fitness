@@ -454,7 +454,14 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .run-leg .k{color:var(--muted);white-space:nowrap}
 .run-res{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .tap{cursor:pointer}
-.rd-open{display:block;margin-top:4px;font-size:.82rem;font-weight:600;color:var(--basil);padding:0;text-align:left}
+.rd-li .a{color:var(--ink)}
+.rd-h{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;padding:0;margin:0 0 10px;color:var(--ink);font:inherit;text-align:left;cursor:pointer}.rd-h h2{margin:0}
+.chev{font-size:1.6rem;line-height:1;color:var(--muted);background:none;border:0;padding:0 2px;cursor:pointer}
+.rd-plan{display:flex;justify-content:space-between;align-items:center;width:calc(100% - 28px);text-align:left;font:inherit;color:var(--ink);cursor:pointer}.rd-plan>span:first-child>*{display:block}
+.rd-mg{justify-content:flex-start;gap:18px;cursor:default}.rd-mg .chev{margin-left:auto}
+.rd-tab2{background:none;border:0;padding:2px 0;font:inherit;font-size:1.15rem;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}.rd-tab2[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.rd-tabs{display:flex;gap:18px;margin:4px 0 10px}.rd-tab{background:none;border:0;padding:4px 0;font:inherit;font-weight:700;font-size:1.05rem;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}.rd-tab[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.rd-tiles,.rd-laps{cursor:pointer}
 .cs-run{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:10px 0;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);text-align:left;font:inherit;cursor:pointer}
 .cs-run:last-child{border-bottom:0}.cs-run small{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}.cs-run .v{font-weight:700;color:var(--basil);white-space:nowrap}
 #rdBody{padding:0 0 30px}
@@ -2178,7 +2185,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.65 (riepilogo della corsa come Samsung Health: mappa, giri, grafici, recupero, meteo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.66 (riepilogo corsa: tocca la corsa per aprirlo, sezioni e giri 1/5/10 km come Samsung Health)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -3398,7 +3405,9 @@ window.addEventListener("popstate",e=>{
     history.pushState({v:"sessione"},""); openSesExit(); return; }
   const target=(e.state&&e.state.sheet)||0;
   while(sheetStack.length>target) hideTopSheet();
-  const v=(e.state&&e.state.v)||"diario"; if(v!==view) go(v,true);
+  const v=(e.state&&e.state.v)||"diario";
+  if(v==="riepilogo"&&view==="riepilogo"&&rdCur){ rdCur.sub=(e.state&&e.state.sub)||null; renderRunSummary(); window.scrollTo(0,0); return; }
+  if(v!==view) go(v,true);
 });
 $("scrim").onclick=closeTopSheet;
 document.querySelectorAll(".sheet-x").forEach(b=>b.onclick=closeTopSheet);
@@ -4306,7 +4315,7 @@ function renderWorkouts(){
     const kmTxt=w.hcId&&w.distance? (+w.distance).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) : w.distance? fmt(w.distance) : "";
     const extra=[timeRange(w.start,w.end), FED[w.fed]||"", kmTxt? kmTxt+" km":"", w.pace? "passo "+w.pace:"", w.avgHr? "FC media "+w.avgHr:""].filter(Boolean).join(" · ");
     tx.append(el("div","a",w.name), el("div","b",`${w.sec? fmtHMS(w.sec) : (w.minutes||"?")+" min"} · ${extra||w.intensity||""}`));
-    if(isRun(w)){ const o=el("button","linkbtn rd-open","📊 Vedi riepilogo della corsa ›"); o.type="button"; o.onclick=e=>{ e.stopPropagation(); openRunSummary(w.id,{...w,date:state.date}); }; tx.appendChild(o); }
+    if(isRun(w)){ li.classList.add("tap","rd-li"); li.onclick=e=>{ if(e.target.closest(".del")) return; openRunSummary(w.id,{...w,date:state.date}); }; tx.firstChild.textContent+=" ›"; }
     const del=el("button","del","×"); del.setAttribute("aria-label","Rimuovi "+w.name);
     del.onclick=()=>{ state.day.workouts=ws.filter(x=>x.id!==w.id); saveDay(); hist.items=hist.items.filter(x=>x.id!==w.id); save("workoutHistory",hist); renderAll(); };
     const kc=el("span","k"); if(w.kcalShown&&w.kcalShown!==r(w.kcal)){ kc.append(el("span",null,w.kcalShown+" kcal")); const sm=el("small",null,"+"+r(w.kcal)+" al fabbisogno"); sm.style.cssText="display:block;font-weight:400;font-size:.72em;opacity:.7;white-space:nowrap"; sm.title="Le calorie che bruceresti comunque a riposo sono già nel fabbisogno"; kc.append(sm); } else kc.textContent="+"+r(w.kcal)+" kcal";
@@ -5289,92 +5298,129 @@ function rdLine(xs,ys,o={}){ const W=340, H=o.h||120, pts=[]; xs.forEach((x,i)=>
     <line x1="36" x2="${W-4}" y1="${H-18}" y2="${H-18}" stroke="var(--line)"/><text x="36" y="${H-4}" class="ax">0</text><text x="${W-4}" y="${H-4}" text-anchor="end" class="ax">${fmt(Math.round(xm*10)/10)} km</text></svg>`; }
 async function openRunSummary(id,w0){ const w=w0||((hist&&hist.items)||[]).find(x=>x.id===id)||(state.day.workouts||[]).map(x=>({...x,date:state.date})).find(x=>x.id===id);
   if(!w){ toast("Corsa non trovata"); return; }
-  const D=await store.getDoc("run-"+w.id).catch(()=>null); rdCur={w:{...w,date:w.date||state.date},D};
+  const D=await store.getDoc("run-"+w.id).catch(()=>null); rdCur={w:{...w,date:w.date||state.date},D,sub:null};
   try{ sessionStorage.setItem("hf:rd",w.id); }catch{}
   go("riepilogo"); renderRunSummary();
   if(D&&!D.wx&&D.tr) rdWeather(w.id,D).then(ok=>{ if(ok&&view==="riepilogo"&&rdCur&&rdCur.D===D) renderRunSummary(); }); }
 /* la seduta del piano fatta ↔ l'allenamento salvato */
 function runResWorkout(res,iso){ const its=(hist&&hist.items)||[]; if(res.wid){ const w=its.find(x=>x.id===res.wid); if(w) return w; }
   const day=res.on||iso; return its.find(x=>x.date===day&&isRun(x)&&(!res.km||Math.abs((+x.distance||0)-res.km)<0.3)) || its.find(x=>x.date===day&&isRun(x)) || null; }
-function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur) return; const {w}=rdCur, D=rdCur.D||{};
+/* parziali a distanza fissa dall'inizio (1, 5 o 10 km) */
+function rdSplits(P,size){ const L=[], end=P[P.length-1]; let tp=0;
+  for(let k=1;k<500;k++){ const t=rdTAtM(P,size*1000*k); if(t==null){ const rest=end.m-size*1000*(k-1); if(rest>=50) L.push({lab:String(k),dur:end.t-tp,km:rest/1000,hr:rdHr(P,tp,end.t),part:true}); break; }
+    L.push({lab:String(k),dur:t-tp,km:size,hr:rdHr(P,tp,t)}); tp=t; }
+  L.forEach(x=>x.pace= x.km>0.02? x.dur/x.km : null); return L; }
+/* sotto-pagine del riepilogo (come le schede di Samsung Health): il tasto indietro torna al riepilogo */
+function rdOpen(sub,tab){ if(!rdCur) return; rdCur.sub=sub; rdCur.tab=tab||null; try{ history.pushState({v:"riepilogo",sub},""); }catch{} renderRunSummary(); window.scrollTo(0,0); }
+function rdCtx(){ const {w}=rdCur, D=rdCur.D||{};
   const sec=+D.sec||Math.round(+w.sec||(+w.minutes||0)*60), km=+D.km||+w.distance||0;
   const Dx={...D,sec,km,tot:+D.tot||sec,kcal:+D.kcal||Math.round(+w.kcal||0)||null,avgHr:+D.avgHr||+w.avgHr||null,maxHr:+D.maxHr||+w.maxHr||null};
-  const st=rdStats(Dx), P=st.P, pl=D.plan||null, mx=hrMaxOf();
-  const kmTxt=x=>(Math.round(x*100)/100).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const st=rdStats(Dx), zs= Array.isArray(D.zs)? D.zs : Array.isArray(w.zones)? w.zones.map(m=>(+m||0)*60) : null;
+  return {w,D,Dx,sec,km,st,P:st.P,pl:D.plan||null,mx:hrMaxOf(),zs,m:st.main,old:!D.tr&&!D.st}; }
+const rdKm=x=>(Math.round(x*100)/100).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2});
+const RD_NODATA="Questa corsa non ha i dati punto per punto: arrivano solo dalle corse registrate con HealthFit (sull'orologio o con il telefono) dalla versione 2.65. Dalla prossima corsa li vedi qui.";
+function rdCard(box,title,sub,tab){ const c=el("section","card rd-sec"); if(title){ const h=el(sub?"button":"div","rd-h"); if(sub){ h.type="button"; h.onclick=()=>rdOpen(sub,tab); } h.innerHTML=`<h2></h2>${sub?'<span class="chev" aria-hidden="true">›</span>':""}`; h.querySelector("h2").textContent=title; c.appendChild(h); } box.appendChild(c); return c; }
+function rdLapTable(laps,max){ const ok=laps.filter(x=>!x.warm&&!x.part&&x.pace), bestL=ok.reduce((a,x)=>!a||x.pace<a.pace? x : a,null), rows=max? laps.slice(0,max) : laps;
+  const tb=el("table","rd-laps"); tb.innerHTML=`<thead><tr><th></th><th>Durata</th><th>Distanza</th><th>FC</th><th>Ritmo</th></tr></thead><tbody>${rows.map(x=>`<tr class="${x===bestL&&ok.length>1?"best":""}"><td>${x.lab}</td><td>${hms2(x.dur)}</td><td>${rdKm(x.km)}</td><td>${x.hr||"–"}</td><td>${x.pace? paceTxt(x.pace) : "–"}</td></tr>`).join("")}</tbody>`; return tb; }
+function rdZonesHTML(zs,mx,full){ const R=[[50,60],[60,70],[70,80],[80,90],[90,100]], zmax=Math.max(...zs), tot=zs.reduce((a,b)=>a+b,0)||1;
+  return [4,3,2,1,0].map(i=>`<div class="rd-zone"><span class="n">${ZLAB[i]}</span><div class="b"><i style="width:${Math.max(zs[i]?3:0,Math.round(zs[i]/zmax*100))}%;background:${ZCOL[i]}"></i></div><span class="v">${full? hms2(zs[i])+" · "+Math.round(zs[i]/tot*100)+"%" : hms2(zs[i])}<small>${Math.round(mx*R[i][0]/100)}–${Math.round(mx*R[i][1]/100)} bpm</small></span></div>`).join(""); }
+function rdCharts(c,x){ const {P,st,mx}=x, xs=P.map(p=>p.m/1000); let h="";
+  const pc=rdPaces(P); if(pc.some(v=>v!=null)) h+=`<p class="rd-ch">Ritmo (min/km)</p>`+rdLine(xs,pc,{inv:true,col:"#2F7FD8",fmt:paceStr,minSpan:30,label:"Ritmo"});
+  if(P.some(p=>p.h>0)) h+=`<p class="rd-ch">Frequenza cardiaca (bpm)</p>`+rdLine(xs,P.map(p=>p.h||null),{col:"#E5484D",minSpan:20,label:"Battito",bands:[[.6,.7],[.7,.8],[.8,.9],[.9,1]].map((b,i)=>[mx*b[0],mx*b[1],ZCOL[i+1]])});
+  if(st.alt) h+=`<p class="rd-ch">Altitudine (m)</p>`+rdLine(xs,st.alt,{col:"#2E8B5F",fill:true,minSpan:20,label:"Altitudine"});
+  if(P.some(p=>p.s!=null)){ const cad=P.map((p,i)=>{ let j=i; while(j>0&&p.t-P[j].t<30) j--; return p.s!=null&&P[j].s!=null&&p.t-P[j].t>=10? (p.s-P[j].s)/((p.t-P[j].t)/60) : null; }).map(v=>v&&v>60&&v<240? v : null);
+    if(cad.some(v=>v!=null)) h+=`<p class="rd-ch">Cadenza (passi/min)</p>`+rdLine(xs,cad,{col:"#9B5CF6",minSpan:20,label:"Cadenza"}); }
+  c.insertAdjacentHTML("beforeend",h||`<p class="note">${RD_NODATA}</p>`); }
+function rdAllRows(x){ const {Dx,st,m,sec,km,D}=x, rows=[], add=(icon,name,list)=>{ list=list.filter(r0=>r0.length&&r0[1]!=null&&r0[1]!==""); if(list.length) rows.push([icon,name,list]); }, mm=m&&m.t0>0;
+  add("⏱️","Durata",[ mm? ["Allenamento principale",hms2(m.sec)] : [], ["Durata allenamento",hms2(sec)], st.tot>sec+5? ["Durata totale (con le pause)",hms2(st.tot)] : [] ]);
+  add("↔️","Distanza",[ mm? ["Allenamento principale",rdKm(m.km)+" km"] : [], ["Distanza",rdKm(km)+" km"] ]);
+  add("🔥","Calorie",[["Calorie allenamento",Dx.kcal? Dx.kcal+" kcal" : null]]);
+  add("👟","Passi",[["Passi",st.steps? Math.round(st.steps).toLocaleString("it-IT") : null]]);
+  add("⏲️","Andatura",[ mm&&m.pace? ["Media allenamento principale",paceTxt(m.pace)+" /km"] : [], ["Andatura media",st.pace? paceTxt(st.pace)+" /km" : null], ["Andatura massima",st.best? paceTxt(st.best)+" /km" : null] ]);
+  add("🚀","Velocità",[["Velocità media",st.pace? fmt(3600/st.pace)+" km/h" : null],["Velocità massima",st.best? fmt(3600/st.best)+" km/h" : null]]);
+  add("⛰️","Elevazione",[["Dislivello positivo",st.gain!=null? st.gain+" m" : null],["Dislivello negativo",st.loss!=null? st.loss+" m" : null],["Elevazione minima",st.aMin!=null? st.aMin+" m" : null],["Elevazione massima",st.aMax!=null? st.aMax+" m" : null]]);
+  add("↗️","Pendenza",[["Tratti in salita",st.upKm!=null? rdKm(st.upKm)+" km" : null],["Tratti in discesa",st.downKm!=null? rdKm(st.downKm)+" km" : null]]);
+  add("❤️","Frequenza cardiaca",[["Media",Dx.avgHr? Dx.avgHr+" bpm" : null],["Massima",Dx.maxHr? Dx.maxHr+" bpm" : null],["Misurata con",D.hrSrc==="strap"? "fascia cardio" : D.hrSrc==="mixed"? "fascia e orologio" : D.hrSrc==="watch"? "orologio (polso)" : null]]);
+  add("👣","Cadenza",[["Cadenza media",st.cad? st.cad+" spm" : null],["Cadenza massima",st.cadMax? st.cadMax+" spm" : null]]);
+  const vo=rdVo2(st,Dx); add("🫁","VO₂max stimato",[["VO₂max",vo? fmt(vo)+" · "+rdVo2Lvl(vo).name : null]]);
+  return rows.map(r0=>`<div class="rd-row"><span class="k">${r0[0]} ${r0[1]}</span><div class="v">${r0[2].map(y=>`<small>${y[0]}</small><b>${y[1]}</b>`).join("")}</div></div>`).join(""); }
+function rdScoreCard(box,x,full){ const {pl,m,km,sec}=x; if(!pl||!(pl.km||pl.min)) return;
+  const mk= m? m.km : km, ms= m? m.sec : sec, mp= mk>0.05? ms/mk : null, sc=rdScore(pl,mk,ms), lvl= sc==null? "" : sc>=85? "Prova superata!" : sc>=65? "Buon lavoro" : "Da migliorare";
+  const c=rdCard(box,"Punteggio dell'allenamento",full? null : "punteggio");
+  c.insertAdjacentHTML("beforeend",`<div class="rd-score"><div><b class="lv">${lvl}</b><b class="sc num">${sc??"–"}</b></div></div>`);
+  if(!full) return;
+  const bars=[]; if(pl.km) bars.push(["Distanza allenamento principale",rdKm(mk)+" km",Math.min(100,Math.round(mk/pl.km*100)),"Obiettivo: "+rdKm(pl.km)+" km","#E9A21E"]);
+  if(pl.min) bars.push(["Durata allenamento principale",hms2(ms), pl.km&&mk>=pl.km*0.99? 100 : Math.min(100,Math.round(ms/(pl.min*60)*100)),"Obiettivo: "+hms(pl.min),"#1EA7E0"]);
+  if(pl.ps&&mp) bars.push(["Andatura media allenamento principale",paceTxt(mp)+"/km", mp<=pl.ps*1.03? 100 : Math.round(pl.ps/mp*100),"Obiettivo: "+paceTxt(pl.ps)+"/km","#14B8A6"]);
+  let msg=""; if(pl.ps&&mp){ const d=mp-pl.ps; msg= /facile|lungo|recupero|jogging/i.test(pl.type+" "+pl.title)&&d<-20? `Sei andato ${Math.round(-d)} secondi al km più veloce del previsto: nelle corse facili e nei lunghi rallenta, alleni meglio la resistenza e recuperi prima.` : d>20? `Sei andato ${Math.round(d)} secondi al km più lento del previsto: se eri stanco va bene, altrimenti la prossima volta prova a tenere il ritmo.` : "Ritmo in linea con l'obiettivo: ottimo controllo."; }
+  if(pl.km&&mk<pl.km*0.95) msg=`Hai fatto ${rdKm(mk)} km su ${rdKm(pl.km)}. `+msg;
+  c.insertAdjacentHTML("beforeend",`${m? `<p class="sub"><b>Allenamento principale</b> (esclusi riscaldamento e defaticamento): <b>${rdKm(m.km)} km · ${hms2(m.sec)} · ${m.pace? paceTxt(m.pace)+"/km" : "–"}</b></p>` : ""}<p class="rd-msg"></p>`+
+    bars.map(b=>`<div class="rd-goal"><div class="h"><span>${b[0]}: <b>${b[1]}</b></span></div><div class="r"><b class="num">${b[2]}</b><small>/100%</small><span>${b[3]}</span></div><div class="bar"><i style="width:${b[2]}%;background:${b[4]}"></i></div></div>`).join(""));
+  c.querySelector(".rd-msg").textContent=msg; }
+function rdRecCard(box,x){ const {D,mx}=x, R=(D.rec||[]).filter(y=>+y[1]>0), c=rdCard(box,"Recupero della frequenza cardiaca");
+  if(R.length<3){ c.appendChild(el("p","note","Dopo FINE l'orologio misura per un minuto come scende il battito: lo vedi qui dalle prossime corse registrate con HealthFit sul Watch.")); return; }
+  const thr=Math.round(mx*0.64), b0=R[0][1], last=R[R.length-1], hit=R.find(y=>y[1]<thr), drop=b0-last[1];
+  c.insertAdjacentHTML("beforeend",`<div class="rd-rec"><div><b class="num">${hit? hit[0]+" s" : "> "+last[0]+" s"}</b><span>per scendere sotto ${thr} bpm (64% della FC max)</span></div><div><b class="num">−${Math.max(0,drop)}</b><span>bpm in ${last[0]} secondi (da ${b0} a ${last[1]})</span></div></div>`+
+    rdLine(R.map(y=>y[0]/1000),R.map(y=>y[1]),{col:"#E0479E",minSpan:20,h:100,label:"Recupero del battito",bands:[[0,thr,"#E0479E"]]}).replace(/>[\d,.]+ km</,">"+last[0]+" s<")+
+    `<p class="note">Più il battito scende in fretta dopo lo sforzo, migliore è la forma aerobica. In genere un calo di oltre 20 bpm nel primo minuto è un buon segno.</p>`); }
+function rdMapBox(c,P){ const mb=el("div","rd-map"); c.appendChild(mb); const lg=el("div","rd-leg"); lg.innerHTML=`<span>più lento</span>${RD_PCOL.map(y=>`<i style="background:${y}"></i>`).join("")}<span>più veloce</span>`; c.appendChild(lg); rdMap(mb,P); }
+function rdLapTabs(c,x,tab0){ const {P,st}=x; const tabs=[["giri","Giri"],["1","1 km"],["5","5 km"],["10","10 km"]].filter(t=>t[0]==="giri"||x.km>=+t[0]);
+  const bar=el("div","rd-tabs"), body=el("div"); let cur=tab0&&tabs.some(t=>t[0]===tab0)? tab0 : "giri";
+  const draw=()=>{ bar.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===cur)); body.innerHTML=""; const L= cur==="giri"? st.laps : rdSplits(P,+cur); body.appendChild(rdLapTable(L)); };
+  tabs.forEach(([k,l])=>{ const b=el("button","rd-tab",l); b.type="button"; b.dataset.k=k; b.onclick=()=>{ cur=k; draw(); }; bar.appendChild(b); });
+  c.append(bar,body); draw(); }
+function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur) return; const x=rdCtx(), {w,D,Dx,sec,km,st,P,pl,mx,zs,old}=x, sub=rdCur.sub;
   const t0=D.t0? new Date(D.t0) : new Date((w.date||state.date)+"T"+(w.start||"12:00")+":00");
-  $("rdTitle").textContent=w.name||"Corsa";
-  const card=(title,cls)=>{ const c=el("section","card rd-sec"+(cls?" "+cls:"")); if(title) c.appendChild(el("h2",null,title)); box.appendChild(c); return c; };
-  // intestazione
-  const hero=el("section","rd-hero"); hero.innerHTML=`<div class="rd-hn"></div><div class="rd-hk num">${kmTxt(km)} km</div><div class="rd-hd"></div>`;
+  const SUBT={dettagli:"Dettagli allenamento",giri:"Giri",mappa:"Percorso e giri",grafico:"Grafici",zone:"Zone della frequenza cardiaca",punteggio:pl? pl.title : "Punteggio",vo2:"VO₂max stimato"};
+  $("rdTitle").textContent= sub? SUBT[sub]||"Riepilogo" : (w.name||"Corsa");
+  if(sub==="dettagli"){ const c=rdCard(box); c.innerHTML=rdAllRows(x); return; }
+  if(sub==="giri"||sub==="mappa"){ if(P&&st.gps&&sub==="mappa"){ const c=rdCard(box); rdMapBox(c,P); }
+    const c=rdCard(box,sub==="mappa"?"Giri":null); if(P&&st.laps&&st.laps.length){ rdLapTabs(c,x,rdCur.tab); c.appendChild(el("p","note","In evidenza il parziale più veloce. Giri: il riscaldamento del piano è a parte; 1, 5 e 10 km: parziali dalla partenza.")); } else c.appendChild(el("p","note",RD_NODATA)); return; }
+  if(sub==="grafico"){ const c=rdCard(box); if(P&&P.length>5) rdCharts(c,x); else c.appendChild(el("p","note",RD_NODATA)); return; }
+  if(sub==="zone"){ const c=rdCard(box); const tot=zs? zs.reduce((a,b)=>a+b,0) : 0;
+    if(tot>0){ c.insertAdjacentHTML("beforeend",rdZonesHTML(zs,mx,true)); if(P&&P.some(p=>p.h>0)) c.insertAdjacentHTML("beforeend",`<p class="rd-ch">Battito durante la corsa</p>`+rdLine(P.map(p=>p.m/1000),P.map(p=>p.h||null),{col:"#E5484D",minSpan:20,label:"Battito",bands:[[.6,.7],[.7,.8],[.8,.9],[.9,1]].map((b,i)=>[mx*b[0],mx*b[1],ZCOL[i+1]])})); }
+    else c.appendChild(el("p","note","Per questa corsa non ho il tempo nelle zone cardio."));
+    c.appendChild(el("p","note",`Zone calcolate sulla tua FC massima di ${mx} bpm (la cambi in Statistiche corsa).`)); return; }
+  if(sub==="punteggio"){ const c=rdCard(box,null); c.innerHTML=`<b>Allenamento del piano</b><div></div><div class="sub"></div>`; c.children[1].textContent=pl.title; c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? rdKm(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | ");
+    rdScoreCard(box,x,true); rdRecCard(box,x); return; }
+  if(sub==="vo2"){ const vo=rdVo2(st,Dx), c=rdCard(box); if(!vo){ c.appendChild(el("p","note","Per stimare il VO₂max servono almeno 10 minuti di corsa con il battito.")); return; } const L0=rdVo2Lvl(vo);
+    c.innerHTML=`<div class="rd-vo"><div><b style="color:${L0.col}">${L0.name}</b><span class="num">${fmt(vo)}</span></div><div class="bar"><i style="left:${L0.pos}%;background:${L0.col}"></i></div></div><p class="note">Stima dal ritmo e dal battito di questa corsa (FC max ${mx}, a riposo ${hrRestOf()}): è indicativa e cambia con caldo, salite e stanchezza. Un VO₂max più alto vuol dire più ossigeno usato dai muscoli: migliora con le corse facili lunghe e con le ripetute.</p>`; return; }
+  // ----- pagina principale
+  const hero=el("section","rd-hero"); hero.innerHTML=`<div class="rd-hn"></div><div class="rd-hk num">${rdKm(km)} km</div><div class="rd-hd"></div>`;
   hero.querySelector(".rd-hn").textContent=(pl&&pl.type? pl.type : w.name||"Corsa");
   hero.querySelector(".rd-hd").textContent=t0.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+" "+t0.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
   box.appendChild(hero);
-  if(pl){ const c=card(null,"rd-plan"); c.innerHTML=`<b>Allenamento del piano</b><div class="t"></div><div class="sub"></div>`; c.querySelector(".t").textContent=pl.title;
-    c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? kmTxt(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | "); }
-  // riquadri principali
-  const tiles=[["Durata allenamento",hms2(sec),"",""],["Andatura media",st.pace? paceTxt(st.pace) : "–","/km","c2"],["Media freq. car.",Dx.avgHr||"–","bpm","c3"],["Calorie",Dx.kcal||"–","kcal","c4"]];
-  if(st.cad) tiles.push(["Cadenza media",st.cad,"spm","c5"]); if(st.gain!=null) tiles.push(["Dislivello positivo",st.gain,"m","c6"]);
-  const tc=card("Dettagli allenamento"); const tg=el("div","rd-tiles"); tiles.forEach(([l,v,u,c])=>{ const d=el("div","rd-tile "+c); d.innerHTML=`<span></span><b class="num">${v}<small> ${u}</small></b>`; d.querySelector("span").textContent=l; tg.appendChild(d); }); tc.appendChild(tg);
-  if(!D.tr&&!D.st) tc.appendChild(el("p","note","Per mappa, giri al km, cadenza e grafici avvia la corsa da HealthFit (sull'orologio o con il telefono): li registro in automatico."));
-  // mappa
-  if(P&&st.gps){ const c=card("Percorso"); const mb=el("div","rd-map"); c.appendChild(mb); const lg=el("div","rd-leg"); lg.innerHTML=`<span>più lento</span>${RD_PCOL.map(x=>`<i style="background:${x}"></i>`).join("")}<span>più veloce</span>`; c.appendChild(lg); rdMap(mb,P); }
+  if(pl){ const c=el("button","card rd-sec rd-plan"); c.type="button"; c.onclick=()=>rdOpen("punteggio"); c.innerHTML=`<span><b>Allenamento del piano</b><span class="t"></span><span class="sub"></span></span><span class="chev" aria-hidden="true">›</span>`; c.querySelector(".t").textContent=pl.title;
+    c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? rdKm(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | "); box.appendChild(c); }
+  // dettagli
+  const tiles=[["Durata allenamento",hms2(sec),"",""],["Andatura media",st.pace? paceTxt(st.pace) : "–","/km","c2"],["Media freq. car.",Dx.avgHr||"–","bpm","c3"],["Calorie allenamento",Dx.kcal||"–","kcal","c4"],["Ritmo medio",st.cad||"–","spm","c5"],["Increm. elevaz.",st.gain!=null? st.gain : "–","m","c6"]];
+  const tc=rdCard(box,"Dettagli allenamento","dettagli"); const tg=el("div","rd-tiles"); tiles.forEach(([l,v,u,c])=>{ const d=el("div","rd-tile "+c); d.innerHTML=`<span></span><b class="num">${v}<small> ${v==="–"?"":u}</small></b>`; d.querySelector("span").textContent=l; tg.appendChild(d); }); tg.onclick=()=>rdOpen("dettagli"); tc.appendChild(tg);
+  // mappa | grafico
+  { const c=el("section","card rd-sec"), hd=el("div","rd-h rd-mg"); hd.innerHTML=`<button type="button" class="rd-tab2" aria-pressed="true">Mappa</button><button type="button" class="rd-tab2" aria-pressed="false">Grafico</button><button type="button" class="chev" aria-label="Apri">›</button>`; c.appendChild(hd); box.appendChild(c);
+    const body=el("div"); c.appendChild(body); const [bM,bG,bX]=hd.querySelectorAll("button"); let tab="mappa";
+    const draw=()=>{ bM.setAttribute("aria-pressed",tab==="mappa"); bG.setAttribute("aria-pressed",tab==="grafico"); body.innerHTML="";
+      if(tab==="mappa"){ if(P&&st.gps) rdMapBox(body,P); else body.appendChild(el("p","note", P? "Questa corsa non ha la posizione GPS." : RD_NODATA)); }
+      else { if(P&&P.length>5) rdCharts(body,x); else body.appendChild(el("p","note",RD_NODATA)); } };
+    bM.onclick=()=>{ tab="mappa"; draw(); }; bG.onclick=()=>{ tab="grafico"; draw(); }; bX.onclick=()=>rdOpen(tab); draw(); }
   // giri
-  const laps=st.laps||[];
-  if(laps.length){ const c=card("Giri"); const ok=laps.filter(x=>!x.warm&&!x.part&&x.pace), bestL=ok.reduce((a,x)=>!a||x.pace<a.pace? x : a,null), bestP=bestL? bestL.pace : 0;
-    const tb=el("table","rd-laps"); tb.innerHTML=`<thead><tr><th></th><th>Durata</th><th>Km</th><th>FC</th><th>Ritmo</th></tr></thead><tbody>${laps.map(x=>`<tr class="${x===bestL?"best":""}"><td>${x.lab}</td><td>${hms2(x.dur)}</td><td>${kmTxt(x.km)}</td><td>${x.hr||"–"}</td><td>${x.pace? paceTxt(x.pace) : "–"}</td></tr>`).join("")}</tbody>`;
-    c.appendChild(tb); if(bestP) c.appendChild(el("p","note","In evidenza il km più veloce.")); }
-  // grafici
-  if(P&&P.length>5){ const xs=P.map(p=>p.m/1000), c=card("Grafici"); let h="";
-    const pc=rdPaces(P); if(pc.some(x=>x!=null)) h+=`<p class="rd-ch">Ritmo (min/km)</p>`+rdLine(xs,pc,{inv:true,col:"#2F7FD8",fmt:paceStr,minSpan:30,label:"Ritmo"});
-    if(P.some(p=>p.h>0)) h+=`<p class="rd-ch">Frequenza cardiaca (bpm)</p>`+rdLine(xs,P.map(p=>p.h||null),{col:"#E5484D",minSpan:20,label:"Battito",bands:[[.6,.7],[.7,.8],[.8,.9],[.9,1]].map((b,i)=>[mx*b[0],mx*b[1],ZCOL[i+1]])});
-    if(st.alt) h+=`<p class="rd-ch">Altitudine (m)</p>`+rdLine(xs,st.alt,{col:"#2E8B5F",fill:true,minSpan:20,label:"Altitudine"});
-    c.innerHTML+=h; }
+  { const c=rdCard(box,"Giri","giri"); if(P&&st.laps&&st.laps.length){ const tb=rdLapTable(st.laps,6); tb.onclick=()=>rdOpen("giri"); c.appendChild(tb); if(st.laps.length>6){ const b=el("button","linkbtn",`Tutti i ${st.laps.length} giri, 1 km, 5 km e 10 km ›`); b.type="button"; b.onclick=()=>rdOpen("giri"); c.appendChild(b); } }
+    else c.appendChild(el("p","note",RD_NODATA)); }
   // zone
-  const zs= Array.isArray(D.zs)? D.zs : Array.isArray(w.zones)? w.zones.map(m=>(+m||0)*60) : null, ztot=zs? zs.reduce((a,b)=>a+b,0) : 0;
-  if(ztot>0){ const c=card("Zone della frequenza cardiaca"), R=[[50,60],[60,70],[70,80],[80,90],[90,100]], zmax=Math.max(...zs);
-    c.innerHTML+=[4,3,2,1,0].map(i=>`<div class="rd-zone"><span class="n">${ZLAB[i]}</span><div class="b"><i style="width:${Math.max(zs[i]?3:0,Math.round(zs[i]/zmax*100))}%;background:${ZCOL[i]}"></i></div><span class="v">${hms2(zs[i])}<small>${Math.round(mx*R[i][0]/100)}–${Math.round(mx*R[i][1]/100)} bpm</small></span></div>`).join(""); }
-  // punteggio rispetto all'obiettivo
-  const m=st.main;
-  if(pl&&(pl.km||pl.min)){ const mk= m? m.km : km, ms= m? m.sec : sec, mp= mk>0.05? ms/mk : null, sc=rdScore(pl,mk,ms);
-    const c=card("Punteggio dell'allenamento"); const lvl= sc==null? "" : sc>=85? "Prova superata!" : sc>=65? "Buon lavoro" : "Da migliorare";
-    const bars=[]; if(pl.km) bars.push(["Distanza allenamento principale",kmTxt(mk)+" km",Math.min(100,Math.round(mk/pl.km*100)),"Obiettivo: "+kmTxt(pl.km)+" km","#E9A21E"]);
-    if(pl.min) bars.push(["Durata allenamento principale",hms2(ms), pl.km&&mk>=pl.km*0.99? 100 : Math.min(100,Math.round(ms/(pl.min*60)*100)),"Obiettivo: "+hms(pl.min),"#1EA7E0"]);
-    if(pl.ps&&mp) bars.push(["Andatura media allenamento principale",paceTxt(mp)+"/km", mp<=pl.ps*1.03? 100 : Math.round(pl.ps/mp*100),"Obiettivo: "+paceTxt(pl.ps)+"/km","#14B8A6"]);
-    let msg=""; if(pl.ps&&mp){ const d=mp-pl.ps; msg= /facile|lungo|recupero/i.test(pl.type+" "+pl.title)&&d<-20? `Sei andato ${Math.round(-d)} secondi al km più veloce del previsto: nelle corse facili e nei lunghi rallenta, alleni meglio la resistenza e recuperi prima.` : d>20? `Sei andato ${Math.round(d)} secondi al km più lento del previsto: se eri stanco va bene, altrimenti la prossima volta prova a tenere il ritmo.` : "Ritmo in linea con l'obiettivo: ottimo controllo."; }
-    if(pl.km&&mk<pl.km*0.95) msg=`Hai fatto ${kmTxt(mk)} km su ${kmTxt(pl.km)}. `+msg;
-    c.innerHTML+=`<div class="rd-score"><div><b class="lv">${lvl}</b><b class="sc num">${sc??"–"}</b></div></div>${m&&(m.t0>0||Math.abs(m.km-km)>0.05)? `<p class="sub">Allenamento principale (esclusi riscaldamento e defaticamento): <b>${kmTxt(m.km)} km · ${hms2(m.sec)} · ${m.pace? paceTxt(m.pace)+"/km" : "–"}</b></p>` : ""}<p class="rd-msg"></p>`+
-      bars.map(b=>`<div class="rd-goal"><div class="h"><span>${b[0]}: <b>${b[1]}</b></span></div><div class="r"><b class="num">${b[2]}</b><small>/100%</small><span>${b[3]}</span></div><div class="bar"><i style="width:${b[2]}%;background:${b[4]}"></i></div></div>`).join("");
-    c.querySelector(".rd-msg").textContent=msg; }
-  // tutti i dati
-  const rows=[]; const add=(icon,name,list)=>{ list=list.filter(x=>x[1]!=null&&x[1]!==""&&x[1]!=="–"); if(list.length) rows.push([icon,name,list]); };
-  add("⏱️","Durata",[ m&&m.t0>0? ["Allenamento principale",hms2(m.sec)] : [], ["Durata allenamento",hms2(sec)], st.tot>sec+5? ["Durata totale (con le pause)",hms2(st.tot)] : [] ].filter(x=>x.length));
-  add("↔️","Distanza",[ m&&m.t0>0? ["Allenamento principale",kmTxt(m.km)+" km"] : [], ["Distanza",kmTxt(km)+" km"] ].filter(x=>x.length));
-  add("🔥","Calorie",[["Calorie allenamento",Dx.kcal? Dx.kcal+" kcal" : null]]);
-  add("👟","Passi",[["Passi",st.steps? Math.round(st.steps).toLocaleString("it-IT") : null]]);
-  add("⏲️","Andatura",[ m&&m.t0>0&&m.pace? ["Media allenamento principale",paceTxt(m.pace)+" /km"] : [], ["Andatura media",st.pace? paceTxt(st.pace)+" /km" : null], ["Andatura massima",st.best? paceTxt(st.best)+" /km" : null] ].filter(x=>x.length));
-  add("🚀","Velocità",[["Velocità media",st.pace? fmt(3600/st.pace)+" km/h" : null],["Velocità massima",st.best? fmt(3600/st.best)+" km/h" : null]]);
-  add("⛰️","Elevazione",[["Dislivello positivo",st.gain!=null? st.gain+" m" : null],["Dislivello negativo",st.loss!=null? st.loss+" m" : null],["Elevazione minima",st.aMin!=null? st.aMin+" m" : null],["Elevazione massima",st.aMax!=null? st.aMax+" m" : null]]);
-  add("↗️","Pendenza",[["Tratti in salita",st.upKm!=null? kmTxt(st.upKm)+" km" : null],["Tratti in discesa",st.downKm!=null? kmTxt(st.downKm)+" km" : null]]);
-  add("❤️","Frequenza cardiaca",[["Media",Dx.avgHr? Dx.avgHr+" bpm" : null],["Massima",Dx.maxHr? Dx.maxHr+" bpm" : null],["Misurata con",D.hrSrc==="strap"? "fascia cardio" : D.hrSrc==="mixed"? "fascia e orologio" : D.hrSrc==="watch"? "orologio (polso)" : null]]);
-  add("👣","Cadenza",[["Cadenza media",st.cad? st.cad+" spm" : null],["Cadenza massima",st.cadMax? st.cadMax+" spm" : null]]);
-  if(rows.length){ const c=card("Tutti i dati"); c.innerHTML+=rows.map(r0=>`<div class="rd-row"><span class="k">${r0[0]} ${r0[1]}</span><div class="v">${r0[2].map(x=>`<small>${x[0]}</small><b>${x[1]}</b>`).join("")}</div></div>`).join(""); }
-  // recupero del battito
-  const R=(D.rec||[]).filter(x=>+x[1]>0);
-  if(R.length>=3){ const c=card("Recupero della frequenza cardiaca"), thr=Math.round(mx*0.64), b0=R[0][1], last=R[R.length-1], hit=R.find(x=>x[1]<thr), drop=b0-last[1];
-    c.innerHTML+=`<div class="rd-rec"><div><b class="num">${hit? hit[0]+" s" : "> "+last[0]+" s"}</b><span>per scendere sotto ${thr} bpm (64% della FC max)</span></div><div><b class="num">−${Math.max(0,drop)}</b><span>bpm in ${last[0]} secondi (da ${b0} a ${last[1]})</span></div></div>`+
-      rdLine(R.map(x=>x[0]/1000),R.map(x=>x[1]),{col:"#E0479E",minSpan:20,h:100,label:"Recupero del battito",bands:[[0,thr,"#E0479E"]]}).replace(/>[\d,.]+ km</,">"+last[0]+" s<")+
-      `<p class="note">Più il battito scende in fretta dopo lo sforzo, migliore è la forma aerobica. In genere un calo di oltre 20 bpm nel primo minuto è un buon segno.</p>`; }
-  // VO2max stimato
-  const vo=rdVo2(st,Dx);
-  if(vo){ const L0=rdVo2Lvl(vo), c=card("VO₂max stimato"); c.innerHTML+=`<div class="rd-vo"><div><b style="color:${L0.col}">${L0.name}</b><span class="num">${fmt(vo)}</span></div><div class="bar"><i style="left:${L0.pos}%;background:${L0.col}"></i></div></div><p class="note">Stima dal ritmo e dal battito di questa corsa (FC max ${mx}, a riposo ${hrRestOf()}): è indicativa e cambia con caldo, salite e stanchezza.</p>`; }
+  { const c=rdCard(box,"Zone della frequenza cardiaca","zone"), tot=zs? zs.reduce((a,b)=>a+b,0) : 0;
+    if(tot>0){ c.insertAdjacentHTML("beforeend",rdZonesHTML(zs,mx,false)); } else c.appendChild(el("p","note","Per questa corsa non ho il tempo nelle zone cardio.")); }
+  // punteggio
+  rdScoreCard(box,x,false);
+  // VO2max
+  { const vo=rdVo2(st,Dx); if(vo){ const L0=rdVo2Lvl(vo), c=rdCard(box,"VO₂max","vo2"); c.insertAdjacentHTML("beforeend",`<div class="rd-vo"><div><b style="color:${L0.col}">${L0.name}</b><span class="num">${fmt(vo)}</span></div><div class="bar"><i style="left:${L0.pos}%;background:${L0.col}"></i></div></div>`); } }
   // sudorazione
   if(Dx.kcal){ const T=D.wx? +D.wx.t : null, f= T==null? 0.8 : Math.max(0.55,Math.min(1.6,0.75+0.03*(T-10))), ml=Math.round(Dx.kcal*f/10)*10;
-    const c=card("Sudorazione stimata"); c.innerHTML+=`<b class="rd-big num">${ml.toLocaleString("it-IT")} ml</b><p class="sub">Puoi bere circa ${(Math.round(ml*1.5/10)*10).toLocaleString("it-IT")} ml per reintegrare il 150%${T==null?"":` (stima con ${fmt(T)} °C)`}.</p>`; }
+    const c=rdCard(box,"Sudorazione stimata"); c.insertAdjacentHTML("beforeend",`<b class="rd-big num">${ml.toLocaleString("it-IT")} ml</b><p class="sub">Puoi bere circa ${(Math.round(ml*1.5/10)*10).toLocaleString("it-IT")} ml per reintegrare il 150%${T==null?"":` (stima con ${fmt(T)} °C)`}.</p>`); }
   // meteo
-  if(D.wx){ const [wt,wi]=RD_WX(D.wx.code), c=card("Meteo alla partenza"); c.innerHTML+=`<div class="rd-wx"><div><b class="num">${fmt(D.wx.t)} °C</b><span>${wi} ${wt}</span></div><div class="r"><span>💧 ${Math.round(D.wx.hum)}%</span><span>🌬️ ${fmt(D.wx.wind)} km/h</span><span>🧭 ${RD_DIR(D.wx.dir)}</span></div></div><p class="note">Dati Open-Meteo.</p>`; }
-  box.appendChild(el("p","note rd-foot",(D.src==="watch"? "Dati registrati da HealthFit sul Galaxy Watch." : D.src? "Dati registrati da HealthFit sul telefono." : "")+" Tutti i valori sono stime: per problemi di salute rivolgiti al medico."));
+  if(D.wx){ const [wt,wi]=RD_WX(D.wx.code), c=rdCard(box,"Meteo"); c.insertAdjacentHTML("beforeend",`<div class="rd-wx"><div><b class="num">${fmt(D.wx.t)} °C</b><span>${wi} ${wt}</span></div><div class="r"><span>💧 ${Math.round(D.wx.hum)}%</span><span>🌬️ ${fmt(D.wx.wind)} km/h</span><span>🧭 ${RD_DIR(D.wx.dir)}</span></div></div><p class="note">Dati Open-Meteo.</p>`); }
+  else if(old){ const c=rdCard(box,"Meteo"); c.appendChild(el("p","note","Il meteo lo prendo dalla posizione di partenza: arriva con le corse registrate con HealthFit.")); }
+  box.appendChild(el("p","note rd-foot",(D.src==="watch"? "Questi dati provengono da HealthFit sul Galaxy Watch." : D.src? "Questi dati provengono da HealthFit sul telefono." : "")+" Tutti i valori sono stime: per problemi di salute rivolgiti al medico."));
 }
-$("rdBack").onclick=()=>{ if(history.state&&history.state.v==="riepilogo") history.back(); else go("attivita"); };
+$("rdBack").onclick=()=>{ if(history.state&&history.state.v==="riepilogo") history.back(); else if(rdCur&&rdCur.sub){ rdCur.sub=null; renderRunSummary(); } else go("attivita"); };
 /* ===== allenatore gara: obiettivi, ritmi (VDOT) e piano a settimane ===== */
 let race=null;
 const raceLabel=km=>({5:"5 km",10:"10 km","21.0975":"Mezza maratona","42.195":"Maratona"})[String(km)]||(fmt(km)+" km");
@@ -5929,7 +5975,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
   const lg=c.querySelector(".run-leg"); runSegs(d).forEach(g=>{ const row=el("div","rl"); row.innerHTML=`<i style="background:${SEG_COL[g.kind]||"var(--basil)"}"></i><span class="k"></span><span class="t"></span>`;
     row.querySelector(".k").textContent=SEG_L[g.kind]||g.kind; row.querySelector(".t").textContent=[g.label, g.pace&&(paceSec(g.pace)||p.ps)?paceTxt(paceSec(g.pace)||p.ps)+"/km":"", g.hr||""].filter(Boolean).join(" · "); lg.appendChild(row); });
   box.appendChild(c);
-  if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta${res.on?" "+dayTxt(res.on):""} ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; { const rw=runResWorkout(res,iso); if(rw){ rc.classList.add("tap"); rc.setAttribute("role","button"); rc.setAttribute("aria-label","Vedi il riepilogo della corsa"); rc.onclick=()=>openRunSummary(rw.id,rw); rc.firstElementChild.appendChild(el("div","rd-open","📊 Vedi riepilogo ›")); } } box.appendChild(rc); }
+  if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta${res.on?" "+dayTxt(res.on):""} ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; { const rw=runResWorkout(res,iso); if(rw){ rc.classList.add("tap"); rc.setAttribute("role","button"); rc.setAttribute("aria-label","Vedi il riepilogo della corsa"); rc.onclick=()=>openRunSummary(rw.id,rw); rc.querySelector("b").textContent+=" ›"; } } box.appendChild(rc); }
   // avvio con Galaxy Watch e risultati
   const go=el("div","run-go");
   go.innerHTML=`<button class="btn" type="button" id="runStart">AVVIA</button>
@@ -6819,7 +6865,7 @@ function renderHistory(){
     const extra=[timeRange(w.start,w.end), w.distance? fmt(w.distance)+" km":"", w.pace? w.pace+" min/km":"", w.avgHr? "FC "+w.avgHr:"", FED[w.fed]||""].filter(Boolean).join(" · ");
     tx.append(el("div","a",w.name), el("div","b",`${w.minutes||"?"} min${extra?" · "+extra:""}`));
     if(w.details){ const d=el("div","b",w.details); d.style.whiteSpace="normal"; tx.appendChild(d); }
-    if(isRun(w)){ const o=el("button","linkbtn rd-open","📊 Vedi riepilogo ›"); o.type="button"; o.onclick=()=>openRunSummary(w.id,w); tx.appendChild(o); }
+    if(isRun(w)){ li.classList.add("tap","rd-li"); li.onclick=()=>openRunSummary(w.id,w); tx.firstChild.textContent+=" ›"; }
     li.append(tx, el("span","k",r(w.kcal||0)+" kcal")); ul.appendChild(li);
   });
   $("hMore").hidden=items.length<=hShow;
