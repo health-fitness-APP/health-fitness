@@ -762,6 +762,10 @@ html,body{overscroll-behavior-y:contain}
 .dprow .q{grid-row:2;font-size:.82rem;color:var(--muted)}
 .dprow .pl{grid-row:1/3;grid-column:2;align-self:center;width:34px;height:34px;border-radius:50%;background:var(--basil-soft);color:var(--basil);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem}
 .dprow.on .pl{background:var(--basil);color:var(--basil-ink)}
+.rcprow{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+.rcprow .dprow{border-bottom:0;flex:1;min-width:0}
+.rcprow .dprow .pl{background:none;color:var(--muted)}
+.rcp-add{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--basil);color:var(--basil-ink);font:inherit;font-weight:800;font-size:1.3rem;cursor:pointer}
 .dprow.on .pl::before{content:"✓"}
 .dprow.on .pl{font-size:0}.dprow.on .pl::before{font-size:1rem}
 #stAddTop{margin:4px 0 10px}
@@ -2133,7 +2137,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.62 (piano gara: tempi a prova di errore e livello automatico)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.63 (ricette: aggiungi al pasto dall'elenco con ＋)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -2193,6 +2197,16 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
     <h3 id="tutTitle">Esercizio</h3>
     <div id="tutBody"></div>
+  </div>
+</div>
+<div class="sheet" id="rqSheet" role="dialog" aria-modal="true" aria-labelledby="rqTitle">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="rqTitle">Aggiungi al pasto</h3>
+    <p class="note" id="rqInfo"></p>
+    <div class="chips" id="rqMeals" style="margin-top:8px"></div>
+    <label>Porzioni<input class="field" id="rqPortions" inputmode="decimal" value="1"></label>
+    <button class="btn" id="rqGo" type="button" style="margin-top:10px">Aggiungi al diario di oggi</button>
   </div>
 </div>
 <div class="sheet" id="stMenu" role="dialog" aria-modal="true" aria-labelledby="stMenuT">
@@ -3020,9 +3034,19 @@ function renderRecipes(){ const box=$("rcpList"); if(!box) return; box.innerHTML
   const list=recipes.list.filter(x=>!q||normFood(x.name).includes(q));
   if(!recipes.list.length) box.appendChild(el("p","note","Ancora nessuna ricetta: tocca “Nuova ricetta”. Puoi anche incollarla o fotografarla."));
   else if(!list.length) box.appendChild(el("p","note","Nessuna ricetta con questo nome."));
-  list.forEach(rc=>{ const p=rcpPortion(rc), b=el("button","dprow"); b.type="button"; b.innerHTML=`<span class="n"></span><span class="q"></span><span class="pl">›</span>`;
+  list.forEach(rc=>{ const p=rcpPortion(rc), row=el("div","rcprow"), b=el("button","dprow"); b.type="button"; b.innerHTML=`<span class="n"></span><span class="q"></span><span class="pl">›</span>`;
     b.querySelector(".n").textContent=rc.name; b.querySelector(".q").textContent=`${r(p.kcal)} kcal a porzione (${p.g} g) · P ${r(p.p)} · C ${r(p.c)} · G ${r(p.f)} · ${rc.servings} porz.`;
-    b.onclick=()=>openRecipe(rc.id); box.appendChild(b); }); }
+    b.onclick=()=>openRecipe(rc.id); const add=el("button","rcp-add","＋"); add.type="button"; add.setAttribute("aria-label","Aggiungi "+rc.name+" a un pasto"); add.onclick=()=>openRecipeQuick(rc);
+    row.append(b,add); box.appendChild(row); }); }
+/* aggiunta veloce dall'elenco, senza aprire la ricetta */
+let rqRc=null, rqMeal=null;
+function mealByHour(){ const ms=mealList(), h=new Date().getHours(), want= h<11? "colazione" : h<15? "pranzo" : h<18? "spunt" : "cena";
+  const hit= want==="spunt"? (ms.filter(m=>/spunt/i.test(m.id+m.name)).pop()) : ms.find(m=>m.id===want||normFood(m.name)===want); return (hit||ms[0]||{}).id; }
+function openRecipeQuick(rc){ if(!(rc.ingredients||[]).length){ toast("Questa ricetta non ha ingredienti: aprila per completarla"); return; }
+  rqRc=rc; rqMeal=mealByHour(); const p=rcpPortion(rc); $("rqTitle").textContent=rc.name; $("rqInfo").textContent=`1 porzione = ${p.g} g · ${r(p.kcal)} kcal`; $("rqPortions").value="1"; rqRender(); openSheet("rqSheet"); }
+function rqRender(){ const box=$("rqMeals"); box.innerHTML=""; mealList().forEach(m=>{ const c=el("button","chip",m.name); c.type="button"; c.setAttribute("aria-pressed",m.id===rqMeal); c.onclick=()=>{ rqMeal=m.id; rqRender(); }; box.appendChild(c); }); }
+$("rqGo").onclick=()=>{ if(!rqRc||!rqMeal) return; const n=+String($("rqPortions").value).replace(",",".")||1, it=normItem(recipeItem(rqRc,n)); Object.assign(it,{portion:recipeItem(rqRc,1).grams,portionKnown:true,portions:n});
+  if(state.date!==todayISO()) goDate(todayISO()); addItems([it],rqMeal,true); closeTopSheet(); toast(`${rqRc.name} aggiunta a ${(mealList().find(m=>m.id===rqMeal)||{}).name||"pasto"} ✓`); };
 $("rcpQ").addEventListener("input",renderRecipes);
 $("rcpNew").onclick=()=>openRecipe(null);
 function openRecipe(id){ const rc=id? recipes.list.find(x=>x.id===id) : null;
