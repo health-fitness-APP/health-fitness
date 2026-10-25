@@ -2189,7 +2189,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.71 (Corsa con obiettivo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.72 (Corsa con obiettivo: tempo o ritmo al km)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4428,27 +4428,37 @@ function renderGoalRow(host){ const g0=goalRunGet();
   const bx=el("section","card grBox"); bx.id="goalBox"; bx.hidden=true;
   bx.innerHTML=`<div class="two"><label>Distanza km<input class="field" id="grKm" inputmode="decimal" placeholder="Es. 10"></label>
     <div><p class="lab" style="margin:0 0 4px">Tempo obiettivo</p><div class="tbox" id="grT"></div></div></div>
+    <div class="two"><div></div><div><p class="lab" style="margin:0 0 4px">oppure ritmo al km</p><div class="tbox" id="grP"></div></div></div>
+    <p class="note" style="margin:4px 0 0">Scrivi il tempo o il ritmo: l'altro si calcola da solo.</p>
     <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:.9rem"><input type="checkbox" id="grWu" checked> 10 minuti di riscaldamento prima e 5 di defaticamento dopo</label>
-    <p class="grOut" id="grOut">Scrivi distanza e tempo: ti calcolo il ritmo da tenere.</p>
+    <p class="grOut" id="grOut">Scrivi la distanza e poi il tempo o il ritmo al km.</p>
     <button class="btn" type="button" id="grGo" disabled>▶ Inizia la corsa</button>
     <p class="note" style="margin:8px 0 0">L'orologio ti dice a ogni km se sei in linea e a che ritmo andare. La corsa si salva nel diario come allenamento libero.</p>`;
-  const tb=bx.querySelector("#grT"), ins=[];
+  const tb=bx.querySelector("#grT"), ins=[], pb=bx.querySelector("#grP"), pin=[]; let src="t";   // "t" = ha scritto il tempo, "p" = il ritmo
   [["ore","h"],["minuti","min"],["secondi","s"]].forEach(([nm,u],i)=>{ const inp=el("input","field"); inp.inputMode="numeric"; inp.maxLength=2; inp.placeholder= i? "00" : "0"; inp.setAttribute("aria-label","Tempo obiettivo: "+nm);
-    inp.addEventListener("input",()=>{ inp.value=inp.value.replace(/\D/g,""); if(i&&+inp.value>59) inp.value="59"; if(inp.value.length>=2&&i<2) ins[i+1].focus(); calc(); });
+    inp.addEventListener("input",()=>{ inp.value=inp.value.replace(/\D/g,""); if(i&&+inp.value>59) inp.value="59"; if(inp.value.length>=2&&i<2) ins[i+1].focus(); src="t"; calc(); });
     ins.push(inp); tb.appendChild(inp); tb.appendChild(el("span",null,u)); });
+  [["minuti al km","min"],["secondi al km","s/km"]].forEach(([nm,u],i)=>{ const inp=el("input","field"); inp.inputMode="numeric"; inp.maxLength=2; inp.placeholder= i? "00" : "5"; inp.setAttribute("aria-label","Ritmo: "+nm);
+    inp.addEventListener("input",()=>{ inp.value=inp.value.replace(/\D/g,""); if(i&&+inp.value>59) inp.value="59"; if(inp.value.length>=2&&i<1) pin[1].focus(); src="p"; calc(); });
+    pin.push(inp); pb.appendChild(inp); pb.appendChild(el("span",null,u)); });
+  const setT=sec=>{ sec=Math.round(sec); ins[0].value=String(Math.floor(sec/3600)); ins[1].value=String(Math.floor(sec%3600/60)).padStart(2,"0"); ins[2].value=String(sec%60).padStart(2,"0"); };
+  const setP=ps=>{ ps=Math.round(ps); pin[0].value=String(Math.floor(ps/60)); pin[1].value=String(ps%60).padStart(2,"0"); };
   const kmI=bx.querySelector("#grKm"), out=bx.querySelector("#grOut"), go0=bx.querySelector("#grGo"), wu=bx.querySelector("#grWu");
-  if(g0.km) kmI.value=String(g0.km).replace(".",","); if(g0.sec){ ins[0].value=String(Math.floor(g0.sec/3600)); ins[1].value=String(Math.floor(g0.sec%3600/60)); ins[2].value=String(g0.sec%60).padStart(2,"0"); } if(g0.wu===false) wu.checked=false;
+  if(g0.km) kmI.value=String(g0.km).replace(".",","); if(g0.sec){ ins[0].value=String(Math.floor(g0.sec/3600)); ins[1].value=String(Math.floor(g0.sec%3600/60)); ins[2].value=String(g0.sec%60).padStart(2,"0"); } if(g0.wu===false) wu.checked=false; if(g0.src==="p") src="p";
   let cur=null;
-  function calc(){ const km=Math.round((+String(kmI.value).replace(",",".")||0)*100)/100, sec=(+ins[0].value||0)*3600+(+ins[1].value||0)*60+(+ins[2].value||0);
+  function calc(){ const km=Math.round((+String(kmI.value).replace(",",".")||0)*100)/100; let sec=(+ins[0].value||0)*3600+(+ins[1].value||0)*60+(+ins[2].value||0);
+    const pv=(+pin[0].value||0)*60+(+pin[1].value||0);
     cur=null; go0.disabled=true;
-    if(!(km>=0.5&&km<=100)){ out.textContent= kmI.value? "Distanza tra 0,5 e 100 km." : "Scrivi distanza e tempo: ti calcolo il ritmo da tenere."; return; }
-    if(!sec){ out.textContent="Ora scrivi il tempo che vuoi fare (ore, minuti, secondi)."; return; }
-    const ps=sec/km; if(!paceOk(Math.round(ps))){ out.textContent=`Così sarebbe ${paceStr(ps)}/km: non è un ritmo possibile, controlla il tempo (es. 10 km in 0 h 55 min).`; return; }
+    // tempo e ritmo collegati: quello scritto per ultimo comanda, l'altro si aggiorna
+    if(km>=0.5&&km<=100){ if(src==="p"&&pv){ sec=Math.round(pv*km); setT(sec); } else if(src==="t"&&sec) setP(sec/km); }
+    if(!(km>=0.5&&km<=100)){ out.textContent= kmI.value? "Distanza tra 0,5 e 100 km." : "Scrivi la distanza e poi il tempo o il ritmo al km."; return; }
+    if(!sec){ out.textContent="Ora scrivi il tempo che vuoi fare oppure il ritmo al km."; return; }
+    const ps=sec/km; if(!paceOk(Math.round(ps))){ out.textContent=`Così sarebbe ${paceStr(ps)}/km: non è un ritmo possibile, controlla tempo o ritmo (es. 10 km in 0 h 55 min, oppure 5 min 30 s/km).`; return; }
     cur={km,sec,ps:Math.round(ps)}; go0.disabled=false;
     out.innerHTML=`Ritmo da tenere <b>${paceStr(ps)}/km</b> · ${fmt(km)} km in ${hms2(sec)}`; }
   kmI.addEventListener("input",calc); calc();
   gr.onclick=()=>{ bx.hidden=!bx.hidden; gr.querySelector(".chev").textContent= bx.hidden? "›" : "⌄"; if(!bx.hidden) setTimeout(()=>kmI.focus(),50); };
-  go0.onclick=async()=>{ if(!cur) return; try{ localStorage.setItem("hf:goalRun",JSON.stringify({km:cur.km,sec:cur.sec,wu:wu.checked})); }catch{}
+  go0.onclick=async()=>{ if(!cur) return; try{ localStorage.setItem("hf:goalRun",JSON.stringify({km:cur.km,sec:cur.sec,wu:wu.checked,src})); }catch{}
     const o=goalRunPlan(cur.km,cur.sec,wu.checked);
     if(await askWatch(o)) return;
     openCardio({title:o.title,runType:o.runType,km:cur.km,pace:o.pace,noWatch:true}); };
