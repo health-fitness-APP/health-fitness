@@ -2188,7 +2188,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.67 (allenamenti: si eliminano solo scorrendo e si possono ripristinare)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.68 (orologio: fasi della corsa, obiettivo a ogni km, battiti sempre in vista)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5037,6 +5037,8 @@ async function watchSend(o){ const P=WBR(); if(!P) return;
     hrAddr:localStorage.getItem("hf:hrAddr")||"",hrName:localStorage.getItem("hf:hrName")||""};
   // corsa del piano: l'orologio la rimanda indietro e il risultato va su quella seduta (nel giorno in cui corri davvero)
   if(o.from&&o.from.d) plan.ref={iso:o.from.iso,di:o.from.di,t:o.from.d.title||""};
+  // fasi della seduta: l'orologio avvisa a voce quando finisce il riscaldamento e confronta ogni km con il ritmo obiettivo
+  if(o.from&&o.from.d&&o.from.d.kind==="run"){ try{ plan.segs=runSegs(o.from.d).slice(0,20).map(g=>{ const ps=paceSec(g.pace); return {k:g.kind||"work",l:String(g.label||"").slice(0,60),min:+g.minutes||0,km:+g.km||0,p:ps? paceStr(ps) : ""}; }); }catch(e){ console.warn("fasi",e); } }
   try{ toast("Mando la corsa all'orologio…"); const r0=await P.sendRun({plan:JSON.stringify(plan)}); toast(`⌚ Corsa inviata a ${r0&&r0.watch||"orologio"}: tocca AVVIA sul polso`); }
   catch(e){ const m=String((e&&e.message)||e); toast(/Nessun orologio/.test(m)? "Orologio non collegato: controlla Bluetooth e Galaxy Wearable" : "Orologio: "+m); } }
 async function watchNodes(){ const P=WBR(); if(!P) return []; try{ const r0=await P.nodes(); return (r0&&r0.nodes)||[]; }catch{ return []; } }
