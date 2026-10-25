@@ -1549,6 +1549,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 
     <button role="tab" data-w="programma" aria-selected="false">Programma</button>
     <button role="tab" data-w="chat" aria-selected="false">Coach</button>
+    <button role="tab" data-w="corsa" aria-selected="false">Corsa</button>
     <button role="tab" data-w="coach" aria-selected="false">Tecnica</button>
   </div>
 
@@ -1613,8 +1614,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     </section>
   </div>
 
-  <div id="w-programma" hidden>
+  <div id="w-corsa" hidden>
     <div id="raceRowBox"></div>
+    <div id="corsaWeek"></div>
+    <div id="corsaStatsBox"></div>
+  </div>
+
+  <div id="w-programma" hidden>
     <p id="progMore">Impostazioni del programma</p>
     <section class="card" id="progPick" hidden>
       <h2>Quale scheda vuoi seguire?</h2>
@@ -2189,7 +2195,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.72 (Corsa con obiettivo: tempo o ritmo al km)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.73 (scheda Corsa in Allenamento)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4194,7 +4200,8 @@ $("dietAsk").addEventListener("keydown",e=>{ if(e.key==="Enter") $("dietSend").c
 function setW(w){
   document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-selected",b.dataset.w===w));
   if(w==="oggi"){ go("attivita"); return; }
-  ["oggi","programma","chat","coach"].forEach(x=>$("w-"+x).hidden=x!==w);
+  ["oggi","programma","chat","corsa","coach"].forEach(x=>$("w-"+x).hidden=x!==w);
+  if(w==="corsa") try{ renderProgram(); }catch(e){ console.warn("corsa",e); }
   if(w==="chat") renderChat();
 }
 document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>setW(b.dataset.w));
@@ -4419,7 +4426,10 @@ function renderRaceRow(){ const host=$("raceRowBox"); if(!host) return; host.inn
   rr.querySelector("b").textContent="Allenatore gara";
   rr.querySelector(".ms").textContent= rc? `${rc.name||raceLabel(rc.km)} · `+(wl>0? `mancano ${wl} settimane · obiettivo ${rc.target||"finirla"}` : "gara passata: imposta la prossima") : "Imposta gara, data e tempo obiettivo: ti preparo il piano";
   rr.onclick=()=>{ go("gara"); renderRace(); }; host.appendChild(rr);
-  try{ renderGoalRow(host); }catch(e){ console.warn("obiettivo",e); } }
+  try{ renderGoalRow(host); }catch(e){ console.warn("obiettivo",e); }
+  const st=el("button","card raceRow"); st.type="button"; st.id="csRow2";
+  st.innerHTML=`<span class="mi">📈</span><span class="mt"><b>Statistiche corsa</b><span class="ms">Ultime corse, record, forma, zone cardio e scarpe</span></span><span class="chev">›</span>`;
+  st.onclick=()=>{ go("corsa"); renderCorsa(); }; const sb=$("corsaStatsBox"); if(sb){ sb.innerHTML=""; sb.appendChild(st); } }
 /* corsa con obiettivo: prova libera di oggi (distanza + tempo), separata dall'Allenatore gara: non tocca né la gara né il piano */
 function goalRunGet(){ try{ return JSON.parse(localStorage.getItem("hf:goalRun")||"{}")||{}; }catch{ return {}; } }
 function renderGoalRow(host){ const g0=goalRunGet();
@@ -4469,6 +4479,7 @@ function goalRunPlan(km,sec,wu){ const pace=paceStr(sec/km), title=`Obiettivo ${
   // con il riscaldamento i km totali non coincidono con l'obiettivo: l'orologio segue la fase "obiettivo"
   return {title,runType:"Corsa con obiettivo",km: wu? 0 : km,pace,desc:`Tieni ${pace}/km per ${fmt(km)} km`,segs}; }
 function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e); }
+  if($("corsaWeek")) $("corsaWeek").innerHTML="";
   try{ const wp=$("w-programma"), hp=!!activeProg(); wp.classList.toggle("has-prog",hp);
     const order= hp? ["raceRowBox","progOut","cirOpen","progMore","progPick","aiProgCard","impCard"] : ["raceRowBox","progPick","aiProgCard","impCard","progOut","cirOpen","progMore"];
     order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===wp) wp.appendChild(n); }); applyOrder(wp,"programma"); }catch{}
@@ -4534,6 +4545,7 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
   // corse rimandate: fatte in un giorno diverso da quello del piano
   const doneElse={}; Object.entries(pr.runResults||{}).forEach(([k,v])=>{ if(v&&v.on){ const dd=pr.days[+k.split("|")[1]]; (doneElse[v.on]=doneElse[v.on]||[]).push((dd&&dd.runType)||(dd&&dd.title)||"Corsa"); } });
   // corse della settimana (stile elenco allenamenti di corsa)
+  const cw=$("corsaWeek"); if(cw) cw.innerHTML="";
   const runDays=order.filter(wd=>{ const i=pr.weekMap[wd]; return i!=null&&pr.days[i]&&pr.days[i].kind==="run"; });
   if(runDays.length){
     const rc=el("section","card"); rc.appendChild(el("h2",null,"Le tue corse della settimana"));
@@ -4545,7 +4557,7 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
       row.querySelector("b").textContent=`${names[wd]} · Corsa ${k+1}`; row.querySelector(".ty").textContent=d.runType||"Corsa";
       row.onclick=()=>{ progOpenWd=wd; editDay=null; go("giorno"); renderDayPage(); };
       rc.appendChild(row); });
-    box.appendChild(rc);
+    (cw||box).appendChild(rc);   // stanno nella scheda Corsa, insieme ad Allenatore gara e Corsa con obiettivo
   }
   const wk=el("div","wklist");
   order.forEach(wd=>{
@@ -5651,7 +5663,7 @@ function applyRaceWeek(manual){
     newDays.push({title:`${r.runType||"Corsa"} – settimana ${i+1}`,kind:"run",fromRace:true,runType:r.runType||"Corsa",distanceKm:km,minutes:km&&ps? Math.round(km*ps/60) : 45,pace:r.pace||null,intensity:+r.intensity||2,description:r.desc||"",segments:[],exercises:[]});
     if(map[r.wd]!=null) moved.push(newDays[map[r.wd]].title); map[r.wd]=newDays.length-1; });
   pr.days=newDays; pr.weekMap=map; saveActive(a); race.applied=mondayOf(todayISO()); save("race",race); renderProgram();
-  if(manual) toast(`Corse della settimana ${i+1} nel Programma ✓`+(moved.length?` · al posto di: ${moved.join(", ")}`:""));
+  if(manual) toast(`Corse della settimana ${i+1} in Allenamento → Corsa ✓`+(moved.length?` · al posto di: ${moved.join(", ")}`:""));
 }
 $("rcApply").onclick=()=>applyRaceWeek(true);
 /* ----- adattamento automatico del piano gara ----- */
