@@ -2188,7 +2188,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.69 (zone del battito più precise per l'orologio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.70 (Allenatore gara sempre in vista nel Programma)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4414,8 +4414,9 @@ function renderRaceRow(){ const host=$("raceRowBox"); if(!host) return; host.inn
   const rr=el("button","card raceRow"); rr.type="button";
   const rc=race&&race.goal; const wl=rc? Math.ceil((new Date(rc.date+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5)) : 0;
   rr.innerHTML=`<span class="mi">🏁</span><span class="mt"><b></b><span class="ms"></span></span><span class="chev">›</span>`;
-  rr.querySelector("b").textContent= rc? (rc.name||raceLabel(rc.km)) : "Allenatore gara";
-  rr.querySelector(".ms").textContent= rc? (wl>0? `mancano ${wl} settimane · obiettivo ${rc.target||"finirla"}` : "gara passata: imposta la prossima") : "Imposta gara, data e tempo obiettivo: ti preparo il piano";
+  // il titolo resta sempre "Allenatore gara", così si trova anche quando c'è già una gara impostata
+  rr.querySelector("b").textContent="Allenatore gara";
+  rr.querySelector(".ms").textContent= rc? `${rc.name||raceLabel(rc.km)} · `+(wl>0? `mancano ${wl} settimane · obiettivo ${rc.target||"finirla"}` : "gara passata: imposta la prossima") : "Imposta gara, data e tempo obiettivo: ti preparo il piano";
   rr.onclick=()=>{ go("gara"); renderRace(); }; host.appendChild(rr); }
 function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e); }
   try{ const wp=$("w-programma"), hp=!!activeProg(); wp.classList.toggle("has-prog",hp);
