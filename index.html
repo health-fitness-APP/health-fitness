@@ -455,6 +455,7 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .run-res{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .tap{cursor:pointer}
 .rd-li .a{color:var(--ink)}
+.w-rec{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.w-rec small{display:block;color:var(--muted);font-size:.8rem}.w-rec .btn{width:auto;padding:8px 14px;margin:0}
 .rd-h{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;padding:0;margin:0 0 10px;color:var(--ink);font:inherit;text-align:left;cursor:pointer}.rd-h h2{margin:0}
 .chev{font-size:1.6rem;line-height:1;color:var(--muted);background:none;border:0;padding:0 2px;cursor:pointer}
 .rd-plan{display:flex;justify-content:space-between;align-items:center;width:calc(100% - 28px);text-align:left;font:inherit;color:var(--ink);cursor:pointer}.rd-plan>span:first-child>*{display:block}
@@ -1561,6 +1562,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <p class="sub" id="wDaySub">Le calorie bruciate si aggiungono al fabbisogno del giorno nel diario.</p>
       <ul class="items" id="wList"></ul>
       <p class="empty" id="wEmpty">Nessun allenamento registrato.</p>
+      <button class="linkbtn" id="wRecBtn" type="button" hidden style="margin-top:6px">↩︎ Ripristina un allenamento eliminato</button>
+      <div id="wRecBox" hidden></div>
     </section>
     <section class="card" id="wAddCard">
       <h2>Aggiungi allenamento</h2>
@@ -2185,7 +2188,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.66 (riepilogo corsa: tocca la corsa per aprirlo, sezioni e giri 1/5/10 km come Samsung Health)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.67 (allenamenti: si eliminano solo scorrendo e si possono ripristinare)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4315,15 +4318,14 @@ function renderWorkouts(){
     const kmTxt=w.hcId&&w.distance? (+w.distance).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) : w.distance? fmt(w.distance) : "";
     const extra=[timeRange(w.start,w.end), FED[w.fed]||"", kmTxt? kmTxt+" km":"", w.pace? "passo "+w.pace:"", w.avgHr? "FC media "+w.avgHr:""].filter(Boolean).join(" · ");
     tx.append(el("div","a",w.name), el("div","b",`${w.sec? fmtHMS(w.sec) : (w.minutes||"?")+" min"} · ${extra||w.intensity||""}`));
-    if(isRun(w)){ li.classList.add("tap","rd-li"); li.onclick=e=>{ if(e.target.closest(".del")) return; openRunSummary(w.id,{...w,date:state.date}); }; tx.firstChild.textContent+=" ›"; }
-    const del=el("button","del","×"); del.setAttribute("aria-label","Rimuovi "+w.name);
-    del.onclick=()=>{ state.day.workouts=ws.filter(x=>x.id!==w.id); saveDay(); hist.items=hist.items.filter(x=>x.id!==w.id); save("workoutHistory",hist); renderAll(); };
+    if(isRun(w)){ li.classList.add("tap","rd-li"); li.onclick=()=>openRunSummary(w.id,{...w,date:state.date}); tx.firstChild.textContent+=" ›"; }
     const kc=el("span","k"); if(w.kcalShown&&w.kcalShown!==r(w.kcal)){ kc.append(el("span",null,w.kcalShown+" kcal")); const sm=el("small",null,"+"+r(w.kcal)+" al fabbisogno"); sm.style.cssText="display:block;font-weight:400;font-size:.72em;opacity:.7;white-space:nowrap"; sm.title="Le calorie che bruceresti comunque a riposo sono già nel fabbisogno"; kc.append(sm); } else kc.textContent="+"+r(w.kcal)+" kcal";
-    li.append(tx, kc, del);
+    li.append(tx, kc);   // si elimina solo scorrendo verso sinistra (niente X: troppo facile toccarla per sbaglio)
     ul.appendChild(makeSwipe(li,()=>{ const idx=(state.day.workouts||[]).findIndex(x=>x.id===w.id), hIdx=hist.items.findIndex(x=>x.id===w.id), hItem=hist.items[hIdx];
-      state.day.workouts=(state.day.workouts||[]).filter(x=>x.id!==w.id); saveDay(); hist.items=hist.items.filter(x=>x.id!==w.id); save("workoutHistory",hist); renderAll();
-      actionToast(`Eliminato: ${w.name}`,"Annulla",()=>{ const arr=state.day.workouts||[]; arr.splice(Math.max(0,idx),0,w); state.day.workouts=arr; saveDay(); if(hItem){ hist.items.splice(Math.max(0,hIdx),0,hItem); save("workoutHistory",hist); } renderAll(); },6000); },w.name));
+      state.day.workouts=(state.day.workouts||[]).filter(x=>x.id!==w.id); saveDay(); hist.items=hist.items.filter(x=>x.id!==w.id); save("workoutHistory",hist); wTrashAdd({...w,date:state.date}); renderAll();
+      actionToast(`Eliminato: ${w.name}`,"Annulla",()=>{ wTrashDrop(w.id); const arr=state.day.workouts||[]; arr.splice(Math.max(0,idx),0,w); state.day.workouts=arr; saveDay(); if(hItem){ hist.items.splice(Math.max(0,hIdx),0,hItem); save("workoutHistory",hist); } renderAll(); },6000); },w.name));
   });
+  try{ const rc=wRecoverables(); $("wRecBtn").hidden=!rc.length; if(!rc.length) $("wRecBox").hidden=true; else if(!$("wRecBox").hidden) renderWRec(); }catch(e){ console.warn("ripristino",e); }
   $("wAiBox").hidden=!sample; $("wShotBox").hidden=!sample||!imgLimits; prefillSession(); renderHistory();
   updWCalc();
   // programma
@@ -4717,7 +4719,7 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
     if(hcOpt("W")){ let anchor=null, added=0, all=[]; for(let pg=0;pg<10;pg++){ const r0=await H.queryWorkouts({startDate:iso(from),endDate:iso(now),limit:50,...(anchor?{anchor}:{})}); all=all.concat((r0&&r0.workouts)||[]); anchor=r0&&r0.anchor; if(!anchor) break; }
       const ex=await hcExtras(iso(from),iso(now)), fixes=[];
       if(manual&&HCW()) HCW().requestExtra().catch(()=>{});
-      const seen=new Set((hist.items||[]).map(w=>w.hcId).filter(Boolean));
+      const seen=new Set((hist.items||[]).map(w=>w.hcId).filter(Boolean)); try{ JSON.parse(localStorage.getItem("hf:hcGone")||"[]").forEach(x=>seen.add(x)); }catch{}   // eliminati a mano: non li reimporto
       // correggi gli allenamenti già importati con durata e distanza vere
       for(const w of all){ const id=w.platformId||(w.startDate+"|"+w.workoutType), x=ex[w.platformId]; if(!x||!seen.has(id)) continue;
         const it=(hist.items||[]).find(i=>i.hcId===id); if(!it||(it.hcV||0)>=4) continue;
@@ -5179,6 +5181,36 @@ $("slShot").onchange=async e=>{ const f=e.target.files[0]; $("slShot").value="";
   catch(err){ setStatus("slStatus",(err&&err.message)||errCopy(err),true); } };
 $("csRow").onclick=()=>{ go("corsa"); renderCorsa(); };
 $("corsaBack").onclick=()=>{ if(history.state&&history.state.v==="corsa") history.back(); else go("attivita"); };
+/* ----- cestino degli allenamenti: si possono ripristinare (anche le corse eliminate prima del cestino, dai dati rimasti) ----- */
+function wTrash(){ try{ return JSON.parse(localStorage.getItem("hf:wTrash")||"[]"); }catch{ return []; } }
+function wTrashAdd(w){ try{ const t=wTrash().filter(x=>x.id!==w.id); t.unshift({...w,delAt:Date.now()}); localStorage.setItem("hf:wTrash",JSON.stringify(t.slice(0,30)));
+    if(w.hcId){ const g=JSON.parse(localStorage.getItem("hf:hcGone")||"[]"); if(!g.includes(w.hcId)){ g.push(w.hcId); localStorage.setItem("hf:hcGone",JSON.stringify(g.slice(-300))); } } }catch{} }
+function wTrashDrop(id){ try{ const t=wTrash(), w=t.find(x=>x.id===id); localStorage.setItem("hf:wTrash",JSON.stringify(t.filter(x=>x.id!==id)));
+    if(w&&w.hcId){ const g=JSON.parse(localStorage.getItem("hf:hcGone")||"[]").filter(x=>x!==w.hcId); localStorage.setItem("hf:hcGone",JSON.stringify(g)); } }catch{} }
+function wRecoverables(){ const have=new Set((hist.items||[]).map(x=>x.id)), from=shiftDate(todayISO(),-30), out=[], seen=new Set();
+  const runOn=d=>(hist.items||[]).some(x=>x.date===d&&isRun(x));
+  wTrash().forEach(w=>{ if(!have.has(w.id)&&w.date>=from){ out.push(w); seen.add(w.id); } });
+  // corse con il riepilogo salvato ma tolte dagli allenamenti
+  try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(!k||!k.startsWith("diario:run-")) continue; const id=k.slice(11); if(have.has(id)||seen.has(id)) continue;
+      const D=JSON.parse(localStorage.getItem(k)||"null"); if(!D||!D.t0) continue; const dt=new Date(D.t0), date=todayISO(dt); if(date<from||runOn(date)) continue;
+      const km=+D.km>0.05? Math.round(D.km*100)/100 : null, min=Math.round((+D.sec||0)/60); if(!min) continue;
+      out.push({id,name:(D.plan&&D.plan.title)||"Corsa",minutes:min,intensity:D.src==="watch"?"Galaxy Watch":"corsa con fascia",kcal:+D.kcal||Math.round((km||0)*((state.profile&&state.profile.weight)||70)),distance:km,pace:km? paceOf(min,km) : null,start:String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0"),avgHr:+D.avgHr||null,maxHr:+D.maxHr||null,zones:Array.isArray(D.zs)? D.zs.map(x=>Math.round(+x/6)/10) : null,...(D.src==="watch"?{src:"watch"}:{}),date}); seen.add(id); } }catch{}
+  // sedute del piano segnate come fatte ma senza l'allenamento
+  try{ [state.program,imported].forEach(pr=>{ if(!pr||!pr.runResults) return; Object.entries(pr.runResults).forEach(([k,r0])=>{ const iso=k.split("|")[0], di=+k.split("|")[1], date=r0.on||iso;
+      if(date<from||date>todayISO()||(r0.wid&&(have.has(r0.wid)||seen.has(r0.wid)))||runOn(date)||!(r0.km||r0.minutes)) return; const d=pr.days&&pr.days[di], id=r0.wid||uid();
+      out.push({id,name:(d&&(d.title||d.runType))||"Corsa",minutes:Math.round(+r0.minutes||0),intensity:"corsa programma",kcal:+r0.kcal||0,distance:+r0.km||null,pace:r0.pace||null,avgHr:+r0.avgHr||null,maxHr:+r0.maxHr||null,date}); seen.add(id); }); }); }catch{}
+  return out.sort((a,b)=>a.date<b.date?1:-1); }
+async function wRestore(w){ const {date,delAt,...item}=w;
+  hist.items=[...(hist.items||[]),{...item,date}]; save("workoutHistory",hist);
+  if(date===state.date){ state.day.workouts=[...(state.day.workouts||[]),item]; saveDay(); }
+  else { const doc=(await store.getDoc("day-"+date).catch(()=>null))||{meals:{},workouts:[]}; doc.workouts=[...(doc.workouts||[]),item]; save("day-"+date,doc); }
+  wTrashDrop(item.id); toast(`Ripristinato: ${item.name} ✓`); renderAll(); }
+function renderWRec(){ const box=$("wRecBox"); box.innerHTML=""; const rc=wRecoverables();
+  if(!rc.length){ box.appendChild(el("p","note","Nessun allenamento da ripristinare.")); return; }
+  box.appendChild(el("p","note","Allenamenti eliminati negli ultimi 30 giorni:"));
+  rc.forEach(w=>{ const row=el("div","w-rec"), t=el("div"); t.append(el("b",null,w.name), el("small",null,[new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"}), w.start||"", w.distance? fmt(w.distance)+" km" : "", (w.minutes||"?")+" min"].filter(Boolean).join(" · ")));
+    const b=el("button","btn ghost","Ripristina"); b.type="button"; b.onclick=()=>wRestore(w); row.append(t,b); box.appendChild(row); }); }
+$("wRecBtn").onclick=()=>{ const b=$("wRecBox"); b.hidden=!b.hidden; if(!b.hidden) renderWRec(); };
 /* ===== riepilogo della corsa (come Samsung Health): percorso, giri, grafici, zone e stime ===== */
 const RD_KEEP=40;   // corse con il percorso completo conservato: le più vecchie tengono solo i numeri (spazio sul telefono)
 const RD_PCOL=["#2F7FD8","#2E8B5F","#E9A21E","#F07C2B","#E5484D"];   // dal più lento al più veloce
