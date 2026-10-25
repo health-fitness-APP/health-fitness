@@ -824,6 +824,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .fe-mode{margin:4px 0}
 .raceRow{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;margin-bottom:10px;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
 .raceRow .mi{flex:none;width:44px;height:44px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+.grBox{padding:14px 16px;margin:-4px 0 10px}.grBox .two{margin-top:6px}.grBox .grOut{font-size:.95rem;margin:10px 0 4px}.grBox .grOut b{font-size:1.2rem}
 .raceRow .mt{flex:1;min-width:0;display:flex;flex-direction:column}.raceRow b{font-size:1.05rem}.raceRow .ms{font-size:.82rem;color:var(--muted)}.raceRow .chev{color:var(--muted);font-size:1.4rem}
 #rcDays .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
 .rc-verdict{font-weight:600;margin:0 0 10px}
@@ -2188,7 +2189,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.70 (Allenatore gara sempre in vista nel Programma)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.71 (Corsa con obiettivo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4417,7 +4418,46 @@ function renderRaceRow(){ const host=$("raceRowBox"); if(!host) return; host.inn
   // il titolo resta sempre "Allenatore gara", così si trova anche quando c'è già una gara impostata
   rr.querySelector("b").textContent="Allenatore gara";
   rr.querySelector(".ms").textContent= rc? `${rc.name||raceLabel(rc.km)} · `+(wl>0? `mancano ${wl} settimane · obiettivo ${rc.target||"finirla"}` : "gara passata: imposta la prossima") : "Imposta gara, data e tempo obiettivo: ti preparo il piano";
-  rr.onclick=()=>{ go("gara"); renderRace(); }; host.appendChild(rr); }
+  rr.onclick=()=>{ go("gara"); renderRace(); }; host.appendChild(rr);
+  try{ renderGoalRow(host); }catch(e){ console.warn("obiettivo",e); } }
+/* corsa con obiettivo: prova libera di oggi (distanza + tempo), separata dall'Allenatore gara: non tocca né la gara né il piano */
+function goalRunGet(){ try{ return JSON.parse(localStorage.getItem("hf:goalRun")||"{}")||{}; }catch{ return {}; } }
+function renderGoalRow(host){ const g0=goalRunGet();
+  const gr=el("button","card raceRow"); gr.type="button"; gr.id="goalRow";
+  gr.innerHTML=`<span class="mi">🎯</span><span class="mt"><b>Corsa con obiettivo</b><span class="ms">Prova di oggi: scegli km e tempo, ti guido io. Non cambia il piano gara</span></span><span class="chev">›</span>`;
+  const bx=el("section","card grBox"); bx.id="goalBox"; bx.hidden=true;
+  bx.innerHTML=`<div class="two"><label>Distanza km<input class="field" id="grKm" inputmode="decimal" placeholder="Es. 10"></label>
+    <div><p class="lab" style="margin:0 0 4px">Tempo obiettivo</p><div class="tbox" id="grT"></div></div></div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:.9rem"><input type="checkbox" id="grWu" checked> 10 minuti di riscaldamento prima e 5 di defaticamento dopo</label>
+    <p class="grOut" id="grOut">Scrivi distanza e tempo: ti calcolo il ritmo da tenere.</p>
+    <button class="btn" type="button" id="grGo" disabled>▶ Inizia la corsa</button>
+    <p class="note" style="margin:8px 0 0">L'orologio ti dice a ogni km se sei in linea e a che ritmo andare. La corsa si salva nel diario come allenamento libero.</p>`;
+  const tb=bx.querySelector("#grT"), ins=[];
+  [["ore","h"],["minuti","min"],["secondi","s"]].forEach(([nm,u],i)=>{ const inp=el("input","field"); inp.inputMode="numeric"; inp.maxLength=2; inp.placeholder= i? "00" : "0"; inp.setAttribute("aria-label","Tempo obiettivo: "+nm);
+    inp.addEventListener("input",()=>{ inp.value=inp.value.replace(/\D/g,""); if(i&&+inp.value>59) inp.value="59"; if(inp.value.length>=2&&i<2) ins[i+1].focus(); calc(); });
+    ins.push(inp); tb.appendChild(inp); tb.appendChild(el("span",null,u)); });
+  const kmI=bx.querySelector("#grKm"), out=bx.querySelector("#grOut"), go0=bx.querySelector("#grGo"), wu=bx.querySelector("#grWu");
+  if(g0.km) kmI.value=String(g0.km).replace(".",","); if(g0.sec){ ins[0].value=String(Math.floor(g0.sec/3600)); ins[1].value=String(Math.floor(g0.sec%3600/60)); ins[2].value=String(g0.sec%60).padStart(2,"0"); } if(g0.wu===false) wu.checked=false;
+  let cur=null;
+  function calc(){ const km=Math.round((+String(kmI.value).replace(",",".")||0)*100)/100, sec=(+ins[0].value||0)*3600+(+ins[1].value||0)*60+(+ins[2].value||0);
+    cur=null; go0.disabled=true;
+    if(!(km>=0.5&&km<=100)){ out.textContent= kmI.value? "Distanza tra 0,5 e 100 km." : "Scrivi distanza e tempo: ti calcolo il ritmo da tenere."; return; }
+    if(!sec){ out.textContent="Ora scrivi il tempo che vuoi fare (ore, minuti, secondi)."; return; }
+    const ps=sec/km; if(!paceOk(Math.round(ps))){ out.textContent=`Così sarebbe ${paceStr(ps)}/km: non è un ritmo possibile, controlla il tempo (es. 10 km in 0 h 55 min).`; return; }
+    cur={km,sec,ps:Math.round(ps)}; go0.disabled=false;
+    out.innerHTML=`Ritmo da tenere <b>${paceStr(ps)}/km</b> · ${fmt(km)} km in ${hms2(sec)}`; }
+  kmI.addEventListener("input",calc); calc();
+  gr.onclick=()=>{ bx.hidden=!bx.hidden; gr.querySelector(".chev").textContent= bx.hidden? "›" : "⌄"; if(!bx.hidden) setTimeout(()=>kmI.focus(),50); };
+  go0.onclick=async()=>{ if(!cur) return; try{ localStorage.setItem("hf:goalRun",JSON.stringify({km:cur.km,sec:cur.sec,wu:wu.checked})); }catch{}
+    const o=goalRunPlan(cur.km,cur.sec,wu.checked);
+    if(await askWatch(o)) return;
+    openCardio({title:o.title,runType:o.runType,km:cur.km,pace:o.pace,noWatch:true}); };
+  host.appendChild(gr); host.appendChild(bx); }
+function goalRunPlan(km,sec,wu){ const pace=paceStr(sec/km), title=`Obiettivo ${fmt(km)} km in ${hms2(sec)}`;
+  const main={k:"work",l:`${fmt(km)} km a ${pace}/km`,min:0,km,p:pace};
+  const segs= wu? [{k:"warmup",l:"Riscaldamento: corsa lenta",min:10,km:0,p:""},main,{k:"cooldown",l:"Defaticamento: camminata",min:5,km:0,p:""}] : [main];
+  // con il riscaldamento i km totali non coincidono con l'obiettivo: l'orologio segue la fase "obiettivo"
+  return {title,runType:"Corsa con obiettivo",km: wu? 0 : km,pace,desc:`Tieni ${pace}/km per ${fmt(km)} km`,segs}; }
 function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e); }
   try{ const wp=$("w-programma"), hp=!!activeProg(); wp.classList.toggle("has-prog",hp);
     const order= hp? ["raceRowBox","progOut","cirOpen","progMore","progPick","aiProgCard","impCard"] : ["raceRowBox","progPick","aiProgCard","impCard","progOut","cirOpen","progMore"];
@@ -5043,7 +5083,8 @@ async function watchSend(o){ const P=WBR(); if(!P) return;
   // corsa del piano: l'orologio la rimanda indietro e il risultato va su quella seduta (nel giorno in cui corri davvero)
   if(o.from&&o.from.d) plan.ref={iso:o.from.iso,di:o.from.di,t:o.from.d.title||""};
   // fasi della seduta: l'orologio avvisa a voce quando finisce il riscaldamento e confronta ogni km con il ritmo obiettivo
-  if(o.from&&o.from.d&&o.from.d.kind==="run"){ try{ plan.segs=runSegs(o.from.d).slice(0,20).map(g=>{ const ps=paceSec(g.pace); return {k:g.kind||"work",l:String(g.label||"").slice(0,60),min:+g.minutes||0,km:+g.km||0,p:ps? paceStr(ps) : ""}; }); }catch(e){ console.warn("fasi",e); } }
+  if(Array.isArray(o.segs)) plan.segs=o.segs;
+  else if(o.from&&o.from.d&&o.from.d.kind==="run"){ try{ plan.segs=runSegs(o.from.d).slice(0,20).map(g=>{ const ps=paceSec(g.pace); return {k:g.kind||"work",l:String(g.label||"").slice(0,60),min:+g.minutes||0,km:+g.km||0,p:ps? paceStr(ps) : ""}; }); }catch(e){ console.warn("fasi",e); } }
   try{ toast("Mando la corsa all'orologio…"); const r0=await P.sendRun({plan:JSON.stringify(plan)}); toast(`⌚ Corsa inviata a ${r0&&r0.watch||"orologio"}: tocca AVVIA sul polso`); }
   catch(e){ const m=String((e&&e.message)||e); toast(/Nessun orologio/.test(m)? "Orologio non collegato: controlla Bluetooth e Galaxy Wearable" : "Orologio: "+m); } }
 async function watchNodes(){ const P=WBR(); if(!P) return []; try{ const r0=await P.nodes(); return (r0&&r0.nodes)||[]; }catch{ return []; } }
@@ -5612,7 +5653,7 @@ function renderRaceFeed(){ const box=$("rcFeed"); if(!box) return; box.innerHTML
 document.querySelectorAll("#rcMode button").forEach(b=>b.onclick=()=>{ if(!race) return; race.adapt=b.dataset.m; save("race",race); renderRaceFeed(); });
 function scalePlanPaces(ratio,fromIdx){ (race.plan.weeks||[]).forEach((w,i)=>{ if(i<fromIdx) return; (w.runs||[]).forEach(r=>{ const ps=paceSec(r.pace); if(ps) r.pace=paceStr(ps*ratio); }); }); }
 /* dopo ogni corsa: confronto con il previsto e, se sei più in forma, aggiorno i ritmi */
-function raceCheckRun(w){
+function raceCheckRun(w){ if(/^Obiettivo /.test(w&&w.name||"")) return;
   if(!race||!race.plan||!race.goal||(race.adapt||"auto")==="off"||!isRun(w)) return;
   const g=race.goal, i=raceWeekIdx(), wk=race.plan.weeks[i]; if(!wk) return;
   const wd=new Date(w.date+"T12:00:00").getDay(), planned=(wk.runs||[]).find(r=>r.wd===wd)||null;
