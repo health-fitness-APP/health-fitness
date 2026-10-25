@@ -1223,7 +1223,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </section>
   <section class="card">
     <h2>🍽️ Aggiungi a un pasto</h2>
-    <div class="two"><label>Pasto<select class="field" id="rcpMeal"></select></label><label>Porzioni<input class="field" id="rcpPortions" inputmode="decimal" value="1"></label></div>
+    <label>Pasto<select class="field" id="rcpMeal"></select></label>
+    <div class="two" style="margin-top:8px"><label>Porzioni<input class="field" id="rcpPortions" inputmode="decimal" value="1"></label><label>oppure grammi<input class="field" id="rcpGrams" inputmode="decimal" placeholder="peso"></label></div>
     <button class="btn" id="rcpToMeal" type="button" style="margin-top:8px">Aggiungi al diario di oggi</button>
   </section>
   <div class="stack" style="margin:12px 0 20px"><button class="btn" id="rcpSave" type="button">Salva ricetta</button><button class="btn ghost danger" id="rcpDel" type="button">Elimina ricetta</button></div>
@@ -2137,7 +2138,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.63 (ricette: aggiungi al pasto dall'elenco con ＋)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.64 (ricette: aggiungi al pasto a porzioni o a grammi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -2205,7 +2206,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <h3 id="rqTitle">Aggiungi al pasto</h3>
     <p class="note" id="rqInfo"></p>
     <div class="chips" id="rqMeals" style="margin-top:8px"></div>
-    <label>Porzioni<input class="field" id="rqPortions" inputmode="decimal" value="1"></label>
+    <div class="two"><label>Porzioni<input class="field" id="rqPortions" inputmode="decimal" value="1"></label><label>oppure grammi<input class="field" id="rqGrams" inputmode="decimal" placeholder="peso"></label></div>
+    <p class="note">Hai pesato il piatto? Scrivi i grammi: le porzioni si calcolano da sole.</p>
     <button class="btn" id="rqGo" type="button" style="margin-top:10px">Aggiungi al diario di oggi</button>
   </div>
 </div>
@@ -3038,14 +3040,22 @@ function renderRecipes(){ const box=$("rcpList"); if(!box) return; box.innerHTML
     b.querySelector(".n").textContent=rc.name; b.querySelector(".q").textContent=`${r(p.kcal)} kcal a porzione (${p.g} g) · P ${r(p.p)} · C ${r(p.c)} · G ${r(p.f)} · ${rc.servings} porz.`;
     b.onclick=()=>openRecipe(rc.id); const add=el("button","rcp-add","＋"); add.type="button"; add.setAttribute("aria-label","Aggiungi "+rc.name+" a un pasto"); add.onclick=()=>openRecipeQuick(rc);
     row.append(b,add); box.appendChild(row); }); }
+/* porzioni ⇄ grammi collegati: chi ha scritto per ultimo decide */
+const numIt=v=>+String(v||"").replace(",",".")||0;
+function linkPG(pid,gid,pg){ $(pid).addEventListener("input",()=>{ $(pid).dataset.last="p"; syncPG(pid,gid,pg); });
+  $(gid).addEventListener("input",()=>{ $(pid).dataset.last="g"; const gr=numIt($(gid).value), g=pg(); $(pid).value= gr&&g? String(Math.round(gr/g*100)/100).replace(".",",") : ""; }); }
+function syncPG(pid,gid,pg){ if($(pid).dataset.last==="g") return; const n=numIt($(pid).value), g=pg(); $(gid).value= n&&g? Math.round(n*g) : ""; }
+function resetPG(pid,gid,pg){ $(pid).value="1"; $(pid).dataset.last="p"; syncPG(pid,gid,pg); }
+function readPG(pid,gid,pg){ if($(pid).dataset.last==="g"){ const gr=numIt($(gid).value), g=pg(); if(gr&&g) return gr/g; } return numIt($(pid).value)||1; }
 /* aggiunta veloce dall'elenco, senza aprire la ricetta */
 let rqRc=null, rqMeal=null;
 function mealByHour(){ const ms=mealList(), h=new Date().getHours(), want= h<11? "colazione" : h<15? "pranzo" : h<18? "spunt" : "cena";
   const hit= want==="spunt"? (ms.filter(m=>/spunt/i.test(m.id+m.name)).pop()) : ms.find(m=>m.id===want||normFood(m.name)===want); return (hit||ms[0]||{}).id; }
 function openRecipeQuick(rc){ if(!(rc.ingredients||[]).length){ toast("Questa ricetta non ha ingredienti: aprila per completarla"); return; }
-  rqRc=rc; rqMeal=mealByHour(); const p=rcpPortion(rc); $("rqTitle").textContent=rc.name; $("rqInfo").textContent=`1 porzione = ${p.g} g · ${r(p.kcal)} kcal`; $("rqPortions").value="1"; rqRender(); openSheet("rqSheet"); }
+  rqRc=rc; rqMeal=mealByHour(); const p=rcpPortion(rc); $("rqTitle").textContent=rc.name; $("rqInfo").textContent=`1 porzione = ${p.g} g · ${r(p.kcal)} kcal`; resetPG("rqPortions","rqGrams",rqPG); rqRender(); openSheet("rqSheet"); }
+const rqPG=()=>rqRc? rcpPortion(rqRc).g : 0; linkPG("rqPortions","rqGrams",rqPG);
 function rqRender(){ const box=$("rqMeals"); box.innerHTML=""; mealList().forEach(m=>{ const c=el("button","chip",m.name); c.type="button"; c.setAttribute("aria-pressed",m.id===rqMeal); c.onclick=()=>{ rqMeal=m.id; rqRender(); }; box.appendChild(c); }); }
-$("rqGo").onclick=()=>{ if(!rqRc||!rqMeal) return; const n=+String($("rqPortions").value).replace(",",".")||1, it=normItem(recipeItem(rqRc,n)); Object.assign(it,{portion:recipeItem(rqRc,1).grams,portionKnown:true,portions:n});
+$("rqGo").onclick=()=>{ if(!rqRc||!rqMeal) return; const n=readPG("rqPortions","rqGrams",rqPG), it=normItem(recipeItem(rqRc,n)); Object.assign(it,{portion:recipeItem(rqRc,1).grams,portionKnown:true,portions:n});
   if(state.date!==todayISO()) goDate(todayISO()); addItems([it],rqMeal,true); closeTopSheet(); toast(`${rqRc.name} aggiunta a ${(mealList().find(m=>m.id===rqMeal)||{}).name||"pasto"} ✓`); };
 $("rcpQ").addEventListener("input",renderRecipes);
 $("rcpNew").onclick=()=>openRecipe(null);
@@ -3054,8 +3064,10 @@ function openRecipe(id){ const rc=id? recipes.list.find(x=>x.id===id) : null;
   $("rcpTitle").textContent= rc? "Ricetta" : "Nuova ricetta"; $("rcpName").value=rcpCur.name; $("rcpServ").value=rcpCur.servings; $("rcpCooked").value=rcpCur.cooked||""; $("rcpSteps").value=rcpCur.steps||"";
   $("rcpImport").open=!rc; $("rcpPaste").value=""; setStatus("rcpStatus",""); $("rcpDel").hidden=!rc;
   const sel=$("rcpMeal"); sel.innerHTML=""; mealList().forEach(m=>{ const o=el("option",null,m.name); o.value=m.id; sel.appendChild(o); });
-  go("ricetta"); renderRecipe(); }
-function renderRecipe(){ if(!rcpCur) return; const box=$("rcpIng"); box.innerHTML="";
+  resetPG("rcpPortions","rcpGrams",rcpPG); go("ricetta"); renderRecipe(); }
+const rcpPG=()=>rcpCur? rcpPortion({...rcpCur,servings:Math.max(1,+$("rcpServ").value||1),cooked:+$("rcpCooked").value||null}).g : 0;
+linkPG("rcpPortions","rcpGrams",rcpPG); ["rcpServ","rcpCooked"].forEach(id=>$(id).addEventListener("input",()=>syncPG("rcpPortions","rcpGrams",rcpPG)));
+function renderRecipe(){ if(!rcpCur) return; syncPG("rcpPortions","rcpGrams",rcpPG); const box=$("rcpIng"); box.innerHTML="";
   if(!rcpCur.ingredients.length) box.appendChild(el("p","note","Nessun ingrediente."));
   rcpCur.ingredients.forEach((it,i)=>{ const row=el("div","mp-row"), tx=el("div","mp-tx"); tx.innerHTML=`<span class="n"></span><span class="q"></span>`;
     tx.querySelector(".n").textContent=it.name; tx.querySelector(".q").textContent= it.kcal!=null? `${fmt(it.grams)} g · ${r(it.kcal)} kcal · P ${r(it.p)} · C ${r(it.c)} · G ${r(it.f)}` : `${fmt(it.grams)} g · calcolo i valori…`;
@@ -3104,7 +3116,7 @@ $("rcpBack").onclick=()=>{ if(history.state&&history.state.v==="ricetta") histor
 function recipeItem(rc,portions){ const p=rcpPortion(rc), n=+portions||1; return {name:rc.name,grams:p.g*n,kcal:p.kcal*n,p:p.p*n,c:p.c*n,f:p.f*n,portion:p.g,portionKnown:true,portions:n,recipe:rc.id}; }
 $("rcpToMeal").onclick=()=>{ if(!rcpCur) return; rcpReadForm(); if(!rcpCur.ingredients.length){ toast("Aggiungi prima gli ingredienti"); return; }
   if(!recipes.list.some(x=>x.id===rcpCur.id)){ recipes.list=[rcpCur,...recipes.list]; } else recipes.list=recipes.list.map(x=>x.id===rcpCur.id? rcpCur : x); saveRecipes();
-  const mid=$("rcpMeal").value, n=+String($("rcpPortions").value).replace(",",".")||1, it=normItem(recipeItem(rcpCur,n)); Object.assign(it,{portion:recipeItem(rcpCur,1).grams,portionKnown:true,portions:n});
+  const mid=$("rcpMeal").value, n=readPG("rcpPortions","rcpGrams",rcpPG), it=normItem(recipeItem(rcpCur,n)); Object.assign(it,{portion:recipeItem(rcpCur,1).grams,portionKnown:true,portions:n});
   if(state.date!==todayISO()) goDate(todayISO()); addItems([it],mid,true); toast(`${rcpCur.name} aggiunta a ${(mealList().find(m=>m.id===mid)||{}).name||"pasto"} ✓`); };
 /* ----- scheda alimento: correggi i valori sbagliati (pressione lunga) ----- */
 let feCtx=null, feMode="por";
