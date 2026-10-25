@@ -2188,7 +2188,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.68 (orologio: fasi della corsa, obiettivo a ogni km, battiti sempre in vista)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.69 (zone del battito più precise per l'orologio)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4570,7 +4570,11 @@ let progOpenWd=null, _prog=null;
 /* ===== statistiche corsa: record, forma, zone, scarpe, numeri, sonno ===== */
 let shoes={list:[],def:null};
 const dayLocal=d=>{ try{ return JSON.parse(localStorage.getItem("diario:day-"+d)||"null"); }catch{ return null; } };
-function hrMaxOf(){ const p=state.profile||{}; return +p.hrMax||Math.round(208-0.7*(+p.age||35)); }
+// FC max: quella scritta nel profilo; altrimenti la stima per età, alzata se nelle corse dell'ultimo anno hai già toccato battiti più alti
+// (con una FC max sottostimata le zone escono troppo basse e l'orologio dice sempre "sopra la zona")
+function hrMaxOf(){ const p=state.profile||{}; if(+p.hrMax) return +p.hrMax; const est=Math.round(208-0.7*(+p.age||35));
+  let obs=0; try{ const from=shiftDate(todayISO(),-365); ((hist&&hist.items)||[]).forEach(w=>{ const m=+w.maxHr||0; if(m>obs&&m<=215&&(w.date||"")>=from) obs=m; }); }catch{}
+  return Math.max(est,obs); }
 function hrRestOf(){ return +(state.profile||{}).hrRest||60; }
 function wLoad(w){ const min=+w.minutes||0; if(!min) return 0; const mx=hrMaxOf(), rs=hrRestOf();
   let x= w.avgHr? (w.avgHr-rs)/(mx-rs) : Math.min(0.95,Math.max(0.3,((+w.kcal||0)/min)/16));
