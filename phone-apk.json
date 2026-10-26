@@ -1,0 +1,4 @@
+{
+  "min": 12,
+  "note": "Ultima build con modifiche native del telefono (app/native o shell Android). Alzalo solo quando cambia il telefono: le versioni solo-orologio non devono avvisare sul telefono."
+}

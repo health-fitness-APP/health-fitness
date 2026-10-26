@@ -2195,7 +2195,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.73 (scheda Corsa in Allenamento)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.74 (niente avvisi di aggiornamento solo per l'orologio)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -8321,8 +8321,11 @@ async function loadAll(){
     try{ NAT().Plugins.App.addListener("resume",()=>{ if(CD&&CD.native){ HRN().state().then(st=>{ CD.nat=st; if(view==="cardio") renderCardio(); }).catch(()=>{}); } else hrnRestore(); }); }catch{}
     setTimeout(async()=>{ try{ const info=await NAT().Plugins.App.getInfo(); const mine=+info.build||0;
       const r0=await fetch("https://api.github.com/repos/health-fitness-app/health-fitness/releases/latest",{cache:"no-store"}); if(!r0.ok) return; const rel=await r0.json();
-      const n=+String(rel.tag_name||"").replace(/\D/g,""), asset=(rel.assets||[]).find(a=>/\.apk$/i.test(a.name));
-      if(n>mine&&asset) actionToast(`Nuova versione dell'app (1.${n}) disponibile`,"Scarica",()=>{ try{ NAT().Plugins.Browser.open({url:asset.browser_download_url}); }catch{ location.href=asset.browser_download_url; } },20000);
+      const n=+String(rel.tag_name||"").replace(/\D/g,""), asset=(rel.assets||[]).find(a=>a.name==="HealthFit.apk");   // mai l'APK dell'orologio sul telefono
+      // avviso solo se il telefono ha davvero bisogno del nuovo APK (le versioni solo-orologio si aggiornano dal Watch) e non se l'ha già chiuso con la X
+      let need=0; try{ const pj=await fetch("phone-apk.json",{cache:"no-store"}); if(pj.ok) need=+(await pj.json()).min||0; }catch{}
+      if(n>mine&&mine<need&&asset&&+localStorage.getItem("hf:updSkip")!==n){ actionToast(`Nuova versione dell'app (1.${n}) disponibile`,"Scarica",()=>{ try{ NAT().Plugins.Browser.open({url:asset.browser_download_url}); }catch{ location.href=asset.browser_download_url; } },20000);
+        const x=$("actToastX"), x0=x.onclick; x.onclick=()=>{ try{ localStorage.setItem("hf:updSkip",String(n)); }catch{} x0&&x0(); }; }
     }catch{} },4000); }
   setTimeout(async()=>{ try{ const k=localStorage.getItem("hf:apiKey"), last=+localStorage.getItem("hf:modelsAt")||0;
     if(k&&navigator.onLine&&Date.now()-last>3*864e5){ const m=await detectModels(k); if(m&&m.all&&m.all.length){ lsSet("models",m.all.join(",")); lsSet("modelsAt",String(Date.now())); localStorage.removeItem("hf:deadModels");
