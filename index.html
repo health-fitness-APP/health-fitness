@@ -383,6 +383,9 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 #sesTimer{font-family:"Bricolage Grotesque",sans-serif;font-size:2.2rem;font-weight:800;line-height:1.05}
 #sesTimeEdit{border:0;background:none;color:var(--muted);font-size:1.1rem;cursor:pointer}
 .ses-rest{background:var(--basil);color:var(--basil-ink);border-radius:999px;padding:4px 10px;font-weight:700;font-size:.85rem;cursor:pointer}
+.ses-bell,.rb-bell{border:1px solid var(--line);background:var(--surface);border-radius:50%;width:40px;height:40px;font-size:1.1rem;cursor:pointer;margin-right:6px;padding:0;flex:none}
+.rb-bell{width:34px;height:34px;font-size:1rem;margin:0 0 0 6px;vertical-align:middle}
+.ses-bell.off,.rb-bell.off{opacity:.6}
 .ses-end{border:0;background:var(--surface2);color:var(--ink);border-radius:12px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer}
 .sx{background:var(--surface);border:1px solid var(--glass-b);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-radius:22px;padding:12px;margin-bottom:12px}
 .sx-h{display:flex;align-items:center;gap:10px;cursor:pointer}
@@ -1792,7 +1795,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button class="icon-btn" id="sesBack" aria-label="Esci">‹</button>
     <div class="ses-h"><div class="ses-t" id="logTitle">Allenamento</div>
       <div class="ses-time"><span id="sesTimer" class="num">00:00</span><button id="sesTimeEdit" type="button" aria-label="Modifica l'orario di inizio">✎</button><span class="ses-rest" id="sesRest" hidden></span></div></div>
-    <button class="ses-end" id="sesEnd" type="button">Fine</button>
+    <button class="ses-bell" id="sesBell" type="button" aria-label="Suoneria di fine riposo">🔔</button><button class="ses-end" id="sesEnd" type="button">Fine</button>
   </header>
   <div class="ses-hr" id="sesHr"></div>
   <div id="logBody"></div>
@@ -1809,7 +1812,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button class="btn ghost danger" id="sesCancel" type="button">Annulla l'allenamento (non salvare)</button>
   </div>
   <div class="rest-big" id="restBig" hidden role="timer" aria-live="polite">
-    <div class="rb-top"><span>⏱ Recupero</span><b id="rbTime" class="num">0:00</b></div>
+    <div class="rb-top"><span>⏱ Recupero <button type="button" class="rb-bell" id="rbBell" aria-label="Suoneria di fine riposo">🔔</button></span><b id="rbTime" class="num">0:00</b></div>
     <div class="rb-bar"><i id="rbBar"></i></div>
     <div class="rb-btns"><button type="button" id="rbMinus">−15 s</button><button type="button" id="rbPlus">+15 s</button><button type="button" id="rbSkip">Salta ›</button></div>
   </div>
@@ -2195,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.74 (niente avvisi di aggiornamento solo per l'orologio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.75 (la sveglia del riposo suona anche in background, con interruttore 🔔)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5960,6 +5963,16 @@ let audioCtx=null, wakeLock=null;
 const alarmMuted=()=>{ try{ return localStorage.getItem("hf:alarmMute")==="1"; }catch{ return false; } };
 function beep(){ if(alarmMuted()) return; try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); const t0=audioCtx.currentTime;
   [0,0.35,0.7,1.2,1.55,1.9].forEach(dt=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type="square"; o.frequency.value= dt<1? 880 : 1175; g.gain.setValueAtTime(0.0001,t0+dt); g.gain.exponentialRampToValueAtTime(0.35,t0+dt+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+0.25); o.connect(g).connect(audioCtx.destination); o.start(t0+dt); o.stop(t0+dt+0.27); }); }catch{} }
+/* sul telefono (APK) la sveglia la suona l'app nativa: volume sveglia, anche in background e a schermo spento */
+const RTN=()=>{ const C=NAT(); return C&&C.Plugins? C.Plugins.RestTimer : null; };
+let natRestAt=0;
+function restNative(force){ const P=RTN(); if(!P) return; if(restEnd&&restEnd<=Date.now()+800&&!force) return;   // sta per suonare: non toccarla
+  const want= restEnd&&restEnd>Date.now()? restEnd : 0;
+  if(want===natRestAt&&!force) return; natRestAt=want;
+  try{ if(want) P.schedule({at:want,sound:!alarmMuted(),vibrate:true}).catch(()=>{ natRestAt=0; }); else P.cancel().catch(()=>{}); }catch{ natRestAt=0; } }
+function restNativeAsk(){ const P=RTN(); if(!P) return; try{ if(localStorage.getItem("hf:restPerm")) return; localStorage.setItem("hf:restPerm","1"); P.requestPerms().catch(()=>{}); }catch{} }
+function bellIcons(){ const m=alarmMuted(); ["sesBell","rbBell"].forEach(id=>{ const b=$(id); if(b){ b.textContent=m?"🔕":"🔔"; b.classList.toggle("off",m); b.setAttribute("aria-label",m?"Suoneria di fine riposo spenta: tocca per accenderla":"Suoneria di fine riposo accesa: tocca per spegnerla"); } }); }
+function toggleAlarm(){ try{ localStorage.setItem("hf:alarmMute",alarmMuted()?"0":"1"); }catch{} unlockAudio(); bellIcons(); restNative(true); try{ if(logCtx&&logCtx.circuit) renderCircuitSession(); }catch{} toast(alarmMuted()?"Suoneria del riposo spenta 🔕 (resta la vibrazione)":"Suoneria del riposo accesa 🔔"); }
 function unlockAudio(){ try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); }catch{} }
 async function keepAwake(on){ try{ if(on&&"wakeLock" in navigator&&!wakeLock){ wakeLock=await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release",()=>{ wakeLock=null; }); } if(!on&&wakeLock){ await wakeLock.release(); wakeLock=null; } }catch{} }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&view==="sessione"&&logCtx&&logCtx.live) keepAwake(true); });
@@ -5978,7 +5991,7 @@ function renderCircuitSession(){
   const vr=el("div","vestrow"+(+c.vest>0?" on":"")); vr.style.flexBasis="100%";
   vr.innerHTML=`<span>🦺 Gilet zavorrato per tutto il circuito</span><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" aria-label="Kg del gilet"><span class="u">kg</span>`;
   const vi=vr.querySelector("input"); vi.value= +c.vest>0? c.vest : ""; vi.onchange=()=>{ c.vest=Math.max(0,+String(vi.value).replace(",",".")||0); saveLive(); renderCircuitSession(); toast(c.vest?`Gilet da ${fmt(c.vest)} kg segnato`:"Senza gilet"); };
-  top.querySelector(".cir-mute").onclick=()=>{ try{ localStorage.setItem("hf:alarmMute",alarmMuted()?"0":"1"); }catch{} unlockAudio(); renderCircuitSession(); toast(alarmMuted()?"Sveglia del riposo silenziata 🔕":"Sveglia del riposo attiva 🔔"); };
+  top.querySelector(".cir-mute").onclick=toggleAlarm;
   const lm=cirMeta(c);
   if(lm&&!allDone){ const ex=el("div","cir-ext");
     const canUp=cur<lm.peak, canDown=lm.peak-1>cur;
@@ -6015,7 +6028,7 @@ function circuitNext(){
   if(restEnd&&restEnd>Date.now()){ restEnd=0; $("sesRest").hidden=true; $("restBig").hidden=true; renderCircuitSession(); return; }
   if(c.done.length>=total&&c.done.every(Boolean)){ $("logSave").click(); return; }
   c.done[c.cur]=true; c.checks[c.cur]=c.exercises.map(()=>true);
-  if(c.cur+1<total){ c.cur++; restEnd= c.rest? Date.now()+c.rest*1000 : 0; if(navigator.vibrate) navigator.vibrate(40); }
+  if(c.cur+1<total){ c.cur++; restEnd= c.rest? Date.now()+c.rest*1000 : 0; if(navigator.vibrate) navigator.vibrate(40); restNative(); }
   else { restEnd=0; toast("Circuito completato! 💪"); }
   saveLive(); renderCircuitSession(); window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -6250,16 +6263,19 @@ const afterSheet=fn=>{ closeTopSheet(); setTimeout(fn,250); };
 function hmsSec(t){ t=Math.max(0,Math.floor(t)); const h=Math.floor(t/3600), m=Math.floor(t%3600/60), s0=t%60; return (h? h+":"+String(m).padStart(2,"0") : String(m).padStart(2,"0"))+":"+String(s0).padStart(2,"0"); }
 let restSeen=0, restTot=1;
 function restAdj(ms){ if(!restEnd) return; restEnd+=ms; if(restEnd<=Date.now()+500){ restEnd=0; $("restBig").hidden=true; try{ if(logCtx&&logCtx.circuit) renderCircuitSession(); }catch{} } else { $("rbTime").textContent=hmsSec(Math.ceil((restEnd-Date.now())/1000)); } }
+$("sesBell").onclick=toggleAlarm; $("rbBell").onclick=toggleAlarm;
 $("rbMinus").onclick=()=>restAdj(-15000); $("rbPlus").onclick=()=>{ restAdj(15000); restTot+=15000; };
 $("rbSkip").onclick=()=>{ restEnd=0; $("restBig").hidden=true; $("sesRest").hidden=true; try{ if(logCtx&&logCtx.circuit) renderCircuitSession(); }catch{} };
 function startSesTimer(){
-  clearInterval(sesTick); try{ gymHrStart(); }catch{}
+  clearInterval(sesTick); try{ gymHrStart(); }catch{} bellIcons(); restNativeAsk();
   const upd=()=>{ if(!logCtx||!logCtx.live){ clearInterval(sesTick); return; }
     const t=sesElapsed(); if($("sesTimer")) $("sesTimer").textContent=hmsSec(t)+(logCtx.paused?" ⏸":"");
     const r0=Math.ceil((restEnd-Date.now())/1000), re=$("sesRest");
     if(restEnd&&restEnd!==restSeen){ restSeen=restEnd; restTot=Math.max(1000,restEnd-Date.now()); }
+    const natRang= natRestAt&&restEnd&&r0<=0; if(natRang) natRestAt=0;   // a fine riposo suona l'app nativa: niente doppio bip
+    restNative();
     if(restEnd&&r0>0){ re.hidden=true; $("restBig").hidden=false; $("rbTime").textContent=hmsSec(r0); $("rbBar").style.width=Math.max(0,Math.min(100,(restEnd-Date.now())/restTot*100))+"%"; $("restBig").classList.toggle("last",r0<=5); }
-    else if(restEnd){ restEnd=0; re.hidden=true; $("restBig").hidden=true; if(navigator.vibrate) navigator.vibrate([400,150,400,150,400]); beep(); toast("Riposo finito: si riparte! 💪"); if(logCtx&&logCtx.circuit) renderCircuitSession(); }
+    else if(restEnd){ restEnd=0; re.hidden=true; $("restBig").hidden=true; if(!natRang){ if(navigator.vibrate) navigator.vibrate([400,150,400,150,400]); beep(); } toast("Riposo finito: si riparte! 💪"); if(logCtx&&logCtx.circuit) renderCircuitSession(); }
     const ct=$("cirRestT"); if(ct&&restEnd) ct.textContent=hmsSec(Math.max(0,(restEnd-Date.now())/1000));
     renderLiveBanner(); };
   upd(); sesTick=setInterval(upd,1000);
@@ -6282,7 +6298,7 @@ function askRest(cur){ const v=prompt("Quanto riposo? (es. 90, 1:30, 2 min)", cu
 function saveRestToProgram(name,rest){ try{ const a=activeProg(); if(!a) return; let n=0; a.pr.days.forEach(d=>(d.exercises||[]).forEach(x=>{ if(String(x.name).toLowerCase().trim()===String(name).toLowerCase().trim()){ x.rest=rest; n++; } })); if(n){ saveActive(a); toast("Riposo salvato nella scheda ✓"); } }catch{} }
 function nextSet(){ for(let xi=0;xi<logCtx.exercises.length;xi++){ const x=logCtx.exercises[xi]; for(let si=0;si<x.sets.length;si++) if(!x.sets[si].done) return {xi,si}; } return null; }
 function markSet(xi,si,val){ const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
-  if(st.done){ const last=x.sets.every(z=>z.done); restEnd= last&&xi===logCtx.exercises.length-1? 0 : Date.now()+restSecs(x.rest)*1000; if(navigator.vibrate) navigator.vibrate(30); }
+  if(st.done){ const last=x.sets.every(z=>z.done); restEnd= last&&xi===logCtx.exercises.length-1? 0 : Date.now()+restSecs(x.rest)*1000; if(navigator.vibrate) navigator.vibrate(30); restNative(); }
   saveLive(); renderLogger(); }
 function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
   if(logCtx&&logCtx.circuit){ renderCircuitSession(); return; }
@@ -6341,12 +6357,12 @@ $("logNotes").addEventListener("input",()=>{ if(logCtx){ logCtx.notes=$("logNote
 $("sesEnd").onclick=()=>{ const n=logCtx? logCtx.exercises.reduce((a,x)=>a+x.sets.filter(z=>z.done).length,0) : 0;
   if(!n){ if(confirm("Non hai segnato nessuna serie. Vuoi annullare l'allenamento senza salvarlo?")) cancelSession(); return; }
   if(confirm(`Terminare e salvare l'allenamento? (${n} ${n===1?"serie fatta":"serie fatte"}, ${hmsSec((Date.now()-logCtx.startedAt)/1000)})\n\nPremi Annulla per continuare ad allenarti.`)) $("logSave").click(); };
-function cancelSession(){ if(!logCtx) return; try{ gymHrStop(false); }catch{} keepAwake(false); logCtx.live=false; clearInterval(sesTick); restEnd=0; try{ localStorage.removeItem("hf:live"); }catch{} renderLiveBanner();
+function cancelSession(){ if(!logCtx) return; try{ gymHrStop(false); }catch{} keepAwake(false); logCtx.live=false; clearInterval(sesTick); restEnd=0; restNative(); try{ localStorage.removeItem("hf:live"); }catch{} renderLiveBanner();
   toast("Allenamento annullato: non è stato salvato niente"); if(history.state&&history.state.v==="sessione") history.back(); else go("allenamento"); renderProgram(); }
 $("sesCancel").onclick=()=>{ if(confirm("Annullare questo allenamento? Serie, pesi e tempo non verranno salvati.")) cancelSession(); };
 $("sesBack").onclick=()=>openSesExit();
 $("sxStay").onclick=()=>closeTopSheet();
-$("sxPause").onclick=()=>{ if(logCtx&&!logCtx.paused){ logCtx.paused=true; logCtx.pausedAt=Date.now(); restEnd=0; saveLive(); } toast("Allenamento in pausa ⏸ Lo riprendi da Allenamento"); leaveSession(); setTimeout(()=>{ try{ renderProgram(); renderLiveBanner(); if(view==="giorno") renderDayPage(); }catch{} },450); };
+$("sxPause").onclick=()=>{ if(logCtx&&!logCtx.paused){ logCtx.paused=true; logCtx.pausedAt=Date.now(); restEnd=0; restNative(); saveLive(); } toast("Allenamento in pausa ⏸ Lo riprendi da Allenamento"); leaveSession(); setTimeout(()=>{ try{ renderProgram(); renderLiveBanner(); if(view==="giorno") renderDayPage(); }catch{} },450); };
 $("sxStop").onclick=()=>afterSheet(()=>$("logSave").click());
 $("sxCancel").onclick=()=>afterSheet(()=>cancelSession());
 $("logAddEx").onclick=()=>{ logCtx.exercises.push({name:"",custom:true,target:"",rest:"90s",muscles:[],sets:[{kg:"",reps:"",done:false},{kg:"",reps:"",done:false},{kg:"",reps:"",done:false}]}); saveLive(); renderLogger(); setTimeout(()=>{ const ins=document.querySelectorAll(".sx-tt input"); if(ins.length) ins[ins.length-1].focus(); },50); };
@@ -6367,7 +6383,7 @@ $("logSave").onclick=async()=>{
   const startT=new Date(logCtx.startedAt), hhmm=d=>String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
   const vestKg=(()=>{ const vs=exs.flatMap(e=>e.sets.filter(z=>z.vest).map(z=>+z.kg||0)); return vs.length? vs.reduce((a,b)=>a+b,0)/vs.length : 0; })();
   addWorkout({name:logCtx.title+(vestKg?` (gilet ${fmt(vestKg)} kg)`:""), minutes:min, intensity:"scheda", kcal:5*(w+vestKg*0.8)*min/60, details:summary.slice(0,600), ...(logCtx.hr&&logCtx.hr.n? {avgHr:Math.round(logCtx.hr.sum/logCtx.hr.n),maxHr:logCtx.hr.max,zones:logCtx.hr.z.map(x=>Math.round(x/6)/10)} : {}), start:hhmm(startT), end:hhmm(new Date(logCtx.paused&&logCtx.pausedAt? logCtx.pausedAt : Date.now()))});
-  logCtx.live=false; clearInterval(sesTick); restEnd=0; keepAwake(false); try{ localStorage.removeItem("hf:live"); }catch{} renderLiveBanner();
+  logCtx.live=false; clearInterval(sesTick); restEnd=0; restNative(); keepAwake(false); try{ localStorage.removeItem("hf:live"); }catch{} renderLiveBanner();
   const ready=exs.filter(e=>{ const pg=progFor({name:e.name,sets:e.sets.length,reps:(logCtx.exercises.find(z=>z.name===e.name)||{}).repsLabel||String(Math.max(...e.sets.map(z=>+z.reps||0)))}); return pg&&pg.kind==="up"; }).length;
   toast(`Allenamento salvato: ${min} minuti ✓`+(ready?` · ${ready} ${ready===1?"esercizio pronto":"esercizi pronti"} ad aumentare il peso la prossima volta 📈`:""));
   if(history.state&&history.state.v==="sessione") history.back(); else go("allenamento"); renderProgram();
