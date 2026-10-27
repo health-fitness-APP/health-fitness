@@ -1761,12 +1761,12 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </section>
   <section class="card">
     <h2>Aggiungi misurazione</h2>
-    <p class="sub">Fai uno screenshot della schermata di FitDays, Renpho o di un'altra app e leggo io i valori. Oppure inseriscili a mano.</p>
+    <p class="sub">Fai uno screenshot della schermata di Lepulse, FitDays, Renpho o di un'altra app e leggo io i valori. Oppure inseriscili a mano.</p>
     <input type="file" id="bShot" accept="image/*" multiple hidden>
     <button class="btn" id="bShotBtn">Leggi da screenshot</button>
     <div class="status" id="bShotStatus" aria-live="polite"></div>
     <button class="btn" id="bScaleBtn" type="button" hidden style="margin-top:8px">⚖️ Pesati con la bilancia</button>
-    <p class="note" id="bScaleNote" hidden style="margin:4px 2px 0">Tocca il pulsante e <b>poi</b> sali sulla bilancia, scalzo (chiudi prima FitDays).</p>
+    <p class="note" id="bScaleNote" hidden style="margin:4px 2px 0">Tocca il pulsante e <b>poi</b> sali sulla bilancia, scalzo (chiudi prima l'app Lepulse).</p>
     <button class="btn ghost" id="bScaleSetup" type="button" hidden style="margin-top:8px">⚖️ Collega la bilancia (una volta sola)</button>
     <button class="btn ghost" id="bTapeBtn" type="button" hidden style="margin-top:8px">📏 Misura con il metro</button>
     <button class="btn ghost" id="bTapeSetup" type="button" hidden style="margin-top:8px">📏 Collega il metro (una volta sola)</button>
@@ -1785,7 +1785,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <section class="card" hidden>
     <h2>Storico</h2>
     <ul class="items" id="bHist"></ul>
-    <p class="note">Il peso più recente aggiorna il profilo e ricalcola i tuoi obiettivi. Per ora carica uno screenshot dell'app della bilancia o del metro: lo leggo e lo salvo da solo. La lettura automatica da Health Connect (FitDays, Renpho, Galaxy Watch) arriverà con l'app Android nativa.</p>
+    <p class="note">Il peso più recente aggiorna il profilo e ricalcola i tuoi obiettivi. Per ora carica uno screenshot dell'app della bilancia o del metro: lo leggo e lo salvo da solo. La lettura automatica da Health Connect (Lepulse, FitDays, Renpho, Galaxy Watch) arriverà con l'app Android nativa.</p>
   </section>
 </main>
 
@@ -2077,7 +2077,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 
     <p class="pf-gh">Bilance</p>
     <div class="pf-group">
-      <button class="acc-row" type="button" data-acc="scale"><span class="acc-ic" data-i="scale"></span><span class="t"><b>Lepulse</b><span>FitDays · prova del collegamento</span></span><span class="chev">›</span></button>
+      <button class="acc-row" type="button" data-acc="scale"><span class="acc-ic" data-i="scale"></span><span class="t"><b>Lepulse</b><span>bilancia F8 · prova del collegamento</span></span><span class="chev">›</span></button>
       <button class="acc-row" type="button" data-acc="scalehc"><span class="acc-ic" data-i="scale"></span><span class="t"><b>Altre bilance</b><span>Tramite Health Connect (Renpho, Withings, Samsung…)</span></span><span class="chev">›</span></button>
       <div class="acc-panel" id="accScale" hidden>
         <p class="note" style="margin:0 0 6px" id="devScTxt">Per ora: da screenshot o da Health Connect. Prova se si può collegare direttamente:</p>
@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.77 (pesata automatica con Corpo aperto, età corporea sempre visibile)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.78 (pesata automatica con Corpo aperto, taratura su Lepulse)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4879,7 +4879,7 @@ function learnStride(steps,kmReal,workouts){ if(!(steps>500&&kmReal>0.5)) return
   const v=(old*n+r0)/(n+1); localStorage.setItem("hf:strideCal",String(v)); localStorage.setItem("hf:strideCalOld",String(v)); localStorage.setItem("hf:strideN",String(Math.min(n+1,10))); }
 /* stato del collegamento: permessi concessi e app da cui arrivano i dati */
 const HC_LAB={workouts:"Allenamenti",heartRate:"Battito",steps:"Passi",sleep:"Sonno",weight:"Peso",bodyFat:"Grasso",distance:"Distanza",calories:"Calorie",restingHeartRate:"Battito a riposo"};
-const prettySrc=x=>{ const n=String(x||""); return /^android$|^com\.android|healthdata|^platform/i.test(n)? "il telefono" : /shealth|samsung/i.test(n)? "Samsung Health" : /fitdays|icomon/i.test(n)? "FitDays" : /renpho|qnniu|yolanda/i.test(n)? "Renpho" : /fit|google/i.test(n)? "Google Fit" : /strava/i.test(n)? "Strava" : /garmin/i.test(n)? "Garmin" : /polar/i.test(n)? "Polar" : n.split(".").pop()||"?"; };
+const prettySrc=x=>{ const n=String(x||""); return /^android$|^com\.android|healthdata|^platform/i.test(n)? "il telefono" : /shealth|samsung/i.test(n)? "Samsung Health" : /lepulse/i.test(n)? "Lepulse" : /fitdays|icomon/i.test(n)? "FitDays" : /renpho|qnniu|yolanda/i.test(n)? "Renpho" : /fit|google/i.test(n)? "Google Fit" : /strava/i.test(n)? "Strava" : /garmin/i.test(n)? "Garmin" : /polar/i.test(n)? "Polar" : n.split(".").pop()||"?"; };
 async function hcRenderState(){ const box=$("hcState"); if(!box) return; const H=HCP(); if(!H){ box.innerHTML=""; return; }
   const on=localStorage.getItem("hf:hcOn")==="1"; $("hcConnect").hidden=on; $("hcSyncNow").hidden=!on; $("hcSyncNow").className= on? "btn" : "btn ghost"; $("hcSettings").textContent= on? "Rivedi i permessi" : "Gestisci permessi in Health Connect";
   if($("hcPermsLink")) $("hcPermsLink").hidden=true;
@@ -5015,8 +5015,8 @@ function scaleSave(res,auto){ const w=Math.round(res.weight*10)/10;
 var SCA={on:false,last:0,err:false};
 function scaleAutoOk(){ return view==="corpo"&&document.visibilityState==="visible"&&!!HRN()&&!!HRN().inspect&&!!localStorage.getItem("hf:scaleAddr")&&!(typeof CD!=="undefined"&&CD&&CD.running)&&!NATHR.on; }
 function renderScaleAuto(){ const n=$("bScaleNote"); if(!n) return;
-  n.innerHTML= SCA.on? (SCA.err? "⚠️ Bilancia non raggiungibile: controlla che il Bluetooth sia acceso. Riprovo da solo." : "🟢 <b>In ascolto</b>: sali sulla bilancia scalzo e resta fermo finché il numero lampeggia, la pesata si salva da sola (FitDays deve essere chiuso).")
-    : "Tocca il pulsante e <b>poi</b> sali sulla bilancia, scalzo (chiudi prima FitDays)."; }
+  n.innerHTML= SCA.on? (SCA.err? "⚠️ Bilancia non raggiungibile: controlla che il Bluetooth sia acceso. Riprovo da solo." : "🟢 <b>In ascolto</b>: sali sulla bilancia scalzo e resta fermo finché il numero lampeggia, la pesata si salva da sola (l'app Lepulse deve essere chiusa).")
+    : "Tocca il pulsante e <b>poi</b> sali sulla bilancia, scalzo (chiudi prima l'app Lepulse)."; }
 async function scaleAutoLoop(){ if(SCA.on||!scaleAutoOk()) return; SCA.on=true; SCA.err=false; renderScaleAuto();
   try{ while(scaleAutoOk()){ let res=null;
       try{ const r0=await HRN().inspect({address:localStorage.getItem("hf:scaleAddr"),seconds:15}); res=parseScaleLog((r0&&r0.log)||[]); if(SCA.err){ SCA.err=false; renderScaleAuto(); } }
@@ -6811,7 +6811,7 @@ function renderBody(){
   { const nat=!!HRN(); $("bTapeSetup").hidden=!(nat&&!localStorage.getItem("hf:tapeAddr")); }
   { const hasSc=!!localStorage.getItem("hf:scaleAddr"), nat=!!HRN(); $("bScaleBtn").hidden=!(hasSc&&nat); $("bScaleNote").hidden=!(hasSc&&nat); $("bScaleSetup").hidden=!(nat&&!hasSc); try{ renderScaleAuto(); setTimeout(scaleAutoLoop,300); }catch{} }
   const lastE=es[es.length-1];
-  { const lastAll=all[all.length-1], fd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), src=e=>e&&e.source==="screenshot"?" · da screenshot":e&&e.source==="health"?" · da Samsung Health":e&&e.source==="bilancia"?" · dalla bilancia"+(e.fatHc?" (grasso misurato, letto da Health Connect)":"")+(e.est?((body.cal&&body.cal.fat&&body.cal.fat.n)? " (composizione stimata, calibrata su FitDays)" : " (composizione stimata: carica uno screenshot FitDays dello stesso giorno per calibrarla)") : ""):"";
+  { const lastAll=all[all.length-1], fd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), src=e=>e&&e.source==="screenshot"?" · da screenshot":e&&e.source==="health"?" · da Samsung Health":e&&e.source==="bilancia"?" · dalla bilancia"+(e.fatHc?" (grasso misurato, letto da Health Connect)":"")+(e.est?((body.cal&&body.cal.fat&&body.cal.fat.n)? " (composizione stimata, calibrata su Lepulse)" : " (composizione stimata: carica uno screenshot di Lepulse dello stesso giorno per calibrarla)") : ""):"";
     const cur=es[es.length-1];
     $("bLastDate").textContent = !all.length? "Nessuna misurazione ancora."
       : (cur&&cur.date===lastAll.date)? "Ultima misurazione caricata: "+fd(lastAll.date)+src(lastAll)
@@ -6943,7 +6943,7 @@ $("bShot").onchange=async e=>{
   try{
     const imgs=[]; for(const f of files) imgs.push(await shrinkFile(f,1400));
     const res=await sample.json(
-`Queste sono schermate di app per bilance intelligenti o metri smart (es. FitDays, Renpho). Leggi i valori della misurazione mostrata.
+`Queste sono schermate di app per bilance intelligenti o metri smart (es. Lepulse, FitDays, Renpho). Leggi i valori della misurazione mostrata.
 Rispondi SOLO con JSON, usando null per i valori assenti:
 {"date":"YYYY-MM-DD o null","weight":kg,"fat":percentuale grasso corporeo,"muscle":massa del MUSCOLO SCHELETRICO in kg (se la bilancia dà il muscolo scheletrico in %, convertilo: % × peso / 100; NON usare "massa muscolare" totale o massa magra, che sono molto più alte),"bone":massa ossea in kg,"protein":proteine in %,"subfat":grasso sottocutaneo in %,"water":percentuale acqua,"visceral":indice grasso viscerale,"bodyAge":età corporea o età metabolica in anni,"bmr":metabolismo basale in kcal,"waist":cm,"hips":cm (fianchi o bacino),"shoulders":cm,"chest":cm,"arm":cm (braccio/bicipite, media),"forearm":cm,"thigh":cm (media),"calf":cm (media),"neck":cm,"abdomen":cm (addome),"armL":cm,"armR":cm,"thighL":cm,"thighR":cm,"calfL":cm,"calfR":cm,
 "sfArmL":%,"sfArmR":%,"sfTrunk":%,"sfLegL":%,"sfLegR":%,"smArmL":%,"smArmR":%,"smTrunk":%,"smLegL":%,"smLegR":%}
@@ -6957,7 +6957,7 @@ Se la massa muscolare è solo in percentuale e c'è il peso, convertila in kg. S
     if(entry.muscle&&entry.weight&&entry.muscle>entry.weight*0.6){ delete entry.muscle; }
     if(!read.length){ setStatus("bShotStatus","Non ho trovato valori in questa immagine. Prova con la schermata del dettaglio della pesata."); return; }
     body.entries=[...body.entries,entry]; save("body",body); bodyDate=null; try{ hcWriteBody(entry); }catch{}
-    try{ if(biaLearn(entry)) toast("Calibrazione aggiornata: le prossime pesate useranno i calcoli allineati a FitDays ✓"); }catch(e){ console.warn("calibrazione",e); }
+    try{ if(biaLearn(entry)) toast("Calibrazione aggiornata: le prossime pesate useranno i calcoli allineati a Lepulse ✓"); }catch(e){ console.warn("calibrazione",e); }
     const upd=syncProfileFromBody();
     setStatus("bShotStatus","Salvato in automatico: "+read.join(", ")+"."+(upd?" Peso aggiornato nel profilo e obiettivi ricalcolati.":"")+" Se un valore è sbagliato, elimina la misurazione dallo storico.");
     toast(upd?"Misure salvate e profilo aggiornato":"Misure salvate"); renderAll(); queueProgress();
