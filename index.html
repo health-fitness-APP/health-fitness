@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.88 (si può caricare anche la foto del display della bilancia)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.89 (bilancia: tutti i valori di Lepulse e recupero delle pesate fatte con l'app chiusa)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4976,13 +4976,19 @@ $("bTapeGo").onclick=async()=>{ const P=HRN(), addr=localStorage.getItem("hf:tap
 /* bilancia F8 (Lepulse/FitDays, servizio FFB0): trame da 20 byte [seq, lung, 00, comando, …, somma&0x1f].
    a2 = peso in tempo reale (grammi su 3 byte, 6..8), a3 = risultato finale con 8 impedenze (braccia, gambe a due frequenze).
    Le impedenze arrivano solo se l'APK risponde all'a1 della bilancia con il profilo (altezza, età, sesso). */
-function parseScaleLog(lines){ let live=null, fin=null; const imp=[];
-  (lines||[]).forEach(l=>{ const m=String(l).match(/⇢\s*(ffb2|ffb3):\s*([0-9a-f ]+)/i); if(!m) return; const b=m[2].trim().split(/\s+/).map(x=>parseInt(x,16));
+function parseScaleLog(lines){ let live=null, fin=null, last=0, hist=null; const imp=[], himp=[];
+  (lines||[]).forEach(l=>{ const m=String(l).match(/⇢\s*(ffb2|ffb3):\s*([0-9a-f ]+)/i); if(!m) return; const b=m[2].trim().split(/\s+/).map(x=>parseInt(x,16)), ok=z=>z.every(v=>v>50&&v<2000), z16=(i)=>((b[i]<<8)|b[i+1])/10;
     if(b[3]===0xa2&&b.length>8){ const w=((b[6]<<16)|(b[7]<<8)|b[8])/1000; if(w>20&&w<250) live=w; }
-    // a3 (trama 0): peso 5..7, poi 4 impedenze a bassa frequenza (decimi di Ω) in 11..18; trama di seguito (byte 2 = 1): 4 ad alta frequenza in 5..12
-    if(b[3]===0xa3&&b[2]===0&&b.length>=19){ const w=((b[5]<<16)|(b[6]<<8)|b[7])/1000; if(w>20&&w<250){ fin=w; const z=[11,13,15,17].map(i=>((b[i]<<8)|b[i+1])/10); if(z.every(v=>v>50&&v<2000)){ imp.length=0; imp.push(...z); } } }
-    else if(b[2]===1&&imp.length===4&&b.length>=13){ const z=[5,7,9,11].map(i=>((b[i]<<8)|b[i+1])/10); if(z.every(v=>v>50&&v<2000)) imp.push(...z); } });
-  return {weight:fin||live, final:!!fin, imp:imp.length?imp:null}; }
+    // a3 (trama 0): peso 5..7, 4 impedenze a bassa frequenza (decimi di Ω) in 11..18; trama seguente (byte 2 = 1): 4 ad alta frequenza in 5..12
+    if(b[3]===0xa3&&b[2]===0&&b.length>=19){ last=0xa3; const w=((b[5]<<16)|(b[6]<<8)|b[7])/1000; if(w>20&&w<250){ fin=w; const z=[11,13,15,17].map(z16); if(ok(z)){ imp.length=0; imp.push(...z); } } }
+    // a4 = pesata salvata nella bilancia (anche fatta senza telefono): ora 4..7, peso 9..11, impedenze 15..18 + seguito 3..6 e 9..16
+    else if(b[3]===0xa4&&b[2]===0&&b.length>=19){ last=0xa4; const w=((b[9]<<16)|(b[10]<<8)|b[11])/1000, t=((b[4]<<24)>>>0)+(b[5]<<16)+(b[6]<<8)+b[7];
+      if(w>20&&w<250){ hist={w,t}; himp.length=0; const z=[15,17].map(z16); if(ok(z)) himp.push(...z); } }
+    else if(b[2]===1&&b.length>=17){ if(last===0xa3&&imp.length===4){ const z=[5,7,9,11].map(z16); if(ok(z)) imp.push(...z); }
+      else if(last===0xa4&&himp.length===2){ const z=[3,5,9,11,13,15].map(z16); if(ok(z)) himp.push(...z); } last=0; } });
+  if(fin) return {weight:fin, final:true, imp:imp.length?imp:null};
+  if(hist&&himp.length===8){ const d=new Date(hist.t*1000); if(Math.abs(Date.now()-d)<3*864e5) return {weight:hist.w, final:true, imp:himp, date:todayISO(d), stored:true}; }
+  return {weight:live, final:false, imp:null}; }
 /* composizione corporea dalle impedenze (bilancia a 8 elettrodi): equazioni pubblicate + calibrazione personale su FitDays.
    impedenze: [braccio, braccio, gamba, gamba] a bassa frequenza, poi le stesse ad alta frequenza */
 function biaRaw(imp,w){ const p=state.profile||{}, h=+p.height, age=+p.age||35, male=p.sex!=="f"; if(!imp||!imp.length||!h||!w) return null;
@@ -4994,17 +5000,24 @@ function biaRaw(imp,w){ const p=state.profile||{}, h=+p.height, age=+p.age||35, 
   const bmr=370+21.6*ffm, mif=10*w+6.25*h+(male?5:-161), fatRef=male?15:25;
   const bodyAge=Math.max(18,Math.min(90,(mif-bmr)/5+(fatPct-fatRef)*0.4));
   const bone=ffm*0.067;                                                                  // massa ossea ~6-7% della massa magra
-  return {fat:fatPct, water:Math.max(30,Math.min(75,tbw/w*100)), muscle:smm, muscleTot:ffm-bone, bone, bmr, ffm, bodyAge}; }
+  // proteine = massa magra - acqua - ossa; grasso sottocutaneo e viscerale in proporzione al grasso; segmentale dalle impedenze di braccia e gambe
+  const water=Math.max(30,Math.min(75,tbw/w*100)), protein=Math.max(5,(ffm-tbw-bone)/w*100), subfat=fatPct*0.72, visceral=Math.max(1,0.1*fatPct+0.05*age-1.1);
+  const seg={}; if(imp.length>=8){ const Z0=[320,320,275,275], nm=["ArmL","ArmR","LegL","LegR"]; nm.forEach((k,i)=>{ seg["sm"+k]=100*Z0[i]/imp[i]; seg["sf"+k]=100*fatPct/15; });
+    seg.smTrunk=100*(Z0[0]+Z0[2])/(imp[0]+imp[2]); seg.sfTrunk=100*fatPct/15; }
+  return {fat:fatPct, water, muscle:smm, muscleTot:ffm-bone, bone, bmr, ffm, bodyAge, protein, subfat, visceral, ...seg}; }
+const BIA_KEYS=["fat","water","muscle","muscleTot","bone","bmr","protein","subfat","visceral","sfArmL","sfArmR","sfTrunk","sfLegL","sfLegR","smArmL","smArmR","smTrunk","smLegL","smLegR"];
+function biaApply(e,est){ if(!est) return e; BIA_KEYS.forEach(k=>{ if(est[k]!=null&&!(k==="fat"&&e.fatHc)) e[k]=est[k]; }); if(est.bodyAge) e.bodyAge=est.bodyAge; e.est=true; return e; }
 function bodyAgeOf(bmr,fat,w){ const p=state.profile||{}, h=+p.height, male=p.sex!=="f"; if(!bmr||!h||!w) return null;
   const age=+p.age||35, mif=10*w+6.25*h-5*age+(male?5:-161);
   return Math.max(18,Math.min(90,age+(mif-bmr)/10+((fat||0)-(male?15:25))*0.3)); }
 function biaCalibrated(imp,w){ const raw=biaRaw(imp,w); if(!raw) return null; const c=body.cal||{};
-  const f=k=> c[k]&&c[k].n? raw[k]*c[k].r : raw[k]; raw.bodyAge=bodyAgeOf(f("bmr"),f("fat"),w);
-  return {fat:Math.round(f("fat")*10)/10, water:Math.round(f("water")*10)/10, muscle:Math.round(f("muscle")*10)/10, muscleTot:Math.round(f("muscleTot")*10)/10, bone:Math.round(f("bone")*10)/10, bmr:Math.round(c.bmr&&c.bmr.n? raw.bmr*c.bmr.r : raw.bmr), bodyAge:Math.round(raw.bodyAge+(c.bodyAge&&c.bodyAge.n? c.bodyAge.d : 0)), n:Math.min(...["fat","water","muscle"].map(k=>(c[k]&&c[k].n)||0))}; }
+  const f=k=> c[k]&&c[k].n? raw[k]*c[k].r : raw[k], out={}; raw.bodyAge=bodyAgeOf(f("bmr"),f("fat"),w);
+  BIA_KEYS.forEach(k=>{ if(raw[k]!=null) out[k]= k==="bmr"? Math.round(f(k)) : Math.round(f(k)*10)/10; });
+  out.bodyAge=Math.round(raw.bodyAge+(c.bodyAge&&c.bodyAge.n? c.bodyAge.d : 0)); out.n=Math.min(...["fat","water","muscle"].map(k=>(c[k]&&c[k].n)||0)); return out; }
 /* la taratura fatta prima della lettura completa della bilancia (v2.86) non vale più: la azzero una volta e la rifaccio
    con gli screenshot degli ultimi giorni */
-function calReset(){ if(body.calV===2) return; body.calV=2; body.cal={}; body.entries.forEach(e=>{ delete e.calUsed; }); }
-function calMigrate(){ if(body.calV===2) return; calReset();
+function calReset(){ if(body.calV===3) return; body.calV=3; body.cal={}; body.entries.forEach(e=>{ delete e.calUsed; }); }
+function calMigrate(){ if(body.calV===3) return; calReset();
   const sc=body.entries.filter(e=>e.source==="bilancia"&&e.imp&&e.imp.length>=8).sort((a,b)=>a.date<b.date?1:-1)[0]; if(!sc){ save("body",body); return; }
   const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new Date(b+"T12:00:00"))/864e5);
   body.entries.filter(e=>e.source==="screenshot"&&e.fat&&dd(e.date,sc.date)<=2).forEach(sh=>{ try{ biaLearn(sh); }catch{} }); save("body",body); }
@@ -5013,19 +5026,19 @@ function biaLearn(shot){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new D
   const sc=body.entries.filter(e=>e.source==="bilancia"&&e.imp&&dd(e.date,shot.date)<=2).sort((a,b)=>dd(a.date,shot.date)-dd(b.date,shot.date))[0]; if(!sc) return false;
   const raw=biaRaw(sc.imp,shot.weight||sc.weight); if(!raw) return false; body.cal=body.cal||{}; let learned=false;
   calReset(); shot.calUsed=true;
-  ["fat","water","muscle","muscleTot","bone","bmr"].forEach(k=>{ if(shot[k]>0&&raw[k]>0){ const r0=shot[k]/raw[k]; if(r0<0.4||r0>2.5) return; const c=body.cal[k]||{r:1,n:0}; c.r=(c.r*c.n+r0)/(c.n+1); c.n=Math.min(c.n+1,10); body.cal[k]=c; learned=true; } });
+  BIA_KEYS.forEach(k=>{ if(shot[k]>0&&raw[k]>0){ const r0=shot[k]/raw[k]; if(r0<0.25||r0>4) return; const c=body.cal[k]||{r:1,n:0}; c.r=(c.r*c.n+r0)/(c.n+1); c.n=Math.min(c.n+1,10); body.cal[k]=c; learned=true; } });
   if(shot.bodyAge>0){ const cal0=biaCalibrated(sc.imp,shot.weight||sc.weight), base=cal0? cal0.bodyAge-((body.cal.bodyAge&&body.cal.bodyAge.n)? body.cal.bodyAge.d : 0) : raw.bodyAge; const c=body.cal.bodyAge||{d:0,n:0}; c.d=(c.d*c.n+(shot.bodyAge-base))/(c.n+1); c.n=Math.min(c.n+1,10); body.cal.bodyAge=c; learned=true; }
-  if(learned){ const est=biaCalibrated(sc.imp,sc.weight); if(est) Object.assign(sc,{...(sc.fatHc?{}:{fat:est.fat}),water:est.water,muscle:est.muscle,muscleTot:est.muscleTot,bone:est.bone,bmr:est.bmr,bodyAge:est.bodyAge,est:true}); save("body",body); }
+  if(learned){ const est=biaCalibrated(sc.imp,sc.weight); biaApply(sc,est); save("body",body); }
   return learned; }
 function scaleProfile(){ const p=state.profile||{}; return {height:Math.round(+p.height||0), age:Math.round(+p.age||0), male:p.sex!=="f"}; }
 function scaleSave(res,auto){ const w=Math.round(res.weight*10)/10;
-  const entry={id:uid(),date:todayISO(),source:"bilancia",weight:w,...(res.imp&&res.imp.length?{imp:res.imp}:{})};
-  const est=res.imp&&res.imp.length? biaCalibrated(res.imp,w) : null; if(est) Object.assign(entry,{fat:est.fat,water:est.water,muscle:est.muscle,muscleTot:est.muscleTot,bone:est.bone,bmr:est.bmr,bodyAge:est.bodyAge,est:true});
+  const entry={id:uid(),date:res.date||todayISO(),source:"bilancia",weight:w,...(res.imp&&res.imp.length?{imp:res.imp}:{})};
+  const est=res.imp&&res.imp.length? biaCalibrated(res.imp,w) : null; biaApply(entry,est);
   body.entries=[...body.entries.filter(e=>!(e.date===entry.date&&e.source==="bilancia")),entry]; save("body",body); bodyDate=null;
   // prima taratura: uso lo screenshot della bilancia caricato negli ultimi 2 giorni, senza dover riaprire Lepulse
   calReset(); if(entry.imp&&entry.imp.length){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new Date(b+"T12:00:00"))/864e5);
     const shot=body.entries.filter(e=>e.source==="screenshot"&&e.fat&&!e.calUsed&&dd(e.date,entry.date)<=2).sort((a,b)=>dd(a.date,entry.date)-dd(b.date,entry.date))[0];
-    if(shot) try{ if(biaLearn(shot)){ const c2=biaCalibrated(entry.imp,w); if(c2) Object.assign(entry,{fat:c2.fat,water:c2.water,muscle:c2.muscle,muscleTot:c2.muscleTot,bone:c2.bone,bmr:c2.bmr,bodyAge:c2.bodyAge}); save("body",body); } }catch{} }
+    if(shot) try{ if(biaLearn(shot)){ const c2=biaCalibrated(entry.imp,w); biaApply(entry,c2); save("body",body); } }catch{} }
   try{ syncProfileFromBody(); }catch{} try{ hcWriteBody(entry); }catch{} renderAll(); try{ navigator.vibrate&&navigator.vibrate(auto?[80,60,80]:60); }catch{}
   toast(`${auto?"⚖️ Pesata presa in automatico":"Pesata salvata"}: ${String(w).replace(".",",")} kg ✓`+(entry.est? ` · grasso ${String(entry.fat).replace(".",",")}% (stima${(est||{}).n? " calibrata" : ""})` : "")); }
 /* pesata automatica: con Corpo aperto (APK, bilancia già associata) resto in ascolto e salvo da solo appena la bilancia dà il peso definitivo */
@@ -5044,7 +5057,9 @@ async function scaleAutoLoop(){ if(SCA.on||!scaleAutoOk()) return; SCA.on=true; 
         if(res&&!res.final){ const lv=lg.map(l=>String(l).match(/⇢\s*ffb[23]:\s*([0-9a-f ]+)/i)).filter(Boolean).map(m=>m[1].trim().split(/\s+/).map(x=>parseInt(x,16))).filter(b=>b[3]===0xa2&&b.length>8).map(b=>((b[6]<<16)|(b[7]<<8)|b[8])/1000).filter(w=>w>20&&w<250);
           if(lv.length>=3&&lv.slice(-3).every(w=>Math.abs(w-lv[lv.length-1])<0.05)) res.final=true; }
         const sig=lg.some(l=>/✓ collegato|⇢|annuncio/.test(String(l))); if(sig) SCA.seen=new Date();
-        if(sig||!SCA.seen) try{ localStorage.setItem("hf:probe-scale-auto",new Date().toLocaleString("it-IT")+"\n"+(lg.join("\n")||"(nessuna risposta)")); }catch{}
+        // tengo il registro con la misura completa per qualche minuto, invece di sovrascriverlo con un collegamento vuoto
+        const full=lg.some(l=>/ffb3: \S+ \S+ 00 a[34]/i.test(String(l))); if(full) SCA.full=Date.now();
+        if(full||(sig&&!(SCA.full&&Date.now()-SCA.full<300000))||!SCA.seen) try{ localStorage.setItem("hf:probe-scale-auto",new Date().toLocaleString("it-IT")+"\n"+(lg.join("\n")||"(nessuna risposta)")); }catch{}
         if(SCA.err){ SCA.err=false; } renderScaleAuto(); }
       catch{ if(!SCA.err){ SCA.err=true; renderScaleAuto(); } await new Promise(r=>setTimeout(r,4000)); continue; }
       // se prima avevo solo il peso e ora arrivano anche le impedenze, aggiorno la pesata di oggi
