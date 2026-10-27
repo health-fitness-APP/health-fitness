@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.81 (massa muscolare totale con barra e fascia di riferimento)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.82 (la prima pesata dalla bilancia si tara da sola sullo screenshot di Lepulse)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5009,6 +5009,10 @@ function scaleSave(res,auto){ const w=Math.round(res.weight*10)/10;
   const entry={id:uid(),date:todayISO(),source:"bilancia",weight:w,...(res.imp&&res.imp.length?{imp:res.imp}:{})};
   const est=res.imp&&res.imp.length>=8? biaCalibrated(res.imp,w) : null; if(est) Object.assign(entry,{fat:est.fat,water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true});
   body.entries=[...body.entries.filter(e=>!(e.date===entry.date&&e.source==="bilancia")),entry]; save("body",body); bodyDate=null;
+  // prima taratura: uso lo screenshot della bilancia caricato negli ultimi 2 giorni, senza dover riaprire Lepulse
+  if(entry.imp&&entry.imp.length>=8&&!(body.cal&&body.cal.fat&&body.cal.fat.n)){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new Date(b+"T12:00:00"))/864e5);
+    const shot=body.entries.filter(e=>e.source==="screenshot"&&e.fat&&dd(e.date,entry.date)<=2).sort((a,b)=>dd(a.date,entry.date)-dd(b.date,entry.date))[0];
+    if(shot) try{ if(biaLearn(shot)){ const c2=biaCalibrated(entry.imp,w); if(c2) Object.assign(entry,{fat:c2.fat,water:c2.water,muscle:c2.muscle,bmr:c2.bmr,bodyAge:c2.bodyAge}); save("body",body); } }catch{} }
   try{ syncProfileFromBody(); }catch{} try{ hcWriteBody(entry); }catch{} renderAll(); try{ navigator.vibrate&&navigator.vibrate(auto?[80,60,80]:60); }catch{}
   toast(`${auto?"⚖️ Pesata presa in automatico":"Pesata salvata"}: ${String(w).replace(".",",")} kg ✓`+(entry.est? ` · grasso ${String(entry.fat).replace(".",",")}% (stima${(est||{}).n? " calibrata" : ""})` : "")); }
 /* pesata automatica: con Corpo aperto (APK, bilancia già associata) resto in ascolto e salvo da solo appena la bilancia dà il peso definitivo */
