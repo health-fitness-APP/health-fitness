@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.89 (bilancia: tutti i valori di Lepulse e recupero delle pesate fatte con l'app chiusa)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.90 (bilancia: diagnosi con l'esito delle ultime 3 pesate)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5057,14 +5057,16 @@ async function scaleAutoLoop(){ if(SCA.on||!scaleAutoOk()) return; SCA.on=true; 
         if(res&&!res.final){ const lv=lg.map(l=>String(l).match(/⇢\s*ffb[23]:\s*([0-9a-f ]+)/i)).filter(Boolean).map(m=>m[1].trim().split(/\s+/).map(x=>parseInt(x,16))).filter(b=>b[3]===0xa2&&b.length>8).map(b=>((b[6]<<16)|(b[7]<<8)|b[8])/1000).filter(w=>w>20&&w<250);
           if(lv.length>=3&&lv.slice(-3).every(w=>Math.abs(w-lv[lv.length-1])<0.05)) res.final=true; }
         const sig=lg.some(l=>/✓ collegato|⇢|annuncio/.test(String(l))); if(sig) SCA.seen=new Date();
-        // tengo il registro con la misura completa per qualche minuto, invece di sovrascriverlo con un collegamento vuoto
-        const full=lg.some(l=>/ffb3: \S+ \S+ 00 a[34]/i.test(String(l))); if(full) SCA.full=Date.now();
-        if(full||(sig&&!(SCA.full&&Date.now()-SCA.full<300000))||!SCA.seen) try{ localStorage.setItem("hf:probe-scale-auto",new Date().toLocaleString("it-IT")+"\n"+(lg.join("\n")||"(nessuna risposta)")); }catch{}
+        SCA.lg=sig? lg : null;
         if(SCA.err){ SCA.err=false; } renderScaleAuto(); }
       catch{ if(!SCA.err){ SCA.err=true; renderScaleAuto(); } await new Promise(r=>setTimeout(r,4000)); continue; }
       // se prima avevo solo il peso e ora arrivano anche le impedenze, aggiorno la pesata di oggi
       if(res&&res.weight&&res.final&&view==="corpo"){ const hasImp=!!(res.imp&&res.imp.length);
-        if(Date.now()-SCA.last>90000||(hasImp&&!SCA.lastImp)){ SCA.last=Date.now(); SCA.lastImp=hasImp; scaleSave(res,true); } } } }
+        if(Date.now()-SCA.last>90000||(hasImp&&!SCA.lastImp)){ SCA.last=Date.now(); SCA.lastImp=hasImp; scaleSave(res,true); res.saved=true; } }
+      // diagnosi: tengo gli ultimi 3 collegamenti con la bilancia, solo i dati scambiati e l'esito
+      if(SCA.lg) try{ const fmtW=v=>String(v).replace(".",","), esito= !res||!res.weight? "nessun peso" : `peso ${fmtW(res.weight)} kg${res.stored?" (dalla memoria della bilancia)":""}, ${res.final?"definitivo":"non definitivo"}, impedenze ${res.imp?res.imp.length:0}, ${res.saved?"SALVATA":"non salvata"}`;
+        const txt=new Date().toLocaleString("it-IT")+" · "+esito+"\n"+SCA.lg.filter(l=>/⇢|⇠|scollegato|annuncio/.test(String(l))).join("\n");
+        const old=(localStorage.getItem("hf:probe-scale-auto")||"").split("\n\n=====\n").filter(Boolean).slice(0,2); localStorage.setItem("hf:probe-scale-auto",[txt,...old].join("\n\n=====\n")); }catch{} } }
   finally{ SCA.on=false; renderScaleAuto(); } }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&view==="corpo") scaleAutoLoop(); });
 async function scaleWeigh(){ if(SCA.on){ toast("Sali pure sulla bilancia: con Corpo aperto la pesata si salva da sola"); return; } const P=HRN(), addr=localStorage.getItem("hf:scaleAddr"); if(!P||!P.inspect||!addr){ toast("Serve l'app Android aggiornata e la prova della bilancia"); return; }
