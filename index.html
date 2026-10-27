@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.91 (bilancia: aspetta l'analisi completa prima di salvare)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.92 (Corpo: media degli ultimi 7 giorni per ogni valore)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -6824,6 +6824,10 @@ function metricRow(k,es){
     else if(v>rg[1]){ zone= good? "sopra la media" : "sopra la norma"; col= good? "var(--basil)" : "var(--warn)"; }
     else zone= good? "nella media" : "nella norma"; }
   row.innerHTML=`<div class="mhead"><span class="l"></span></div><div class="mval"><b class="num">${unit==="kg"||unit==="%"? (Math.round(v*10)/10).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1}) : fmt(v)}${unit?`<small>${unit}</small>`:""}</b><span class="dl">${d}</span></div>`;
+  // media degli ultimi 7 giorni (un valore per giorno, l'ultimo), più stabile della singola pesata
+  let avgEl=null; { const byDay={}; es.forEach(x=>{ const dv=derivedVal(x,k); if(dv!=null) byDay[x.date]=dv; }); const ds=Object.keys(byDay).sort(), lastD=ds[ds.length-1];
+    if(lastD){ const from=new Date(new Date(lastD+"T12:00:00")-6*864e5).toISOString().slice(0,10), vv=ds.filter(d=>d>=from).map(d=>byDay[d]);
+      if(vv.length>=2){ const m=vv.reduce((a,b)=>a+b,0)/vv.length, avg=el("div","note"); avg.style.margin="2px 0 0"; avg.textContent=`Media 7 giorni: ${unit==="kg"||unit==="%"? (Math.round(m*10)/10).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1}) : fmt(m)}${unit?" "+unit:""} (${vv.length} giorni)`; avgEl=avg; } } }
   const hd=row.querySelector(".l"); hd.textContent=label; if(zone){ const z=el("span","rzone",zone); z.style.color=col; hd.appendChild(z); }
   if(rg){
     const span=rg[1]-rg[0], lo=rg[0]-span, hi=rg[1]+span, pct=Math.max(2,Math.min(100,(v-lo)/(hi-lo)*100));
@@ -6831,6 +6835,7 @@ function metricRow(k,es){
     const lab=el("div","rlab"); lab.innerHTML=`<span style="left:33.33%">${fmt(rg[0])}</span><span style="left:66.66%">${fmt(rg[1])}</span>`;
     row.append(bar,lab);
   }
+  if(avgEl) row.appendChild(avgEl);
   return row;
 }
 function bodySVG(c){
