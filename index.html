@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.75 (la sveglia del riposo suona anche in background, con interruttore 🔔)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.76 (il grasso misurato dalla bilancia via Health Connect prende il posto della stima)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4844,9 +4844,11 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
     if(hcOpt("B")){ try{ const r0=await H.readSamples({dataType:"weight",startDate:iso(from),endDate:iso(now),limit:200}); const fr=await H.readSamples({dataType:"bodyFat",startDate:iso(from),endDate:iso(now),limit:200}).catch(()=>({samples:[]}));
         diag.weight=((r0&&r0.samples)||[]).length; diag.bodyFat=((fr&&fr.samples)||[]).length; ((r0&&r0.samples)||[]).forEach(x=>hcNoteSrc("weight",x.sourceName||x.sourceId)); ((fr&&fr.samples)||[]).forEach(x=>hcNoteSrc("bodyFat",x.sourceName||x.sourceId));
         const byDay={}; ((r0&&r0.samples)||[]).forEach(x=>{ const d=dISO(x.startDate); if(!byDay[d]||x.startDate>byDay[d].t) byDay[d]={t:x.startDate,w:+x.value}; });
-        ((fr&&fr.samples)||[]).forEach(x=>{ const d=dISO(x.startDate); if(byDay[d]) byDay[d].fat=+x.value; });
+        // grasso misurato (es. FitDays): ignoro quello scritto da HealthFit stesso, che è una stima
+        ((fr&&fr.samples)||[]).filter(x=>!/healthfit/i.test(String(x.sourceId||"")+" "+String(x.sourceName||""))).forEach(x=>{ const d=dISO(x.startDate); if(byDay[d]&&+x.value>2&&+x.value<70) byDay[d].fat=+x.value; });
         let n=0; Object.entries(byDay).forEach(([d,v])=>{ if(!(v.w>20)) return;
-          const same=body.entries.find(e=>e.date===d&&e.weight&&Math.abs(e.weight-v.w)<0.15); if(same) return;
+          const same=body.entries.find(e=>e.date===d&&e.weight&&Math.abs(e.weight-v.w)<0.15);
+          if(same){ const f=v.fat&&Math.round(v.fat*10)/10; if(f&&(same.est||same.fat==null)&&same.fat!==f&&!same.fatHc){ if(same.imp) try{ biaLearn({date:d,weight:v.w,fat:f}); }catch{} same.fat=f; same.fatHc=true; n++; } return; }
           if((body.ignored||[]).some(t=>t.date===d&&Math.abs(t.w-v.w)<0.15)) return;
           const hcOld=body.entries.find(e=>e.date===d&&e.source==="health"); if(hcOld){ hcOld.weight=Math.round(v.w*10)/10; if(v.fat) hcOld.fat=Math.round(v.fat*10)/10; n++; return; }
           body.entries=[...body.entries,{id:uid(),date:d,source:"health",weight:Math.round(v.w*10)/10,...(v.fat?{fat:Math.round(v.fat*10)/10}:{})}]; n++; });
@@ -4864,7 +4866,7 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
   finally{ hcBusy=false; } }
 async function hcWriteBody(entry){ const H=HCP(); if(!H||localStorage.getItem("hf:hcOn")!=="1"||!hcOpt("B")||entry.source==="health") return;
   try{ const dt=new Date(entry.date+"T08:00:00").toISOString(); if(entry.weight) await H.saveSample({dataType:"weight",value:+entry.weight,startDate:dt,endDate:dt});
-    if(entry.weight&&entry.fat) await H.saveSample({dataType:"bodyFat",value:+entry.fat,startDate:dt,endDate:dt}); }catch(e){ console.warn("HC scrittura",e); } }
+    if(entry.weight&&entry.fat&&!entry.est) await H.saveSample({dataType:"bodyFat",value:+entry.fat,startDate:dt,endDate:dt}); }catch(e){ console.warn("HC scrittura",e); } }
 /* distanza della giornata stimata dai passi di Samsung Health: allenamenti con la loro distanza + il resto dei passi a passo di camminata,
    corretta con un fattore personale imparato dagli screenshot di Samsung Health (passi + km dello stesso giorno) */
 function estDayKm(steps,workouts){ const h=+(state.profile&&state.profile.height)||175; let km=0, wSteps=0;
@@ -5001,7 +5003,7 @@ function biaLearn(shot){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new D
   const raw=biaRaw(sc.imp,shot.weight||sc.weight); if(!raw) return false; body.cal=body.cal||{}; let learned=false;
   ["fat","water","muscle","bmr"].forEach(k=>{ if(shot[k]>0&&raw[k]>0){ const r0=shot[k]/raw[k]; if(r0<0.4||r0>2.5) return; const c=body.cal[k]||{r:1,n:0}; c.r=(c.r*c.n+r0)/(c.n+1); c.n=Math.min(c.n+1,10); body.cal[k]=c; learned=true; } });
   if(shot.bodyAge>0){ const cal0=biaCalibrated(sc.imp,shot.weight||sc.weight), base=cal0? cal0.bodyAge-((body.cal.bodyAge&&body.cal.bodyAge.n)? body.cal.bodyAge.d : 0) : raw.bodyAge; const c=body.cal.bodyAge||{d:0,n:0}; c.d=(c.d*c.n+(shot.bodyAge-base))/(c.n+1); c.n=Math.min(c.n+1,10); body.cal.bodyAge=c; learned=true; }
-  if(learned){ const est=biaCalibrated(sc.imp,sc.weight); if(est) Object.assign(sc,{fat:est.fat,water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true}); save("body",body); }
+  if(learned){ const est=biaCalibrated(sc.imp,sc.weight); if(est) Object.assign(sc,{...(sc.fatHc?{}:{fat:est.fat}),water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true}); save("body",body); }
   return learned; }
 async function scaleWeigh(){ const P=HRN(), addr=localStorage.getItem("hf:scaleAddr"); if(!P||!P.inspect||!addr){ toast("Serve l'app Android aggiornata e la prova della bilancia"); return; }
   const btn=$("devWeigh"); btn.disabled=true; btn.textContent="⏳ Sali sulla bilancia…"; toast("Sali ora sulla bilancia, scalzo, e resta fermo");
@@ -6792,7 +6794,7 @@ function renderBody(){
   { const nat=!!HRN(); $("bTapeSetup").hidden=!(nat&&!localStorage.getItem("hf:tapeAddr")); }
   { const hasSc=!!localStorage.getItem("hf:scaleAddr"), nat=!!HRN(); $("bScaleBtn").hidden=!(hasSc&&nat); $("bScaleNote").hidden=!(hasSc&&nat); $("bScaleSetup").hidden=!(nat&&!hasSc); }
   const lastE=es[es.length-1];
-  { const lastAll=all[all.length-1], fd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), src=e=>e&&e.source==="screenshot"?" · da screenshot":e&&e.source==="health"?" · da Samsung Health":e&&e.source==="bilancia"?" · dalla bilancia"+(e.est?((body.cal&&body.cal.fat&&body.cal.fat.n)? " (composizione stimata, calibrata su FitDays)" : " (composizione stimata: carica uno screenshot FitDays dello stesso giorno per calibrarla)") : ""):"";
+  { const lastAll=all[all.length-1], fd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), src=e=>e&&e.source==="screenshot"?" · da screenshot":e&&e.source==="health"?" · da Samsung Health":e&&e.source==="bilancia"?" · dalla bilancia"+(e.fatHc?" (grasso misurato, letto da Health Connect)":"")+(e.est?((body.cal&&body.cal.fat&&body.cal.fat.n)? " (composizione stimata, calibrata su FitDays)" : " (composizione stimata: carica uno screenshot FitDays dello stesso giorno per calibrarla)") : ""):"";
     const cur=es[es.length-1];
     $("bLastDate").textContent = !all.length? "Nessuna misurazione ancora."
       : (cur&&cur.date===lastAll.date)? "Ultima misurazione caricata: "+fd(lastAll.date)+src(lastAll)
