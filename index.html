@@ -497,6 +497,10 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .rd-big{display:block;font-size:2.2rem;font-weight:800}
 .rd-wx{display:flex;justify-content:space-between;align-items:center;gap:10px}.rd-wx b{display:block;font-size:2rem;font-weight:800}.rd-wx .r{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:.9rem}
 .rd-foot{margin:6px 16px 0;text-align:center}
+.rd-dyn{display:grid;grid-template-columns:1fr 46%;align-items:center;gap:8px;padding:9px 0}.rd-dyn .k{font-size:.95rem}.rd-dyn .k small{display:block;color:var(--muted);font-size:.78rem;font-variant-numeric:tabular-nums}
+.rd-dyn .b{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px}.rd-dyn .b i{height:8px;background:var(--line)}.rd-dyn .b i:first-child{border-radius:4px 0 0 4px}.rd-dyn .b i:last-child{border-radius:0 4px 4px 0}
+.rd-dynd{padding:12px 0;border-bottom:1px solid var(--line)}.rd-dynd:last-child{border-bottom:0}.rd-dynd .h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.rd-dynd .h b{font-size:1.25rem;font-variant-numeric:tabular-nums}.rd-dynd .lv{font-weight:700;font-size:.85rem}.rd-dynd .b{margin:6px 0 4px}.rd-dynd p{margin:4px 0 0;color:var(--muted);font-size:.85rem}
+.rd-note{display:flex;gap:10px;align-items:flex-start}.rd-note textarea{flex:1;border:0;background:transparent;color:inherit;font:inherit;font-size:1.05rem;resize:none;min-height:2.4em;padding:4px 0;outline:none}.rd-note .ic{font-size:1.2rem;line-height:1.9}
 .run-res .sub{margin:2px 0 0}
 .run-go{margin-top:14px}
 .run-go>.btn{font-size:1.1rem;letter-spacing:.06em;padding:16px}
@@ -2198,7 +2202,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.95 (corsa: avviso 30 secondi prima della fine del riscaldamento)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.96 (corsa: metriche avanzate dall'orologio e note)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5199,7 +5203,7 @@ async function saveWatchResult(o){ if(!o||!(+o.seconds>60)) return false;
   const ex=(hist.items||[]).find(near);
   if(ex){ let ch=false; if(!ex.distance&&km){ ex.distance=km; ex.pace=paceOf(ex.minutes||min,km); ch=true; } if(!ex.avgHr&&+o.avgHr){ ex.avgHr=+o.avgHr; ex.maxHr=+o.maxHr||null; ex.zones=zones; ch=true; }
     if(ch){ save("workoutHistory",hist); const doc= date===state.date? state.day : await store.getDoc("day-"+date).catch(()=>null); if(doc){ const w=(doc.workouts||[]).find(x=>x.id===ex.id); if(w) Object.assign(w,{distance:ex.distance,pace:ex.pace,avgHr:ex.avgHr,maxHr:ex.maxHr,zones:ex.zones}); date===state.date? saveDay() : save("day-"+date,doc); } }
-    if(!(await store.getDoc("run-"+ex.id).catch(()=>null))){ await runDetSave(ex.id,runDetFrom(o,plan)); ch=true; }
+    const D0=await store.getDoc("run-"+ex.id).catch(()=>null); if(!D0||!D0.t0){ const D=runDetFrom(o,plan); if(D0&&D0.note) D.note=D0.note; await runDetSave(ex.id,D); ch=true; }
     return ch? ex.id : false; }
   const wt=(state.profile&&state.profile.weight)||70;
   const item={id:wid,name:o.title||"Corsa",minutes:min,intensity:"Galaxy Watch",kcal:Math.round(+o.kcal||(km? km*wt : 8*wt*min/60)),distance:km,pace:km? paceOf(min,km) : null,start:hhmm,avgHr:+o.avgHr||null,maxHr:+o.maxHr||null,zones,src:"watch"};
@@ -5370,7 +5374,7 @@ function runDetFrom(o,plan){ const D={v:1,src:o.source||"phone",t0:+o.startedAt|
   if(Array.isArray(o.zoneSec)&&o.zoneSec.length===5) D.zs=o.zoneSec.map(Number);
   if(+o.steps>0) D.steps=+o.steps; if(o.elevGain!=null&&+o.elevGain>=0) D.eg=+o.elevGain; if(o.elevLoss!=null&&+o.elevLoss>=0) D.el=+o.elevLoss;
   if(o.tr&&Array.isArray(o.tr.t)&&o.tr.t.length>1) D.tr=o.tr; if(Array.isArray(o.rec)&&o.rec.length) D.rec=o.rec;
-  if(o.hrSrc) D.hrSrc=o.hrSrc; if(plan) D.plan=plan; return D; }
+  if(o.hrSrc) D.hrSrc=o.hrSrc; if(plan) D.plan=plan; if(o.dyn&&+o.dyn.gct>0&&+o.dyn.step>0) D.dyn=o.dyn; return D; }
 async function runDetSave(id,D){
   try{ const st=rdStats(D); const {P,alt,...keep}=st; D.st=keep; }catch(e){ console.warn("riepilogo",e); }
   save("run-"+id,D);
@@ -5480,7 +5484,7 @@ async function openRunSummary(id,w0){ const w=w0||((hist&&hist.items)||[]).find(
   const D=await store.getDoc("run-"+w.id).catch(()=>null); rdCur={w:{...w,date:w.date||state.date},D,sub:null};
   try{ sessionStorage.setItem("hf:rd",w.id); }catch{}
   go("riepilogo"); renderRunSummary();
-  if(D&&!D.wx&&D.tr) rdWeather(w.id,D).then(ok=>{ if(ok&&view==="riepilogo"&&rdCur&&rdCur.D===D) renderRunSummary(); }); }
+  if(D&&!D.wx&&D.tr) rdWeather(w.id,D).then(ok=>{ if(ok&&view==="riepilogo"&&rdCur&&rdCur.D===D&&!(document.activeElement&&document.activeElement.tagName==="TEXTAREA")) renderRunSummary(); }); }
 /* la seduta del piano fatta ↔ l'allenamento salvato */
 function runResWorkout(res,iso){ const its=(hist&&hist.items)||[]; if(res.wid){ const w=its.find(x=>x.id===res.wid); if(w) return w; }
   const day=res.on||iso; return its.find(x=>x.date===day&&isRun(x)&&(!res.km||Math.abs((+x.distance||0)-res.km)<0.3)) || its.find(x=>x.date===day&&isRun(x)) || null; }
@@ -5548,11 +5552,32 @@ function rdLapTabs(c,x,tab0){ const {P,st}=x; const tabs=[["giri","Giri"],["1","
   const draw=()=>{ bar.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===cur)); body.innerHTML=""; const L= cur==="giri"? st.laps : rdSplits(P,+cur); body.appendChild(rdLapTable(L)); };
   tabs.forEach(([k,l])=>{ const b=el("button","rd-tab",l); b.type="button"; b.dataset.k=k; b.onclick=()=>{ cur=k; draw(); }; bar.appendChild(b); });
   c.append(bar,body); draw(); }
+/* metriche di corsa avanzate (come Samsung Health): l'orologio misura i passi con l'accelerometro del polso,
+   oscillazione verticale e rigidità le ricavo con il modello molla-massa (Morin) dal tempo di contatto, dalla durata del passo e dal peso */
+const RD_LV=[["Da migliorare","#F07C2B"],["Buono","#3DAE1F"],["Ottimo","#3B9CF0"]];
+function rdDyn(D){ const y=D&&D.dyn; if(!y||!(+y.gct>0)||!(+y.step>0)) return null;
+  const T=y.step/1000, tc=y.gct/1000, tf=Math.max(0,+y.ft>=0? y.ft/1000 : T-tc), g=9.81, m=+((state.profile&&state.profile.weight)||70);
+  const F=m*g*Math.PI/2*T/tc, dyc=g*T*tc/(2*Math.PI)-g*tc*tc/8, vo=(dyc+g*tf*tf/8)*100, k=dyc>0.005? F/dyc/1000 : null, kn=k? k*1000/m : null;
+  const L=[]; const add=(key,name,val,lv,info,range)=>L.push({key,name,val,lv,info,range});
+  if(y.asym!=null) add("asym","Asimmetria",fmt(Math.round(y.asym*10)/10)+" %", y.asym<=2? 2 : y.asym<=5? 1 : 0,"Differenza di durata tra il passo destro e il sinistro. Più è bassa, più la corsa è equilibrata: valori alti possono indicare un affaticamento o un fastidio da una parte.","Ottimo fino al 2% · buono fino al 5%");
+  add("gct","Tempo di contatto",Math.round(y.gct)+" ms", y.gct<220? 2 : y.gct<=280? 1 : 0,"Quanto resta il piede a terra a ogni passo. Più è breve, meno energia si perde: si accorcia con una cadenza più alta e un appoggio sotto il corpo.","Ottimo sotto 220 ms · buono fino a 280 ms");
+  add("ft","Tempo di volo",Math.round(tf*1000)+" ms", tf>=0.1? 2 : tf>=0.06? 1 : 0,"Quanto stai in aria tra un appoggio e l'altro. Cresce con la velocità e con una spinta più efficace.","Ottimo da 100 ms · buono da 60 ms");
+  if(y.cv!=null){ const r=Math.max(0,Math.min(100,Math.round(100-4*y.cv))); add("reg","Regolarità",r+" %", r>=92? 2 : r>=85? 1 : 0,"Quanto sono uguali le falcate una dopo l'altra. Una corsa regolare è più economica e affatica meno.","Ottimo da 92% · buono da 85%"); }
+  add("vo","Oscillazione verticale",fmt(Math.round(vo*10)/10)+" cm", vo<=6? 2 : vo<=9? 1 : 0,"Quanto sale e scende il corpo a ogni passo. Troppa oscillazione vuol dire energia spesa per andare su invece che avanti.","Ottimo fino a 6 cm · buono fino a 9 cm");
+  if(k) add("k","Rigidità",fmt(Math.round(k*10)/10)+" kN/m", kn>=450? 2 : kn>=330? 1 : 0,"Quanto le gambe lavorano come una molla: più rigidità vuol dire che restituiscono meglio l'energia dell'appoggio. Migliora con salti, balzi e esercizi di forza.",`Per il tuo peso (${fmt(m)} kg): ottimo da ${Math.round(m*0.45)} kN/m · buono da ${Math.round(m*0.33)} kN/m`);
+  return {L,n:+y.n||0}; }
+const rdDynBar=lv=>`<div class="b">${[0,1,2].map(i=>`<i${i===lv?` style="background:${RD_LV[i][1]}"`:""}></i>`).join("")}</div>`;
+async function rdSaveNote(id,txt){ if(!rdCur||rdCur.w.id!==id) return; const v=String(txt||"").trim().slice(0,1000);
+  let D=rdCur.D; if(!D){ D=(await store.getDoc("run-"+id).catch(()=>null))||{v:1}; rdCur.D=D; }
+  if((D.note||"")===v) return; if(v) D.note=v; else delete D.note; save("run-"+id,D); }
 function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur) return; const x=rdCtx(), {w,D,Dx,sec,km,st,P,pl,mx,zs,old}=x, sub=rdCur.sub;
   const t0=D.t0? new Date(D.t0) : new Date((w.date||state.date)+"T"+(w.start||"12:00")+":00");
-  const SUBT={dettagli:"Dettagli allenamento",giri:"Giri",mappa:"Percorso e giri",grafico:"Grafici",zone:"Zone della frequenza cardiaca",punteggio:pl? pl.title : "Punteggio",vo2:"VO₂max stimato"};
+  const SUBT={dinamica:"Metriche di corsa avanzate",dettagli:"Dettagli allenamento",giri:"Giri",mappa:"Percorso e giri",grafico:"Grafici",zone:"Zone della frequenza cardiaca",punteggio:pl? pl.title : "Punteggio",vo2:"VO₂max stimato"};
   $("rdTitle").textContent= sub? SUBT[sub]||"Riepilogo" : (w.name||"Corsa");
   if(sub==="dettagli"){ const c=rdCard(box); c.innerHTML=rdAllRows(x); return; }
+  if(sub==="dinamica"){ const dy=rdDyn(D), c=rdCard(box); if(!dy){ c.appendChild(el("p","note","Per questa corsa non ci sono le metriche avanzate.")); return; }
+    c.innerHTML=dy.L.map(r0=>`<div class="rd-dynd"><div class="h"><span>${r0.name}</span><b>${r0.val}</b></div>${rdDynBar(r0.lv)}<span class="lv" style="color:${RD_LV[r0.lv][1]}">${RD_LV[r0.lv][0]}</span><p>${r0.info}</p><p><small>${r0.range}</small></p></div>`).join("");
+    c.appendChild(el("p","note",`Stime dall'accelerometro dell'orologio sul polso (${dy.n.toLocaleString("it-IT")} passi di corsa analizzati): tempo di contatto, volo, asimmetria e regolarità vengono dai passi; oscillazione verticale e rigidità sono calcolate da questi valori e dal tuo peso. Sono indicative e non sostituiscono un'analisi del passo.`)); return; }
   if(sub==="giri"||sub==="mappa"){ if(P&&st.gps&&sub==="mappa"){ const c=rdCard(box); rdMapBox(c,P); }
     const c=rdCard(box,sub==="mappa"?"Giri":null); if(P&&st.laps&&st.laps.length){ rdLapTabs(c,x,rdCur.tab); c.appendChild(el("p","note","In evidenza il parziale più veloce. Giri: il riscaldamento del piano è a parte; 1, 5 e 10 km: parziali dalla partenza.")); } else c.appendChild(el("p","note",RD_NODATA)); return; }
   if(sub==="grafico"){ const c=rdCard(box); if(P&&P.length>5) rdCharts(c,x); else c.appendChild(el("p","note",RD_NODATA)); return; }
@@ -5591,12 +5616,21 @@ function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur)
   rdScoreCard(box,x,false);
   // VO2max
   { const vo=rdVo2(st,Dx); if(vo){ const L0=rdVo2Lvl(vo), c=rdCard(box,"VO₂max","vo2"); c.insertAdjacentHTML("beforeend",`<div class="rd-vo"><div><b style="color:${L0.col}">${L0.name}</b><span class="num">${fmt(vo)}</span></div><div class="bar"><i style="left:${L0.pos}%;background:${L0.col}"></i></div></div>`); } }
+  // metriche di corsa avanzate
+  { const dy=rdDyn(D);
+    if(dy){ const c=rdCard(box,"Metriche di corsa avanzate","dinamica"), list=el("div"); list.innerHTML=dy.L.map(r0=>`<div class="rd-dyn"><span class="k">${r0.name}<small>${r0.val}</small></span>${rdDynBar(r0.lv)}</div>`).join(""); list.onclick=()=>rdOpen("dinamica"); c.appendChild(list); }
+    else if(D.src==="watch"){ const c=rdCard(box,"Metriche di corsa avanzate"); c.appendChild(el("p","note","Asimmetria, tempo di contatto e di volo, regolarità, oscillazione verticale e rigidità: le misura l'app HealthFit sul Galaxy Watch dalla prossima corsa (aggiorna l'app dell'orologio).")); } }
   // sudorazione
   if(Dx.kcal){ const T=D.wx? +D.wx.t : null, f= T==null? 0.8 : Math.max(0.55,Math.min(1.6,0.75+0.03*(T-10))), ml=Math.round(Dx.kcal*f/10)*10;
     const c=rdCard(box,"Sudorazione stimata"); c.insertAdjacentHTML("beforeend",`<b class="rd-big num">${ml.toLocaleString("it-IT")} ml</b><p class="sub">Puoi bere circa ${(Math.round(ml*1.5/10)*10).toLocaleString("it-IT")} ml per reintegrare il 150%${T==null?"":` (stima con ${fmt(T)} °C)`}.</p>`); }
   // meteo
   if(D.wx){ const [wt,wi]=RD_WX(D.wx.code), c=rdCard(box,"Meteo"); c.insertAdjacentHTML("beforeend",`<div class="rd-wx"><div><b class="num">${fmt(D.wx.t)} °C</b><span>${wi} ${wt}</span></div><div class="r"><span>💧 ${Math.round(D.wx.hum)}%</span><span>🌬️ ${fmt(D.wx.wind)} km/h</span><span>🧭 ${RD_DIR(D.wx.dir)}</span></div></div><p class="note">Dati Open-Meteo.</p>`); }
   else if(old){ const c=rdCard(box,"Meteo"); c.appendChild(el("p","note","Il meteo lo prendo dalla posizione di partenza: arriva con le corse registrate con HealthFit.")); }
+  // note
+  { const c=rdCard(box); c.classList.add("rd-note"); c.innerHTML=`<span class="ic" aria-hidden="true">📝</span>`; const ta=el("textarea"); ta.rows=1; ta.maxLength=1000; ta.placeholder="Note"; ta.setAttribute("aria-label","Note sulla corsa"); ta.value=D.note||"";
+    const fit=()=>{ ta.style.height="auto"; ta.style.height=ta.scrollHeight+"px"; }, id=w.id; let tm=null;
+    ta.oninput=()=>{ fit(); clearTimeout(tm); tm=setTimeout(()=>rdSaveNote(id,ta.value),700); }; ta.onblur=()=>{ clearTimeout(tm); rdSaveNote(id,ta.value); };
+    c.appendChild(ta); requestAnimationFrame(fit); }
   box.appendChild(el("p","note rd-foot",(D.src==="watch"? "Questi dati provengono da HealthFit sul Galaxy Watch." : D.src? "Questi dati provengono da HealthFit sul telefono." : "")+" Tutti i valori sono stime: per problemi di salute rivolgiti al medico."));
 }
 $("rdBack").onclick=()=>{ if(history.state&&history.state.v==="riepilogo") history.back(); else if(rdCur&&rdCur.sub){ rdCur.sub=null; renderRunSummary(); } else go("attivita"); };
