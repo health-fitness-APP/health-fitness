@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.76 (il grasso misurato dalla bilancia via Health Connect prende il posto della stima)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.77 (pesata automatica con Corpo aperto, età corporea sempre visibile)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5005,16 +5005,32 @@ function biaLearn(shot){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new D
   if(shot.bodyAge>0){ const cal0=biaCalibrated(sc.imp,shot.weight||sc.weight), base=cal0? cal0.bodyAge-((body.cal.bodyAge&&body.cal.bodyAge.n)? body.cal.bodyAge.d : 0) : raw.bodyAge; const c=body.cal.bodyAge||{d:0,n:0}; c.d=(c.d*c.n+(shot.bodyAge-base))/(c.n+1); c.n=Math.min(c.n+1,10); body.cal.bodyAge=c; learned=true; }
   if(learned){ const est=biaCalibrated(sc.imp,sc.weight); if(est) Object.assign(sc,{...(sc.fatHc?{}:{fat:est.fat}),water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true}); save("body",body); }
   return learned; }
-async function scaleWeigh(){ const P=HRN(), addr=localStorage.getItem("hf:scaleAddr"); if(!P||!P.inspect||!addr){ toast("Serve l'app Android aggiornata e la prova della bilancia"); return; }
+function scaleSave(res,auto){ const w=Math.round(res.weight*10)/10;
+  const entry={id:uid(),date:todayISO(),source:"bilancia",weight:w,...(res.imp&&res.imp.length?{imp:res.imp}:{})};
+  const est=res.imp&&res.imp.length>=8? biaCalibrated(res.imp,w) : null; if(est) Object.assign(entry,{fat:est.fat,water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true});
+  body.entries=[...body.entries.filter(e=>!(e.date===entry.date&&e.source==="bilancia")),entry]; save("body",body); bodyDate=null;
+  try{ syncProfileFromBody(); }catch{} try{ hcWriteBody(entry); }catch{} renderAll(); try{ navigator.vibrate&&navigator.vibrate(auto?[80,60,80]:60); }catch{}
+  toast(`${auto?"⚖️ Pesata presa in automatico":"Pesata salvata"}: ${String(w).replace(".",",")} kg ✓`+(entry.est? ` · grasso ${String(entry.fat).replace(".",",")}% (stima${(est||{}).n? " calibrata" : ""})` : "")); }
+/* pesata automatica: con Corpo aperto (APK, bilancia già associata) resto in ascolto e salvo da solo appena la bilancia dà il peso definitivo */
+var SCA={on:false,last:0,err:false};
+function scaleAutoOk(){ return view==="corpo"&&document.visibilityState==="visible"&&!!HRN()&&!!HRN().inspect&&!!localStorage.getItem("hf:scaleAddr")&&!(typeof CD!=="undefined"&&CD&&CD.running)&&!NATHR.on; }
+function renderScaleAuto(){ const n=$("bScaleNote"); if(!n) return;
+  n.innerHTML= SCA.on? (SCA.err? "⚠️ Bilancia non raggiungibile: controlla che il Bluetooth sia acceso. Riprovo da solo." : "🟢 <b>In ascolto</b>: sali sulla bilancia scalzo e resta fermo finché il numero lampeggia, la pesata si salva da sola (FitDays deve essere chiuso).")
+    : "Tocca il pulsante e <b>poi</b> sali sulla bilancia, scalzo (chiudi prima FitDays)."; }
+async function scaleAutoLoop(){ if(SCA.on||!scaleAutoOk()) return; SCA.on=true; SCA.err=false; renderScaleAuto();
+  try{ while(scaleAutoOk()){ let res=null;
+      try{ const r0=await HRN().inspect({address:localStorage.getItem("hf:scaleAddr"),seconds:15}); res=parseScaleLog((r0&&r0.log)||[]); if(SCA.err){ SCA.err=false; renderScaleAuto(); } }
+      catch{ if(!SCA.err){ SCA.err=true; renderScaleAuto(); } await new Promise(r=>setTimeout(r,4000)); continue; }
+      if(res&&res.weight&&res.final&&Date.now()-SCA.last>90000&&view==="corpo"){ SCA.last=Date.now(); scaleSave(res,true); } } }
+  finally{ SCA.on=false; renderScaleAuto(); } }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&view==="corpo") scaleAutoLoop(); });
+async function scaleWeigh(){ if(SCA.on){ toast("Sali pure sulla bilancia: con Corpo aperto la pesata si salva da sola"); return; } const P=HRN(), addr=localStorage.getItem("hf:scaleAddr"); if(!P||!P.inspect||!addr){ toast("Serve l'app Android aggiornata e la prova della bilancia"); return; }
   const btn=$("devWeigh"); btn.disabled=true; btn.textContent="⏳ Sali sulla bilancia…"; toast("Sali ora sulla bilancia, scalzo, e resta fermo");
   try{ const r0=await P.inspect({address:addr,seconds:25}); const res=parseScaleLog((r0&&r0.log)||[]);
     if(!res.weight){ toast("Non ho ricevuto il peso: riprova salendo subito dopo aver toccato il pulsante"); return; }
     const w=Math.round(res.weight*10)/10;
     if(!confirm(`La bilancia dice ${String(w).replace(".",",")} kg${res.final?"":" (lettura non definitiva)"}.\nÈ il numero sul display? Salvo la pesata di oggi?`)) return;
-    const entry={id:uid(),date:todayISO(),source:"bilancia",weight:w,...(res.imp&&res.imp.length?{imp:res.imp}:{})};
-    const est=res.imp&&res.imp.length>=8? biaCalibrated(res.imp,w) : null; if(est) Object.assign(entry,{fat:est.fat,water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true});
-    body.entries=[...body.entries.filter(e=>!(e.date===entry.date&&e.source==="bilancia")),entry]; save("body",body); bodyDate=null;
-    try{ syncProfileFromBody(); }catch{} try{ hcWriteBody(entry); }catch{} renderAll(); toast(`Pesata salvata: ${String(w).replace(".",",")} kg ✓`+(entry.est? ` · grasso ${String(entry.fat).replace(".",",")}% (stima${(biaCalibrated(res.imp,w)||{}).n? " calibrata" : ""})` : "")); }
+    scaleSave(res); }
   catch(e){ toast("Bilancia: "+((e&&e.message)||e)); }
   finally{ btn.disabled=false; btn.textContent="⚖️ Pesati adesso"; } }
 $("devWeigh").onclick=scaleWeigh;
@@ -6722,6 +6738,7 @@ function derivedVal(x,k){
   if(k==="fatKg") return x.weight&&x.fat? x.weight*x.fat/100 : null;
   if(k==="waterKg") return x.weight&&x.water? x.weight*x.water/100 : null;
   if(k==="bmi"){ const h=hM(); return x.weight&&h? x.weight/(h*h) : null; }
+  if(k==="bodyAge"){ if(+x.bodyAge>0) return +x.bodyAge; if(!(x.weight&&x.fat)) return null; const a=bodyAgeOf(+x.bmr||370+21.6*x.weight*(1-x.fat/100),+x.fat,+x.weight); return a? Math.round(a) : null; }
   return x[k]!=null? +x[k] : null;
 }
 const DMETA={weight:["Peso","kg"],muscle:["Massa muscolare","kg"],fatKg:["Massa grassa","kg"],waterKg:["Acqua corporea","kg"],fat:["Grasso corporeo","%"],bmi:["IMC",""],water:["Acqua","%"],visceral:["Grasso viscerale",""],bodyAge:["Età corporea","anni"],bone:["Massa ossea","kg"],protein:["Proteine","%"],subfat:["Grasso sottocutaneo","%"]};
@@ -6792,7 +6809,7 @@ function renderBody(){
   if(!$("bDate").value) $("bDate").value=todayISO();
   $("bShotBtn").hidden=!imgLimits||!sample; $("bTapeBtn").hidden=!(localStorage.getItem("hf:tapeAddr")&&HRN());
   { const nat=!!HRN(); $("bTapeSetup").hidden=!(nat&&!localStorage.getItem("hf:tapeAddr")); }
-  { const hasSc=!!localStorage.getItem("hf:scaleAddr"), nat=!!HRN(); $("bScaleBtn").hidden=!(hasSc&&nat); $("bScaleNote").hidden=!(hasSc&&nat); $("bScaleSetup").hidden=!(nat&&!hasSc); }
+  { const hasSc=!!localStorage.getItem("hf:scaleAddr"), nat=!!HRN(); $("bScaleBtn").hidden=!(hasSc&&nat); $("bScaleNote").hidden=!(hasSc&&nat); $("bScaleSetup").hidden=!(nat&&!hasSc); try{ renderScaleAuto(); setTimeout(scaleAutoLoop,300); }catch{} }
   const lastE=es[es.length-1];
   { const lastAll=all[all.length-1], fd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), src=e=>e&&e.source==="screenshot"?" · da screenshot":e&&e.source==="health"?" · da Samsung Health":e&&e.source==="bilancia"?" · dalla bilancia"+(e.fatHc?" (grasso misurato, letto da Health Connect)":"")+(e.est?((body.cal&&body.cal.fat&&body.cal.fat.n)? " (composizione stimata, calibrata su FitDays)" : " (composizione stimata: carica uno screenshot FitDays dello stesso giorno per calibrarla)") : ""):"";
     const cur=es[es.length-1];
