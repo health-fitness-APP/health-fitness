@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.78 (pesata automatica con Corpo aperto, taratura su Lepulse)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.79 (pesata automatica: segnale della bilancia visibile e diagnosi copiabile)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5015,11 +5015,16 @@ function scaleSave(res,auto){ const w=Math.round(res.weight*10)/10;
 var SCA={on:false,last:0,err:false};
 function scaleAutoOk(){ return view==="corpo"&&document.visibilityState==="visible"&&!!HRN()&&!!HRN().inspect&&!!localStorage.getItem("hf:scaleAddr")&&!(typeof CD!=="undefined"&&CD&&CD.running)&&!NATHR.on; }
 function renderScaleAuto(){ const n=$("bScaleNote"); if(!n) return;
-  n.innerHTML= SCA.on? (SCA.err? "⚠️ Bilancia non raggiungibile: controlla che il Bluetooth sia acceso. Riprovo da solo." : "🟢 <b>In ascolto</b>: sali sulla bilancia scalzo e resta fermo finché il numero lampeggia, la pesata si salva da sola (l'app Lepulse deve essere chiusa).")
+  n.innerHTML= SCA.on? (SCA.err? "⚠️ Bilancia non raggiungibile: controlla che il Bluetooth sia acceso. Riprovo da solo." : "🟢 <b>In ascolto</b>: sali sulla bilancia scalzo e resta fermo finché il numero lampeggia, la pesata si salva da sola (l'app Lepulse deve essere chiusa)."+(SCA.seen? ` <span class="muted">Ultimo segnale dalla bilancia alle ${SCA.seen.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}.</span>` : " <span class=\"muted\">Nessun segnale dalla bilancia per ora.</span>"))
     : "Tocca il pulsante e <b>poi</b> sali sulla bilancia, scalzo (chiudi prima l'app Lepulse)."; }
 async function scaleAutoLoop(){ if(SCA.on||!scaleAutoOk()) return; SCA.on=true; SCA.err=false; renderScaleAuto();
   try{ while(scaleAutoOk()){ let res=null;
-      try{ const r0=await HRN().inspect({address:localStorage.getItem("hf:scaleAddr"),seconds:15}); res=parseScaleLog((r0&&r0.log)||[]); if(SCA.err){ SCA.err=false; renderScaleAuto(); } }
+      try{ const r0=await HRN().inspect({address:localStorage.getItem("hf:scaleAddr"),seconds:15}), lg=(r0&&r0.log)||[]; res=parseScaleLog(lg);
+        // peso in tempo reale fermo per 3 letture di fila: lo prendo anche se il pacchetto finale non è arrivato
+        if(res&&!res.final){ const lv=lg.map(l=>String(l).match(/⇢\s*ffb[23]:\s*([0-9a-f ]+)/i)).filter(Boolean).map(m=>m[1].trim().split(/\s+/).map(x=>parseInt(x,16))).filter(b=>b[3]===0xa2&&b.length>8).map(b=>((b[6]<<16)|(b[7]<<8)|b[8])/1000).filter(w=>w>20&&w<250);
+          if(lv.length>=3&&lv.slice(-3).every(w=>Math.abs(w-lv[lv.length-1])<0.05)) res.final=true; }
+        if(lg.some(l=>/collegato|⇢|annuncio/.test(String(l)))){ SCA.seen=new Date(); try{ localStorage.setItem("hf:probe-scale-auto",new Date().toLocaleString("it-IT")+"\n"+lg.join("\n")); }catch{} }
+        if(SCA.err){ SCA.err=false; } renderScaleAuto(); }
       catch{ if(!SCA.err){ SCA.err=true; renderScaleAuto(); } await new Promise(r=>setTimeout(r,4000)); continue; }
       if(res&&res.weight&&res.final&&Date.now()-SCA.last>90000&&view==="corpo"){ SCA.last=Date.now(); scaleSave(res,true); } } }
   finally{ SCA.on=false; renderScaleAuto(); } }
@@ -5038,7 +5043,7 @@ $("bScaleBtn").onclick=async()=>{ const b=$("bScaleBtn"); b.disabled=true; b.tex
 $("bTapeSetup").onclick=()=>{ go("profilo"); setTimeout(()=>{ try{ openPset("Dispositivi collegati","Dispositivi collegati","dev"); const row=[...document.querySelectorAll("#devCard .acc-row")].find(x=>/Metro a nastro/.test(x.textContent)); if(row) accToggle("accTape",row); toast("Tocca “Prova collegamento”, premi il tasto del metro e scegli ES-Tape"); }catch{} },300); };
 $("bScaleSetup").onclick=()=>{ go("profilo"); setTimeout(()=>{ try{ openPset("Dispositivi collegati","Dispositivi collegati","dev"); const row=[...document.querySelectorAll("#devCard .acc-row")].find(x=>/Lepulse/.test(x.textContent)); if(row){ accToggle("accScale",row); } toast("Tocca “Prova collegamento” e scegli F8: dopo ti basta “Pesati”"); }catch{} },300); };
 $("devScBtn").onclick=()=>devProbe("scale"); $("devTpBtn").onclick=()=>devProbe("tape");
-$("devCopy").onclick=async()=>{ const t=["BILANCIA:\n"+(localStorage.getItem("hf:probe-scale")||"(non provata)"),"METRO:\n"+(localStorage.getItem("hf:probe-tape")||"(non provato)")].join("\n\n");
+$("devCopy").onclick=async()=>{ const t=["BILANCIA:\n"+(localStorage.getItem("hf:probe-scale")||"(non provata)"),"BILANCIA IN ASCOLTO (Corpo):\n"+(localStorage.getItem("hf:probe-scale-auto")||"(nessun segnale)"),"METRO:\n"+(localStorage.getItem("hf:probe-tape")||"(non provato)")].join("\n\n");
   try{ const C=NAT(); if(C&&C.Plugins.Clipboard) await C.Plugins.Clipboard.write({string:t}); else await navigator.clipboard.writeText(t); toast("Copiato: incollalo nella chat con Claude"); }catch{ toast("Fai uno screenshot dei risultati"); } };
 /* palestra: battito registrato dal motore nativo (APK) o ricollegamento automatico (browser) */
 const NATHR={on:false,st:null};
