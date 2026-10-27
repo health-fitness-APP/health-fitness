@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.90 (bilancia: diagnosi con l'esito delle ultime 3 pesate)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.91 (bilancia: aspetta l'analisi completa prima di salvare)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5055,7 +5055,9 @@ async function scaleAutoLoop(){ if(SCA.on||!scaleAutoOk()) return; SCA.on=true; 
       try{ const r0=await HRN().inspect({address:localStorage.getItem("hf:scaleAddr"),seconds:25,profile:scaleProfile()}), lg=(r0&&r0.log)||[]; res=parseScaleLog(lg);
         // peso in tempo reale fermo per 3 letture di fila: lo prendo anche se il pacchetto finale non è arrivato
         if(res&&!res.final){ const lv=lg.map(l=>String(l).match(/⇢\s*ffb[23]:\s*([0-9a-f ]+)/i)).filter(Boolean).map(m=>m[1].trim().split(/\s+/).map(x=>parseInt(x,16))).filter(b=>b[3]===0xa2&&b.length>8).map(b=>((b[6]<<16)|(b[7]<<8)|b[8])/1000).filter(w=>w>20&&w<250);
-          if(lv.length>=3&&lv.slice(-3).every(w=>Math.abs(w-lv[lv.length-1])<0.05)) res.final=true; }
+          // se la bilancia sta ancora misurando le impedenze (fase 03) aspetto il risultato finale
+          const ph=lg.map(l=>String(l).match(/⇢\s*ffb2:\s*\S+ \S+ \S+ a2 (\S+)/i)).filter(Boolean).map(m=>m[1]).pop();
+          if(ph!=="03"&&lv.length>=3&&lv.slice(-3).every(w=>Math.abs(w-lv[lv.length-1])<0.05)) res.final=true; }
         const sig=lg.some(l=>/✓ collegato|⇢|annuncio/.test(String(l))); if(sig) SCA.seen=new Date();
         SCA.lg=sig? lg : null;
         if(SCA.err){ SCA.err=false; } renderScaleAuto(); }
