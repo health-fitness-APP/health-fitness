@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.84 (bilancia: ascolto più lungo per ricevere anche grasso e muscoli)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.85 (bilancia: l'APK 25 manda il profilo alla bilancia per avere anche grasso e muscoli)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4973,17 +4973,19 @@ $("bTapeGo").onclick=async()=>{ const P=HRN(), addr=localStorage.getItem("hf:tap
     const order=METRICS.filter(m=>m[2]==="cm"&&!m[3]).map(m=>m[0]), nx=order.find(k=>!$("b_"+k).value); if(nx) tapePart=nx; renderTapeParts(); }
   catch(e){ setStatus("bTapeStatus","Metro: "+((e&&e.message)||e),true); }
   finally{ $("bTapeGo").disabled=false; } };
-/* bilancia F8 (FitDays/Lepulse): peso in grammi su 3 byte nei pacchetti a2 (in tempo reale) e a3 (finale, con 8 impedenze) */
-function parseScaleLog(lines){ let live=null, fin=null, imp=null;
+/* bilancia F8 (Lepulse/FitDays, servizio FFB0): trame da 20 byte [seq, lung, 00, comando, …, somma&0x1f].
+   a2 = peso in tempo reale (grammi su 3 byte, 6..8), a3 = risultato finale (peso 5..7, impedenze in Ω su 2 byte da 9).
+   Le impedenze arrivano solo se l'APK risponde all'a1 della bilancia con il profilo (altezza, età, sesso). */
+function parseScaleLog(lines){ let live=null, fin=null; const imp=[];
   (lines||[]).forEach(l=>{ const m=String(l).match(/⇢\s*(ffb2|ffb3):\s*([0-9a-f ]+)/i); if(!m) return; const b=m[2].trim().split(/\s+/).map(x=>parseInt(x,16));
     if(b[3]===0xa2&&b.length>8){ const w=((b[6]<<16)|(b[7]<<8)|b[8])/1000; if(w>20&&w<250) live=w; }
-    if(b[3]===0xa3&&b.length>18&&b[2]===0){ const w=((b[5]<<16)|(b[6]<<8)|b[7])/1000; if(w>20&&w<250){ fin=w; imp=[11,13,15,17].map(i=>((b[i]<<8)|b[i+1])/10); } }
-    if(b[2]===1&&b[0]===0xf7&&b.length>12&&imp&&imp.length===4){ imp=imp.concat([5,7,9,11].map(i=>((b[i]<<8)|b[i+1])/10)); } });
-  return {weight:fin||live, final:!!fin, imp}; }
+    if(b[3]===0xa3&&b.length>=19){ const w=((b[5]<<16)|(b[6]<<8)|b[7])/1000; if(b[4]===0&&w>20&&w<250) fin=w;
+      for(let i=9;i<18;i+=2){ const z=(b[i]<<8)|b[i+1]; if(z>=100&&z<=2000&&!imp.includes(z)) imp.push(z); } } });
+  return {weight:fin||live, final:!!fin, imp:imp.length?imp:null}; }
 /* composizione corporea dalle impedenze (bilancia a 8 elettrodi): equazioni pubblicate + calibrazione personale su FitDays.
    impedenze: [braccio, braccio, gamba, gamba] a bassa frequenza, poi le stesse ad alta frequenza */
-function biaRaw(imp,w){ const p=state.profile||{}, h=+p.height, age=+p.age||35, male=p.sex!=="f"; if(!imp||imp.length<8||!h||!w) return null;
-  const avg=(a,b)=>(a+b)/2, zLo=avg(imp[0],imp[1])+avg(imp[2],imp[3])+25, zHi=avg(imp[4],imp[5])+avg(imp[6],imp[7])+20, z50=zLo+0.57*(zHi-zLo), ri=h*h/z50;
+function biaRaw(imp,w){ const p=state.profile||{}, h=+p.height, age=+p.age||35, male=p.sex!=="f"; if(!imp||!imp.length||!h||!w) return null;
+  const avg=(a,b)=>(a+b)/2, z50= imp.length>=8? (()=>{ const zLo=avg(imp[0],imp[1])+avg(imp[2],imp[3])+25, zHi=avg(imp[4],imp[5])+avg(imp[6],imp[7])+20; return zLo+0.57*(zHi-zLo); })() : imp[0], ri=h*h/z50;
   const ffm= male? -10.68+0.65*ri+0.26*w+0.02*z50 : -9.53+0.69*ri+0.17*w+0.02*z50;   // Sun 2003
   const tbw= male? 1.203+0.449*ri+0.176*w : 3.747+0.45*ri+0.113*w;                     // Sun 2003
   const smm= ri*0.401+(male?3.825:0)-0.071*age+5.102;                                   // Janssen 2000
@@ -5005,12 +5007,13 @@ function biaLearn(shot){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new D
   if(shot.bodyAge>0){ const cal0=biaCalibrated(sc.imp,shot.weight||sc.weight), base=cal0? cal0.bodyAge-((body.cal.bodyAge&&body.cal.bodyAge.n)? body.cal.bodyAge.d : 0) : raw.bodyAge; const c=body.cal.bodyAge||{d:0,n:0}; c.d=(c.d*c.n+(shot.bodyAge-base))/(c.n+1); c.n=Math.min(c.n+1,10); body.cal.bodyAge=c; learned=true; }
   if(learned){ const est=biaCalibrated(sc.imp,sc.weight); if(est) Object.assign(sc,{...(sc.fatHc?{}:{fat:est.fat}),water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true}); save("body",body); }
   return learned; }
+function scaleProfile(){ const p=state.profile||{}; return {height:Math.round(+p.height||0), age:Math.round(+p.age||0), male:p.sex!=="f"}; }
 function scaleSave(res,auto){ const w=Math.round(res.weight*10)/10;
   const entry={id:uid(),date:todayISO(),source:"bilancia",weight:w,...(res.imp&&res.imp.length?{imp:res.imp}:{})};
-  const est=res.imp&&res.imp.length>=8? biaCalibrated(res.imp,w) : null; if(est) Object.assign(entry,{fat:est.fat,water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true});
+  const est=res.imp&&res.imp.length? biaCalibrated(res.imp,w) : null; if(est) Object.assign(entry,{fat:est.fat,water:est.water,muscle:est.muscle,bmr:est.bmr,bodyAge:est.bodyAge,est:true});
   body.entries=[...body.entries.filter(e=>!(e.date===entry.date&&e.source==="bilancia")),entry]; save("body",body); bodyDate=null;
   // prima taratura: uso lo screenshot della bilancia caricato negli ultimi 2 giorni, senza dover riaprire Lepulse
-  if(entry.imp&&entry.imp.length>=8&&!(body.cal&&body.cal.fat&&body.cal.fat.n)){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new Date(b+"T12:00:00"))/864e5);
+  if(entry.imp&&entry.imp.length&&!(body.cal&&body.cal.fat&&body.cal.fat.n)){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new Date(b+"T12:00:00"))/864e5);
     const shot=body.entries.filter(e=>e.source==="screenshot"&&e.fat&&dd(e.date,entry.date)<=2).sort((a,b)=>dd(a.date,entry.date)-dd(b.date,entry.date))[0];
     if(shot) try{ if(biaLearn(shot)){ const c2=biaCalibrated(entry.imp,w); if(c2) Object.assign(entry,{fat:c2.fat,water:c2.water,muscle:c2.muscle,bmr:c2.bmr,bodyAge:c2.bodyAge}); save("body",body); } }catch{} }
   try{ syncProfileFromBody(); }catch{} try{ hcWriteBody(entry); }catch{} renderAll(); try{ navigator.vibrate&&navigator.vibrate(auto?[80,60,80]:60); }catch{}
@@ -5026,7 +5029,7 @@ function renderScaleAuto(){ const n=$("bScaleNote"); if(!n) return;
     try{ const C=NAT(); if(C&&C.Plugins.Clipboard) await C.Plugins.Clipboard.write({string:t}); else await navigator.clipboard.writeText(t); toast("Copiato: incollalo nella chat con Claude"); }catch{ toast("Fai uno screenshot di questa parte"); } }; }
 async function scaleAutoLoop(){ if(SCA.on||!scaleAutoOk()) return; SCA.on=true; SCA.err=false; renderScaleAuto();
   try{ while(scaleAutoOk()){ let res=null;
-      try{ const r0=await HRN().inspect({address:localStorage.getItem("hf:scaleAddr"),seconds:25}), lg=(r0&&r0.log)||[]; res=parseScaleLog(lg);
+      try{ const r0=await HRN().inspect({address:localStorage.getItem("hf:scaleAddr"),seconds:25,profile:scaleProfile()}), lg=(r0&&r0.log)||[]; res=parseScaleLog(lg);
         // peso in tempo reale fermo per 3 letture di fila: lo prendo anche se il pacchetto finale non è arrivato
         if(res&&!res.final){ const lv=lg.map(l=>String(l).match(/⇢\s*ffb[23]:\s*([0-9a-f ]+)/i)).filter(Boolean).map(m=>m[1].trim().split(/\s+/).map(x=>parseInt(x,16))).filter(b=>b[3]===0xa2&&b.length>8).map(b=>((b[6]<<16)|(b[7]<<8)|b[8])/1000).filter(w=>w>20&&w<250);
           if(lv.length>=3&&lv.slice(-3).every(w=>Math.abs(w-lv[lv.length-1])<0.05)) res.final=true; }
@@ -5035,13 +5038,13 @@ async function scaleAutoLoop(){ if(SCA.on||!scaleAutoOk()) return; SCA.on=true; 
         if(SCA.err){ SCA.err=false; } renderScaleAuto(); }
       catch{ if(!SCA.err){ SCA.err=true; renderScaleAuto(); } await new Promise(r=>setTimeout(r,4000)); continue; }
       // se prima avevo solo il peso e ora arrivano anche le impedenze, aggiorno la pesata di oggi
-      if(res&&res.weight&&res.final&&view==="corpo"){ const hasImp=!!(res.imp&&res.imp.length>=8);
+      if(res&&res.weight&&res.final&&view==="corpo"){ const hasImp=!!(res.imp&&res.imp.length);
         if(Date.now()-SCA.last>90000||(hasImp&&!SCA.lastImp)){ SCA.last=Date.now(); SCA.lastImp=hasImp; scaleSave(res,true); } } } }
   finally{ SCA.on=false; renderScaleAuto(); } }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&view==="corpo") scaleAutoLoop(); });
 async function scaleWeigh(){ if(SCA.on){ toast("Sali pure sulla bilancia: con Corpo aperto la pesata si salva da sola"); return; } const P=HRN(), addr=localStorage.getItem("hf:scaleAddr"); if(!P||!P.inspect||!addr){ toast("Serve l'app Android aggiornata e la prova della bilancia"); return; }
   const btn=$("devWeigh"); btn.disabled=true; btn.textContent="⏳ Sali sulla bilancia…"; toast("Sali ora sulla bilancia, scalzo, e resta fermo");
-  try{ const r0=await P.inspect({address:addr,seconds:25}); const res=parseScaleLog((r0&&r0.log)||[]);
+  try{ const r0=await P.inspect({address:addr,seconds:25,profile:scaleProfile()}); const res=parseScaleLog((r0&&r0.log)||[]);
     if(!res.weight){ toast("Non ho ricevuto il peso: riprova salendo subito dopo aver toccato il pulsante"); return; }
     const w=Math.round(res.weight*10)/10;
     if(!confirm(`La bilancia dice ${String(w).replace(".",",")} kg${res.final?"":" (lettura non definitiva)"}.\nÈ il numero sul display? Salvo la pesata di oggi?`)) return;
