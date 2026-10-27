@@ -5026,7 +5026,7 @@ function biaLearn(shot){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new D
   const sc=body.entries.filter(e=>e.source==="bilancia"&&e.imp&&dd(e.date,shot.date)<=2).sort((a,b)=>dd(a.date,shot.date)-dd(b.date,shot.date))[0]; if(!sc) return false;
   const raw=biaRaw(sc.imp,shot.weight||sc.weight); if(!raw) return false; body.cal=body.cal||{}; let learned=false;
   calReset(); shot.calUsed=true;
-  BIA_KEYS.forEach(k=>{ if(shot[k]>0&&raw[k]>0){ const r0=shot[k]/raw[k]; if(r0<0.25||r0>4) return; const c=body.cal[k]||{r:1,n:0}; c.r= c.n? c.r*0.4+r0*0.6 : r0;   // l'ultimo riferimento conta di più c.n=Math.min(c.n+1,10); body.cal[k]=c; learned=true; } });
+  BIA_KEYS.forEach(k=>{ if(shot[k]>0&&raw[k]>0){ const r0=shot[k]/raw[k]; if(r0<0.25||r0>4) return; const c=body.cal[k]||{r:1,n:0}; c.r= c.n? c.r*0.4+r0*0.6 : r0; /* l'ultimo riferimento conta di più */ c.n=Math.min(c.n+1,10); body.cal[k]=c; learned=true; } });
   if(shot.bodyAge>0){ const cal0=biaCalibrated(sc.imp,shot.weight||sc.weight), base=cal0? cal0.bodyAge-((body.cal.bodyAge&&body.cal.bodyAge.n)? body.cal.bodyAge.d : 0) : raw.bodyAge; const c=body.cal.bodyAge||{d:0,n:0}; c.d= c.n? c.d*0.4+(shot.bodyAge-base)*0.6 : (shot.bodyAge-base); c.n=Math.min(c.n+1,10); body.cal.bodyAge=c; learned=true; }
   if(learned){ const est=biaCalibrated(sc.imp,sc.weight); biaApply(sc,est); save("body",body); }
   return learned; }
