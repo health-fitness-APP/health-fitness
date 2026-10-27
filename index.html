@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.79 (pesata automatica: segnale della bilancia visibile e diagnosi copiabile)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.80 (dagli screenshot della bilancia anche la massa muscolare totale)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -6728,7 +6728,7 @@ function errCopy(e){
 }
 
 /* ================= CORPO ================= */
-const METRICS=[["weight","Peso","kg"],["bmr","Metabolismo basale","kcal"],["bodyAge","Età corporea","anni"],["bone","Massa ossea","kg"],["protein","Proteine","%"],["subfat","Grasso sottocutaneo","%"],["fat","Grasso corporeo","%"],["muscle","Massa muscolare","kg"],["water","Acqua","%"],["visceral","Grasso viscerale",""],["shoulders","Spalle","cm"],["chest","Petto","cm"],["waist","Vita","cm"],["hips","Fianchi / bacino","cm"],["arm","Braccio","cm"],["forearm","Avambraccio","cm"],["thigh","Coscia","cm"],["calf","Polpaccio","cm"],["neck","Collo","cm"],["abdomen","Addome","cm"],["armL","Braccio sinistro","cm"],["armR","Braccio destro","cm"],["thighL","Coscia sinistra","cm"],["thighR","Coscia destra","cm"],["calfL","Polpaccio sinistro","cm"],["calfR","Polpaccio destro","cm"],
+const METRICS=[["weight","Peso","kg"],["bmr","Metabolismo basale","kcal"],["bodyAge","Età corporea","anni"],["bone","Massa ossea","kg"],["protein","Proteine","%"],["subfat","Grasso sottocutaneo","%"],["fat","Grasso corporeo","%"],["muscle","Muscolo scheletrico","kg"],["muscleTot","Massa muscolare totale","kg"],["water","Acqua","%"],["visceral","Grasso viscerale",""],["shoulders","Spalle","cm"],["chest","Petto","cm"],["waist","Vita","cm"],["hips","Fianchi / bacino","cm"],["arm","Braccio","cm"],["forearm","Avambraccio","cm"],["thigh","Coscia","cm"],["calf","Polpaccio","cm"],["neck","Collo","cm"],["abdomen","Addome","cm"],["armL","Braccio sinistro","cm"],["armR","Braccio destro","cm"],["thighL","Coscia sinistra","cm"],["thighR","Coscia destra","cm"],["calfL","Polpaccio sinistro","cm"],["calfR","Polpaccio destro","cm"],
 ["sfArmL","Grasso braccio sx (% std)","%","seg"],["sfArmR","Grasso braccio dx (% std)","%","seg"],["sfTrunk","Grasso tronco (% std)","%","seg"],["sfLegL","Grasso gamba sx (% std)","%","seg"],["sfLegR","Grasso gamba dx (% std)","%","seg"],
 ["smArmL","Muscoli braccio sx (% std)","%","seg"],["smArmR","Muscoli braccio dx (% std)","%","seg"],["smTrunk","Muscoli tronco (% std)","%","seg"],["smLegL","Muscoli gamba sx (% std)","%","seg"],["smLegR","Muscoli gamba dx (% std)","%","seg"]];
 function syncProfileFromBody(){ const last=latestBody(); if(state.profile&&last.weight&&state.profile.weight!==last.weight.v){ state.profile.weight=last.weight.v; save("profile",state.profile); return true; } return false; }
@@ -6746,7 +6746,7 @@ function derivedVal(x,k){
   if(k==="bodyAge"){ if(+x.bodyAge>0) return +x.bodyAge; if(!(x.weight&&x.fat)) return null; const a=bodyAgeOf(+x.bmr||370+21.6*x.weight*(1-x.fat/100),+x.fat,+x.weight); return a? Math.round(a) : null; }
   return x[k]!=null? +x[k] : null;
 }
-const DMETA={weight:["Peso","kg"],muscle:["Massa muscolare","kg"],fatKg:["Massa grassa","kg"],waterKg:["Acqua corporea","kg"],fat:["Grasso corporeo","%"],bmi:["IMC",""],water:["Acqua","%"],visceral:["Grasso viscerale",""],bodyAge:["Età corporea","anni"],bone:["Massa ossea","kg"],protein:["Proteine","%"],subfat:["Grasso sottocutaneo","%"]};
+const DMETA={weight:["Peso","kg"],muscle:["Muscolo scheletrico","kg"],muscleTot:["Massa muscolare totale","kg"],fatKg:["Massa grassa","kg"],waterKg:["Acqua corporea","kg"],fat:["Grasso corporeo","%"],bmi:["IMC",""],water:["Acqua","%"],visceral:["Grasso viscerale",""],bodyAge:["Età corporea","anni"],bone:["Massa ossea","kg"],protein:["Proteine","%"],subfat:["Grasso sottocutaneo","%"]};
 function refRange(k,w){
   const p=state.profile||{}, m=p.sex!=="f", age=+p.age||35, h=hM();
   const fr= m? (age<40?[8,20]:age<60?[11,22]:[13,25]) : (age<40?[21,33]:age<60?[23,34]:[24,36]);
@@ -6823,7 +6823,7 @@ function renderBody(){
       : cur? "Misurazione di "+fd(cur.date)+src(cur)+" · l'ultima caricata è di "+fd(lastAll.date)
       : "Nessuna misurazione prima di "+fd(bd)+"."; }
   const fill=(card,box,keys)=>{ const b=$(box); b.innerHTML=""; keys.forEach(k=>{ const r0=metricRow(k,es); if(r0) b.appendChild(r0); }); $(card).hidden=!b.children.length; };
-  fill("bCompCard","bComp",["weight","muscle","fatKg","waterKg"]);
+  fill("bCompCard","bComp",["weight","muscleTot","muscle","fatKg","waterKg"]);
   fill("bAnaCard","bAna",["fat","bmi","water","visceral","subfat","protein","bone","bodyAge"]);
   // metabolismo basale: letto dalla bilancia o stimato
   const p=state.profile||{}; let bmr=last.bmr?last.bmr.v:null, est=false;
@@ -6861,7 +6861,7 @@ function renderBody(){
     map.append(L,C,R);
   }
   // grafici
-  const keys=["weight","fatKg","muscle","fat","waterKg","bmi","visceral",...METRICS.filter(m=>m[2]==="cm").map(m=>m[0])];
+  const keys=["weight","fatKg","muscleTot","muscle","fat","waterKg","bmi","visceral",...METRICS.filter(m=>m[2]==="cm").map(m=>m[0])];
   const nameOf=k=> DMETA[k]? DMETA[k] : (()=>{ const m=METRICS.find(x=>x[0]===k); return [m[1],m[2]]; })();
   const avail=keys.filter(k=>es.filter(x=>derivedVal(x,k)!=null).length>=2);
   $("bChartCard").hidden=!avail.length;
@@ -6950,7 +6950,7 @@ $("bShot").onchange=async e=>{
     const res=await sample.json(
 `Queste sono schermate di app per bilance intelligenti o metri smart (es. Lepulse, FitDays, Renpho). Leggi i valori della misurazione mostrata.
 Rispondi SOLO con JSON, usando null per i valori assenti:
-{"date":"YYYY-MM-DD o null","weight":kg,"fat":percentuale grasso corporeo,"muscle":massa del MUSCOLO SCHELETRICO in kg (se la bilancia dà il muscolo scheletrico in %, convertilo: % × peso / 100; NON usare "massa muscolare" totale o massa magra, che sono molto più alte),"bone":massa ossea in kg,"protein":proteine in %,"subfat":grasso sottocutaneo in %,"water":percentuale acqua,"visceral":indice grasso viscerale,"bodyAge":età corporea o età metabolica in anni,"bmr":metabolismo basale in kcal,"waist":cm,"hips":cm (fianchi o bacino),"shoulders":cm,"chest":cm,"arm":cm (braccio/bicipite, media),"forearm":cm,"thigh":cm (media),"calf":cm (media),"neck":cm,"abdomen":cm (addome),"armL":cm,"armR":cm,"thighL":cm,"thighR":cm,"calfL":cm,"calfR":cm,
+{"date":"YYYY-MM-DD o null","weight":kg,"fat":percentuale grasso corporeo,"muscle":massa del MUSCOLO SCHELETRICO in kg (se la bilancia dà il muscolo scheletrico in %, convertilo: % × peso / 100; NON usare "massa muscolare" totale o massa magra, che sono molto più alte),"muscleTot":massa muscolare TOTALE in kg (la voce "Massa muscolare" di Lepulse/FitDays, di solito il 75-85% del peso; se è solo in %, convertila in kg),"bone":massa ossea in kg,"protein":proteine in %,"subfat":grasso sottocutaneo in %,"water":percentuale acqua,"visceral":indice grasso viscerale,"bodyAge":età corporea o età metabolica in anni,"bmr":metabolismo basale in kcal,"waist":cm,"hips":cm (fianchi o bacino),"shoulders":cm,"chest":cm,"arm":cm (braccio/bicipite, media),"forearm":cm,"thigh":cm (media),"calf":cm (media),"neck":cm,"abdomen":cm (addome),"armL":cm,"armR":cm,"thighL":cm,"thighR":cm,"calfL":cm,"calfR":cm,
 "sfArmL":%,"sfArmR":%,"sfTrunk":%,"sfLegL":%,"sfLegR":%,"smArmL":%,"smArmR":%,"smTrunk":%,"smLegL":%,"smLegR":%}
 I campi sf*/sm* sono l'analisi segmentale (bilance come FitDays): "rapporto standard di grassi" (sf) e "rapporto standard muscolare" (sm) di braccio sinistro/destro, tronco, gamba sinistra/destra, in percentuale (es. 37,6% e 107,7%). L = sinistra, R = destra.
 Se ci sono misure destra e sinistra, riportale nei campi L/R e metti la media nel campo generico (arm, thigh, calf).
@@ -6959,7 +6959,7 @@ Se la massa muscolare è solo in percentuale e c'è il peso, convertila in kg. S
     const okDate=res.date&&/^\d{4}-\d{2}-\d{2}$/.test(res.date)&&res.date<=todayISO();
     const entry={id:uid(),date:okDate?res.date:todayISO(),source:"screenshot"}, read=[]; bodyDate=null;
     METRICS.forEach(([k,l,u])=>{ const v=+res[k]; if(res[k]!=null&&isFinite(v)&&v>0){ entry[k]=Math.round(v*10)/10; read.push(l+" "+fmt(entry[k])+(u?" "+u:"")); } });
-    if(entry.muscle&&entry.weight&&entry.muscle>entry.weight*0.6){ delete entry.muscle; }
+    if(entry.muscle&&entry.weight&&entry.muscle>entry.weight*0.6){ if(!entry.muscleTot) entry.muscleTot=entry.muscle; delete entry.muscle; }
     if(!read.length){ setStatus("bShotStatus","Non ho trovato valori in questa immagine. Prova con la schermata del dettaglio della pesata."); return; }
     body.entries=[...body.entries,entry]; save("body",body); bodyDate=null; try{ hcWriteBody(entry); }catch{}
     try{ if(biaLearn(entry)) toast("Calibrazione aggiornata: le prossime pesate useranno i calcoli allineati a Lepulse ✓"); }catch(e){ console.warn("calibrazione",e); }
