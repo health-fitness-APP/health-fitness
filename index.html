@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.87 (bilancia: taratura rifatta sui valori di Lepulse, anche massa muscolare totale e ossa)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.88 (si può caricare anche la foto del display della bilancia)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -6978,7 +6978,8 @@ Rispondi SOLO con JSON, usando null per i valori assenti:
 "sfArmL":%,"sfArmR":%,"sfTrunk":%,"sfLegL":%,"sfLegR":%,"smArmL":%,"smArmR":%,"smTrunk":%,"smLegL":%,"smLegR":%}
 I campi sf*/sm* sono l'analisi segmentale (bilance come FitDays): "rapporto standard di grassi" (sf) e "rapporto standard muscolare" (sm) di braccio sinistro/destro, tronco, gamba sinistra/destra, in percentuale (es. 37,6% e 107,7%). L = sinistra, R = destra.
 Se ci sono misure destra e sinistra, riportale nei campi L/R e metti la media nel campo generico (arm, thigh, calf).
-Se la massa muscolare è solo in percentuale e c'è il peso, convertila in kg. Se l'acqua è indicata in kg, convertila in percentuale del peso; se c'è solo la massa grassa in kg, calcola la percentuale di grasso. Numeri all'italiana: virgola = decimali, punto = migliaia (1.670 kcal = 1670). Converti libbre e pollici in kg e cm. Non inventare valori.`,{images:imgs,modelTier:"default",cache:false});
+Se la massa muscolare è solo in percentuale e c'è il peso, convertila in kg. Se l'acqua è indicata in kg, convertila in percentuale del peso; se c'è solo la massa grassa in kg, calcola la percentuale di grasso. Numeri all'italiana: virgola = decimali, punto = migliaia (1.670 kcal = 1670). Converti libbre e pollici in kg e cm.
+Può essere anche la FOTO DEL DISPLAY di una bilancia (es. Lepulse): il numero grande è il peso; icona a puntini = grasso corporeo %; icona a onde = acqua %; BMI; icona con muscoli = massa muscolare TOTALE in kg (muscleTot, non il muscolo scheletrico); icona omino = età corporea; icona osso = massa ossea kg. Ignora i riflessi sul vetro. Non inventare valori.`,{images:imgs,modelTier:"default",cache:false});
     if(!res) throw {code:"bad_output"};
     const okDate=res.date&&/^\d{4}-\d{2}-\d{2}$/.test(res.date)&&res.date<=todayISO();
     const entry={id:uid(),date:okDate?res.date:todayISO(),source:"screenshot"}, read=[]; bodyDate=null;
