@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.94 (bilancia: taratura calcolata sulle tue pesate, scarto di pochi decimi dal display)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.95 (corsa: avviso 30 secondi prima della fine del riscaldamento)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5226,6 +5226,7 @@ let CD=null, cdTick=null, cdWatch=null;
 function cdTargetFor(t){ t=String(t||""); return /facile|lungo|recupero/i.test(t)? [0,2,"Resta in Z2: corsa facile"] : /soglia|ritmo gara|progress|tempo/i.test(t)? [3,3,"Zona soglia (Z4) nelle parti veloci"] : /ripetut|interval|fartlek/i.test(t)? [3,4,"Z4–Z5 nelle ripetute, giù nei recuperi"] : null; }
 function openCardio(o){ if(!HRN()&&hrAuto()&&!HR.ch) setTimeout(()=>gymHrStart(),300); if(CD&&CD.running&&!confirm("C'è già una corsa con la fascia in corso: la sostituisco?")) { go("cardio"); return; }
   CD={title:o.title||"Corsa",runType:o.runType||"",kmPlan:o.km||null,pacePlan:o.pace||"",from:o.from||null,noWatch:!!o.noWatch,running:false,paused:false,t0:0,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:cdTargetFor(o.runType||o.title),trk:[],pos:null};
+  { const wi=o.from&&o.from.d? runPlanInfo(o.from.d) : null; CD.warm=wi&&wi.warm||0; CD.warmKm=wi&&wi.warmKm||0; CD.w30=false; CD.wEnd=false; }
   $("cdTitle").textContent=CD.title; go("cardio"); renderCardio(); }
 function cdElapsed(){ if(!CD||!CD.t0) return 0; return ((CD.paused? CD.pAt : Date.now())-CD.t0-CD.pausedMs)/1000; }
 function renderCardio(){ if(!CD) return; const nat=CD.native&&CD.nat, isN=!!HRN();
@@ -5243,10 +5244,17 @@ function renderCardio(){ if(!CD) return; const nat=CD.native&&CD.nat, isN=!!HRN(
   if(nat){ CD.running=!!CD.nat.running; CD.paused=!!CD.nat.paused; }
   $("cdStart").hidden=CD.running; $("cdPause").hidden=!CD.running; $("cdEnd").hidden=!CD.t0; $("cdPause").textContent=CD.paused? "▶ Riprendi" : "⏸ Pausa"; $("cdStart").textContent=CD.t0? "▶ Riprendi" : "AVVIA";
   if(isN&&!CD.running) hrnBattery();
+  if(CD.running&&!CD.paused) cdWarm(el0,km);
   $("cdWatch").hidden=!WBR()||CD.running;
 }
 HR.fns.add(()=>{ if(view==="cardio") renderCardio(); });
 function cdAlert(msg){ if(!$("cdAlerts").checked||Date.now()-CD.lastAlert<45000) return; CD.lastAlert=Date.now(); try{ beep(); setTimeout(beep,350); }catch{} if(navigator.vibrate) navigator.vibrate([300,150,300]); toast(msg); try{ const u=new SpeechSynthesisUtterance(msg); u.lang="it-IT"; speechSynthesis.speak(u); }catch{} }
+/* riscaldamento: avviso 30 secondi prima della fine e alla fine (a km: stima dal ritmo medio) */
+function cdWarm(t,km){ if(!(CD.warm||CD.warmKm)||CD.wEnd) return;
+  const left= CD.warm? CD.warm-t : km>0.1&&t>=30? (CD.warmKm-km)*t/km : null; if(left==null) return;
+  const say=m=>{ try{ beep(); setTimeout(beep,350); }catch{} if(navigator.vibrate) navigator.vibrate([250,120,250,120,250]); toast(m); try{ const u=new SpeechSynthesisUtterance(m); u.lang="it-IT"; speechSynthesis.speak(u); }catch{} };
+  if(left<=0){ CD.wEnd=true; say("Riscaldamento finito: inizia l'allenamento"); }
+  else if(!CD.w30&&left<=30&&(CD.warm? CD.warm>=60 : true)){ CD.w30=true; say((CD.warm? "Mancano 30 secondi" : "Circa 30 secondi")+" alla fine del riscaldamento, preparati"); } }
 function cdStep(){ if(!CD||!CD.running||CD.paused) return;
   { const t=Math.round(cdElapsed()); if(CD.trk&&t>=(CD.trkT||0)+5){ CD.trkT=t; const q=CD.pos||{}; CD.trk.push([t,Math.round(CD.km*1000),hrFresh()?HR.bpm:0,q.a!=null?Math.round(q.a):-9999,-1,q.la?Math.round(q.la*1e5):0,q.lo?Math.round(q.lo*1e5):0]); } }
   if(hrFresh()){ const b=HR.bpm, z=zoneOf(b); CD.sum+=b; CD.n++; CD.max=Math.max(CD.max,b); CD.z[z]++;
