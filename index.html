@@ -2198,7 +2198,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.80 (dagli screenshot della bilancia anche la massa muscolare totale)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.81 (massa muscolare totale con barra e fascia di riferimento)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -6755,6 +6755,7 @@ function refRange(k,w){
     case "weight": return h? [18.5*h*h, 25*h*h] : null;
     case "bmi": return h? [18.5,25] : null;
     case "muscle": return w? (m? [0.40*w,0.445*w] : [0.31*w,0.355*w]) : null;
+    case "muscleTot": return w? (m? [0.72*w,0.84*w] : [0.62*w,0.75*w]) : null;
     case "fat": return fr;
     case "fatKg": return w? [fr[0]*w/100, fr[1]*w/100] : null;
     case "water": return wr;
@@ -6776,11 +6777,11 @@ function metricRow(k,es){
   const dd=prev==null||jump? 0 : Math.round((v-prev)*10)/10;
   const d= prev==null||jump? "" : (dd>0?"+":dd<0?"−":"")+Math.abs(dd).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1});
   let zone="", col="var(--basil)";
-  if(rg){ const good=k==="muscle";
+  if(rg){ const good=k==="muscle"||k==="muscleTot";
     if(v<rg[0]){ zone= good? "sotto la media" : "sotto la norma"; col= good? "var(--warn)" : "var(--c3)"; }
     else if(v>rg[1]){ zone= good? "sopra la media" : "sopra la norma"; col= good? "var(--basil)" : "var(--warn)"; }
     else zone= good? "nella media" : "nella norma"; }
-  row.innerHTML=`<div class="mhead"><span class="l"></span></div><div class="mval"><b class="num">${fmt(v)}${unit?`<small>${unit}</small>`:""}</b><span class="dl">${d}</span></div>`;
+  row.innerHTML=`<div class="mhead"><span class="l"></span></div><div class="mval"><b class="num">${unit==="kg"||unit==="%"? (Math.round(v*10)/10).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1}) : fmt(v)}${unit?`<small>${unit}</small>`:""}</b><span class="dl">${d}</span></div>`;
   const hd=row.querySelector(".l"); hd.textContent=label; if(zone){ const z=el("span","rzone",zone); z.style.color=col; hd.appendChild(z); }
   if(rg){
     const span=rg[1]-rg[0], lo=rg[0]-span, hi=rg[1]+span, pct=Math.max(2,Math.min(100,(v-lo)/(hi-lo)*100));
