@@ -2202,7 +2202,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.96 (corsa: metriche avanzate dall'orologio e note)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.97 (animazioni degli esercizi più veloci e abbinate meglio)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5952,6 +5952,132 @@ const EXDB_URL="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/
 const EXEQ={b:"bilanciere",d:"manubri",m:"macchina",c:"cavi",w:"corpo libero",k:"kettlebell",e:"bilanciere EZ",n:"elastici",x:"palla medica",s:"fitball",f:"rullo",o:"altro"};
 const IT_EN=[[/panca piana|distension[ei] su panca|bench/,"bench press"],[/panca inclinata/,"incline bench press"],[/panca declinata/,"decline bench press"],[/presa stretta/,"close grip"],[/stacco rumeno/,"romanian deadlift"],[/stacco/,"deadlift"],[/squat bulgaro|bulgaro/,"split squat"],[/front squat|squat frontale/,"front squat"],[/goblet/,"goblet squat"],[/squat/,"squat"],[/affond/,"lunge"],[/leg press|pressa/,"leg press"],[/leg extension/,"leg extensions"],[/leg curl/,"leg curl"],[/hip thrust|ponte glute/,"hip thrust glute bridge"],[/buongiorno|good morning/,"good morning"],[/trazion|pull.?up/,"pullups"],[/chin.?up/,"chin up"],[/lat machine|lat pull/,"lat pulldown"],[/rematore|row/,"row"],[/pulley|seated row/,"seated cable rows"],[/military|lento avanti|shoulder press|overhead/,"shoulder press"],[/arnold/,"arnold press"],[/alzate laterali|laterali/,"lateral raise"],[/alzate frontali|frontali/,"front raise"],[/croci|fly|aperture/,"fly"],[/curl a martello|hammer/,"hammer curl"],[/curl/,"curl"],[/french press|skull/,"skull crusher"],[/push.?down|pushdown/,"pushdown"],[/dip|parallele/,"dips"],[/piegament|push.?up/,"pushups"],[/plank/,"plank"],[/crunch/,"crunch"],[/sit.?up/,"sit-up"],[/russian twist/,"russian twist"],[/calf|polpacci/,"calf raise"],[/face pull/,"face pull"],[/scrollate|shrug/,"shrug"],[/burpee/,"burpee"],[/swing/,"kettlebell swing"],[/zercher/,"zercher"],[/farmer|carry/,"farmers walk"],[/mountain climber/,"mountain climbers"],[/stretching|allungamento/,"stretch"]];
 const EQ_IT=[[/manubr/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere/,"b"],[/macchina|machine|smith/,"m"],[/cav[io]|pulley/,"c"],[/kettlebell/,"k"],[/elastic/,"n"],[/corpo libero/,"w"]];
+/* abbinamenti verificati nome italiano → esercizio del Free Exercise DB (il primo che corrisponde vince; per attrezzo: d manubri, b bilanciere, m macchina, s smith, c cavi, k kettlebell, w corpo libero, e EZ, n elastici, _ altrimenti; null = nessuna foto adatta) */
+const EXRULES=[
+ [/burpee|wall sit|sedia al muro|hollow|bird.?dog|jumping.?jack|bear crawl|camminata dell.?orso|plank jack|corsa sul posto|high knees|skater|pattinator|salt\w* lateral/,{_:null}],
+ [/tapis|corsa|running|treadmill/,{_:"Running_Treadmill"}],
+ [/vogatore|rowing|remoergometro/,{_:"Rowing_Stationary"}],
+ [/cyclette|ellittic|spinning|nuoto|^camminata/,{_:null}],
+ [/plank laterale|side plank|plank sul fianco/,{_:"Side_Bridge"}],
+ [/mountain climber|scalatore/,{_:"Mountain_Climbers"}],
+ [/plank/,{_:"Plank"}],
+ [/affond.*lateral|lateral lunge|side lunge/,{_:"Barbell_Side_Split_Squat"}],
+ [/bulgar|split squat/,{w:"Split_Squats",_:"Split_Squat_with_Dumbbells"}],
+ [/affond.*(invers|indietro|dietro)|reverse lunge/,{_:"Dumbbell_Rear_Lunge"}],
+ [/affond.*(cammin|passo)|walking lunge/,{b:"Barbell_Walking_Lunge",_:"Bodyweight_Walking_Lunge"}],
+ [/affond|lunge/,{b:"Barbell_Lunge",_:"Dumbbell_Lunges"}],
+ [/step.?up|salit[ea] (sul|sulla|su)/,{b:"Barbell_Step_Ups",_:"Dumbbell_Step_Ups"}],
+ [/calf|polpacc/,{_seat:"Seated_Calf_Raise",_lp:"Calf_Press_On_The_Leg_Press_Machine",d:"Standing_Dumbbell_Calf_Raise",s:"Smith_Machine_Calf_Raise",_:"Standing_Calf_Raises"}],
+ [/leg press|pressa/,{_:"Leg_Press"}],
+ [/hack/,{b:"Barbell_Hack_Squat",_:"Hack_Squat"}],
+ [/goblet/,{_:"Goblet_Squat"}],
+ [/front squat|squat front/,{k:"Front_Squats_With_Two_Kettlebells",_:"Front_Barbell_Squat"}],
+ [/stacc\w* sumo|sumo deadlift/,{_:"Sumo_Deadlift"}],
+ [/sumo|squat plie|plie/,{_:"Plie_Dumbbell_Squat"}],
+ [/squat.*(salt|jump)|jump.?squat|squat jump/,{_:"Freehand_Jump_Squat"}],
+ [/pistol/,{_:"Kettlebell_Pistol_Squat"}],
+ [/thruster/,{_:"Kettlebell_Thruster"}],
+ [/zercher/,{_:"Zercher_Squats"}],
+ [/squat/,{_air:"Bodyweight_Squat",s:"Smith_Machine_Squat",d:"Dumbbell_Squat",k:"Goblet_Squat",w:"Bodyweight_Squat",m:"Smith_Machine_Squat",_:"Barbell_Squat"}],
+ [/(stacc|deadlift).*(rumen|romanian)|rumeno|romanian|\brdl\b/,{d:"Stiff-Legged_Dumbbell_Deadlift",_:"Romanian_Deadlift"}],
+ [/gambe tese|stiff.?leg/,{d:"Stiff-Legged_Dumbbell_Deadlift",_:"Stiff-Legged_Barbell_Deadlift"}],
+ [/(stacc|deadlift).*(una gamba|monopodal|single)/,{_:"Kettlebell_One-Legged_Deadlift"}],
+ [/trap.?bar|esagonal/,{_:"Trap_Bar_Deadlift"}],
+ [/stacc|deadlift/,{_:"Barbell_Deadlift"}],
+ [/hip thrust/,{_:"Barbell_Hip_Thrust"}],
+ [/(ponte|bridge).*(una gamba|monopodal|single)|single leg (glute )?bridge/,{_:"Single_Leg_Glute_Bridge"}],
+ [/ponte|glute bridge|hip bridge/,{b:"Barbell_Glute_Bridge",_:"Butt_Lift_Bridge"}],
+ [/good morning|buongiorno/,{_:"Good_Morning"}],
+ [/leg extension|estension[ei] (delle )?gambe|quadricipiti alla macchina/,{_:"Leg_Extensions"}],
+ [/nordic/,{_:"Natural_Glute_Ham_Raise"}],
+ [/leg curl|curl (dei |per i )?femoral|femorali (alla )?macchina/,{_seat:"Seated_Leg_Curl",_stand:"Standing_Leg_Curl",_ball:"Ball_Leg_Curl",_:"Lying_Leg_Curls"}],
+ [/abdu/,{_:"Thigh_Abductor"}],
+ [/addu/,{c:"Cable_Hip_Adduction",_:"Thigh_Adductor"}],
+ [/kickback.*tricip|tricip.*kickback/,{_:"Tricep_Dumbbell_Kickback"}],
+ [/kickback|slanci|calci.*glute/,{c:"One-Legged_Cable_Kickback",_:"Glute_Kickback"}],
+ [/iperestension.*invers|reverse hyper/,{_:"Reverse_Hyperextension"}],
+ [/iperestension|hyperextension|back extension|estension[ei] (lombar|della schiena)/,{_:"Hyperextensions_Back_Extensions"}],
+ [/sollevament[oi] (delle )?gambe|alzate (delle )?gambe|leg raise|knee raise|ginocchia al petto alla sbarra/,{_hang:"Hanging_Leg_Raise",_par:"Knee_Hip_Raise_On_Parallel_Bars",_:"Flat_Bench_Lying_Leg_Raise"}],
+ [/trazion.*(assistit|elastic)|assisted pull/,{_:"Band_Assisted_Pull-Up"}],
+ [/chin.?up|trazion.*(invers|supin)/,{_:"Chin-Up"}],
+ [/trazion|pull.?up|sbarra/,{_:"Pullups"}],
+ [/braccia tese|straight.?arm/,{_:"Straight-Arm_Pulldown"}],
+ [/lat.?machine|lat pull|pulldown|pull.?down/,{_close:"Close-Grip_Front_Lat_Pulldown",_rev:"Underhand_Cable_Pulldowns",_:"Wide-Grip_Lat_Pulldown"}],
+ [/pulley|seated (cable )?row|rematore (ai|al) cav/,{_:"Seated_Cable_Rows"}],
+ [/t.?bar/,{_:"T-Bar_Row_with_Handle"}],
+ [/rematore invers|inverted row|australian/,{_:"Inverted_Row"}],
+ [/tirate|upright row|rematore (in piedi|verticale)/,{d:"Standing_Dumbbell_Upright_Row",c:"Upright_Cable_Row",_:"Upright_Barbell_Row"}],
+ [/face pull/,{_:"Face_Pull"}],
+ [/rematore|\brow/,{_one:"One-Arm_Dumbbell_Row",d:"Bent_Over_Two-Dumbbell_Row",m:"Leverage_High_Row",c:"Seated_Cable_Rows",k:"One-Arm_Kettlebell_Row",w:"Inverted_Row",_:"Bent_Over_Barbell_Row"}],
+ [/pullover/,{c:"Rope_Straight-Arm_Pulldown",b:"Bent-Arm_Barbell_Pullover",_:"Bent-Arm_Dumbbell_Pullover"}],
+ [/scrollat|shrug/,{b:"Barbell_Shrug",s:"Smith_Machine_Behind_the_Back_Shrug",c:"Cable_Shrugs",_:"Dumbbell_Shrug"}],
+ [/arnold/,{k:"Kettlebell_Arnold_Press",_:"Arnold_Dumbbell_Press"}],
+ [/posterior|rear delt|reverse fly|croci invers|oiseau|aperture invers/,{m:"Reverse_Machine_Flyes",c:"Cable_Rear_Delt_Fly",n:"Back_Flyes_-_With_Bands",_:"Seated_Bent-Over_Rear_Delt_Raise"}],
+ [/frontal|front raise/,{c:"Front_Cable_Raise",b:"Standing_Front_Barbell_Raise_Over_Head",_plate:"Front_Plate_Raise",_:"Front_Dumbbell_Raise"}],
+ [/lateral|alzate/,{c:"Standing_Low-Pulley_Deltoid_Raise",n:"Lateral_Raise_-_With_Bands",_:"Side_Lateral_Raise"}],
+ [/push press/,{_:"Push_Press"}],
+ [/military|lento|shoulder press|overhead press|spint[ea].*(sopra|spall)|distension[ei].*(sopra|spall)|press (per le )?spalle/,{d:"Dumbbell_Shoulder_Press",m:"Machine_Shoulder_Military_Press",s:"Smith_Machine_Overhead_Shoulder_Press",k:"Two-Arm_Kettlebell_Military_Press",c:"Cable_Shoulder_Press",n:"Shoulder_Press_-_With_Bands",zmil:"Standing_Military_Press",b:"Standing_Military_Press",_:"Dumbbell_Shoulder_Press"}],
+ [/(piegament|push.?up|flession).*(stretti|diamante|diamond|close|tricip)|diamond push/,{_:"Push-Ups_-_Close_Triceps_Position"}],
+ [/(piegament|push.?up|flession).*(rialzat|declinat|piedi sopra|feet elevated)/,{_:"Push-Ups_With_Feet_Elevated"}],
+ [/piegament|push.?up|flession/,{_:"Pushups"}],
+ [/\bdips?\b|parallele/,{_bench:"Bench_Dips",m:"Dip_Machine",_chest:"Dips_-_Chest_Version",_:"Dips_-_Triceps_Version"}],
+ [/martello|hammer/,{c:"Cable_Hammer_Curls_-_Rope_Attachment",_:"Hammer_Curls"}],
+ [/concentrat/,{_:"Concentration_Curls"}],
+ [/scott|preacher/,{d:"One_Arm_Dumbbell_Preacher_Curl",m:"Machine_Preacher_Curls",_:"Preacher_Curl"}],
+ [/zottman/,{_:"Zottman_Curl"}],
+ [/spider curl/,{_:"Spider_Curl"}],
+ [/curl.*(invers|prona)|reverse curl/,{d:"Standing_Dumbbell_Reverse_Curl",_:"Reverse_Barbell_Curl"}],
+ [/curl/,{_inc:"Incline_Dumbbell_Curl",b:"Barbell_Curl",e:"EZ-Bar_Curl",c:"Standing_Biceps_Cable_Curl",m:"Machine_Bicep_Curl",_:"Dumbbell_Bicep_Curl"}],
+ [/french|skull|estension[ei].*(sdraiat|panca)|lying tricep/,{d:"Lying_Dumbbell_Tricep_Extension",_:"EZ-Bar_Skullcrusher"}],
+ [/push.?down|tricip\w* (ai|al) cav|spint[ea] in basso/,{_rope:"Triceps_Pushdown_-_Rope_Attachment",_rev:"Reverse_Grip_Triceps_Pushdown",_:"Triceps_Pushdown"}],
+ [/overhead tricep|tricip.*(sopra|testa|overhead)|estension[ei].*(sopra|testa)/,{c:"Cable_Rope_Overhead_Triceps_Extension",_rope:"Cable_Rope_Overhead_Triceps_Extension",_:"Standing_Dumbbell_Triceps_Extension"}],
+ [/tricip/,{c:"Triceps_Pushdown",_:"Standing_Dumbbell_Triceps_Extension"}],
+ [/croci|fly|flye|aperture|pec.?deck|butterfly|crossover/,{_cable:"Cable_Crossover",c:"Cable_Crossover",m:"Butterfly",_inc:"Incline_Dumbbell_Flyes",_:"Dumbbell_Flyes"}],
+ [/chest press|spinte (al|alla) macchina/,{c:"Cable_Chest_Press",_inc:"Leverage_Incline_Chest_Press",_:"Leverage_Chest_Press"}],
+ [/inclinat|incline/,{_curl:"Incline_Dumbbell_Curl",d:"Incline_Dumbbell_Press",m:"Leverage_Incline_Chest_Press",s:"Smith_Machine_Incline_Bench_Press",_:"Barbell_Incline_Bench_Press_-_Medium_Grip"}],
+ [/declinat|decline/,{d:"Decline_Dumbbell_Bench_Press",s:"Smith_Machine_Decline_Press",_:"Decline_Barbell_Bench_Press"}],
+ [/(panca|bench).*(stretta|close)|close.?grip bench/,{d:"Close-Grip_Dumbbell_Press",s:"Smith_Machine_Close-Grip_Bench_Press",e:"Close-Grip_EZ-Bar_Press",_:"Close-Grip_Barbell_Bench_Press"}],
+ [/floor press|distension[ei] a terra/,{_:"Dumbbell_Floor_Press"}],
+ [/panca|bench|distension|spinte/,{d:"Dumbbell_Bench_Press",s:"Smith_Machine_Bench_Press",m:"Machine_Bench_Press",_:"Barbell_Bench_Press_-_Medium_Grip"}],
+ [/crunch.*(invers)|reverse crunch/,{c:"Cable_Reverse_Crunch",_:"Reverse_Crunch"}],
+ [/bicicletta|bicycle|air bike/,{_:"Air_Bike"}],
+ [/crunch.*obliqu|obliqu/,{_:"Oblique_Crunches_-_On_The_Floor"}],
+ [/crunch/,{c:"Cable_Crunch",m:"Ab_Crunch_Machine",_:"Crunches"}],
+ [/v.?up|jackknife|a libro|sit.?up a v/,{_:"Jackknife_Sit-Up"}],
+ [/sit.?up/,{_:"Sit-Up"}],
+ [/russian twist|torsioni russe|twist russ/,{_:"Russian_Twist"}],
+ [/ab.?wheel|ruota|roller|rollout/,{b:"Barbell_Ab_Rollout_-_On_Knees",_:"Ab_Roller"}],
+ [/dead.?bug|insetto morto/,{_:"Dead_Bug"}],
+ [/superman/,{_:"Superman"}],
+ [/flutter|battiti di gambe/,{_:"Flutter_Kicks"}],
+ [/scissor|forbic/,{_:"Scissor_Kick"}],
+ [/pallof/,{_:"Pallof_Press"}],
+ [/woodchop|wood chop|taglialegna/,{_:"Standing_Cable_Wood_Chop"}],
+ [/turkish|get.?up/,{_:"Kettlebell_Turkish_Get-Up_Squat_style"}],
+ [/swing/,{_:"One-Arm_Kettlebell_Swings"}],
+ [/farmer|carry|contadino|trasporto/,{_:"Farmers_Walk"}],
+ [/box jump|salt\w* (sul|sulla) (box|cassa|panca)/,{_:"Front_Box_Jump"}],
+ [/corda|jump rope|rope jump/,{_:"Rope_Jumping"}],
+ [/inchworm|bruco/,{_:"Inchworm"}],
+ [/(stretch|allungament).*(quadric)|quadric.*(stretch|allungament)/,{_:"Quad_Stretch"}],
+ [/(stretch|allungament).*(femoral|ischio)|(femoral|ischio).*(stretch|allungament)/,{_:"Hamstring_Stretch"}],
+ [/cat.?cow|gatto|cammello/,{_:"Cat_Stretch"}],
+];
+/* sottovarianti riconosciute dal nome (quelle con "z" valgono solo se l'attrezzo non decide già) */
+const EXRULE_FLAGS=[["_seat",/sedut|seated/],["_lp",/leg press|pressa/],["_stand",/in piedi|standing/],["_ball",/fitball|palla|ball/],["_air",/air|libero|senza pesi|bodyweight|a corpo/],["_close",/stretta|close|triangolo|neutra/],["_rev",/invers|supin|underhand|reverse/],["_one",/un braccio|singol|one.?arm|manubrio\b|unilateral/],["_hang",/sbarra|appes|hanging/],["_par",/parallele|captain|sedia romana/],["_plate",/disco|plate/],["zmil",/military|lento/],["_cable",/cavi|cavo|crossover/],["_inc",/inclinat|incline/],["_bench",/panca|panche|bench|sedia/],["_chest",/petto|chest/],["_curl",/curl/],["_rope",/corda|rope/]];
+const EQ_RULE=[[/smith|multipower/,"s"],[/manubr|dumbbell/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere|barbell/,"b"],[/kettlebell/,"k"],[/cav[io]\b|cable|pulley|corda/,"c"],[/macchina|machine|pec deck|chest press/,"m"],[/elastic|band/,"n"],[/corpo libero|bodyweight|a corpo/,"w"]];
+function exdbRule(name,x){ const n=String(name||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""), nx=(n+" "+String((x&&x.equip)||"").toLowerCase()).replace(/[_]/g," ");
+  const r=EXRULES.find(([re])=>re.test(n)); if(!r) return undefined; const m=r[1];
+  const fl=late=>{ for(const [k,re] of EXRULE_FLAGS) if((k[0]==="z")===late&&k in m&&re.test(nx)) return k; };
+  let k=fl(false); if(k) return m[k];
+  const eq=(EQ_RULE.find(([re])=>re.test(nx))||[])[1]; if(eq&&eq in m) return m[eq];
+  k=fl(true); if(k) return m[k];
+  return m._; }
+/* foto leggere (WebP 480 px) ospitate insieme all'app per gli esercizi della tabella: si aprono subito e restano in cache */
+const EXLOCAL=new Set(["Ab_Crunch_Machine","Ab_Roller","Air_Bike","Arnold_Dumbbell_Press","Back_Flyes_-_With_Bands","Ball_Leg_Curl","Band_Assisted_Pull-Up","Barbell_Ab_Rollout_-_On_Knees","Barbell_Bench_Press_-_Medium_Grip","Barbell_Curl","Barbell_Deadlift","Barbell_Glute_Bridge","Barbell_Hack_Squat","Barbell_Hip_Thrust","Barbell_Incline_Bench_Press_-_Medium_Grip","Barbell_Lunge","Barbell_Shrug","Barbell_Side_Split_Squat","Barbell_Squat","Barbell_Step_Ups","Barbell_Walking_Lunge","Bench_Dips","Bent-Arm_Barbell_Pullover","Bent-Arm_Dumbbell_Pullover","Bent_Over_Barbell_Row","Bent_Over_Two-Dumbbell_Row","Bodyweight_Squat","Bodyweight_Walking_Lunge","Butt_Lift_Bridge","Butterfly","Cable_Chest_Press","Cable_Crossover","Cable_Crunch","Cable_Hammer_Curls_-_Rope_Attachment","Cable_Hip_Adduction","Cable_Rear_Delt_Fly","Cable_Reverse_Crunch","Cable_Rope_Overhead_Triceps_Extension","Cable_Shoulder_Press","Cable_Shrugs","Calf_Press_On_The_Leg_Press_Machine","Cat_Stretch","Chin-Up","Close-Grip_Barbell_Bench_Press","Close-Grip_Dumbbell_Press","Close-Grip_EZ-Bar_Press","Close-Grip_Front_Lat_Pulldown","Concentration_Curls","Crunches","Dead_Bug","Decline_Barbell_Bench_Press","Decline_Dumbbell_Bench_Press","Dip_Machine","Dips_-_Chest_Version","Dips_-_Triceps_Version","Dumbbell_Bench_Press","Dumbbell_Bicep_Curl","Dumbbell_Floor_Press","Dumbbell_Flyes","Dumbbell_Lunges","Dumbbell_Rear_Lunge","Dumbbell_Shoulder_Press","Dumbbell_Shrug","Dumbbell_Squat","Dumbbell_Step_Ups","EZ-Bar_Curl","EZ-Bar_Skullcrusher","Face_Pull","Farmers_Walk","Flat_Bench_Lying_Leg_Raise","Flutter_Kicks","Freehand_Jump_Squat","Front_Barbell_Squat","Front_Box_Jump","Front_Cable_Raise","Front_Dumbbell_Raise","Front_Plate_Raise","Front_Squats_With_Two_Kettlebells","Glute_Kickback","Goblet_Squat","Good_Morning","Hack_Squat","Hammer_Curls","Hamstring_Stretch","Hanging_Leg_Raise","Hyperextensions_Back_Extensions","Inchworm","Incline_Dumbbell_Curl","Incline_Dumbbell_Flyes","Incline_Dumbbell_Press","Inverted_Row","Jackknife_Sit-Up","Kettlebell_Arnold_Press","Kettlebell_One-Legged_Deadlift","Kettlebell_Pistol_Squat","Kettlebell_Thruster","Kettlebell_Turkish_Get-Up_Squat_style","Knee_Hip_Raise_On_Parallel_Bars","Lateral_Raise_-_With_Bands","Leg_Extensions","Leg_Press","Leverage_Chest_Press","Leverage_High_Row","Leverage_Incline_Chest_Press","Lying_Dumbbell_Tricep_Extension","Lying_Leg_Curls","Machine_Bench_Press","Machine_Bicep_Curl","Machine_Preacher_Curls","Machine_Shoulder_Military_Press","Mountain_Climbers","Natural_Glute_Ham_Raise","Oblique_Crunches_-_On_The_Floor","One-Arm_Dumbbell_Row","One-Arm_Kettlebell_Row","One-Arm_Kettlebell_Swings","One-Legged_Cable_Kickback","One_Arm_Dumbbell_Preacher_Curl","Pallof_Press","Plank","Plie_Dumbbell_Squat","Preacher_Curl","Pullups","Push-Ups_-_Close_Triceps_Position","Push-Ups_With_Feet_Elevated","Push_Press","Pushups","Quad_Stretch","Reverse_Barbell_Curl","Reverse_Crunch","Reverse_Grip_Triceps_Pushdown","Reverse_Hyperextension","Reverse_Machine_Flyes","Romanian_Deadlift","Rope_Jumping","Rope_Straight-Arm_Pulldown","Rowing_Stationary","Running_Treadmill","Russian_Twist","Scissor_Kick","Seated_Bent-Over_Rear_Delt_Raise","Seated_Cable_Rows","Seated_Calf_Raise","Seated_Leg_Curl","Shoulder_Press_-_With_Bands","Side_Bridge","Side_Lateral_Raise","Single_Leg_Glute_Bridge","Sit-Up","Smith_Machine_Behind_the_Back_Shrug","Smith_Machine_Bench_Press","Smith_Machine_Calf_Raise","Smith_Machine_Close-Grip_Bench_Press","Smith_Machine_Decline_Press","Smith_Machine_Incline_Bench_Press","Smith_Machine_Overhead_Shoulder_Press","Smith_Machine_Squat","Spider_Curl","Split_Squat_with_Dumbbells","Split_Squats","Standing_Biceps_Cable_Curl","Standing_Cable_Wood_Chop","Standing_Calf_Raises","Standing_Dumbbell_Calf_Raise","Standing_Dumbbell_Reverse_Curl","Standing_Dumbbell_Triceps_Extension","Standing_Dumbbell_Upright_Row","Standing_Front_Barbell_Raise_Over_Head","Standing_Leg_Curl","Standing_Low-Pulley_Deltoid_Raise","Standing_Military_Press","Stiff-Legged_Barbell_Deadlift","Stiff-Legged_Dumbbell_Deadlift","Straight-Arm_Pulldown","Sumo_Deadlift","Superman","T-Bar_Row_with_Handle","Thigh_Abductor","Thigh_Adductor","Trap_Bar_Deadlift","Tricep_Dumbbell_Kickback","Triceps_Pushdown","Triceps_Pushdown_-_Rope_Attachment","Two-Arm_Kettlebell_Military_Press","Underhand_Cable_Pulldowns","Upright_Barbell_Row","Upright_Cable_Row","Wide-Grip_Lat_Pulldown","Zercher_Squats","Zottman_Curl"]);
+const exImg=(id,f,remote)=> !remote&&EXLOCAL.has(id)? `ex/${id}-${f}.webp` : `${EXDB_URL}${id}/${f}.jpg`;
+function exdbPrefetch(names){ const go=()=>names.forEach(n=>{ let id=null; try{ id=localStorage.getItem("hf:exdbPick:"+exKey(n)); }catch{} if(!id) id=exdbRule(n); if(id&&EXLOCAL.has(id)) [0,1].forEach(f=>{ const im=new Image(); im.decoding="async"; im.src=exImg(id,f); }); });
+  (window.requestIdleCallback||setTimeout)(go,{timeout:1500}); }
 const tok=t=>String(t||"").toLowerCase().replace(/[_\-]/g," ").replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(w=>w.length>1&&!["the","with","on","a","to","of","and"].includes(w));
 const EXCOMMON=new Set(["Barbell_Bench_Press_-_Medium_Grip","Barbell_Squat","Barbell_Deadlift","Pullups","Pushups","Dumbbell_Bicep_Curl","Side_Lateral_Raise","Romanian_Deadlift","Bent_Over_Barbell_Row","One-Arm_Dumbbell_Row","Wide-Grip_Lat_Pulldown","Barbell_Hip_Thrust","Dumbbell_Lunges","Standing_Military_Press","Dumbbell_Shoulder_Press","Plank","Dips_-_Triceps_Version","Dumbbell_Bench_Press","Incline_Dumbbell_Press","Barbell_Incline_Bench_Press_-_Medium_Grip","Leg_Press","Leg_Extensions","Lying_Leg_Curls","Seated_Cable_Rows","Triceps_Pushdown","Hammer_Curls","Good_Morning","Goblet_Squat","Close-Grip_Barbell_Bench_Press","Front_Barbell_Squat","Chin-Up","Face_Pull","Standing_Calf_Raises","Crunches","Russian_Twist","One-Arm_Kettlebell_Swings","Farmers_Walk","Dumbbell_Flyes","Arnold_Dumbbell_Press","Front_Dumbbell_Raise","Barbell_Shrug","EZ-Bar_Skullcrusher","Mountain_Climbers","Split_Squat_with_Dumbbells","Zercher_Squats"]);
 const EQW={b:"barbell",d:"dumbbell",m:"machine",c:"cable",k:"kettlebell",e:"ez bar",n:"band"};
@@ -5960,21 +6086,24 @@ function exdbScore(en,eq,row){ const eqw=new Set(tok(EQW[eq]||"")), a=new Set([.
 function exdbCands(en,eq,n=6){ return EXDB.map(r0=>[exdbScore(en,eq,r0),r0]).sort((x,y)=>y[0]-x[0]).slice(0,n).filter(x=>x[0]>1).map(x=>x[1]); }
 function guessEn(name){ const n=String(name||"").toLowerCase(); const out=[]; IT_EN.forEach(([re,en])=>{ if(re.test(n)){ const last=en.split(" ").pop(); if(!out.join(" ").includes(last)) out.push(en); } }); return out.join(" ")||n; }
 function guessEq(name,x){ const n=(String(name||"")+" "+String((x&&x.equip)||"")).toLowerCase(); const m=EQ_IT.find(([re])=>re.test(n)); return m? m[1] : ""; }
-async function exdbFind(name,x){ const key="hf:exdb:"+exKey(name), saved=localStorage.getItem(key); if(saved) return {id:saved,cands:null};
+async function exdbFind(name,x){ const key="hf:exdb:"+exKey(name);
+  let pick=null; try{ pick=localStorage.getItem("hf:exdbPick:"+exKey(name)); }catch{} if(pick) return {id:pick,cands:null};
+  const rule=exdbRule(name,x); if(rule!==undefined) return {id:rule,cands:null};   // abbinamento verificato: subito, senza IA
+  const saved=localStorage.getItem(key); if(saved) return {id:saved,cands:null};
   let en=guessEn(name), eq=guessEq(name,x);
   if(sample){ try{ const r0=await sample.json(`Nome inglese standard (come nei database di esercizi) dell'esercizio "${String(name).replace(/"/g,"'")}"${x&&x.equip?" con "+x.equip:""}. Rispondi SOLO con JSON: {"en":"es. Close-Grip Dumbbell Bench Press","equipment":"barbell|dumbbell|machine|cable|body only|kettlebells|e-z curl bar|bands|other"}`,{modelTier:"quick",maxTokens:120});
       if(r0&&r0.en){ en=r0.en+" "+en; const m={barbell:"b",dumbbell:"d",machine:"m",cable:"c","body only":"w",kettlebells:"k","e-z curl bar":"e",bands:"n"}[String(r0.equipment||"").toLowerCase()]; if(m) eq=m; } }catch{} }
   const cands=exdbCands(en,eq,6); if(cands.length) localStorage.setItem(key,cands[0][0]); return {id:cands[0]&&cands[0][0],cands}; }
 function exdbDemo(name,x){ const wrap=el("div","demo"); wrap.innerHTML=`<div class="demo-img"><p class="note">Cerco la dimostrazione…</p></div>`;
   (async()=>{ const f=await exdbFind(name,x), box=wrap.querySelector(".demo-img");
-    if(!f.id){ box.innerHTML=`<p class="note">Nessuna dimostrazione trovata per questo esercizio: usa il video qui sotto.</p>`; return; }
+    if(!f.id){ box.style.aspectRatio="auto"; box.style.padding="14px"; box.innerHTML=`<p class="note">Nessuna dimostrazione trovata per questo esercizio: usa il video qui sotto.</p>`; return; }
     const show=id=>{ const r0=EXDB.find(z=>z[0]===id)||[id,"o",""];
-      box.innerHTML=`<img class="f0" alt="Posizione iniziale" src="${EXDB_URL}${id}/0.jpg"><img class="f1" alt="Posizione finale" src="${EXDB_URL}${id}/1.jpg"><span class="demo-lab">inizio ⇄ fine</span><button type="button" class="demo-pp" aria-label="Pausa">❚❚</button>`;
+      box.innerHTML=`<img class="f0" alt="Posizione iniziale" decoding="async" fetchpriority="high" src="${exImg(id,0)}"><img class="f1" alt="Posizione finale" decoding="async" src="${exImg(id,1)}"><span class="demo-lab">inizio ⇄ fine</span><button type="button" class="demo-pp" aria-label="Pausa">❚❚</button>`;
       const pp=box.querySelector(".demo-pp"); pp.onclick=()=>{ box.classList.toggle("paused"); pp.textContent= box.classList.contains("paused")? "▶" : "❚❚"; pp.setAttribute("aria-label",box.classList.contains("paused")?"Riproduci":"Pausa"); };
-      box.querySelectorAll("img").forEach(im=>im.onerror=()=>{ box.innerHTML=`<p class="note">Immagini non disponibili ora (serve internet).</p>`; });
+      box.querySelectorAll("img").forEach((im,f)=>im.onerror=()=>{ if(EXLOCAL.has(id)&&!im.dataset.r){ im.dataset.r="1"; im.src=exImg(id,f,true); return; } box.innerHTML=`<p class="note">Immagini non disponibili ora (serve internet).</p>`; });
       const cap=wrap.querySelector(".demo-cap"); cap.innerHTML=""; const t=el("span",null,`${id.replace(/_/g," ")} · ${EXEQ[r0[1]]||""}${r0[2]?" · "+r0[2]:""}`); cap.appendChild(t);
-      const ch=el("button","linkbtn","Non è questo? Cambia"); ch.type="button"; ch.onclick=async()=>{ const cs=f.cands||exdbCands(guessEn(name),guessEq(name,x),8); if(!cs.length) return;
-        const v=prompt("Scegli l'esercizio giusto (numero):\n"+cs.map((c,i)=>`${i+1}) ${c[0].replace(/_/g," ")} · ${EXEQ[c[1]]||""}`).join("\n"),"1"); const c=cs[(+v||0)-1]; if(c){ localStorage.setItem("hf:exdb:"+exKey(name),c[0]); show(c[0]); } };
+      const ch=el("button","linkbtn","Non è questo? Cambia"); ch.type="button"; ch.onclick=async()=>{ let cs=f.cands||exdbCands(guessEn(name),guessEq(name,x),8); const r1=exdbRule(name,x); if(r1){ cs=cs.filter(c=>c[0]!==r1); const rr=EXDB.find(z=>z[0]===r1); if(rr) cs.unshift(rr); } if(!cs.length) return;
+        const v=prompt("Scegli l'esercizio giusto (numero):\n"+cs.map((c,i)=>`${i+1}) ${c[0].replace(/_/g," ")} · ${EXEQ[c[1]]||""}`).join("\n"),"1"); const c=cs[(+v||0)-1]; if(c){ localStorage.setItem("hf:exdbPick:"+exKey(name),c[0]); show(c[0]); } };
       cap.appendChild(ch); };
     show(f.id); })();
   const cap=el("div","demo-cap"); wrap.appendChild(cap); wrap.appendChild(el("p","demo-cr","Foto: Free Exercise DB (pubblico dominio)")); return wrap; }
@@ -6022,6 +6151,7 @@ function renderCircuitPage(box,a,pr,d,di,wd,names){
   c.exercises.forEach((n,i)=>{ const tot=c.rounds.reduce((s0,rd)=>s0+(+rd[i]||0),0), e=el("div","gd-ex");
     e.innerHTML=`<div class="gd-ef">${muscleSVG(exMuscles({name:n}),78)}</div><div class="gd-et"><b></b><div class="d">${c.rounds.map(rd=>rd[i]).join(" · ")}</div><div class="last">Totale: ${tot} ripetizioni</div></div>`;
     e.querySelector("b").textContent=(i+1)+". "+n; const tb0=el("button","gd-help","▶"); tb0.type="button"; tb0.setAttribute("aria-label","Tutorial di "+n); tb0.onclick=()=>openTutorial(n,{name:n}); e.appendChild(tb0); box.appendChild(e); });
+  exdbPrefetch(c.exercises);
   const meta=cirMeta(c);
   if(meta){ const ctl=el("div","card cir-ctl");
     ctl.innerHTML=`<div class="row"><span>Arriva fino al giro</span><span class="stp"><button type="button" class="pbtn" data-d="-1" aria-label="Un giro in meno">−</button><b class="num">${meta.peak}</b><button type="button" class="pbtn" data-d="1" aria-label="Un giro in più">+</button></span></div>
@@ -6272,6 +6402,7 @@ function renderDayPage(){
     c.querySelector(".gd-help").onclick=()=>openTutorial(x.name,x);
     box.appendChild(c);
   });
+  exdbPrefetch((d.exercises||[]).map(x=>x.name).filter(Boolean));
   if(pr.notes||pr.progression) box.appendChild(el("p","note",pr.progression||pr.notes));
   box.appendChild(lab);
   const liveHere= logCtx&&logCtx.live&&logCtx.title===(d.title||"Allenamento");
