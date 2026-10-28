@@ -2213,7 +2213,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.00 (i «recenti» spariscono dopo la scelta o con Indietro)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.01 (dopo aver segnato una serie la pagina resta ferma)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -6587,7 +6587,8 @@ function showRecent(row,x,si){ if(row.dataset.picked) return;
     ch.appendChild(b); });
   box.appendChild(ch); row.after(box); }
 function nextSet(){ for(let xi=0;xi<logCtx.exercises.length;xi++){ const x=logCtx.exercises[xi]; for(let si=0;si<x.sets.length;si++) if(!x.sets[si].done) return {xi,si}; } return null; }
-function markSet(xi,si,val){ const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
+function markSet(xi,si,val){ try{ const ae=document.activeElement; if(ae&&ae.closest&&ae.closest("#logBody")) ae.blur(); }catch{}
+  const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
   if(st.done){ const last=x.sets.every(z=>z.done); restEnd= last&&xi===logCtx.exercises.length-1? 0 : Date.now()+restSecs(x.rest)*1000; if(navigator.vibrate) navigator.vibrate(30); restNative(); }
   saveLive(); renderLogger(); }
 function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
@@ -6639,7 +6640,7 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
   $("sesNext").textContent= nx? "REGISTRA SERIE SUCCESSIVA" : "TERMINA E SALVA";
 }
 $("sesNext").onclick=()=>{ if(logCtx&&logCtx.circuit){ circuitNext(); return; } const nx=nextSet(); if(!nx){ $("logSave").click(); return; } markSet(nx.xi,nx.si,true);
-  const n2=nextSet(); if(n2){ const x=logCtx.exercises[n2.xi]; if(x.closed){ x.closed=false; renderLogger(); } setTimeout(()=>{ const r0=document.querySelector(".srow.next"); if(r0) r0.scrollIntoView({behavior:"smooth",block:"center"}); },60); } };
+  const n2=nextSet(); if(n2){ const x=logCtx.exercises[n2.xi]; if(x.closed){ x.closed=false; renderLogger(); } } };   // la pagina resta ferma: tastiera e recenti solo se tocchi kg o rip
 $("sesAll").onclick=()=>{ if(logCtx&&logCtx.circuit){ completeAllCircuit(); return; } const any=logCtx.exercises.some(x=>x.sets.some(z=>!z.done)); logCtx.exercises.forEach(x=>x.sets.forEach(z=>z.done=any)); restEnd=0; saveLive(); renderLogger(); toast(any?"Tutte le serie segnate come fatte":"Serie riaperte"); };
 $("sesRest").onclick=()=>{ restEnd=0; $("sesRest").hidden=true; $("restBig").hidden=true; };
 $("sesTimeEdit").onclick=()=>{ const d0=new Date(logCtx.startedAt), cur=String(d0.getHours()).padStart(2,"0")+":"+String(d0.getMinutes()).padStart(2,"0");
