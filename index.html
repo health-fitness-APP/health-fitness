@@ -493,8 +493,9 @@ body.kb .rest-big{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .cs-run{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:10px 0;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);text-align:left;font:inherit;cursor:pointer}
 .cs-run:last-child{border-bottom:0}.cs-run small{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}.cs-run .v{font-weight:700;color:var(--basil);white-space:nowrap}
 #rdBody{padding:0 0 30px}
-.rd-hero{margin:4px 14px 12px;padding:22px 20px 18px;border-radius:24px;background:linear-gradient(135deg,#C47B4E,#B5643A);color:#fff}
-.rd-hn{font-weight:700;font-size:1.05rem}.rd-hk{font-family:"Bricolage Grotesque",sans-serif;font-size:2.7rem;font-weight:800;line-height:1.1;margin-top:4px}.rd-hd{opacity:.85;font-size:.88rem;margin-top:2px}
+.rd-hero{margin:4px 14px 12px;padding:22px 20px 18px;border-radius:24px;background:linear-gradient(135deg,#C47B4E,#B5643A);color:#fff;position:relative}
+.rd-share{position:absolute;top:16px;right:16px;border:0;border-radius:999px;padding:8px 14px;background:rgba(255,255,255,.22);color:#fff;font:600 .88rem 'Instrument Sans',sans-serif}.rd-share::before{content:"⤴ "}.rd-share:disabled{opacity:.7}
+.rd-hn{font-weight:700;font-size:1.05rem;padding-right:116px}.rd-hk{font-family:"Bricolage Grotesque",sans-serif;font-size:2.7rem;font-weight:800;line-height:1.1;margin-top:4px}.rd-hd{opacity:.85;font-size:.88rem;margin-top:2px}
 .rd-sec h2{margin-bottom:10px}
 .rd-phs{margin:-2px 0 4px;color:var(--muted)}.rd-phs b{color:var(--ink);font-size:1.15rem}
 .rd-phk{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin-top:6px}.rd-phk i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}.rd-phk i.tg{height:3px;border-radius:2px;background:var(--ink);vertical-align:2px}
@@ -5786,6 +5787,61 @@ function rdRecCard(box,x){ const {D,mx}=x, R=(D.rec||[]).filter(y=>+y[1]>0), c=r
     rdLine(R.map(y=>y[0]/1000),R.map(y=>y[1]),{col:"#E0479E",minSpan:20,h:100,label:"Recupero del battito",bands:[[0,thr,"#E0479E"]]}).replace(/>[\d,.]+ km</,">"+last[0]+" s<")+
     `<p class="note">Più il battito scende in fretta dopo lo sforzo, migliore è la forma aerobica. In genere un calo di oltre 20 bpm nel primo minuto è un buon segno.</p>`); }
 function rdMapBox(c,P){ const mb=el("div","rd-map"); c.appendChild(mb); const lg=el("div","rd-leg"); lg.innerHTML=`<span>più lento</span>${RD_PCOL.map(y=>`<i style="background:${y}"></i>`).join("")}<span>più veloce</span>`; c.appendChild(lg); rdMap(mb,P); }
+/* immagine da condividere (storie Instagram/WhatsApp, stile Strava): mappa con la traccia, nome, dislivello, tempo, distanza */
+const RS_TILES=["https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png","https://tile.openstreetmap.org/{z}/{x}/{y}.png"];
+function rsName(t0){ const h=t0.getHours(); return "Corsa "+(h<5? "notturna" : h<12? "mattutina" : h<14? "all'ora di pranzo" : h<18? "pomeridiana" : h<22? "serale" : "notturna"); }
+function rsTime(sec){ sec=Math.round(sec); const h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s0=sec%60; return h? `${h}h ${m}m` : `${m}m ${s0}s`; }
+function rsImg(src,ms){ return new Promise(res=>{ const im=new Image(); im.crossOrigin="anonymous"; const tm=setTimeout(()=>res(null),ms||8000); im.onload=()=>{ clearTimeout(tm); res(im); }; im.onerror=()=>{ clearTimeout(tm); res(null); }; im.src=src; }); }
+async function rsCanvas(x,t0,o={}){ const {P,st,sec,km}=x, W=1080, H=1920, K=2.7, cv=document.createElement("canvas"); cv.width=W; cv.height=H; const g=cv.getContext("2d");
+  try{ await Promise.all(["800 76px 'Bricolage Grotesque'","700 84px 'Bricolage Grotesque'","500 36px 'Instrument Sans'"].map(f=>document.fonts.load(f))); }catch{}
+  const G=(P||[]).filter(p=>p.la!=null), FB="'Bricolage Grotesque',sans-serif", FS="'Instrument Sans',sans-serif"; let maps=false;
+  g.fillStyle="#E9E7E2"; g.fillRect(0,0,W,H);
+  if(G.length>=5){ // proiezione di Mercatore in pixel "logici" (1 px logico = K px dell'immagine, come su uno schermo di telefono)
+    const wx=(lo,z)=>256*2**z*(lo+180)/360, wy=(la,z)=>{ const r=la*Math.PI/180; return 256*2**z*(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2; };
+    const lo0=Math.min(...G.map(p=>p.lo)), lo1=Math.max(...G.map(p=>p.lo)), la0=Math.min(...G.map(p=>p.la)), la1=Math.max(...G.map(p=>p.la));
+    const BX=[40,360], BY=[60,372], dx=wx(lo1,0)-wx(lo0,0)||1e-9, dy=wy(la0,0)-wy(la1,0)||1e-9;
+    const zf=Math.min(17,Math.log2(Math.min((BX[1]-BX[0])/dx,(BY[1]-BY[0])/dy))), zt=Math.max(1,Math.round(zf)), f=2**(zf-zt), T=256*f*K;
+    const cx=(wx(lo0,zf)+wx(lo1,zf))/2, cy=(wy(la1,zf)+wy(la0,zf))/2, ox=cx-(BX[0]+BX[1])/2, oy=cy-(BY[0]+BY[1])/2;   // origine in px logici a zoom zf
+    const X=p=>(wx(p.lo,zf)-ox)*K, Y=p=>(wy(p.la,zf)-oy)*K;
+    if(o.tiles!==false&&navigator.onLine!==false){ const tx0=Math.floor(ox/(256*f)), ty0=Math.floor(oy/(256*f)), tx1=Math.floor((ox+W/K)/(256*f)), ty1=Math.floor((oy+H/K)/(256*f)), n=2**zt;
+      for(const tpl of RS_TILES){ const L=[]; for(let ty=ty0;ty<=ty1;ty++) for(let tx=tx0;tx<=tx1;tx++){ if(ty<0||ty>=n) continue; const xx=((tx%n)+n)%n;
+          L.push(rsImg(tpl.replace("{s}","abcd"[(xx+ty)%4]).replace("{z}",zt).replace("{x}",xx).replace("{y}",ty)).then(im=>[im,tx,ty])); }
+        const R=await Promise.all(L); if(R.filter(r=>r[0]).length<R.length*0.6) continue;
+        R.forEach(([im,tx,ty])=>{ if(im) g.drawImage(im,Math.floor((tx*256*f-ox)*K),Math.floor((ty*256*f-oy)*K),Math.ceil(T)+1,Math.ceil(T)+1); });
+        try{ g.getImageData(0,0,1,1); maps=tpl.includes("carto")? "© OpenStreetMap · © CARTO" : "© OpenStreetMap"; break; }   // le tile senza CORS "sporcano" il disegno: riparto senza
+        catch{ g.fillStyle="#E9E7E2"; g.fillRect(0,0,W,H); } } }
+    // traccia
+    const cols= o.pace? rdColors(P) : null; g.lineCap="round"; g.lineJoin="round";
+    const path=()=>{ g.beginPath(); let on=false; P.forEach(p=>{ if(p.la==null){ on=false; return; } on? g.lineTo(X(p),Y(p)) : g.moveTo(X(p),Y(p)); on=true; }); };
+    path(); g.strokeStyle="rgba(255,255,255,.9)"; g.lineWidth=15; g.stroke();
+    if(cols){ g.lineWidth=9; for(let i=1;i<P.length;i++){ const a=P[i-1], b=P[i]; if(a.la==null||b.la==null) continue; g.beginPath(); g.moveTo(X(a),Y(a)); g.lineTo(X(b),Y(b)); g.strokeStyle=cols[i]; g.stroke(); } }
+    else { path(); g.strokeStyle="#FC4C1B"; g.lineWidth=9; g.stroke(); }
+    const dot=(p,c)=>{ g.beginPath(); g.arc(X(p),Y(p),15,0,7); g.fillStyle=c; g.fill(); g.lineWidth=6; g.strokeStyle="#fff"; g.stroke(); };
+    dot(G[G.length-1],"#222"); dot(G[0],"#2E8B5F"); }
+  else { const gr=g.createLinearGradient(0,0,W,H*0.7); gr.addColorStop(0,"#F25C6E"); gr.addColorStop(.55,"#F07C4A"); gr.addColorStop(1,"#9B4FD8"); g.fillStyle=gr; g.fillRect(0,0,W,H); }
+  // velatura in basso, come Strava
+  const sh=g.createLinearGradient(0,H*0.5,0,H); sh.addColorStop(0,"rgba(38,38,46,0)"); sh.addColorStop(.45,"rgba(38,38,46,.45)"); sh.addColorStop(1,"rgba(38,38,46,.86)"); g.fillStyle=sh; g.fillRect(0,H*0.5,W,H*0.5);
+  const LX=132, txt=(s,x0,y0,font,col,al)=>{ g.font=font; g.fillStyle=col||"#fff"; g.textAlign=al||"left"; g.fillText(s,x0,y0); };
+  g.shadowColor="rgba(0,0,0,.28)"; g.shadowBlur=14;
+  const logo=await rsImg("icon-192.png",3000); if(logo){ g.save(); g.beginPath(); g.roundRect? g.roundRect(LX,1010,104,104,26) : g.rect(LX,1010,104,104); g.clip(); g.drawImage(logo,LX,1010,104,104); g.restore(); }
+  txt("HealthFit",W-LX,1088,`800 66px ${FB}`,"#fff","right");
+  txt(rsName(t0),LX,1240,`800 76px ${FB}`);
+  txt(t0.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+" · "+t0.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),LX,1300,`500 34px ${FS}`,"rgba(255,255,255,.88)");
+  const pace= km>0.05? sec/km : 0, S=[]; if(st&&st.gain!=null&&G.length>=5) S.push(["Dislivello positivo",Math.round(st.gain)+" m"]);
+  S.push(["Tempo",rsTime(sec)]); S.push(["Distanza",rdKm(km)+" km"]); if(pace) S.push(["Ritmo medio",`${Math.floor(pace/60)}:${String(Math.round(pace%60)).padStart(2,"0")} /km`.replace(/(\d+):60/,(a,m0)=>(+m0+1)+":00")]);
+  S.slice(0,4).forEach(([l,v],i)=>{ const cx0=LX+(i%2)*420, cy0=1420+Math.floor(i/2)*200; txt(l,cx0,cy0,`500 38px ${FS}`,"rgba(255,255,255,.92)"); txt(v,cx0,cy0+92,`700 84px ${FB}`); });
+  g.shadowBlur=0; if(maps) txt(maps,W-28,H-28,`500 22px ${FS}`,"rgba(255,255,255,.7)","right");
+  return cv; }
+async function rsShare(btn){ if(!rdCur) return; const x=rdCtx(), {w,D}=x, t0=D.t0? new Date(D.t0) : new Date((w.date||state.date)+"T"+(w.start||"12:00")+":00");
+  const lab=btn&&btn.textContent; if(btn){ btn.disabled=true; btn.textContent="Preparo l'immagine…"; }
+  try{ const cv=await rsCanvas(x,t0), blob=await new Promise(r=>cv.toBlob(r,"image/png")), name=`corsa-${todayISO(t0)}.png`, C=NAT();
+    if(C&&C.Plugins.Share&&C.Plugins.Filesystem){ const b64=await new Promise((res,rej)=>{ const r0=new FileReader(); r0.onload=()=>res(String(r0.result).split(",")[1]); r0.onerror=rej; r0.readAsDataURL(blob); });
+      const f=await C.Plugins.Filesystem.writeFile({path:name,data:b64,directory:"CACHE"}); await C.Plugins.Share.share({title:rsName(t0),files:[f.uri],dialogTitle:"Condividi la corsa"}); }
+    else { const file=new File([blob],name,{type:"image/png"});
+      if(navigator.canShare&&navigator.canShare({files:[file]})) await navigator.share({files:[file],title:rsName(t0)});
+      else { const a=el("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); toast("Immagine salvata nei download"); } } }
+  catch(e){ if(!/cancel|abort/i.test(String(e&&(e.name+" "+e.message)||e))) toast("Condivisione: "+((e&&e.message)||e)); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent=lab; } } }
 function rdLapTabs(c,x,tab0){ const {P,st}=x; const tabs=[["giri","Giri"],["1","1 km"],["5","5 km"],["10","10 km"]].filter(t=>t[0]==="giri"||x.km>=+t[0]);
   const bar=el("div","rd-tabs"), body=el("div"); let cur=tab0&&tabs.some(t=>t[0]===tab0)? tab0 : "giri";
   const draw=()=>{ bar.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===cur)); body.innerHTML=""; const L= cur==="giri"? st.laps : rdSplits(P,+cur); body.appendChild(rdLapTable(L)); };
@@ -5829,7 +5885,7 @@ function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur)
   if(sub==="vo2"){ const vo=rdVo2(st,Dx), c=rdCard(box); if(!vo){ c.appendChild(el("p","note","Per stimare il VO₂max servono almeno 10 minuti di corsa con il battito.")); return; } const L0=rdVo2Lvl(vo);
     c.innerHTML=`<div class="rd-vo"><div><b style="color:${L0.col}">${L0.name}</b><span class="num">${fmt(vo)}</span></div><div class="bar"><i style="left:${L0.pos}%;background:${L0.col}"></i></div></div><p class="note">Stima dal ritmo e dal battito di questa corsa (FC max ${mx}, a riposo ${hrRestOf()}): è indicativa e cambia con caldo, salite e stanchezza. Un VO₂max più alto vuol dire più ossigeno usato dai muscoli: migliora con le corse facili lunghe e con le ripetute.</p>`; return; }
   // ----- pagina principale
-  const hero=el("section","rd-hero"); hero.innerHTML=`<div class="rd-hn"></div><div class="rd-hk num">${rdKm(km)} km</div><div class="rd-hd"></div>`;
+  const hero=el("section","rd-hero"); hero.innerHTML=`<div class="rd-hn"></div><div class="rd-hk num">${rdKm(km)} km</div><div class="rd-hd"></div><button type="button" class="rd-share">Condividi</button>`; hero.querySelector(".rd-share").onclick=e=>rsShare(e.currentTarget);
   hero.querySelector(".rd-hn").textContent=(pl&&pl.type? pl.type : w.name||"Corsa");
   hero.querySelector(".rd-hd").textContent=t0.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+" "+t0.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
   box.appendChild(hero);
