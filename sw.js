@@ -1,5 +1,5 @@
 /* HealthFit – service worker: rete prima, cache come riserva */
-const CACHE="hf-v200";
+const CACHE="hf-v201";
 const EXCACHE="hf-ex1";   // foto degli esercizi: non cambiano, restano tra una versione e l'altra
 const SHELL=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-maskable-512.png"];
 self.addEventListener("install",e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())); });
