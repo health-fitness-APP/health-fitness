@@ -402,7 +402,11 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .sx.closed .sx-body{display:none}
 .sx-body{margin-top:10px;display:grid;gap:8px}
 .srow{position:relative;display:grid;grid-template-columns:36px 22px minmax(0,1fr) auto minmax(0,1fr) auto;align-items:center;gap:8px;background:var(--surface2);border-radius:16px;padding:8px 10px}
-.srow.next::before{content:"";position:absolute;left:-12px;top:50%;transform:translateY(-50%);border:9px solid transparent;border-left:11px solid var(--basil)}
+.srow-w{position:relative}
+.srow-w .swipe{border-radius:16px}
+.srow.swipe-fg{border-radius:0;background:linear-gradient(var(--surface2),var(--surface2)),var(--surface-solid)}
+.srow-w .swipe-bg{top:3px;bottom:3px;right:3px;border-radius:13px}
+.srow-w.next::before,.srow.next::before{content:"";position:absolute;left:-12px;top:50%;transform:translateY(-50%);border:9px solid transparent;border-left:11px solid var(--basil)}
 .srow .dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--muted);background:none;color:transparent;font-weight:800;cursor:pointer;padding:0}
 .srow.done .dot{background:var(--basil);border-color:var(--basil);color:var(--basil-ink)}
 .srow .no{font-weight:800;font-size:1.05rem;text-align:center}
@@ -2213,7 +2217,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.02 (anche CONTINUA in cima alla pagina dell'allenamento)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.03 (serie: scorri a sinistra e tocca Elimina)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -6575,8 +6579,8 @@ function recentPairs(x,si){ const out=[], seen=new Set();
   x.sets.forEach((z,i)=>{ if(i>si&&z.done) add(z.kg,z.reps,false); });
   if(x.name) exHistory(x.name,10).forEach(h=>h.sets.forEach(z=>{ if(!z.text) add(z.kg,z.reps,true); }));
   return out; }
-function showRecent(row,x,si){ if(row.dataset.picked) return;
-  const old=row.parentNode&&row.parentNode.querySelector(".srecent"); if(old){ if(old.previousElementSibling===row&&old.dataset.si==si) return; old.remove(); }
+function showRecent(row,x,si){ if(row.dataset.picked) return; const host=row.closest(".srow-w")||row;
+  const old=host.parentNode&&host.parentNode.querySelector(".srecent"); if(old){ if(old.previousElementSibling===host&&old.dataset.si==si) return; old.remove(); }
   const st=x.sets[si], list=recentPairs(x,si); if(!list.length) return;
   const box=el("div","srecent"); box.dataset.si=si; box.appendChild(el("p",null,"Utilizzati di recente:")); const ch=el("div","rchips");
   list.forEach(p=>{ const kgT= p.kg!==""&&+p.kg? fmt(+p.kg)+" kg" : "", rT= p.reps? p.reps+(x.timed?"":" Rip.") : "";
@@ -6585,7 +6589,7 @@ function showRecent(row,x,si){ if(row.dataset.picked) return;
     b.onclick=()=>{ st.kg=p.kg; st.reps=p.reps; const ins=row.querySelectorAll("input"); if(ins[0]) ins[0].value=p.kg; if(ins[1]) ins[1].value=p.reps; saveLive();
       if(navigator.vibrate) navigator.vibrate(15); b.classList.add("hit"); row.dataset.picked="1"; setTimeout(()=>box.remove(),250); };
     ch.appendChild(b); });
-  box.appendChild(ch); row.after(box); }
+  box.appendChild(ch); host.after(box); }
 function nextSet(){ for(let xi=0;xi<logCtx.exercises.length;xi++){ const x=logCtx.exercises[xi]; for(let si=0;si<x.sets.length;si++) if(!x.sets[si].done) return {xi,si}; } return null; }
 function markSet(xi,si,val){ try{ const ae=document.activeElement; if(ae&&ae.closest&&ae.closest("#logBody")) ae.blur(); }catch{}
   const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
@@ -6620,7 +6624,7 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
       body.appendChild(v); }
     if(false&&x.prog&&!x.custom&&x.prog.kind!=="new") body.appendChild(el("div","sx-prog "+x.prog.kind,(x.prog.kind==="up"?"📈 ":x.prog.kind==="down"?"📉 ":"🎯 ")+x.prog.text));
     x.sets.forEach((st,si)=>{
-      const row=el("div","srow"+(st.done?" done":"")+(nx&&nx.xi===xi&&nx.si===si?" next":"")+(x.cardio?" cardio":""));
+      const row=el("div","srow"+(st.done?" done":"")+(x.cardio?" cardio":"")), isNext=nx&&nx.xi===xi&&nx.si===si;
       const dot=el("button","dot","✓"); dot.type="button"; dot.setAttribute("aria-label",`Serie ${si+1} ${st.done?"fatta":"da fare"}`); dot.onclick=()=>markSet(xi,si);
       if(x.cardio){ const t=el("input"); t.placeholder="Cosa hai fatto (es. 8 km in 45 min)"; t.value=st.text||""; t.oninput=()=>{ st.text=t.value; saveLive(); }; row.append(dot,el("span","no",String(si+1)),t); }
       else{ const kg=el("input"); kg.type="number"; kg.inputMode="decimal"; kg.step="0.5"; kg.placeholder="–"; kg.value=st.kg; kg.setAttribute("aria-label","Kg serie "+(si+1)); kg.oninput=()=>{ st.kg=kg.value; saveLive(); };
@@ -6628,8 +6632,11 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
         rp.value=st.reps; rp.setAttribute("aria-label",(x.timed?"Tempo":"Ripetizioni")+" serie "+(si+1)); rp.oninput=()=>{ st.reps=rp.value; saveLive(); };
         row.append(dot,el("span","no",String(si+1)),kg,el("span","u",x.bw&&+x.vest>0?"🦺 KG":"KG"),rp,el("span","u",x.timed?"TEMPO":"RIP."));
         row.addEventListener("focusin",()=>showRecent(row,x,si));
-        row.addEventListener("focusout",()=>setTimeout(()=>{ if(!row.contains(document.activeElement)){ delete row.dataset.picked; const r0=row.nextElementSibling; if(r0&&r0.classList.contains("srecent")) r0.remove(); } },0)); }
-      body.appendChild(row);
+        row.addEventListener("focusout",()=>setTimeout(()=>{ if(!row.contains(document.activeElement)){ delete row.dataset.picked; const r0=(row.closest(".srow-w")||row).nextElementSibling; if(r0&&r0.classList.contains("srecent")) r0.remove(); } },0)); }
+      /* scorri la serie a sinistra e tocca Elimina, come nella dieta */
+      const rw=el("div","srow-w"+(isNext?" next":"")); rw.appendChild(makeSwipe(row,()=>{ const rm=x.sets.splice(si,1)[0]; saveLive(); renderLogger();
+        actionToast(`Serie ${si+1} eliminata`,"Annulla",()=>{ x.sets.splice(Math.min(si,x.sets.length),0,rm); saveLive(); renderLogger(); }); },"serie "+(si+1)));
+      body.appendChild(rw);
     });
     if(!x.cardio){ const add=el("button","sx-add","+ Aggiungi una serie"); add.type="button"; add.onclick=()=>{ const l=x.sets[x.sets.length-1]||{}; x.sets.push({kg:l.kg||"",reps:l.reps||"",done:false}); saveLive(); renderLogger(); }; body.appendChild(add); }
     card.appendChild(body); box.appendChild(card);
