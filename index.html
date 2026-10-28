@@ -496,6 +496,9 @@ body.kb .rest-big{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .rd-hero{margin:4px 14px 12px;padding:22px 20px 18px;border-radius:24px;background:linear-gradient(135deg,#C47B4E,#B5643A);color:#fff}
 .rd-hn{font-weight:700;font-size:1.05rem}.rd-hk{font-family:"Bricolage Grotesque",sans-serif;font-size:2.7rem;font-weight:800;line-height:1.1;margin-top:4px}.rd-hd{opacity:.85;font-size:.88rem;margin-top:2px}
 .rd-sec h2{margin-bottom:10px}
+.rd-phs{margin:-2px 0 4px;color:var(--muted)}.rd-phs b{color:var(--ink);font-size:1.15rem}
+.rd-phk{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin-top:6px}.rd-phk i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}.rd-phk i.tg{height:3px;border-radius:2px;background:var(--ink);vertical-align:2px}
+.rd-phl .t>span{display:block}.rd-phl .fa{color:var(--muted);font-size:.9rem;margin-top:2px}.rd-phl .fa .st{margin-left:6px;white-space:nowrap}
 .rd-plan b{display:block;font-size:.95rem}.rd-plan .t{margin-top:2px}.rd-plan .sub{margin:2px 0 0;color:var(--muted)}
 .rd-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .rd-tile{border:1px solid var(--line);border-radius:16px;padding:10px 8px;text-align:center;background:var(--surface2)}
@@ -2226,7 +2229,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.08 (scheda della corsa in stile Samsung Health)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.09 (fasi della corsa ricavate dalla descrizione: ripetute, recuperi, riscaldamento in km)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5359,7 +5362,7 @@ async function watchSend(o){ const P=WBR(); if(!P) return;
   if(o.from&&o.from.d) plan.ref={iso:o.from.iso,di:o.from.di,t:o.from.d.title||""};
   // fasi della seduta: l'orologio avvisa a voce quando finisce il riscaldamento e confronta ogni km con il ritmo obiettivo
   if(Array.isArray(o.segs)) plan.segs=o.segs;
-  else if(o.from&&o.from.d&&o.from.d.kind==="run"){ try{ plan.segs=runSegs(o.from.d).slice(0,20).map(g=>{ const ps=paceSec(g.pace); return {k:g.kind||"work",l:String(g.label||"").slice(0,60),min:+g.minutes||0,km:+g.km||0,p:ps? paceStr(ps) : ""}; }); }catch(e){ console.warn("fasi",e); } }
+  else if(o.from&&o.from.d&&o.from.d.kind==="run"){ try{ const sg0=runSegs(o.from.d).slice(0,40); plan.segs=sg0.map((g,i)=>{ const ps=paceSec(g.pace); return {k:g.kind||"work",l:String(g.label||"").slice(0,60),min:+g.minutes||(!(+g.km)&&i<sg0.length-1? Math.round(segLen(g,0)) : 0),km:+g.km||0,p:ps? paceStr(ps) : "",...(g.hr?{h:String(g.hr).slice(0,30)}:{})}; }); }catch(e){ console.warn("fasi",e); } }
   try{ toast("Mando la corsa all'orologio…"); const r0=await P.sendRun({plan:JSON.stringify(plan)}); toast(`⌚ Corsa inviata a ${r0&&r0.watch||"orologio"}: tocca AVVIA sul polso`); }
   catch(e){ const m=String((e&&e.message)||e); toast(/Nessun orologio/.test(m)? "Orologio non collegato: controlla Bluetooth e Galaxy Wearable" : "Orologio: "+m); } }
 async function watchNodes(){ const P=WBR(); if(!P) return []; try{ const r0=await P.nodes(); return (r0&&r0.nodes)||[]; }catch{ return []; } }
@@ -5720,6 +5723,60 @@ function rdScoreCard(box,x,full){ const {pl,m,km,sec}=x; if(!pl||!(pl.km||pl.min
   c.insertAdjacentHTML("beforeend",`${m? `<p class="sub"><b>Allenamento principale</b> (esclusi riscaldamento e defaticamento): <b>${rdKm(m.km)} km · ${hms2(m.sec)} · ${m.pace? paceTxt(m.pace)+"/km" : "–"}</b></p>` : ""}<p class="rd-msg"></p>`+
     bars.map(b=>`<div class="rd-goal"><div class="h"><span>${b[0]}: <b>${b[1]}</b></span></div><div class="r"><b class="num">${b[2]}</b><small>/100%</small><span>${b[3]}</span></div><div class="bar"><i style="width:${b[2]}%;background:${b[4]}"></i></div></div>`).join(""));
   c.querySelector(".rd-msg").textContent=msg; }
+/* fasi del piano nel riepilogo: obiettivo (barra chiara) e ritmo fatto (verde in linea, rosso più lento, arancio più veloce) */
+const PH_COL={ok:"#2FD27E",slow:"#E5484D",fast:"#F59E0B"}, PH_TXT={ok:"nel ritmo",slow:"più lento",fast:"più veloce"};
+function rdPlanDay(pl){ if(!pl) return null;
+  try{ const a=activeProg(), d=pl.ref&&a? a.pr.days[pl.ref.di] : null; if(d&&d.kind==="run"&&(!pl.ref.t||d.title===pl.ref.t)) return d; }catch{}
+  if(!Array.isArray(pl.segs)||!pl.segs.length) return null;
+  return {title:pl.title,runType:pl.runType||pl.type||"",distanceKm:pl.km||null,pace:pl.pace||(pl.ps? paceStr(pl.ps) : ""),segments:pl.segs.map(g=>({kind:g.k||"work",label:g.l||"",minutes:+g.min||null,km:+g.km||null,pace:g.p||"",hr:g.h||""}))}; }
+function rdPhases(P,sg,ps){ const end=P[P.length-1], out=[]; let t=0, m=0;
+  sg.forEach((g,i)=>{ let t1; const hrT=+(String(g.hr||"").match(/(\d{2,3})/)||[])[1]||0;
+    if(i===sg.length-1) t1=end.t;
+    else if(+g.minutes) t1=t+ +g.minutes*60;
+    else if(+g.km) t1=rdTAtM(P,m+ +g.km*1000)??end.t;
+    else if(hrT){ const q=P.find(p=>p.t>=t+20&&p.h>0&&p.h<=hrT); t1= q? Math.min(q.t,t+600) : t+segLen(g,ps)*60; }
+    else t1=t+segLen(g,ps)*60;
+    t1=Math.min(t1,end.t); if(t1<=t+1){ out.push({g,miss:true}); return; }
+    const m1=rdAtT(P,t1,"m"), km=(m1-m)/1000, pace= km>0.05? (t1-t)/km : null, tp=paceSec(g.pace)||(g.kind==="work"?ps:0);
+    const st= g.kind==="work"&&pace&&tp? (pace-tp>5? "slow" : pace-tp<-5? "fast" : "ok") : null;
+    out.push({g,sec:t1-t,km,pace,tp,st,hr:rdHr(P,t,t1)}); t=t1; m=m1; });
+  return out; }
+function rdPhaseSVG(d,ph,w,h){ const p=runPlan(d), {warm,main,cool}=runParts(d), sg=[...warm,...main,...cool];
+  const R=46, CW=w-R, base=h-24, top=30, HH=base-top, lowH=HH*.45, side=warm.length||cool.length? CW*.14 : 0;
+  const midW=CW-side*((warm.length?1:0)+(cool.length?1:0)), mlen=main.map(g=>segLen(g,p.ps)), mtot=mlen.reduce((a,b)=>a+b,0)||1;
+  const vals=[]; ph.forEach(x=>{ if(x.g.kind==="work"){ if(x.tp) vals.push(x.tp); if(x.pace) vals.push(x.pace); } });
+  const pMin=vals.length? Math.min(...vals)-5 : 0, pMax=vals.length? Math.max(...vals)+12 : 1;
+  const yOf=v=>base-Math.min(HH,Math.max(lowH*.6,lowH+(HH-lowH)*(pMax-v)/((pMax-pMin)||1)));
+  const tgts=[...new Set(ph.filter(x=>x.g.kind==="work"&&x.tp).map(x=>x.tp))].sort((a,b)=>a-b);
+  let out="", x=0, ticks=[0];
+  sg.forEach((g,i)=>{ const isW=i<warm.length, isC=i>=warm.length+main.length, ww= isW||isC? (i===0||i===sg.length-1? side : 0) : midW*mlen[i-warm.length]/mtot; if(!ww) return;
+    const f=ph[i]||{g}, x0=x+1.5, bw=Math.max(2,ww-3), rx=Math.min(7,bw/2).toFixed(1);
+    if(g.kind==="work"&&f.tp){ const yt=yOf(f.tp); out+=`<rect x="${x0.toFixed(1)}" y="${yt.toFixed(1)}" width="${bw.toFixed(1)}" height="${(base-yt).toFixed(1)}" rx="${rx}" fill="${SEG_COL.work}" opacity=".22"/>`;
+      if(f.pace){ const ya=yOf(f.pace); out+=`<rect x="${x0.toFixed(1)}" y="${ya.toFixed(1)}" width="${bw.toFixed(1)}" height="${(base-ya).toFixed(1)}" rx="${rx}" fill="${PH_COL[f.st]||SEG_COL.work}"/>`; }
+      out+=`<line x1="${x0.toFixed(1)}" x2="${(x0+bw).toFixed(1)}" y1="${yt.toFixed(1)}" y2="${yt.toFixed(1)}" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>`; }
+    else { const hh=HH*(g.kind==="warmup"?.32:g.kind==="cooldown"?.26:.3); out+=`<rect x="${x0.toFixed(1)}" y="${(base-hh).toFixed(1)}" width="${bw.toFixed(1)}" height="${hh.toFixed(1)}" rx="${rx}" fill="${SEG_COL[g.kind]||SEG_COL.work}" opacity="${f.miss?.3:1}"/>`; }
+    x+=ww; if(isW&&i===warm.length-1||(!isW&&!isC&&i===warm.length+main.length-1&&cool.length)) ticks.push(x); });
+  ticks.push(x);
+  const dot=y=>`<line x1="0" y1="${y.toFixed(1)}" x2="${w}" y2="${y.toFixed(1)}" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="1.5 3.5" opacity=".7"/>`;
+  let lab=""; if(tgts.length){ const yf=yOf(tgts[0]); lab+=dot(yf)+`<text x="${w}" y="${(yf-17).toFixed(1)}" text-anchor="end" class="rc-l">Obiettivo</text><text x="${w}" y="${(yf-4).toFixed(1)}" text-anchor="end" class="rc-l">${paceTxt(tgts[0])}</text>`;
+    if(tgts.length>1){ const ys=yOf(tgts[tgts.length-1]); lab+=dot(ys)+`<text x="${w}" y="${(ys+15).toFixed(1)}" text-anchor="end" class="rc-l">${paceTxt(tgts[tgts.length-1])}</text>`; } }
+  const ax=`<line x1="0" y1="${base+3}" x2="${x}" y2="${base+3}" stroke="var(--line)" stroke-width="1.5"/>`+ticks.map(t=>`<line x1="${Math.min(x-.75,Math.max(.75,t))}" y1="${base+3}" x2="${Math.min(x-.75,Math.max(.75,t))}" y2="${base+10}" stroke="var(--line)" stroke-width="1.5"/>`).join("");
+  const mk=ph.slice(warm.length,warm.length+main.length).reduce((a,f)=>a+(f.km||0),0);
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Fasi dell'allenamento: obiettivo e ritmo fatto">${lab}${out}${ax}<text x="${((warm.length?side:0)+midW/2).toFixed(1)}" y="${h-1}" text-anchor="middle" class="rc-a">${mk? rdKm(mk)+" km fatti" : ""}</text></svg>`; }
+function rdPhaseCard(box,x){ const {pl,P}=x; const d=rdPlanDay(pl); if(!d||!P||P.length<6) return;
+  const p=runPlan(d), {warm,main,cool}=runParts(d), sg=[...warm,...main,...cool], ph=rdPhases(P,sg,p.ps), wk=ph.filter(f=>f.g.kind==="work"&&f.st);
+  const c=rdCard(box,"Fasi dell'allenamento"), ok=wk.filter(f=>f.st==="ok").length;
+  c.insertAdjacentHTML("beforeend",`${wk.length? `<p class="rd-phs"><b class="num">${ok}/${wk.length}</b> ${wk.length===1? "fase" : "fasi"} di allenamento nel ritmo</p>` : ""}<div class="run-chart">${rdPhaseSVG(d,ph,320,200)}</div>
+    <div class="rd-phk"><span><i style="background:${PH_COL.ok}"></i>nel ritmo (±5 s)</span><span><i style="background:${PH_COL.slow}"></i>più lento</span><span><i style="background:${PH_COL.fast}"></i>più veloce</span><span><i class="tg"></i>obiettivo</span></div><div class="run-leg rd-phl"></div>`);
+  const lg=c.querySelector(".rd-phl"); let n=0; const nW=sg.filter(g=>g.kind==="work").length;
+  ph.forEach(f=>{ const g=f.g, r0=el("div","rl"), isW=g.kind==="work"; if(isW) n++;
+    r0.innerHTML=`<i style="background:${isW&&f.st? PH_COL[f.st] : SEG_COL[g.kind]||SEG_COL.work}"></i><span class="k"></span><span class="t"><span class="pl"></span><span class="fa"></span></span>`;
+    r0.querySelector(".k").textContent=(SEG_L[g.kind]||g.kind)+(isW&&nW>1? " "+n : ""); r0.querySelector(".pl").textContent=segTxt(g,p.ps);
+    const fa=r0.querySelector(".fa");
+    if(f.miss) fa.textContent="Non fatta";
+    else { fa.textContent="Fatto: "+[f.pace? paceTxt(f.pace)+" /km" : "", rdKm(f.km)+" km", hms2(f.sec), f.hr? f.hr+" bpm" : ""].filter(Boolean).join(" · ");
+      if(isW&&f.st){ const d0=Math.round(Math.abs(f.pace-f.tp)), b=el("b","st",f.st==="ok"? "✓ "+PH_TXT.ok : `${d0} s ${PH_TXT[f.st]}`); b.style.color=PH_COL[f.st]==="#2FD27E"? "#17A65B" : PH_COL[f.st]; fa.appendChild(b); } }
+    lg.appendChild(r0); }); }
 function rdRecCard(box,x){ const {D,mx}=x, R=(D.rec||[]).filter(y=>+y[1]>0), c=rdCard(box,"Recupero della frequenza cardiaca");
   if(R.length<3){ c.appendChild(el("p","note","Dopo FINE l'orologio misura per un minuto come scende il battito: lo vedi qui dalle prossime corse registrate con HealthFit sul Watch.")); return; }
   const thr=Math.round(mx*0.64), b0=R[0][1], last=R[R.length-1], hit=R.find(y=>y[1]<thr), drop=b0-last[1];
@@ -6471,7 +6528,7 @@ function runPlan(d){ const km=+d.distanceKm||kmFromText([d.title,d.runType,d.des
   // durata scritta in ore invece che in minuti (es. 1 per 8 km = 1 ora): la converto; se resta impossibile la ignoro
   let dm=+d.minutes||0; if(km&&dm&&!paceOk(dm*60/km)) dm= paceOk(dm*3600/km)? dm*60 : 0;
   const ps=paceSec(d.pace)||paceOk(km&&dm? dm*60/km : 0), min=dm||(km&&ps? Math.round(km*ps/60) : 0); return {km,ps,min}; }
-function segLen(sg,ps){ return +sg.minutes||(+sg.km? +sg.km*((paceSec(sg.pace)||ps||390)/60) : 5); }
+function segLen(sg,ps){ return +sg.minutes||(+sg.km? +sg.km*((paceSec(sg.pace)||ps||390)/60) : sg.kind==="recovery"? 2.5 : 5); }
 // colori delle fasi come Samsung Health: giallo riscaldamento/raffreddamento, verde allenamento (più scuro = più veloce), azzurro recupero
 const SEG_COL={warmup:"#FFEF7A",cooldown:"#FFEF7A",work:"#2FD27E",recovery:"#A9D3FF"}, SEG_H={warmup:.42,cooldown:.36,work:.92,recovery:.4}, SEG_L={warmup:"Riscaldamento",work:"Allenamento",recovery:"Recupero",cooldown:"Raffreddamento"};
 const RUN_INFO={"jogging":"Corsa facile e rilassata: devi riuscire a parlare mentre corri. Serve a costruire la base aerobica senza affaticarti.",
@@ -6489,7 +6546,30 @@ const RUN_INFO={"jogging":"Corsa facile e rilassata: devi riuscire a parlare men
 const runInfo=t=>{ t=String(t||"").toLowerCase(); for(const k in RUN_INFO) if(t.includes(k)) return RUN_INFO[k]; return "Seduta di corsa del tuo programma: segui le fasi qui sotto e i ritmi indicati."; };
 const kmTxt=v=>(Math.round(v*100)/100).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" km";
 const FLAME=`<svg viewBox="0 0 16 20" width="17" height="21" aria-hidden="true"><path d="M8 1c.6 3.2 2.6 4.8 4.3 7 1.4 1.8 2.2 3.6 2.2 5.6A6.5 6.5 0 0 1 8 20a6.5 6.5 0 0 1-6.5-6.4c0-2.3 1-4.3 2.4-5.9.3 1.4 1 2.4 2 3 0-3.3.6-6.6 2.1-9.7z"/><path class="in" d="M8 11.5c1.6 1.6 2.6 2.9 2.6 4.3A2.6 2.6 0 0 1 8 18.4a2.6 2.6 0 0 1-2.6-2.6c0-1.4 1-2.7 2.6-4.3z"/></svg>`;
-function runSegs(d){ const p=runPlan(d); let sg=Array.isArray(d.segments)&&d.segments.length? d.segments : [{kind:"warmup",label:"Jogging leggero di 5 minuti",minutes:5},{kind:"work",label:(d.runType||"Corsa")+(p.km?` di ${fmt(p.km)} km`:p.min?` di ${p.min} minuti`:""),km:p.km||null,minutes:p.km?null:p.min,pace:d.pace},{kind:"cooldown",label:"Camminata di defaticamento",minutes:5}]; return sg; }
+// fasi ricavate dal testo quando la seduta non le ha (es. "2 km riscaldamento + 3x1000m a 4:55 recupero 2' + 2.5 km defaticamento")
+function segsFromText(d,p){ const t=[d.description,d.title,d.runType].join(" . ").replace(/’/g,"'"), num=x=>+String(x).replace(",",".");
+  const part=re=>{ for(const r of re){ const m=t.match(r); if(m){ const v=num(m[1]), u=(m[2]||"").toLowerCase(); if(!(v>0)) continue; return /^k/.test(u)? {km:v} : /^m$|^metri/.test(u)? {km:v/1000} : {minutes:v}; } } return null; };
+  const N="(\\d+(?:[.,]\\d+)?)\\s*(km|min(?:uti)?|'|m\\b|metri)";
+  const warm=part([new RegExp(N+"\\s*(?:di\\s*)?riscald","i"),new RegExp("riscaldamento\\s*(?:di\\s*|:\\s*)?"+N,"i")]);
+  const cool=part([new RegExp(N+"\\s*(?:di\\s*)?(?:defatic|raffredd)","i"),new RegExp("(?:defaticamento|raffreddamento)\\s*(?:di\\s*|:\\s*)?"+N,"i")]);
+  const pc=s0=>{ const m=String(s0||"").match(/(\d{1,2})[:'](\d{2})/); return m? m[1]+":"+m[2] : ""; };
+  const sg=[]; if(warm) sg.push({kind:"warmup",label:"Jogging leggero",...warm});
+  const rp=t.match(/(\d{1,2})\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(km|metri|m\b|min(?:uti)?|'|"|s\b|sec(?:ondi)?)?([^+.;]*)/i);
+  const prog=t.match(/(?:aument|scend|abbass|riduc|velocizz)\w*[^.]{0,25}?(\d{1,2})\s*(?:s|sec|secondi)\b[^.]{0,20}?ogni\s*(\d+(?:[.,]\d+)?)?\s*(?:km|chilometr)/i);
+  if(rp){ const n=Math.min(30,+rp[1]), v=num(rp[2]), u=(rp[3]||"").toLowerCase(), rest=rp[4]||"";
+    const w= /^k/.test(u)? {km:v} : /^m$|^metri/.test(u)||(!u&&v>=100)? {km:v/1000} : /^"|^s/.test(u)? {minutes:v/60} : {minutes:v};
+    const pace=pc((rest.match(/\ba\s*(\d{1,2}[:']\d{2})/)||[])[1])||pc(rest)||d.pace||"";
+    const rm=(rest+" "+t).match(/(?:recupero|rec\.?|pausa|lento)\s*(?:di\s*|:\s*)?(\d+(?:[.,]\d+)?)\s*(min(?:uti)?|'|"|s\b|sec(?:ondi)?|m\b|metri)?/i)||(rest.match(/\/\s*(\d+(?:[.,]\d+)?)\s*(min(?:uti)?|'|"|s\b|sec(?:ondi)?)\s*(?:lento|piano|jog)/i))||t.match(/(\d+(?:[.,]\d+)?)\s*(min(?:uti)?|'|"|s\b|sec(?:ondi)?|m\b|metri)\s*(?:di\s*)?(?:recupero|rec\b|pausa)/i);
+    let rec=null; if(rm){ const rv=num(rm[1]), ru=(rm[2]||"'").toLowerCase(); rec= /^m$|^metri/.test(ru)? {km:rv/1000} : /^"|^s/.test(ru)? {minutes:rv/60} : {minutes:rv}; }
+    const hr=(rest.match(/fino a\s*(\d{2,3})\s*bpm/i)||[])[0]||"";
+    for(let i=0;i<n;i++){ sg.push({kind:"work",label:"Corsa",...w,pace}); if(i<n-1&&(rec||hr)) sg.push({kind:"recovery",label:"Jogging leggero",...(rec||{}),hr}); } }
+  else if(prog&&p.km){ const start=pc((t.match(/(?:parti|inizia)\w*[^.]{0,30}?(\d{1,2}[:']\d{2})/i)||[])[1])||d.pace, ps0=paceSec(start), step=+prog[1], ev=num(prog[2]||1), tot=p.km-(warm&&warm.km||0)-(cool&&cool.km||0);
+    if(ps0&&step&&ev>0&&tot>0){ const fast=/aument|velocizz|scend|abbass|riduc/i.test(prog[0]); let left=tot, k=0; while(left>0.05&&k<20){ const km=Math.min(ev,left); sg.push({kind:"work",label:"Corsa",km:Math.round(km*100)/100,pace:paceStr(paceOk(ps0-(fast?1:-1)*step*k)||ps0)}); left-=km; k++; } } }
+  if(!sg.some(g=>g.kind==="work")){ if(!warm&&!cool) return null; const tot=p.km? p.km-(warm&&warm.km||0)-(cool&&cool.km||0) : 0;
+    sg.push({kind:"work",label:(d.runType||"Corsa"),km: tot>0? Math.round(tot*100)/100 : null,minutes: tot>0? null : p.min||null,pace:pc((t.match(/km\s*(?:a|al ritmo di|in)\s*(\d{1,2}[:']\d{2})/i)||[])[1])||d.pace}); }
+  if(cool) sg.push({kind:"cooldown",label:"Corsa lenta",...cool});
+  return sg.length>1? sg : null; }
+function runSegs(d){ const p=runPlan(d); let sg=Array.isArray(d.segments)&&d.segments.length? d.segments : segsFromText(d,p)||[{kind:"warmup",label:"Jogging leggero di 5 minuti",minutes:5},{kind:"work",label:(d.runType||"Corsa")+(p.km?` di ${fmt(p.km)} km`:p.min?` di ${p.min} minuti`:""),km:p.km||null,minutes:p.km?null:p.min,pace:d.pace},{kind:"cooldown",label:"Camminata di defaticamento",minutes:5}]; return sg; }
 // divide la seduta: riscaldamento iniziale, parte centrale, raffreddamento finale
 function runParts(d){ const sg=runSegs(d); let a=0, b=sg.length; while(a<b&&sg[a].kind==="warmup") a++; while(b>a&&sg[b-1].kind==="cooldown") b--;
   return {sg,warm:sg.slice(0,a),main:sg.slice(a,b),cool:sg.slice(b)}; }
@@ -6501,7 +6581,9 @@ function runMainEst(main,ps){ let t=0,k=0,tOk=true,kOk=true; for(const g of main
 // raggruppa le fasi che si ripetono uguali (es. 5 × [1 km veloce + recupero])
 function runGroups(sg){ const key=g=>[g.kind,+g.km||0,+g.minutes||0,paceSec(g.pace),g.hr||"",g.label||""].join("|"), out=[]; let i=0;
   while(i<sg.length){ let best=null; for(let L=1;L<=4&&i+2*L<=sg.length;L++){ let n=1; while(i+(n+1)*L<=sg.length&&sg.slice(i+n*L,i+(n+1)*L).every((g,j)=>key(g)===key(sg[i+j]))) n++; if(n>1&&(!best||n*L>best.n*best.L)) best={L,n}; }
-    if(best){ out.push({rep:best.n,segs:sg.slice(i,i+best.L)}); i+=best.n*best.L; } else { out.push({rep:1,segs:[sg[i]]}); i++; } }
+    if(best){ let n=best.n, j=i+n*best.L; // ultima ripetuta senza recupero dopo (3 × 1 km con 2 recuperi in mezzo)
+      if(best.L>1&&j+best.L-1<=sg.length&&sg.slice(j,j+best.L-1).every((g,k)=>key(g)===key(sg[i+k]))&&(j+best.L-1===sg.length||sg[j+best.L-1].kind!==sg[i+best.L-1].kind)){ n++; j+=best.L-1; }
+      out.push({rep:n,segs:sg.slice(i,i+best.L)}); i=j; } else { out.push({rep:1,segs:[sg[i]]}); i++; } }
   return out; }
 // verde più scuro quando il ritmo è più veloce (f=0 il più lento, 1 il più veloce)
 const workCol=f=>{ const a=[47,210,126], b=[0,160,84]; return "rgb("+a.map((v,i)=>Math.round(v+(b[i]-v)*f)).join(",")+")"; };
@@ -6510,7 +6592,7 @@ function runShapeSVG(d,w,h,big){
   if(!big){ let pts=`2,${h-2}`; sg.forEach((g,i)=>{ const ww=(w-4)*lens[i]/tot, yy=h-2-(H-2)*(SEG_H[g.kind]||.5); pts+=` ${x+2},${yy.toFixed(1)} ${(x+ww+2).toFixed(1)},${yy.toFixed(1)}`; x+=ww; }); pts+=` ${w-2},${h-2}`;
     return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="${pts}" fill="none" style="stroke:var(--basil)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`; }
   // grande: riscaldamento e raffreddamento larghi fissi, parte centrale in proporzione; altezza del verde = ritmo
-  const {warm,main,cool}=runParts(d), est=runMainEst(main,p.ps), byKm=!!p.km;
+  const {warm,main,cool}=runParts(d), est=runMainEst(main,p.ps), byKm=!!p.km&&main.filter(g=>g.kind==="work").every(g=>+g.km||!+g.minutes);
   const wp=main.filter(g=>g.kind==="work").map(g=>paceSec(g.pace)||p.ps).filter(Boolean), fast=wp.length? Math.min(...wp) : 0, slow=wp.length? Math.max(...wp) : 0;
   const R=46, CW=w-R, base=h-24, top=30, HH=base-top, lowH=HH*.66, side=warm.length||cool.length? CW*.14 : 0;
   const midW=CW-side*((warm.length?1:0)+(cool.length?1:0)), mlen=main.map(g=>segLen(g,p.ps)), mtot=mlen.reduce((a,b)=>a+b,0)||1;
