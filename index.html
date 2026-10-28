@@ -497,6 +497,7 @@ body.kb .rest-big{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .rd-share{position:absolute;top:16px;right:16px;border:0;border-radius:999px;padding:8px 14px;background:rgba(255,255,255,.22);color:#fff;font:600 .88rem 'Instrument Sans',sans-serif}.rd-share::before{content:"⤴ "}.rd-share:disabled{opacity:.7}
 .rd-hn{font-weight:700;font-size:1.05rem;padding-right:116px}.rd-hk{font-family:"Bricolage Grotesque",sans-serif;font-size:2.7rem;font-weight:800;line-height:1.1;margin-top:4px}.rd-hd{opacity:.85;font-size:.88rem;margin-top:2px}
 .rd-sec h2{margin-bottom:10px}
+.rd-planbox .rd-plan{width:100%;margin:0;padding:0;background:none;border:0;border-radius:0;box-shadow:none}.rd-phh{margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--line);font-size:1rem}
 .rd-phs{margin:-2px 0 4px;color:var(--muted)}.rd-phs b{color:var(--ink);font-size:1.15rem}
 .rd-phk{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin-top:6px}.rd-phk i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}.rd-phk i.tg{height:3px;border-radius:2px;background:var(--ink);vertical-align:2px}
 .rd-phl .t>span{display:block}.rd-phl .fa{color:var(--muted);font-size:.9rem;margin-top:2px}.rd-phl .fa .st{display:block;margin-top:1px}
@@ -2230,7 +2231,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.12 (immagine della corsa da condividere, stile Strava)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.13 (fasi dell'allenamento dentro «Allenamento del piano»)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5766,9 +5767,9 @@ function rdPhaseSVG(d,ph,w,h){ const p=runPlan(d), {warm,main,cool}=runParts(d),
   const ax=`<line x1="0" y1="${base+3}" x2="${x}" y2="${base+3}" stroke="var(--line)" stroke-width="1.5"/>`+ticks.map(t=>`<line x1="${Math.min(x-.75,Math.max(.75,t))}" y1="${base+3}" x2="${Math.min(x-.75,Math.max(.75,t))}" y2="${base+10}" stroke="var(--line)" stroke-width="1.5"/>`).join("");
   const mk=ph.slice(warm.length,warm.length+main.length).reduce((a,f)=>a+(f.km||0),0);
   return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Fasi dell'allenamento: obiettivo e ritmo fatto">${lab}${out}${ax}<text x="${((warm.length?side:0)+midW/2).toFixed(1)}" y="${h-1}" text-anchor="middle" class="rc-a">${mk? rdKm(mk)+" km fatti" : ""}</text></svg>`; }
-function rdPhaseCard(box,x){ const {pl,P}=x; const d=rdPlanDay(pl); if(!d||!P||P.length<6) return;
+function rdPhaseCard(box,x,into){ const {pl,P}=x; const d=rdPlanDay(pl); if(!d||!P||P.length<6) return;
   const p=runPlan(d), {warm,main,cool}=runParts(d), sg=[...warm,...main,...cool], ph=rdPhases(P,sg,p.ps), wk=ph.filter(f=>f.g.kind==="work"&&f.st);
-  const c=rdCard(box,"Fasi dell'allenamento"), ok=wk.filter(f=>f.st==="ok").length;
+  const c=into||rdCard(box,"Fasi dell'allenamento"), ok=wk.filter(f=>f.st==="ok").length; if(into) c.appendChild(el("h3","rd-phh","Fasi dell'allenamento"));
   c.insertAdjacentHTML("beforeend",`${wk.length? `<p class="rd-phs"><b class="num">${ok}/${wk.length}</b> ${wk.length===1? "fase" : "fasi"} di allenamento nel ritmo</p>` : ""}<div class="run-chart">${rdPhaseSVG(d,ph,320,200)}</div>
     <div class="rd-phk"><span><i style="background:${PH_COL.ok}"></i>nel ritmo (±5 s)</span><span><i style="background:${PH_COL.slow}"></i>più lento</span><span><i style="background:${PH_COL.fast}"></i>più veloce</span><span><i class="tg"></i>obiettivo</span></div><div class="run-leg rd-phl"></div>`);
   const lg=c.querySelector(".rd-phl"); let n=0; const nW=sg.filter(g=>g.kind==="work").length;
@@ -5889,9 +5890,9 @@ function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur)
   hero.querySelector(".rd-hn").textContent=(pl&&pl.type? pl.type : w.name||"Corsa");
   hero.querySelector(".rd-hd").textContent=t0.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+" "+t0.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
   box.appendChild(hero);
-  if(pl){ const c=el("button","card rd-sec rd-plan"); c.type="button"; c.onclick=()=>rdOpen("punteggio"); c.innerHTML=`<span><b>Allenamento del piano</b><span class="t"></span><span class="sub"></span></span><span class="chev" aria-hidden="true">›</span>`; c.querySelector(".t").textContent=pl.title;
-    c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? rdKm(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | "); box.appendChild(c); }
-  try{ rdPhaseCard(box,x); }catch(e){ console.warn("fasi",e); }
+  if(pl){ const pc=el("section","card rd-sec rd-planbox"), c=el("button","rd-plan"); pc.appendChild(c); c.type="button"; c.onclick=()=>rdOpen("punteggio"); c.innerHTML=`<span><b>Allenamento del piano</b><span class="t"></span><span class="sub"></span></span><span class="chev" aria-hidden="true">›</span>`; c.querySelector(".t").textContent=pl.title;
+    c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? rdKm(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | "); box.appendChild(pc);
+    try{ rdPhaseCard(box,x,pc); }catch(e){ console.warn("fasi",e); } }
   // dettagli
   const tiles=[["Durata allenamento",hms2(sec),"",""],["Andatura media",st.pace? paceTxt(st.pace) : "–","/km","c2"],["Media freq. car.",Dx.avgHr||"–","bpm","c3"],["Calorie allenamento",Dx.kcal||"–","kcal","c4"],["Ritmo medio",st.cad||"–","spm","c5"],["Increm. elevaz.",st.gain!=null? st.gain : "–","m","c6"]];
   const tc=rdCard(box,"Dettagli allenamento","dettagli"); const tg=el("div","rd-tiles"); tiles.forEach(([l,v,u,c])=>{ const d=el("div","rd-tile "+c); d.innerHTML=`<span></span><b class="num">${v}<small> ${v==="–"?"":u}</small></b>`; d.querySelector("span").textContent=l; tg.appendChild(d); }); tg.onclick=()=>rdOpen("dettagli"); tc.appendChild(tg);
