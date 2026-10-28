@@ -2213,7 +2213,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.01 (dopo aver segnato una serie la pagina resta ferma)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.02 (anche CONTINUA in cima alla pagina dell'allenamento)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -6203,10 +6203,10 @@ function renderCircuitPage(box,a,pr,d,di,wd,names){
   const bar=el("div","gd-bar"), start=el("button","btn", liveHere? (logCtx.paused? "▶ RIPRENDI · ":"CONTINUA · ")+hmsSec(sesElapsed()) : "INIZIA"); start.type="button"; start.onclick=()=>openCircuit(a,di);
   const quick=el("button","btn ghost allbtn","✓ Ho fatto tutto il circuito"); quick.type="button";
   quick.onclick=()=>quickCircuitDone(a,di);
-  bar.append(quick); box.appendChild(bar); placeStart(box,bar,start,liveHere);
+  bar.append(quick); box.appendChild(bar); placeStart(box,bar,start);
 }
-/* INIZIA e RIPRENDI stanno in cima (niente da scorrere); quando l'allenamento è in corso il pulsante torna in fondo */
-function placeStart(box,bar,start,liveHere){ if(liveHere&&!logCtx.paused){ bar.prepend(start); return; }
+/* INIZIA, RIPRENDI e CONTINUA stanno in cima (niente da scorrere) */
+function placeStart(box,bar,start){
   start.classList.add("gd-start-top"); const an=box.querySelector(".gd-sub")||box.querySelector(".gd-head"); if(an) an.after(start); else box.prepend(start); }
 function quickCircuitDone(a,di){
   const d=a.pr.days[di]; if(!d||!d.circuit) return;
@@ -6444,7 +6444,7 @@ function renderDayPage(){
   rgB.disabled=!sample; rgB.onclick=()=>regenDay(a,pr,di);
   doneB.onclick=()=>{ const w=(state.profile&&state.profile.weight)||70, min=+d.minutes||60; addWorkout({name:d.title||"Allenamento", minutes:min, intensity:"programma", kcal:5*w*min/60}); renderProgram(); renderDayPage(); };
   edB.onclick=()=>{ editDay=di; renderDayPage(); window.scrollTo(0,0); };
-  row.append(rgB,edB); bar.append(row,doneB); box.appendChild(bar); placeStart(box,bar,start,liveHere);
+  row.append(rgB,edB); bar.append(row,doneB); box.appendChild(bar); placeStart(box,bar,start);
   const st=el("div","status"); st.id="gdStatus"; st.setAttribute("aria-live","polite"); box.appendChild(st);
 }
 async function regenDay(a,pr,di){
