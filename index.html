@@ -2229,7 +2229,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.10 (riepilogo della corsa con le fasi: obiettivo e ritmo fatto)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.11 (fasi dell'allenamento anche nelle corse già fatte)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5551,7 +5551,8 @@ const RD_PCOL=["#2F7FD8","#2E8B5F","#E9A21E","#F07C2B","#E5484D"];   // dal più
 let rdCur=null, rdLF=null;
 function runPlanInfo(d){ if(!d) return null; try{ const p=runPlan(d); let warm=0, warmKm=0;
     for(const g of runSegs(d)){ if(g.kind!=="warmup") break; if(+g.minutes) warm+=+g.minutes*60; else if(+g.km) warmKm+=+g.km; }
-    return {title:d.title||d.runType||"Corsa", type:d.runType||"", km:p.km||null, min:p.min||null, ps:p.ps||null, warm:warm||null, warmKm:warmKm||null}; }catch{ return null; } }
+    const segs=runSegs(d).slice(0,40).map(g=>({k:g.kind||"work",l:String(g.label||"").slice(0,60),min:+g.minutes||0,km:+g.km||0,p:paceSec(g.pace)? paceStr(paceSec(g.pace)) : "",...(g.hr?{h:String(g.hr).slice(0,30)}:{})}));
+    return {title:d.title||d.runType||"Corsa", type:d.runType||"", km:p.km||null, min:p.min||null, ps:p.ps||null, warm:warm||null, warmKm:warmKm||null, segs}; }catch{ return null; } }
 /* dettagli della corsa dai dati di orologio o telefono (percorso a colonne: t secondi, m metri, h bpm, a altitudine, s passi, la/lo coordinate ×1e5) */
 function runDetFrom(o,plan){ const D={v:1,src:o.source||"phone",t0:+o.startedAt||Date.now(),sec:Math.round(+o.seconds||0),tot:Math.round(+o.totalSec||+o.seconds||0),km:+o.km||0,kcal:Math.round(+o.kcal||0)||null,avgHr:+o.avgHr||null,maxHr:+o.maxHr||null};
   if(Array.isArray(o.zoneSec)&&o.zoneSec.length===5) D.zs=o.zoneSec.map(Number);
@@ -5727,6 +5728,7 @@ function rdScoreCard(box,x,full){ const {pl,m,km,sec}=x; if(!pl||!(pl.km||pl.min
 const PH_COL={ok:"#2FD27E",slow:"#E5484D",fast:"#F59E0B"}, PH_TXT={ok:"nel ritmo",slow:"più lento",fast:"più veloce"};
 function rdPlanDay(pl){ if(!pl) return null;
   try{ const a=activeProg(), d=pl.ref&&a? a.pr.days[pl.ref.di] : null; if(d&&d.kind==="run"&&(!pl.ref.t||d.title===pl.ref.t)) return d; }catch{}
+  if(!Array.isArray(pl.segs)||!pl.segs.length){ try{ const a=activeProg(), d=a&&a.pr.days.find(x=>x.kind==="run"&&(x.title||x.runType||"Corsa")===pl.title); if(d) return d; }catch{} }
   if(!Array.isArray(pl.segs)||!pl.segs.length) return null;
   return {title:pl.title,runType:pl.runType||pl.type||"",distanceKm:pl.km||null,pace:pl.pace||(pl.ps? paceStr(pl.ps) : ""),segments:pl.segs.map(g=>({kind:g.k||"work",label:g.l||"",minutes:+g.min||null,km:+g.km||null,pace:g.p||"",hr:g.h||""}))}; }
 function rdPhases(P,sg,ps){ const end=P[P.length-1], out=[]; let t=0, m=0;
