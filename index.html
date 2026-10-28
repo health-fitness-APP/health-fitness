@@ -2217,7 +2217,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.05 (dieta: cereali sempre con abbastanza latte o yogurt)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.06 (dieta: solo porzioni vere, niente dosi inventate)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -3941,7 +3941,7 @@ function mealDetails(name,foods,alt,onAdd){
   const mt=sumFoods(foods), d=el("details","pm"), sm=el("summary"), nm=el("div","nm");
   nm.append(el("h3",null,name), el("div","mm",`${(foods||[]).length} alimenti · P ${r(mt.p)} · C ${r(mt.c)} · G ${r(mt.f)}`));
   sm.append(nm, el("span","kc",r(mt.kcal)+" kcal"), el("span","chev","›")); d.appendChild(sm);
-  const body=el("div","body"), ul=el("ul"); (foods||[]).forEach(f=>ul.appendChild(el("li",null,`${f.name} – ${r(+f.grams||0)} g · ${r(+f.kcal||0)} kcal`))); body.appendChild(ul);
+  const body=el("div","body"), ul=el("ul"); (foods||[]).forEach(f=>ul.appendChild(el("li",null,`${f.name} – ${r(+f.grams||0)} g${portionHint(f)} · ${r(+f.kcal||0)} kcal`))); body.appendChild(ul);
   if(alt) body.appendChild(el("div","alt","In alternativa: "+alt));
   if(onAdd){ const b=el("button","btn ghost","Aggiungi "+name.toLowerCase()+" al diario"); b.type="button"; b.onclick=onAdd; body.appendChild(b); }
   d.appendChild(body); return d;
@@ -4011,8 +4011,62 @@ function weekTargets(){
 }
 /* l'AI sbaglia spesso le somme: ricalibro io le porzioni perché ogni giorno arrivi esattamente all'obiettivo */
 function niceG(g){ return g>=40? Math.round(g/5)*5 : g>=10? Math.round(g) : Math.round(g*2)/2; }
-function scaleFood(f,k){ const g=+f.grams||0; if(!g||!isFinite(k)||k===1) return f; const g0=+f._g0||g; let ng=Math.max(1,niceG(g*k)); ng=Math.max(niceG(g0*0.5),Math.min(niceG(g0*1.8),ng)); const q=ng/g;
+function scaleFood(f,k){ const g=+f.grams||0; if(!g||!isFinite(k)||k===1) return f; const g0=+f._g0||g; let ng=Math.max(g0*0.5,Math.min(g0*1.8,g*k)); ng=snapG(f,ng,0); if(ng===g) return f; const q=ng/g;   // sempre una dose vera (porzioni sotto)
   return {...f, grams:ng, kcal:Math.round((+f.kcal||0)*q), p:Math.round((+f.p||0)*q*10)/10, c:Math.round((+f.c||0)*q*10)/10, f:Math.round((+f.f||0)*q*10)/10}; }
+/* porzioni vere: ogni alimento ha un minimo, un massimo e un'unità pratica (1 uovo, 1 vasetto, 5 g di olio…), niente dosi inventate */
+// [regola sul nome, min g, max g, passo g, unità (singolare, plurale) se si conta a pezzi]
+const PORTIONS=[
+  [/albume|albumi/,60,300,30,["albume","albumi"]],
+  [/\buov[oa]\b|uova sode|frittata/,50,200,50,["uovo","uova"]],
+  [/proteine in polvere|whey|polvere proteica|isolat/,15,60,15,["misurino","misurini"]],
+  [/fett[ae] biscottat|biscottat/,16,64,8,["fetta","fette"]],
+  [/gallett/,8,48,8,["galletta","gallette"]],
+  [/cracker|crostin|grissin|tarall/,15,60,5],
+  [/piadin/,70,130,10],
+  [/\bpan[ei]?\b|pane |pancarr|pan bauletto|panin|focacc|frisell|toast|bagel/,30,150,10],
+  [/olio/,5,25,5,["cucchiaino","cucchiaini"]],
+  [/\bburro\b(?! d)/,5,20,5],
+  [/zucchero|miele|marmellat|confettur/,5,40,5],
+  [/arachid|mandorl|nocciol|noci|anacard|pistacch|frutta secca|semi di|burro di|crema (spalmabil|di nocciol|al cacao)|nutella|cioccolat/,10,40,5],
+  [/parmigian|grana|pecorino/,5,40,5],
+  [/mozzarell|burrat/,60,250,10],
+  [/ricotta|fiocchi di latte|cottage|quark/,50,250,25],
+  [/formagg|emmental|provol|scamorz|fontin|asiago|feta|stracchin|robiol|philadelphia|crescenz|caciott/,20,100,10],
+  [/yogurt greco|skyr/,150,450,50],
+  [/yogurt|kefir/,125,375,125,["vasetto","vasetti"]],
+  [/\blatte\b|bevanda (di|alla|vegetale)/,100,400,50],
+  [/muesli|musli|granola|corn ?flakes|cereal|fiocchi d|avena|porridge/,30,90,5],
+  [/gnocchi/,150,350,10],
+  [/pasta|spaghett|penne|fusill|rigatoni|maccheroni|linguine|tagliatell|farfalle|riso\b|risotto|basmati|cous ?cous|farro|orzo|quinoa|bulgur|grano saraceno/,50,150,10],
+  [/patat/,100,400,10],
+  [/bresaola|prosciutt|speck|fesa|affettat|salame|mortadell|arrosto di tacchino/,30,120,10],
+  [/tonno (al naturale|sott|in scatola)|tonno$|sgombro (al naturale|sott)/,52,160,52,["scatoletta","scatolette"]],
+  [/pollo|tacchino|manzo|vitello|maiale|lonza|hamburger|macinat|carne|bistecc|salmone|tonno|merluzz|orata|branzin|spigol|pesce|gamber|calamar|polp|seppi|trota|sgombr|platessa|nasell|halibut|tofu|tempeh|seitan/,80,300,10],
+  [/ceci|lenticch|fagiol|piselli|legumi|edamame|fave/,60,300,10],
+  [/banan/,100,240,120,["banana","banane"]],
+  [/\bmel[ae]\b/,150,300,150,["mela","mele"]],
+  [/\bper[ae]\b/,150,300,150,["pera","pere"]],
+  [/arancia|arance/,150,300,150,["arancia","arance"]],
+  [/kiwi/,70,210,70,["kiwi","kiwi"]],
+  [/mandarin|clementin/,70,280,70,["mandarino","mandarini"]],
+  [/frutti di bosco|mirtill|fragol|lampon|ciliegi|uva/,50,250,10],
+  [/frutta|pesca|pesche|albicocc|ananas|melone|anguria|cachi|prugn|fichi/,100,300,10],
+  [/insalat|rucola|lattuga|spinaci|valerian|songino/,50,300,10],
+  [/verdur|zucchin|pomodor|carot|broccol|cavol|finocch|peperon|melanzan|fagiolin|asparag|bietol|cetriol|funghi|minestrone|zuppa|passato/,80,500,10],
+];
+function portionOf(f){ const n=fnorm(f&&f.name); if(!n||/ con |poke|bowl|insalaton|pizza|lasagn|piatto|menu|tramezz|sandwich|wrap|sushi|kebab|farcit/.test(n)) return null;   // piatti composti: solo arrotondamento
+  for(const R of PORTIONS) if(R[0].test(n)) return R; return null; }
+// porta i grammi a una dose che si può davvero pesare o contare; dir: 0 al più vicino, 1 per eccesso
+function snapG(f,g,dir){
+  const R=portionOf(f);
+  if(!R){ if(g<3) return Math.round(g*2)/2; const st=g>=20? 5 : 1; return Math.max(st,(dir? Math.ceil(g/st) : Math.round(g/st))*st); }
+  const st=R[3]; let v=(dir? Math.ceil(g/st-0.001) : Math.round(g/st))*st;
+  return Math.max(Math.ceil(R[1]/st)*st, Math.min(Math.floor(R[2]/st)*st, v));
+}
+function reGram(f,ng){ const g=+f.grams||0; if(!g||ng===g) return f; const q=ng/g;
+  return {...f, grams:ng, kcal:Math.round((+f.kcal||0)*q), p:Math.round((+f.p||0)*q*10)/10, c:Math.round((+f.c||0)*q*10)/10, f:Math.round((+f.f||0)*q*10)/10}; }
+const snapFood=(f,dir)=> (+f.grams||0)>0? reGram(f,snapG(f,+f.grams,dir)) : f;
+function portionHint(f){ const R=portionOf(f), g=+f.grams||0; if(!R||!R[4]||!g) return ""; const n=Math.round(g/R[3]*10)/10; return n>0? ` (${String(n).replace(".",",")} ${n===1? R[4][0] : R[4][1]})` : ""; }
 /* uno spalmabile (marmellata, burro d'arachidi, crema, miele…) da solo non si mangia: nello stesso pasto ci vuole pane, fette biscottate, gallette… */
 const SPREAD_RE=/marmellat|confettur|burro d[ie' ]*\s*(arachid|mandorl|nocciol|anacard|frutta secca)|burro di semi|crema (spalmabil|di nocciol|di arachid|di mandorl|al cacao|di cacao|alla nocciol|gianduia)|nutella|spalmabil|\bmiele\b|philadelphia|formaggio fresco spalm/;
 const SUPPORT_RE=/\bpan[ei]?\b|pane |pan bauletto|pancarr|panin|fett[ae] biscottat|biscottat|gallett|crackers?|cracker|\btoast|tost|piadin|bruschett|crostin|frisell|focacc|bagel|wasa|pan di|pancake|crep|brioche|cornetto|croissant|yogurt|skyr|avena|porridge|muesli|granola|cereali|corn ?flakes/;
@@ -4025,7 +4079,7 @@ function withSupport(m){
   if(!mealNeedsSupport(m)) return m;
   const sg=m.foods.filter(isSpread).reduce((a,f)=>a+(+f.grams||15),0);
   let S=SUPPORTS.slice(0,4).find(x=>{ try{ return inHouse(x[0])||inHouse(x[0].split(" ").slice(0,2).join(" ")); }catch{ return false; } })||SUPPORTS[0];
-  const g=Math.max(S[6],Math.min(S[7],niceG(sg*S[5]))), q=g/100;
+  const g=snapG({name:S[0]},Math.max(S[6],Math.min(S[7],sg*S[5])),1), q=g/100;
   return {...m,foods:[...m.foods,{name:S[0],grams:g,kcal:Math.round(S[1]*q),p:Math.round(S[2]*q*10)/10,c:Math.round(S[3]*q*10)/10,f:Math.round(S[4]*q*10)/10}]};
 }
 /* cereali, muesli e fiocchi d'avena si mangiano con una quantità vera di latte o yogurt, non con 30 ml */
@@ -4040,27 +4094,27 @@ function fixCereal(m){
   const water=porr&&fs.some(f=>/\bacqua\b/.test(fnorm(f.name)));
   if(water) return m;
   const mg=milk.reduce((a,f)=>a+(+f.grams||0),0), yg=yog.reduce((a,f)=>a+(+f.grams||0),0);
-  const needM=Math.min(350,Math.max(150,niceG(cg*5))), needY=Math.min(300,Math.max(125,niceG(cg*2.5)));
+  const needM=Math.min(350,Math.max(150,Math.ceil(cg*5/50)*50)), needY=Math.min(300,Math.max(125,niceG(cg*2.5)));
   if(mg/needM+yg/needY>=0.999) return m;   // latte e yogurt insieme bastano
   const grow=(f,k)=>{ const q=k; return {...f,grams:niceG((+f.grams||0)*q),kcal:Math.round((+f.kcal||0)*q),p:Math.round((+f.p||0)*q*10)/10,c:Math.round((+f.c||0)*q*10)/10,f:Math.round((+f.f||0)*q*10)/10}; };
-  if(mg>0&&mg>=yg){ const k=(needM*(1-yg/needY))/mg; return {...m,foods:fs.map(f=>milk.includes(f)? grow(f,k) : f)}; }
-  if(yg>0){ const k=(needY*(1-mg/needM))/yg; return {...m,foods:fs.map(f=>yog.includes(f)? grow(f,k) : f)}; }
+  if(mg>0&&mg>=yg){ const k=(needM*(1-yg/needY))/mg; return {...m,foods:fs.map(f=>milk.includes(f)? snapFood(grow(f,k),1) : f)}; }
+  if(yg>0){ const k=(needY*(1-mg/needM))/yg; return {...m,foods:fs.map(f=>yog.includes(f)? snapFood(grow(f,k),1) : f)}; }
   let L=[["Latte parzialmente scremato",46,3.3,5,1.6],["Latte scremato",34,3.4,5,0.2],["Bevanda di soia",33,3.3,0.7,1.8],["Latte intero",64,3.3,4.9,3.6]].find(x=>{ try{ return inHouse(x[0]); }catch{ return false; } })||["Latte parzialmente scremato",46,3.3,5,1.6];
   const q=needM/100; return {...m,foods:[...fs,{name:L[0],grams:needM,kcal:Math.round(L[1]*q),p:Math.round(L[2]*q*10)/10,c:Math.round(L[3]*q*10)/10,f:Math.round(L[4]*q*10)/10}]};
 }
 const fixMeal=m=>fixCereal(withSupport(m));
 /* piani già salvati: aggiungo il supporto e ricalibro le porzioni perché ogni giorno torni all'obiettivo */
 function fixSpreadPlan(plan){
-  if(!plan||plan.fixV>=2) return plan;
-  const fixD=d=>{ const ms=(d.meals||[]).map(fixMeal); if(ms.every((m,i)=>m===d.meals[i])) return d; const {syncedFor,...rest}=d; return {...rest,meals:ms}; };   // il giorno di oggi si riallinea da solo all'obiettivo di Cibo
-  const out={...plan,spreadOk:true,fixV:2};
-  if(Array.isArray(plan.days)&&plan.days.length) return {...calibratePlan({...out,days:plan.days.map(fixD)}),fixV:2};
-  if(Array.isArray(plan.meals)) out.meals=plan.meals.map(fixMeal);
+  if(!plan||plan.fixV>=3) return plan;
+  const fixD=d=>{ const {syncedFor,...rest}=d; return {...rest,meals:(d.meals||[]).map(fixMeal)}; };   // il giorno di oggi si riallinea da solo all'obiettivo di Cibo
+  const out={...plan,spreadOk:true,fixV:3};
+  if(Array.isArray(plan.days)&&plan.days.length) return {...calibratePlan({...out,days:plan.days.map(fixD)}),fixV:3};
+  if(Array.isArray(plan.meals)) out.meals=plan.meals.map(m=>({...fixMeal(m),foods:(fixMeal(m).foods||[]).map(f=>snapFood(f,0))}));
   return out;
 }
 function calibrateMeals(meals,tgt){
   if(!tgt||!Array.isArray(meals)||!meals.length) return meals;
-  let ms=meals.map(fixMeal).map(m=>({...m,foods:(m.foods||[]).map(f=>({...f,_g0:+f._g0||+f.grams||0}))}));
+  let ms=meals.map(fixMeal).map(m=>({...m,foods:(m.foods||[]).map(f=>{ const sf=snapFood(f,0); return {...sf,_g0:+f._g0||+sf.grams||0}; })}));
   const all=()=>ms.flatMap(m=>m.foods), sum=()=>all().reduce((a,f)=>({kcal:a.kcal+(+f.kcal||0),p:a.p+(+f.p||0),c:a.c+(+f.c||0),f:a.f+(+f.f||0)}),{kcal:0,p:0,c:0,f:0});
   const share=(f,key,mul)=> (+f.kcal||0)>0? ((+f[key]||0)*mul)/(+f.kcal) : 0;
   for(let it=0; it<3; it++){
@@ -4080,7 +4134,7 @@ function calibrateMeals(meals,tgt){
 function calibratePlan(plan){
   const wt=weekTargets(); if(!plan||!wt) return plan;
   const fix=d=>{ const tt=wt.find(x=>x.wd===d.weekday); return tt? {...d,meals:calibrateMeals(d.meals,{kcal:tt.kcal,p:tt.p})} : d; };
-  if(Array.isArray(plan.days)&&plan.days.length) return {...plan,days:plan.days.map(fix),calibrated:true,spreadOk:true,fixV:2};
+  if(Array.isArray(plan.days)&&plan.days.length) return {...plan,days:plan.days.map(fix),calibrated:true,spreadOk:true,fixV:3};
   return plan;
 }
 function planDays(plan){
@@ -4102,7 +4156,7 @@ function renderDietAI(){
   $("makeDiet").disabled = !tg || !sample;
   if(document.activeElement!==$("dietPrefs") && !$("dietPrefs").value) $("dietPrefs").value = (state.diet&&state.diet.prefs) || (state.profile&&state.profile.foodPrefs) || "";
   if(state.diet&&state.diet.plan&&Array.isArray(state.diet.plan.days)&&state.diet.plan.days.length&&!state.diet.plan.calibrated){ state.diet.plan=calibratePlan(state.diet.plan); save("diet",state.diet); }
-  if(state.diet&&state.diet.plan&&!(state.diet.plan.fixV>=2)){ state.diet.plan=fixSpreadPlan(state.diet.plan); save("diet",state.diet); }
+  if(state.diet&&state.diet.plan&&!(state.diet.plan.fixV>=3)){ state.diet.plan=fixSpreadPlan(state.diet.plan); save("diet",state.diet); }
   const plan=state.diet&&state.diet.plan, days=planDays(plan);
   if($("dietAuto")){ $("dietAuto").value=dietAutoMode(); $("dietAuto").onchange=e=>{ try{ localStorage.setItem("hf:dietAuto",e.target.value); }catch{} toast(e.target.value==="auto"?"La dieta si adatterà da sola":e.target.value==="ask"?"Ti chiederò prima di adattare la dieta":"Adattamento automatico disattivato"); }; }
   $("dietPlanCard").hidden=!days.length; $("dietChatCard").hidden=!days.length||!sample; $("dietWeekCard").hidden=!days.length;
@@ -4205,7 +4259,7 @@ Obiettivo di oggi aggiornato: ${r(dt.goal)} kcal, proteine ${r(dt.P)} g, carboid
 Piano di oggi: ${JSON.stringify(days[iT].meals)}.
 ${iN>=0? `Piano di domani (${WD_NAME[wd2]}): ${JSON.stringify(days[iN].meals)}. Obiettivo di domani: ${tN? `${tN.kcal} kcal, P ${tN.p} g, C ${tN.c} g, G ${tN.f} g (${tN.train? tN.label : "riposo"})` : "invariato"}.` : ""}
 Profilo: ${profileSummary()}.
-Modifica SOLO i pasti di oggi non ancora mangiati in modo che la giornata arrivi all'obiettivo aggiornato (se ha bruciato di più: più carboidrati e un po' di proteine per il recupero; se di meno: riduci soprattutto i carboidrati). ${iN>=0? "Ritocca domani solo se serve per il recupero (es. dopo una corsa molto lunga) restando nel suo obiettivo." : ""} Mantieni gli stessi id dei pasti e piatti simili a quelli previsti. Spalmabili (marmellata, confettura, miele, burro d'arachidi o di frutta secca, creme spalmabili, burro, formaggio spalmabile): mettili SEMPRE nello stesso pasto insieme a un supporto su cui spalmarli (pane, fette biscottate, gallette, toast, crackers) o dentro yogurt/porridge, e conta anche le calorie del supporto. Mai uno spalmabile da solo. Porzioni realistiche e mangiabili: cereali, muesli o granola (30-60 g) sempre con almeno 150-250 ml di latte o bevanda vegetale, oppure 125-200 g di yogurt; porridge con 40-60 g di fiocchi d'avena e 200-250 ml di latte o acqua; niente grammature impossibili (es. 30 ml di latte con 50 g di cereali, 5 g di un alimento): per stare nelle calorie riduci gli altri alimenti, non il liquido.
+Modifica SOLO i pasti di oggi non ancora mangiati in modo che la giornata arrivi all'obiettivo aggiornato (se ha bruciato di più: più carboidrati e un po' di proteine per il recupero; se di meno: riduci soprattutto i carboidrati). ${iN>=0? "Ritocca domani solo se serve per il recupero (es. dopo una corsa molto lunga) restando nel suo obiettivo." : ""} Mantieni gli stessi id dei pasti e piatti simili a quelli previsti. Spalmabili (marmellata, confettura, miele, burro d'arachidi o di frutta secca, creme spalmabili, burro, formaggio spalmabile): mettili SEMPRE nello stesso pasto insieme a un supporto su cui spalmarli (pane, fette biscottate, gallette, toast, crackers) o dentro yogurt/porridge, e conta anche le calorie del supporto. Mai uno spalmabile da solo. Porzioni realistiche e mangiabili: cereali, muesli o granola (30-60 g) sempre con almeno 150-250 ml di latte o bevanda vegetale, oppure 125-200 g di yogurt; porridge con 40-60 g di fiocchi d'avena e 200-250 ml di latte o acqua; niente grammature impossibili (es. 30 ml di latte con 50 g di cereali, 5 g di un alimento): per stare nelle calorie riduci gli altri alimenti, non il liquido. REGOLA GENERALE: ogni dose deve essere una porzione vera che si può pesare o contare, mai numeri inventati: uova intere (1 uovo = 50 g), yogurt a vasetti (125 g) o greco 150-170 g, frutta a frutti interi (1 banana 120 g, 1 mela 150 g, 1 kiwi 70 g), fette biscottate 8 g l'una, gallette 8 g l'una, tonno a scatolette, proteine in polvere a misurini (30 g); pasta o riso 60-120 g, pane 30-120 g, carne o pesce 100-250 g, affettati 40-100 g, legumi cotti 100-250 g, olio 5-15 g (a cucchiaini da 5 g), parmigiano 5-30 g, frutta secca 10-30 g; tutte le altre grammature arrotondate a 5 o 10 g. Abbinamenti logici: ogni pasto deve essere un piatto che una persona mangerebbe davvero.
 Rispondi SOLO con JSON: {"today":[{"id":"string","name":"string","foods":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}],"tomorrow":[...stesso formato o null se invariato],"reply":"una frase su cosa hai cambiato"}`,{modelTier:"default"});
     if(!res||!Array.isArray(res.today)||!res.today.length) throw {code:"bad_output"};
     const undo=JSON.parse(JSON.stringify(state.diet.plan));
@@ -4254,7 +4308,7 @@ ${outToday().length? `OGGI (${WD_NAME[new Date(todayISO()+"T12:00:00").getDay()]
 ` : ""}${recipes.list.length? `Ricette che prepara spesso (usale nei pasti quando sono adatte, con il loro nome esatto e i valori indicati): ${recipes.list.slice(0,15).map(rc=>{ const p=rcpPortion(rc); return `"${rc.name}" 1 porzione ${p.g} g = ${r(p.kcal)} kcal, P ${r(p.p)}, C ${r(p.c)}, G ${r(p.f)}`; }).join("; ")}.\n` : ""}${pantry.items.length? `Ha in casa in questo momento anche (scontrino/frigo): ${pantry.items.filter(i=>!stapleItems().some(z=>sameFood(z.name,i.name))).map(i=>i.name+(i.qty?" ("+i.qty+")":"")).join(", ")} — usali, soprattutto i freschi.\n` : ""}${stapleItems().length? `Alimenti che tiene SEMPRE in casa: ${stapleNames().join(", ")}. Costruisci la dieta usando SOPRATTUTTO questi, se vanno bene per il suo obiettivo. Se mancano alimenti importanti (verdure, frutta, fonti proteiche varie, carboidrati per gli allenamenti…) o alcuni dei suoi non sono adatti, scegli tu cosa aggiungere o sostituire e mettilo nel campo "added" con il motivo.` : ""}
 Nei giorni di allenamento organizza i pasti intorno all'orario (pre e post allenamento, più carboidrati); se si allena al mattino a digiuno, prevedi una colazione di recupero ricca di proteine e carboidrati.
 ${prevPlan? "Piano attuale: "+JSON.stringify(prevPlan)+"\nModifica richiesta: "+request+"\nApplica la modifica (ai giorni interessati, o a tutti se la richiesta è generale) mantenendo gli obiettivi e restituisci il piano COMPLETO di 7 giorni." : "Usa cibi comuni in Italia, pasti realistici e semplici da preparare."}${extra? "\n"+extra : ""}
-Spalmabili (marmellata, confettura, miele, burro d'arachidi o di frutta secca, creme spalmabili, burro, formaggio spalmabile): mettili SEMPRE nello stesso pasto insieme a un supporto su cui spalmarli (pane, fette biscottate, gallette, toast, crackers) o dentro yogurt/porridge, e conta anche le calorie del supporto. Mai uno spalmabile da solo. Porzioni realistiche e mangiabili: cereali, muesli o granola (30-60 g) sempre con almeno 150-250 ml di latte o bevanda vegetale, oppure 125-200 g di yogurt; porridge con 40-60 g di fiocchi d'avena e 200-250 ml di latte o acqua; niente grammature impossibili (es. 30 ml di latte con 50 g di cereali, 5 g di un alimento): per stare nelle calorie riduci gli altri alimenti, non il liquido.
+Spalmabili (marmellata, confettura, miele, burro d'arachidi o di frutta secca, creme spalmabili, burro, formaggio spalmabile): mettili SEMPRE nello stesso pasto insieme a un supporto su cui spalmarli (pane, fette biscottate, gallette, toast, crackers) o dentro yogurt/porridge, e conta anche le calorie del supporto. Mai uno spalmabile da solo. Porzioni realistiche e mangiabili: cereali, muesli o granola (30-60 g) sempre con almeno 150-250 ml di latte o bevanda vegetale, oppure 125-200 g di yogurt; porridge con 40-60 g di fiocchi d'avena e 200-250 ml di latte o acqua; niente grammature impossibili (es. 30 ml di latte con 50 g di cereali, 5 g di un alimento): per stare nelle calorie riduci gli altri alimenti, non il liquido. REGOLA GENERALE: ogni dose deve essere una porzione vera che si può pesare o contare, mai numeri inventati: uova intere (1 uovo = 50 g), yogurt a vasetti (125 g) o greco 150-170 g, frutta a frutti interi (1 banana 120 g, 1 mela 150 g, 1 kiwi 70 g), fette biscottate 8 g l'una, gallette 8 g l'una, tonno a scatolette, proteine in polvere a misurini (30 g); pasta o riso 60-120 g, pane 30-120 g, carne o pesce 100-250 g, affettati 40-100 g, legumi cotti 100-250 g, olio 5-15 g (a cucchiaini da 5 g), parmigiano 5-30 g, frutta secca 10-30 g; tutte le altre grammature arrotondate a 5 o 10 g. Abbinamenti logici: ogni pasto deve essere un piatto che una persona mangerebbe davvero.
 Valori per la porzione indicata, tabelle CREA. Rispondi SOLO con JSON valido e compatto:
 {"days":[{"weekday":1,"label":"Lunedì","meals":[{"id":"string","name":"string","foods":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}]}],"tips":"2-3 consigli brevi per organizzarsi nella settimana (spesa, preparazioni in anticipo)","added":[{"food":"alimento che hai aggiunto oltre ai suoi","why":"perché, breve"}],"reply":"una frase che spiega cosa hai fatto"}`;
 }
