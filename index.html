@@ -2217,7 +2217,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.03 (serie: scorri a sinistra e tocca Elimina)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.04 (dieta: spalmabili sempre con pane o fette)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4013,9 +4013,33 @@ function weekTargets(){
 function niceG(g){ return g>=40? Math.round(g/5)*5 : g>=10? Math.round(g) : Math.round(g*2)/2; }
 function scaleFood(f,k){ const g=+f.grams||0; if(!g||!isFinite(k)||k===1) return f; const g0=+f._g0||g; let ng=Math.max(1,niceG(g*k)); ng=Math.max(niceG(g0*0.5),Math.min(niceG(g0*1.8),ng)); const q=ng/g;
   return {...f, grams:ng, kcal:Math.round((+f.kcal||0)*q), p:Math.round((+f.p||0)*q*10)/10, c:Math.round((+f.c||0)*q*10)/10, f:Math.round((+f.f||0)*q*10)/10}; }
+/* uno spalmabile (marmellata, burro d'arachidi, crema, miele…) da solo non si mangia: nello stesso pasto ci vuole pane, fette biscottate, gallette… */
+const SPREAD_RE=/marmellat|confettur|burro d[ie' ]*\s*(arachid|mandorl|nocciol|anacard|frutta secca)|burro di semi|crema (spalmabil|di nocciol|di arachid|di mandorl|al cacao|di cacao|alla nocciol|gianduia)|nutella|spalmabil|\bmiele\b|philadelphia|formaggio fresco spalm/;
+const SUPPORT_RE=/\bpan[ei]?\b|pane |pan bauletto|pancarr|panin|fett[ae] biscottat|biscottat|gallett|crackers?|cracker|\btoast|tost|piadin|bruschett|crostin|frisell|focacc|bagel|wasa|pan di|pancake|crep|brioche|cornetto|croissant|yogurt|skyr|avena|porridge|muesli|granola|cereali|corn ?flakes/;
+const SUPPORTS=[["Fette biscottate integrali",410,11,75,6,1.5,20,50],["Pane integrale",224,7.5,48,1.3,2.5,40,90],["Pane comune",270,8,56,1,2.5,40,90],["Gallette di riso",387,8,81,3,1,15,40],["Fette biscottate",410,11,75,6,1.5,20,50]];
+const fnorm=x=>String(x||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[’`]/g,"'");
+function isSpread(f){ const n=fnorm(f&&f.name); return SPREAD_RE.test(n)&&!SUPPORT_RE.test(n); }
+function mealNeedsSupport(m){ const fs=(m&&m.foods)||[], drink=fs.some(f=>/\bte\b|\btè|tisana|caff|latte/.test(fnorm(f&&f.name)));   // il miele va bene anche sciolto nel tè o nel latte
+  return fs.some(f=>isSpread(f)&&!(drink&&/miele/.test(fnorm(f.name))))&&!fs.some(f=>SUPPORT_RE.test(fnorm(f&&f.name))); }
+function withSupport(m){
+  if(!mealNeedsSupport(m)) return m;
+  const sg=m.foods.filter(isSpread).reduce((a,f)=>a+(+f.grams||15),0);
+  let S=SUPPORTS.slice(0,4).find(x=>{ try{ return inHouse(x[0])||inHouse(x[0].split(" ").slice(0,2).join(" ")); }catch{ return false; } })||SUPPORTS[0];
+  const g=Math.max(S[6],Math.min(S[7],niceG(sg*S[5]))), q=g/100;
+  return {...m,foods:[...m.foods,{name:S[0],grams:g,kcal:Math.round(S[1]*q),p:Math.round(S[2]*q*10)/10,c:Math.round(S[3]*q*10)/10,f:Math.round(S[4]*q*10)/10}]};
+}
+/* piani già salvati: aggiungo il supporto e ricalibro le porzioni perché ogni giorno torni all'obiettivo */
+function fixSpreadPlan(plan){
+  if(!plan||plan.spreadOk) return plan;
+  const fixD=d=>{ const ms=(d.meals||[]).map(withSupport); if(ms.every((m,i)=>m===d.meals[i])) return d; const {syncedFor,...rest}=d; return {...rest,meals:ms}; };   // il giorno di oggi si riallinea da solo all'obiettivo di Cibo
+  const out={...plan,spreadOk:true};
+  if(Array.isArray(plan.days)&&plan.days.length) return {...calibratePlan({...out,days:plan.days.map(fixD)}),spreadOk:true};
+  if(Array.isArray(plan.meals)) out.meals=plan.meals.map(withSupport);
+  return out;
+}
 function calibrateMeals(meals,tgt){
   if(!tgt||!Array.isArray(meals)||!meals.length) return meals;
-  let ms=meals.map(m=>({...m,foods:(m.foods||[]).map(f=>({...f,_g0:+f._g0||+f.grams||0}))}));
+  let ms=meals.map(withSupport).map(m=>({...m,foods:(m.foods||[]).map(f=>({...f,_g0:+f._g0||+f.grams||0}))}));
   const all=()=>ms.flatMap(m=>m.foods), sum=()=>all().reduce((a,f)=>({kcal:a.kcal+(+f.kcal||0),p:a.p+(+f.p||0),c:a.c+(+f.c||0),f:a.f+(+f.f||0)}),{kcal:0,p:0,c:0,f:0});
   const share=(f,key,mul)=> (+f.kcal||0)>0? ((+f[key]||0)*mul)/(+f.kcal) : 0;
   for(let it=0; it<3; it++){
@@ -4034,7 +4058,7 @@ function calibrateMeals(meals,tgt){
 function calibratePlan(plan){
   const wt=weekTargets(); if(!plan||!wt) return plan;
   const fix=d=>{ const tt=wt.find(x=>x.wd===d.weekday); return tt? {...d,meals:calibrateMeals(d.meals,{kcal:tt.kcal,p:tt.p})} : d; };
-  if(Array.isArray(plan.days)&&plan.days.length) return {...plan,days:plan.days.map(fix),calibrated:true};
+  if(Array.isArray(plan.days)&&plan.days.length) return {...plan,days:plan.days.map(fix),calibrated:true,spreadOk:true};
   return plan;
 }
 function planDays(plan){
@@ -4056,6 +4080,7 @@ function renderDietAI(){
   $("makeDiet").disabled = !tg || !sample;
   if(document.activeElement!==$("dietPrefs") && !$("dietPrefs").value) $("dietPrefs").value = (state.diet&&state.diet.prefs) || (state.profile&&state.profile.foodPrefs) || "";
   if(state.diet&&state.diet.plan&&Array.isArray(state.diet.plan.days)&&state.diet.plan.days.length&&!state.diet.plan.calibrated){ state.diet.plan=calibratePlan(state.diet.plan); save("diet",state.diet); }
+  if(state.diet&&state.diet.plan&&!state.diet.plan.spreadOk){ state.diet.plan=fixSpreadPlan(state.diet.plan); save("diet",state.diet); }
   const plan=state.diet&&state.diet.plan, days=planDays(plan);
   if($("dietAuto")){ $("dietAuto").value=dietAutoMode(); $("dietAuto").onchange=e=>{ try{ localStorage.setItem("hf:dietAuto",e.target.value); }catch{} toast(e.target.value==="auto"?"La dieta si adatterà da sola":e.target.value==="ask"?"Ti chiederò prima di adattare la dieta":"Adattamento automatico disattivato"); }; }
   $("dietPlanCard").hidden=!days.length; $("dietChatCard").hidden=!days.length||!sample; $("dietWeekCard").hidden=!days.length;
@@ -4158,7 +4183,7 @@ Obiettivo di oggi aggiornato: ${r(dt.goal)} kcal, proteine ${r(dt.P)} g, carboid
 Piano di oggi: ${JSON.stringify(days[iT].meals)}.
 ${iN>=0? `Piano di domani (${WD_NAME[wd2]}): ${JSON.stringify(days[iN].meals)}. Obiettivo di domani: ${tN? `${tN.kcal} kcal, P ${tN.p} g, C ${tN.c} g, G ${tN.f} g (${tN.train? tN.label : "riposo"})` : "invariato"}.` : ""}
 Profilo: ${profileSummary()}.
-Modifica SOLO i pasti di oggi non ancora mangiati in modo che la giornata arrivi all'obiettivo aggiornato (se ha bruciato di più: più carboidrati e un po' di proteine per il recupero; se di meno: riduci soprattutto i carboidrati). ${iN>=0? "Ritocca domani solo se serve per il recupero (es. dopo una corsa molto lunga) restando nel suo obiettivo." : ""} Mantieni gli stessi id dei pasti e piatti simili a quelli previsti.
+Modifica SOLO i pasti di oggi non ancora mangiati in modo che la giornata arrivi all'obiettivo aggiornato (se ha bruciato di più: più carboidrati e un po' di proteine per il recupero; se di meno: riduci soprattutto i carboidrati). ${iN>=0? "Ritocca domani solo se serve per il recupero (es. dopo una corsa molto lunga) restando nel suo obiettivo." : ""} Mantieni gli stessi id dei pasti e piatti simili a quelli previsti. Spalmabili (marmellata, confettura, miele, burro d'arachidi o di frutta secca, creme spalmabili, burro, formaggio spalmabile): mettili SEMPRE nello stesso pasto insieme a un supporto su cui spalmarli (pane, fette biscottate, gallette, toast, crackers) o dentro yogurt/porridge, e conta anche le calorie del supporto. Mai uno spalmabile da solo.
 Rispondi SOLO con JSON: {"today":[{"id":"string","name":"string","foods":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}],"tomorrow":[...stesso formato o null se invariato],"reply":"una frase su cosa hai cambiato"}`,{modelTier:"default"});
     if(!res||!Array.isArray(res.today)||!res.today.length) throw {code:"bad_output"};
     const undo=JSON.parse(JSON.stringify(state.diet.plan));
@@ -4166,7 +4191,7 @@ Rispondi SOLO con JSON: {"today":[{"id":"string","name":"string","foods":[{"name
     const rest=res.today.filter(m=>!eatenIds.includes(m.id)), done=res.today.filter(m=>eatenIds.includes(m.id));
     const restCal=calibrateMeals(rest,{kcal:Math.max(0,dt.goal-t.kcal),p:Math.max(0,dt.P-t.p)});
     days[iT]={...days[iT],meals:res.today.map(m=>restCal.find(x=>x.id===m.id)||done.find(x=>x.id===m.id)||m),adapted:todayISO()};
-    if(iN>=0&&Array.isArray(res.tomorrow)&&res.tomorrow.length) days[iN]={...days[iN],meals:tN? calibrateMeals(res.tomorrow,{kcal:tN.kcal,p:tN.p}) : res.tomorrow,adapted:todayISO()};
+    if(iN>=0&&Array.isArray(res.tomorrow)&&res.tomorrow.length) days[iN]={...days[iN],meals:tN? calibrateMeals(res.tomorrow,{kcal:tN.kcal,p:tN.p}) : res.tomorrow.map(withSupport),adapted:todayISO()};
     state.diet.plan={...plan,days}; state.diet.adapted={date:todayISO(),actual:Math.round(workoutKcal())};
     save("diet",state.diet); try{ renderDiet(); }catch{}
     actionToast("Dieta aggiornata: "+(res.reply||"pasti di oggi e domani adattati all'allenamento"),"Annulla",()=>{ state.diet.plan=undo; save("diet",state.diet); try{ renderDiet(); }catch{} toast("Dieta ripristinata"); },15000);
@@ -4207,6 +4232,7 @@ ${outToday().length? `OGGI (${WD_NAME[new Date(todayISO()+"T12:00:00").getDay()]
 ` : ""}${recipes.list.length? `Ricette che prepara spesso (usale nei pasti quando sono adatte, con il loro nome esatto e i valori indicati): ${recipes.list.slice(0,15).map(rc=>{ const p=rcpPortion(rc); return `"${rc.name}" 1 porzione ${p.g} g = ${r(p.kcal)} kcal, P ${r(p.p)}, C ${r(p.c)}, G ${r(p.f)}`; }).join("; ")}.\n` : ""}${pantry.items.length? `Ha in casa in questo momento anche (scontrino/frigo): ${pantry.items.filter(i=>!stapleItems().some(z=>sameFood(z.name,i.name))).map(i=>i.name+(i.qty?" ("+i.qty+")":"")).join(", ")} — usali, soprattutto i freschi.\n` : ""}${stapleItems().length? `Alimenti che tiene SEMPRE in casa: ${stapleNames().join(", ")}. Costruisci la dieta usando SOPRATTUTTO questi, se vanno bene per il suo obiettivo. Se mancano alimenti importanti (verdure, frutta, fonti proteiche varie, carboidrati per gli allenamenti…) o alcuni dei suoi non sono adatti, scegli tu cosa aggiungere o sostituire e mettilo nel campo "added" con il motivo.` : ""}
 Nei giorni di allenamento organizza i pasti intorno all'orario (pre e post allenamento, più carboidrati); se si allena al mattino a digiuno, prevedi una colazione di recupero ricca di proteine e carboidrati.
 ${prevPlan? "Piano attuale: "+JSON.stringify(prevPlan)+"\nModifica richiesta: "+request+"\nApplica la modifica (ai giorni interessati, o a tutti se la richiesta è generale) mantenendo gli obiettivi e restituisci il piano COMPLETO di 7 giorni." : "Usa cibi comuni in Italia, pasti realistici e semplici da preparare."}${extra? "\n"+extra : ""}
+Spalmabili (marmellata, confettura, miele, burro d'arachidi o di frutta secca, creme spalmabili, burro, formaggio spalmabile): mettili SEMPRE nello stesso pasto insieme a un supporto su cui spalmarli (pane, fette biscottate, gallette, toast, crackers) o dentro yogurt/porridge, e conta anche le calorie del supporto. Mai uno spalmabile da solo.
 Valori per la porzione indicata, tabelle CREA. Rispondi SOLO con JSON valido e compatto:
 {"days":[{"weekday":1,"label":"Lunedì","meals":[{"id":"string","name":"string","foods":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}]}],"tips":"2-3 consigli brevi per organizzarsi nella settimana (spesa, preparazioni in anticipo)","added":[{"food":"alimento che hai aggiunto oltre ai suoi","why":"perché, breve"}],"reply":"una frase che spiega cosa hai fatto"}`;
 }
