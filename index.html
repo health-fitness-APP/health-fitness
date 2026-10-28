@@ -498,7 +498,7 @@ body.kb .rest-big{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .rd-sec h2{margin-bottom:10px}
 .rd-phs{margin:-2px 0 4px;color:var(--muted)}.rd-phs b{color:var(--ink);font-size:1.15rem}
 .rd-phk{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin-top:6px}.rd-phk i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}.rd-phk i.tg{height:3px;border-radius:2px;background:var(--ink);vertical-align:2px}
-.rd-phl .t>span{display:block}.rd-phl .fa{color:var(--muted);font-size:.9rem;margin-top:2px}.rd-phl .fa .st{margin-left:6px;white-space:nowrap}
+.rd-phl .t>span{display:block}.rd-phl .fa{color:var(--muted);font-size:.9rem;margin-top:2px}.rd-phl .fa .st{display:block;margin-top:1px}
 .rd-plan b{display:block;font-size:.95rem}.rd-plan .t{margin-top:2px}.rd-plan .sub{margin:2px 0 0;color:var(--muted)}
 .rd-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .rd-tile{border:1px solid var(--line);border-radius:16px;padding:10px 8px;text-align:center;background:var(--surface2)}
@@ -5774,7 +5774,7 @@ function rdPhaseCard(box,x){ const {pl,P}=x; const d=rdPlanDay(pl); if(!d||!P||P
     r0.querySelector(".k").textContent=(SEG_L[g.kind]||g.kind)+(isW&&nW>1? " "+n : ""); r0.querySelector(".pl").textContent=segTxt(g,p.ps);
     const fa=r0.querySelector(".fa");
     if(f.miss) fa.textContent="Non fatta";
-    else { fa.textContent="Fatto: "+[f.pace? paceTxt(f.pace)+" /km" : "", rdKm(f.km)+" km", hms2(f.sec), f.hr? f.hr+" bpm" : ""].filter(Boolean).join(" · ");
+    else { fa.textContent="Fatto: "+[isW&&f.pace? paceTxt(f.pace)+" /km" : "", rdKm(f.km)+" km", hms2(f.sec), f.hr? f.hr+" bpm" : ""].filter(Boolean).join(" · ");
       if(isW&&f.st){ const d0=Math.round(Math.abs(f.pace-f.tp)), b=el("b","st",f.st==="ok"? "✓ "+PH_TXT.ok : `${d0} s ${PH_TXT[f.st]}`); b.style.color=PH_COL[f.st]==="#2FD27E"? "#17A65B" : PH_COL[f.st]; fa.appendChild(b); } }
     lg.appendChild(r0); }); }
 function rdRecCard(box,x){ const {D,mx}=x, R=(D.rec||[]).filter(y=>+y[1]>0), c=rdCard(box,"Recupero della frequenza cardiaca");
