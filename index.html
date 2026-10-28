@@ -369,6 +369,7 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .gd-help{flex:none;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--muted);background:none;color:var(--muted);font-weight:700;cursor:pointer}
 .gd-move{display:block;margin:16px 4px 4px;font-size:.88rem;color:var(--muted)}
 .gd-bar{margin-top:16px}
+.btn.gd-start-top{font-size:1.1rem;letter-spacing:.04em;padding:16px;margin:4px 0 14px}
 .gd-bar .btn{font-size:1.1rem;letter-spacing:.04em;padding:16px}
 .gd-row{display:grid;grid-template-columns:1fr 1fr;margin-top:8px}
 .gd-row button{border:0;background:none;font:inherit;font-weight:600;color:var(--ink);padding:12px;cursor:pointer}
@@ -2212,7 +2213,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.98 (serie in palestra: «Utilizzati di recente» e tastiera che non sposta la pagina)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.99 (INIZIA e RIPRENDI in cima alla pagina dell'allenamento)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -6201,8 +6202,11 @@ function renderCircuitPage(box,a,pr,d,di,wd,names){
   const bar=el("div","gd-bar"), start=el("button","btn", liveHere? (logCtx.paused? "▶ RIPRENDI · ":"CONTINUA · ")+hmsSec(sesElapsed()) : "INIZIA"); start.type="button"; start.onclick=()=>openCircuit(a,di);
   const quick=el("button","btn ghost allbtn","✓ Ho fatto tutto il circuito"); quick.type="button";
   quick.onclick=()=>quickCircuitDone(a,di);
-  bar.append(start,quick); box.appendChild(bar);
+  bar.append(quick); box.appendChild(bar); placeStart(box,bar,start,liveHere);
 }
+/* INIZIA e RIPRENDI stanno in cima (niente da scorrere); quando l'allenamento è in corso il pulsante torna in fondo */
+function placeStart(box,bar,start,liveHere){ if(liveHere&&!logCtx.paused){ bar.prepend(start); return; }
+  start.classList.add("gd-start-top"); const an=box.querySelector(".gd-sub")||box.querySelector(".gd-head"); if(an) an.after(start); else box.prepend(start); }
 function quickCircuitDone(a,di){
   const d=a.pr.days[di]; if(!d||!d.circuit) return;
   const est=Math.round(d.minutes||d.circuit.rounds.length*2.5);
@@ -6439,7 +6443,7 @@ function renderDayPage(){
   rgB.disabled=!sample; rgB.onclick=()=>regenDay(a,pr,di);
   doneB.onclick=()=>{ const w=(state.profile&&state.profile.weight)||70, min=+d.minutes||60; addWorkout({name:d.title||"Allenamento", minutes:min, intensity:"programma", kcal:5*w*min/60}); renderProgram(); renderDayPage(); };
   edB.onclick=()=>{ editDay=di; renderDayPage(); window.scrollTo(0,0); };
-  row.append(rgB,edB); bar.append(start,row,doneB); box.appendChild(bar);
+  row.append(rgB,edB); bar.append(row,doneB); box.appendChild(bar); placeStart(box,bar,start,liveHere);
   const st=el("div","status"); st.id="gdStatus"; st.setAttribute("aria-live","polite"); box.appendChild(st);
 }
 async function regenDay(a,pr,di){
