@@ -5811,7 +5811,7 @@ async function rsCanvas(x,t0,o={}){ const {P,st,sec,km}=x, W=1080, H=1920, K=2.7
         try{ g.getImageData(0,0,1,1); maps=tpl.includes("carto")? "© OpenStreetMap · © CARTO" : "© OpenStreetMap"; break; }   // le tile senza CORS "sporcano" il disegno: riparto senza
         catch{ g.fillStyle="#E9E7E2"; g.fillRect(0,0,W,H); } } }
     // traccia
-    const cols= o.pace? rdColors(P) : null; g.lineCap="round"; g.lineJoin="round";
+    const cols= o.pace!==false? rdColors(P) : null; g.lineCap="round"; g.lineJoin="round";
     const path=()=>{ g.beginPath(); let on=false; P.forEach(p=>{ if(p.la==null){ on=false; return; } on? g.lineTo(X(p),Y(p)) : g.moveTo(X(p),Y(p)); on=true; }); };
     path(); g.strokeStyle="rgba(255,255,255,.9)"; g.lineWidth=15; g.stroke();
     if(cols){ g.lineWidth=9; for(let i=1;i<P.length;i++){ const a=P[i-1], b=P[i]; if(a.la==null||b.la==null) continue; g.beginPath(); g.moveTo(X(a),Y(a)); g.lineTo(X(b),Y(b)); g.strokeStyle=cols[i]; g.stroke(); } }
