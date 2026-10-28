@@ -2229,7 +2229,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.09 (fasi della corsa ricavate dalla descrizione: ripetute, recuperi, riscaldamento in km)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.10 (riepilogo della corsa con le fasi: obiettivo e ritmo fatto)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5833,6 +5833,7 @@ function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur)
   box.appendChild(hero);
   if(pl){ const c=el("button","card rd-sec rd-plan"); c.type="button"; c.onclick=()=>rdOpen("punteggio"); c.innerHTML=`<span><b>Allenamento del piano</b><span class="t"></span><span class="sub"></span></span><span class="chev" aria-hidden="true">›</span>`; c.querySelector(".t").textContent=pl.title;
     c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? rdKm(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | "); box.appendChild(c); }
+  try{ rdPhaseCard(box,x); }catch(e){ console.warn("fasi",e); }
   // dettagli
   const tiles=[["Durata allenamento",hms2(sec),"",""],["Andatura media",st.pace? paceTxt(st.pace) : "–","/km","c2"],["Media freq. car.",Dx.avgHr||"–","bpm","c3"],["Calorie allenamento",Dx.kcal||"–","kcal","c4"],["Ritmo medio",st.cad||"–","spm","c5"],["Increm. elevaz.",st.gain!=null? st.gain : "–","m","c6"]];
   const tc=rdCard(box,"Dettagli allenamento","dettagli"); const tg=el("div","rd-tiles"); tiles.forEach(([l,v,u,c])=>{ const d=el("div","rd-tile "+c); d.innerHTML=`<span></span><b class="num">${v}<small> ${v==="–"?"":u}</small></b>`; d.querySelector("span").textContent=l; tg.appendChild(d); }); tg.onclick=()=>rdOpen("dettagli"); tc.appendChild(tg);
