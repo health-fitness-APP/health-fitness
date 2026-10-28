@@ -412,6 +412,16 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .srow.cardio input{text-align:left;font-size:1rem;font-weight:500}
 .sx-add{border:0;background:var(--surface2);border-radius:16px;padding:12px;font:inherit;font-weight:700;color:var(--ink);cursor:pointer}
 .sx-last{font-size:.8rem;color:var(--muted);margin:0 4px}
+.srecent{margin:-2px 0 2px;min-width:0}
+.srecent p{margin:0 4px 6px;font-size:.88rem;color:var(--muted)}
+.srecent .rchips{display:flex;gap:8px;overflow-x:auto;padding:0 2px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.srecent .rchips::-webkit-scrollbar{display:none}
+.srecent button{flex:none;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:999px;padding:9px 14px;font:inherit;font-weight:700;font-size:.95rem;white-space:nowrap;cursor:pointer}
+.srecent button.past{color:var(--basil)}
+.srecent button.hit{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
+body.kb nav.tabbar{display:none}
+body.kb .ses-bar{bottom:0}
+body.kb .rest-big{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .rest-big{position:fixed;left:10px;right:10px;bottom:calc(172px + env(safe-area-inset-bottom,0px));z-index:16;background:var(--basil);color:var(--basil-ink);border-radius:22px;padding:12px 16px 12px;box-shadow:0 10px 28px rgba(0,0,0,.25)}
 .rest-big.last{animation:rbPulse .5s ease-in-out infinite alternate}
 @keyframes rbPulse{to{transform:scale(1.02)}}
@@ -2202,7 +2212,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.97 (animazioni degli esercizi più veloci e abbinate meglio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 2.98 (serie in palestra: «Utilizzati di recente» e tastiera che non sposta la pagina)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -3389,17 +3399,34 @@ window.addEventListener("hf-ai-status",e=>toast(e.detail));
   },{passive:true});
 })();
 /* tastiera: tieni sempre visibile il campo in cui stai scrivendo (anche quando rientri nell'app) */
-function keepFieldVisible(delay){
+let fieldFocusAt=0;
+function keepFieldVisible(delay,fromResize){
   const a=document.activeElement; if(!a||!/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
-  setTimeout(()=>{ try{ a.scrollIntoView({block:"center",behavior:"smooth"}); }catch{} }, delay||250);
+  if(fromResize&&Date.now()-fieldFocusAt>1200) return;   // la pagina si sposta solo quando apri la tastiera, poi scorri tu come vuoi
+  setTimeout(()=>{ try{
+    if(a.closest(".sheet")){ a.scrollIntoView({block:"center",behavior:"smooth"}); return; }
+    /* fuori dai fogli: sposta la pagina il minimo indispensabile e solo se il campo è coperto (tastiera o barra in basso) */
+    const vv=window.visualViewport, r=a.getBoundingClientRect(), top=(vv?vv.offsetTop:0)+70;
+    let bot=vv? vv.offsetTop+vv.height : window.innerHeight;
+    const bar=view==="sessione"? document.querySelector(".ses-bar") : null; if(bar&&bar.offsetParent) bot=Math.min(bot,bar.getBoundingClientRect().top);
+    const below=r.bottom-(bot-12), above=top-r.top;
+    if(below>0) window.scrollBy({top:below,behavior:"smooth"}); else if(above>0) window.scrollBy({top:-above,behavior:"smooth"});
+  }catch{} }, delay||250);
 }
+/* tastiera aperta: nascondi la barra delle sezioni per lasciare più spazio */
+let fullH=window.innerHeight;
+function kbCheck(){ const h=window.visualViewport? visualViewport.height : window.innerHeight; if(h>fullH) fullH=h;
+  const a=document.activeElement, typing=a&&/^(INPUT|TEXTAREA)$/.test(a.tagName);
+  document.body.classList.toggle("kb", !!typing&&h<fullH-150); }
+window.addEventListener("orientationchange",()=>{ fullH=0; setTimeout(()=>{ fullH=window.visualViewport? visualViewport.height : window.innerHeight; kbCheck(); },400); });
+document.addEventListener("focusout",()=>setTimeout(kbCheck,120));
 function fitSheetsToViewport(){
   const vv=window.visualViewport; if(!vv) return;
   const kb=Math.max(0, window.innerHeight - vv.height - vv.offsetTop);   // spazio occupato dalla tastiera, se il browser non ridimensiona la pagina
   document.querySelectorAll(".sheet").forEach(sh=>{ sh.style.bottom= kb>40? kb+"px" : ""; sh.style.maxHeight= kb>40? (vv.height*0.94)+"px" : ""; });
 }
-document.addEventListener("focusin",e=>{ if(e.target.closest(".sheet")||/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) keepFieldVisible(300); });
-if(window.visualViewport){ visualViewport.addEventListener("resize",()=>{ fitSheetsToViewport(); keepFieldVisible(80); }); }
+document.addEventListener("focusin",e=>{ if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) fieldFocusAt=Date.now(); setTimeout(kbCheck,120); if(e.target.closest(".sheet")||/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) keepFieldVisible(300); });
+if(window.visualViewport){ visualViewport.addEventListener("resize",()=>{ kbCheck(); fitSheetsToViewport(); keepFieldVisible(80,true); }); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"){ fitSheetsToViewport(); keepFieldVisible(450); keepFieldVisible(900); } });
 /* ----- foglio aggiunta cibo ----- */
 /* finestre a pila + tasto "indietro" di Android */
@@ -4303,7 +4330,7 @@ function renderTrain(){
     const c=el("div","sess"), hd=el("div","sess-head"), del=el("button","del","×");
     del.setAttribute("aria-label","Rimuovi sessione "+(i+1)); del.onclick=()=>{ t.sessions.splice(i,1); renderTrain(); };
     hd.append(el("span",null,"Sessione "+(i+1)), del); c.appendChild(hd);
-    const ch=el("div","chips");
+    const ch=el("div","rchips");
     WD_ORDER.forEach(d=>{ const b=el("button","chip",WD[d].slice(0,3)); b.setAttribute("aria-pressed",s.days.includes(d)); b.setAttribute("aria-label",WD[d]);
       b.onclick=()=>{ s.days = s.days.includes(d)? s.days.filter(x=>x!==d) : [...s.days,d]; renderTrain(); }; ch.appendChild(b); });
     c.appendChild(ch);
@@ -6535,6 +6562,25 @@ function restLabel(sec){ sec=Math.max(0,Math.round(sec)); return sec<120||sec%60
 function askRest(cur){ const v=prompt("Quanto riposo? (es. 90, 1:30, 2 min)", cur? restLabel(restSecs(cur)).replace(" s","").replace(" min","") : "90"); if(v==null) return null;
   const sec=parseRestInput(v); if(sec==null||sec>1800){ toast("Non ho capito il tempo: scrivi ad esempio 90 o 1:30"); return null; } return sec; }
 function saveRestToProgram(name,rest){ try{ const a=activeProg(); if(!a) return; let n=0; a.pr.days.forEach(d=>(d.exercises||[]).forEach(x=>{ if(String(x.name).toLowerCase().trim()===String(name).toLowerCase().trim()){ x.rest=rest; n++; } })); if(n){ saveActive(a); toast("Riposo salvato nella scheda ✓"); } }catch{} }
+/* "Utilizzati di recente": kg × ripetizioni già usati in questa seduta e nelle sedute passate */
+function recentPairs(x,si){ const out=[], seen=new Set();
+  const add=(kg,reps,past)=>{ kg= kg==null? "" : String(kg).trim().replace(",","."); reps= reps==null? "" : String(reps).trim(); if(!reps&&!kg) return;
+    const k=(+kg||0)+"|"+reps; if(seen.has(k)||out.length>=8) return; seen.add(k); out.push({kg,reps,past}); };
+  for(let i=si-1;i>=0;i--) add(x.sets[i].kg,x.sets[i].reps,false);
+  x.sets.forEach((z,i)=>{ if(i>si&&z.done) add(z.kg,z.reps,false); });
+  if(x.name) exHistory(x.name,10).forEach(h=>h.sets.forEach(z=>{ if(!z.text) add(z.kg,z.reps,true); }));
+  return out; }
+function showRecent(row,x,si){
+  const old=row.parentNode&&row.parentNode.querySelector(".srecent"); if(old){ if(old.previousElementSibling===row&&old.dataset.si==si) return; old.remove(); }
+  const st=x.sets[si], list=recentPairs(x,si); if(!list.length) return;
+  const box=el("div","srecent"); box.dataset.si=si; box.appendChild(el("p",null,"Utilizzati di recente:")); const ch=el("div","rchips");
+  list.forEach(p=>{ const kgT= p.kg!==""&&+p.kg? fmt(+p.kg)+" kg" : "", rT= p.reps? p.reps+(x.timed?"":" Rip.") : "";
+    const b=el("button",p.past?"past":null,[kgT,rT].filter(Boolean).join(" x ")); b.type="button"; b.setAttribute("aria-label","Copia "+b.textContent+" nella serie "+(si+1));
+    const keep=e=>e.preventDefault(); b.addEventListener("pointerdown",keep); b.addEventListener("mousedown",keep);   // la tastiera resta aperta
+    b.onclick=()=>{ st.kg=p.kg; st.reps=p.reps; const ins=row.querySelectorAll("input"); if(ins[0]) ins[0].value=p.kg; if(ins[1]) ins[1].value=p.reps; saveLive();
+      if(navigator.vibrate) navigator.vibrate(15); b.classList.add("hit"); setTimeout(()=>b.classList.remove("hit"),400); };
+    ch.appendChild(b); });
+  box.appendChild(ch); row.after(box); }
 function nextSet(){ for(let xi=0;xi<logCtx.exercises.length;xi++){ const x=logCtx.exercises[xi]; for(let si=0;si<x.sets.length;si++) if(!x.sets[si].done) return {xi,si}; } return null; }
 function markSet(xi,si,val){ const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
   if(st.done){ const last=x.sets.every(z=>z.done); restEnd= last&&xi===logCtx.exercises.length-1? 0 : Date.now()+restSecs(x.rest)*1000; if(navigator.vibrate) navigator.vibrate(30); restNative(); }
@@ -6574,8 +6620,10 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
       else{ const kg=el("input"); kg.type="number"; kg.inputMode="decimal"; kg.step="0.5"; kg.placeholder="–"; kg.value=st.kg; kg.setAttribute("aria-label","Kg serie "+(si+1)); kg.oninput=()=>{ st.kg=kg.value; saveLive(); };
         const rp=el("input"); if(x.timed){ rp.type="text"; rp.placeholder="tempo"; } else { rp.type="number"; rp.inputMode="numeric"; rp.placeholder="–"; }
         rp.value=st.reps; rp.setAttribute("aria-label",(x.timed?"Tempo":"Ripetizioni")+" serie "+(si+1)); rp.oninput=()=>{ st.reps=rp.value; saveLive(); };
-        row.append(dot,el("span","no",String(si+1)),kg,el("span","u",x.bw&&+x.vest>0?"🦺 KG":"KG"),rp,el("span","u",x.timed?"TEMPO":"RIP.")); }
+        row.append(dot,el("span","no",String(si+1)),kg,el("span","u",x.bw&&+x.vest>0?"🦺 KG":"KG"),rp,el("span","u",x.timed?"TEMPO":"RIP."));
+        row.addEventListener("focusin",()=>showRecent(row,x,si)); }
       body.appendChild(row);
+      if(!x.cardio&&nx&&nx.xi===xi&&nx.si===si) showRecent(row,x,si);
     });
     if(!x.cardio){ const add=el("button","sx-add","+ Aggiungi una serie"); add.type="button"; add.onclick=()=>{ const l=x.sets[x.sets.length-1]||{}; x.sets.push({kg:l.kg||"",reps:l.reps||"",done:false}); saveLive(); renderLogger(); }; body.appendChild(add); }
     card.appendChild(body); box.appendChild(card);
