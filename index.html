@@ -457,17 +457,26 @@ body.kb .rest-big{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .runrow .score,.run-res .score{font-family:"Bricolage Grotesque",sans-serif;font-size:2rem;font-weight:800;color:var(--basil)}
 .runrow .nextb{background:var(--basil-soft);color:var(--basil);font-weight:700;border-radius:999px;padding:6px 12px;white-space:nowrap}
 .run-card{margin-top:10px}
-.run-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.run-h{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 .run-h b{font-size:1.25rem}
-.flames i{font-style:normal;filter:grayscale(1);opacity:.35;margin-left:1px}
-.flames i.on{filter:none;opacity:1}
-.run-desc{margin:10px 0 0;line-height:1.5}
-.run-big{font-family:"Bricolage Grotesque",sans-serif;font-size:2.6rem;font-weight:800;margin-top:16px;line-height:1}
-.run-sub{margin-top:6px;font-size:1.05rem}
-.run-chart{position:relative;margin-top:14px;padding-top:34px}
-.run-pace{position:absolute;right:0;top:0;text-align:right;font-weight:700;color:var(--muted);font-size:.85rem;line-height:1.2}
-.run-leg .rl{display:flex;align-items:baseline;gap:8px;padding:10px 0;border-top:1px solid var(--line)}
-.run-leg .rl:first-child{border-top:0}
+.run-i{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--ink);background:none;color:var(--ink);font:700 .85rem/1 Georgia,serif;padding:0;display:grid;place-items:center;cursor:pointer}
+.run-info{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:var(--basil-soft);font-size:.92rem;line-height:1.45}
+.flames{margin-left:auto;display:flex;gap:2px}
+.flames i{display:block;line-height:0}
+.flames svg{fill:#D2D2D6}.flames svg .in{fill:#fff;opacity:.55}
+.flames i.on svg{fill:#FF6B2C}.flames i.on svg .in{fill:#FFB36B;opacity:1}
+.run-desc{margin:12px 0 0;line-height:1.5;font-size:1.02rem}
+.run-big{font-family:"Bricolage Grotesque",sans-serif;font-size:2.7rem;font-weight:800;margin-top:20px;line-height:1;letter-spacing:-.01em}
+.run-sub{margin-top:10px;font-size:1.08rem}
+.run-chart{margin-top:16px}
+.run-chart .rc-l{font-size:12px;font-weight:700;fill:var(--muted)}
+.run-chart .rc-a{font-size:12px;fill:var(--muted)}
+.run-leg{margin-top:10px}
+.run-leg .rl{display:flex;align-items:baseline;gap:8px;padding:11px 0;border-top:1px solid var(--line)}
+.run-leg>.rl:first-child,.run-leg>.rg:first-child{border-top:0}
+.run-leg .rg{border-top:1px solid var(--line);padding:4px 0}
+.run-leg .rg .rh{font-weight:700;color:var(--muted);padding:9px 0 2px}
+.run-leg .rg .rl{border-top:0;padding:7px 0}
 .run-leg i{flex:none;width:12px;height:12px;border-radius:3px;transform:translateY(1px)}
 .run-leg .k{color:var(--muted);white-space:nowrap}
 .run-res{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -6463,16 +6472,74 @@ function runPlan(d){ const km=+d.distanceKm||kmFromText([d.title,d.runType,d.des
   let dm=+d.minutes||0; if(km&&dm&&!paceOk(dm*60/km)) dm= paceOk(dm*3600/km)? dm*60 : 0;
   const ps=paceSec(d.pace)||paceOk(km&&dm? dm*60/km : 0), min=dm||(km&&ps? Math.round(km*ps/60) : 0); return {km,ps,min}; }
 function segLen(sg,ps){ return +sg.minutes||(+sg.km? +sg.km*((paceSec(sg.pace)||ps||390)/60) : 5); }
-const SEG_COL={warmup:"var(--c3)",cooldown:"var(--c3)",work:"var(--basil)",recovery:"var(--c2)"}, SEG_H={warmup:.42,cooldown:.36,work:.92,recovery:.4}, SEG_L={warmup:"Riscaldamento",work:"Allenamento",recovery:"Recupero",cooldown:"Raffreddamento"};
+// colori delle fasi come Samsung Health: giallo riscaldamento/raffreddamento, verde allenamento (più scuro = più veloce), azzurro recupero
+const SEG_COL={warmup:"#FFEF7A",cooldown:"#FFEF7A",work:"#2FD27E",recovery:"#A9D3FF"}, SEG_H={warmup:.42,cooldown:.36,work:.92,recovery:.4}, SEG_L={warmup:"Riscaldamento",work:"Allenamento",recovery:"Recupero",cooldown:"Raffreddamento"};
+const RUN_INFO={"jogging":"Corsa facile e rilassata: devi riuscire a parlare mentre corri. Serve a costruire la base aerobica senza affaticarti.",
+  "corsa lenta":"Corsa a ritmo tranquillo, in zona 2: abitua cuore e muscoli a correre a lungo consumando soprattutto grassi.",
+  "lungo":"La corsa più lunga della settimana, a ritmo lento: allena la resistenza e prepara il corpo alle distanze di gara.",
+  "long slow distance":"La corsa più lunga della settimana, a ritmo lento: allena la resistenza e prepara il corpo alle distanze di gara.",
+  "fartlek":"Gioco di velocità: alterni tratti veloci e tratti lenti senza fermarti. Migliora il cambio di ritmo e la resistenza alla fatica.",
+  "ripetute":"Tratti veloci ripetuti con un recupero lento tra uno e l'altro. Alzano la velocità e il massimo consumo di ossigeno (VO2max).",
+  "intervalli":"Tratti veloci ripetuti con un recupero lento tra uno e l'altro. Alzano la velocità e il massimo consumo di ossigeno (VO2max).",
+  "corsa in soglia":"Corsa a ritmo sostenuto, al limite tra fatica gestibile e affanno: alza la soglia e ti fa tenere ritmi più veloci più a lungo.",
+  "progressivo":"Parti piano e aumenti il ritmo a ogni tratto: insegna a gestire le energie e a chiudere forte.",
+  "corsa di potenziamento":"Parti piano e aumenti il ritmo a ogni tratto: insegna a gestire le energie e a chiudere forte.",
+  "recupero attivo":"Corsa molto leggera dopo le sedute dure: fa circolare il sangue e aiuta a recuperare senza stancarti.",
+  "corsa con obiettivo":"Prova sulla distanza obiettivo al ritmo di gara: misura a che punto sei della preparazione."};
+const runInfo=t=>{ t=String(t||"").toLowerCase(); for(const k in RUN_INFO) if(t.includes(k)) return RUN_INFO[k]; return "Seduta di corsa del tuo programma: segui le fasi qui sotto e i ritmi indicati."; };
+const kmTxt=v=>(Math.round(v*100)/100).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" km";
+const FLAME=`<svg viewBox="0 0 16 20" width="17" height="21" aria-hidden="true"><path d="M8 1c.6 3.2 2.6 4.8 4.3 7 1.4 1.8 2.2 3.6 2.2 5.6A6.5 6.5 0 0 1 8 20a6.5 6.5 0 0 1-6.5-6.4c0-2.3 1-4.3 2.4-5.9.3 1.4 1 2.4 2 3 0-3.3.6-6.6 2.1-9.7z"/><path class="in" d="M8 11.5c1.6 1.6 2.6 2.9 2.6 4.3A2.6 2.6 0 0 1 8 18.4a2.6 2.6 0 0 1-2.6-2.6c0-1.4 1-2.7 2.6-4.3z"/></svg>`;
 function runSegs(d){ const p=runPlan(d); let sg=Array.isArray(d.segments)&&d.segments.length? d.segments : [{kind:"warmup",label:"Jogging leggero di 5 minuti",minutes:5},{kind:"work",label:(d.runType||"Corsa")+(p.km?` di ${fmt(p.km)} km`:p.min?` di ${p.min} minuti`:""),km:p.km||null,minutes:p.km?null:p.min,pace:d.pace},{kind:"cooldown",label:"Camminata di defaticamento",minutes:5}]; return sg; }
+// divide la seduta: riscaldamento iniziale, parte centrale, raffreddamento finale
+function runParts(d){ const sg=runSegs(d); let a=0, b=sg.length; while(a<b&&sg[a].kind==="warmup") a++; while(b>a&&sg[b-1].kind==="cooldown") b--;
+  return {sg,warm:sg.slice(0,a),main:sg.slice(a,b),cool:sg.slice(b)}; }
+// stima del tempo (s) e dei km della parte centrale; tOk/kOk=false se una fase non si può stimare
+function runMainEst(main,ps){ let t=0,k=0,tOk=true,kOk=true; for(const g of main){ const gp=paceSec(g.pace)||(g.kind==="work"?ps:0);
+    if(+g.minutes){ t+=+g.minutes*60; if(+g.km) k+=+g.km; else if(gp) k+=+g.minutes*60/gp; else if(g.kind==="work") kOk=false; }
+    else if(+g.km){ k+=+g.km; if(gp) t+=+g.km*gp; else tOk=false; } else { tOk=false; if(g.kind==="work") kOk=false; } }
+  return {t,k,tOk,kOk}; }
+// raggruppa le fasi che si ripetono uguali (es. 5 × [1 km veloce + recupero])
+function runGroups(sg){ const key=g=>[g.kind,+g.km||0,+g.minutes||0,paceSec(g.pace),g.hr||"",g.label||""].join("|"), out=[]; let i=0;
+  while(i<sg.length){ let best=null; for(let L=1;L<=4&&i+2*L<=sg.length;L++){ let n=1; while(i+(n+1)*L<=sg.length&&sg.slice(i+n*L,i+(n+1)*L).every((g,j)=>key(g)===key(sg[i+j]))) n++; if(n>1&&(!best||n*L>best.n*best.L)) best={L,n}; }
+    if(best){ out.push({rep:best.n,segs:sg.slice(i,i+best.L)}); i+=best.n*best.L; } else { out.push({rep:1,segs:[sg[i]]}); i++; } }
+  return out; }
+// verde più scuro quando il ritmo è più veloce (f=0 il più lento, 1 il più veloce)
+const workCol=f=>{ const a=[47,210,126], b=[0,160,84]; return "rgb("+a.map((v,i)=>Math.round(v+(b[i]-v)*f)).join(",")+")"; };
 function runShapeSVG(d,w,h,big){
   const sg=runSegs(d), p=runPlan(d), lens=sg.map(x=>segLen(x,p.ps)), tot=lens.reduce((a,b)=>a+b,0)||1, H=h-(big?26:4); let x=0;
   if(!big){ let pts=`2,${h-2}`; sg.forEach((g,i)=>{ const ww=(w-4)*lens[i]/tot, yy=h-2-(H-2)*(SEG_H[g.kind]||.5); pts+=` ${x+2},${yy.toFixed(1)} ${(x+ww+2).toFixed(1)},${yy.toFixed(1)}`; x+=ww; }); pts+=` ${w-2},${h-2}`;
     return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="${pts}" fill="none" style="stroke:var(--basil)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`; }
-  const rects=sg.map((g,i)=>{ const ww=w*lens[i]/tot, hh=H*(SEG_H[g.kind]||.5), r0=`<rect x="${(x+1).toFixed(1)}" y="${(h-22-hh).toFixed(1)}" width="${Math.max(2,ww-2).toFixed(1)}" height="${hh.toFixed(1)}" rx="5" style="fill:${SEG_COL[g.kind]||"var(--basil)"}"/>`; x+=ww; return r0; }).join("");
-  const top=h-22-H*.92;
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Profilo della seduta"><line x1="0" y1="${(top-3).toFixed(1)}" x2="${w}" y2="${(top-3).toFixed(1)}" style="stroke:var(--muted)" stroke-dasharray="2 4"/>${rects}<line x1="0" y1="${h-20}" x2="${w}" y2="${h-20}" style="stroke:var(--line)" stroke-width="1.5"/><text x="${w/2}" y="${h-4}" text-anchor="middle" style="font-size:11px;fill:var(--muted)">${p.km? fmt(p.km).replace(".",",")+" km" : p.min? p.min+" min" : ""}</text></svg>`;
+  // grande: riscaldamento e raffreddamento larghi fissi, parte centrale in proporzione; altezza del verde = ritmo
+  const {warm,main,cool}=runParts(d), est=runMainEst(main,p.ps), byKm=!!p.km;
+  const wp=main.filter(g=>g.kind==="work").map(g=>paceSec(g.pace)||p.ps).filter(Boolean), fast=wp.length? Math.min(...wp) : 0, slow=wp.length? Math.max(...wp) : 0;
+  const R=46, CW=w-R, base=h-24, top=30, HH=base-top, lowH=HH*.66, side=warm.length||cool.length? CW*.14 : 0;
+  const midW=CW-side*((warm.length?1:0)+(cool.length?1:0)), mlen=main.map(g=>segLen(g,p.ps)), mtot=mlen.reduce((a,b)=>a+b,0)||1;
+  const hOf=g=>{ if(g.kind!=="work") return HH*(g.kind==="warmup"?.32:g.kind==="cooldown"?.26:.3); const v=paceSec(g.pace)||p.ps; return fast===slow||!v? HH : lowH+(HH-lowH)*(slow-v)/(slow-fast); };
+  const colOf=g=>{ if(g.kind!=="work") return SEG_COL[g.kind]||SEG_COL.work; const v=paceSec(g.pace)||p.ps; return fast===slow||!v? SEG_COL.work : workCol((slow-v)/(slow-fast)); };
+  const bar=(g,x0,ww)=>{ const hh=hOf(g); return `<rect x="${(x0+1.5).toFixed(1)}" y="${(base-hh).toFixed(1)}" width="${Math.max(2,ww-3).toFixed(1)}" height="${hh.toFixed(1)}" rx="${Math.min(7,ww/2-1.5).toFixed(1)}" fill="${colOf(g)}"/>`; };
+  let bars="", ticks=[0]; x=0;
+  if(warm.length){ bars+=bar(warm[0],0,side); x=side; ticks.push(x); }
+  main.forEach((g,i)=>{ const ww=midW*mlen[i]/mtot; bars+=bar(g,x,ww); x+=ww; });
+  if(cool.length){ ticks.push(x); bars+=bar(cool[0],x,side); x+=side; } ticks.push(x);
+  const dot=y=>`<line x1="0" y1="${y.toFixed(1)}" x2="${w}" y2="${y.toFixed(1)}" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="1.5 3.5" opacity=".7"/>`;
+  let lines="", labels="";
+  if(fast){ lines+=dot(top); labels+=`<text x="${w}" y="${top-17}" text-anchor="end" class="rc-l">Ritmo</text><text x="${w}" y="${top-4}" text-anchor="end" class="rc-l">${paceTxt(fast)}</text>`;
+    if(slow!==fast){ const yl=base-lowH; lines+=dot(yl); labels+=`<text x="${w}" y="${(yl+15).toFixed(1)}" text-anchor="end" class="rc-l">${paceTxt(slow)}</text>`; } }
+  const ax=`<line x1="0" y1="${base+3}" x2="${x}" y2="${base+3}" stroke="var(--line)" stroke-width="1.5"/>`+ticks.map(t=>`<line x1="${Math.min(x-.75,Math.max(.75,t))}" y1="${base+3}" x2="${Math.min(x-.75,Math.max(.75,t))}" y2="${base+10}" stroke="var(--line)" stroke-width="1.5"/>`).join("");
+  const mk= byKm? (est.kOk&&est.k? est.k : p.km) : 0, axT= mk? kmTxt(mk) : est.t? hmsSec(est.t) : p.min? hmsSec(p.min*60) : "";
+  const cx=(warm.length?side:0)+midW/2;
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Profilo della seduta">${lines}${bars}${labels}${ax}<text x="${cx.toFixed(1)}" y="${h-1}" text-anchor="middle" class="rc-a">${axT}</text></svg>`;
 }
+// testo di una fase per la legenda, come Samsung Health
+function segTxt(g,ps){ const t=+g.minutes? hmsSec(+g.minutes*60) : "", gp=paceSec(g.pace)||(g.kind==="work"?ps:0), lb=String(g.label||"").trim(), hr=String(g.hr||"").trim();
+  if(g.kind==="work"){ const what=/jog|lent|facil/i.test(lb)? "jogging" : "corsa";
+    if(gp&&+g.km) return `Andatura ${paceTxt(gp)} /km, ${what} di ${kmTxt(+g.km)}`;
+    if(gp&&t) return `Andatura ${paceTxt(gp)} /km per ${t}`;
+    if(+g.km) return `Corsa di ${kmTxt(+g.km)}`; if(t) return `Corsa per ${t}`; return lb||"Corsa"; }
+  const walk=/cammin/i.test(lb), verb= walk? "Cammina" : "Fai jogging";
+  if(hr&&g.kind!=="warmup") return `${verb} ${/^fino/i.test(hr)? hr : "fino a "+hr}`;
+  let out= t? (walk? `Camminata di ${t}` : `Sessione di jogging di ${t}`) : +g.km? (walk? `Camminata di ${kmTxt(+g.km)}` : `Jogging di ${kmTxt(+g.km)}`) : (lb||SEG_L[g.kind]||"");
+  if(gp) out+=` · ${paceTxt(gp)} /km`; if(hr) out+=` · ${/^fino/i.test(hr)? hr : "fino a "+hr}`; return out; }
 function runScore(d,r){ const p=runPlan(d); let parts=[];
   if(p.km&&r.km) parts.push(Math.abs(r.km-p.km)/p.km); else if(p.min&&r.minutes) parts.push(Math.abs(r.minutes-p.min)/p.min);
   const rps=r.km&&r.minutes? r.minutes*60/r.km : paceSec(r.pace); if(p.ps&&rps) parts.push(Math.abs(rps-p.ps)/p.ps);
@@ -6493,14 +6560,22 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
   const hd=el("div","gd-head"); hd.innerHTML=`<div><h1 class="gd-t"></h1><span class="gd-pill"></span></div>`;
   hd.querySelector(".gd-t").textContent=names[wd]; hd.querySelector(".gd-pill").textContent="🏃 "+(d.runType||"Corsa"); box.appendChild(hd);
   const c=el("div","card run-card");
-  const lv=Math.max(1,Math.min(5,+d.intensity||2));
-  c.innerHTML=`<div class="run-h"><b></b><span class="flames" aria-label="Intensità ${lv} su 5">${"<i class='on'>🔥</i>".repeat(lv)}${"<i>🔥</i>".repeat(5-lv)}</span></div><p class="run-desc"></p>
-    <div class="run-big num">${p.km? (Math.round(p.km*100)/100).toLocaleString("it-IT",{minimumFractionDigits:2})+" km" : (p.min? p.min+" min" : "")}</div>
-    <div class="run-sub">${[p.min?hms(p.min):"", p.ps?"ritmo medio "+paceTxt(p.ps)+"/km":""].filter(Boolean).join(" | ")}</div>
-    <div class="run-chart">${p.ps?`<div class="run-pace">Ritmo<br>${paceTxt(p.ps)}</div>`:""}${runShapeSVG(d,320,170,true)}</div><div class="run-leg"></div>`;
+  const lv=Math.max(1,Math.min(5,+d.intensity||2)), {main}=runParts(d), est=runMainEst(main,p.ps);
+  const wp=main.filter(g=>g.kind==="work").map(g=>paceSec(g.pace)||p.ps).filter(Boolean), fast=wp.length? Math.min(...wp) : p.ps, slow=wp.length? Math.max(...wp) : p.ps;
+  const range= fast? (slow&&slow!==fast? `${paceTxt(fast)} - ${paceTxt(slow)}` : paceTxt(fast)) : "";
+  const tSec= est.tOk&&est.t? est.t : p.min*60, kmEst= p.km || (est.kOk&&est.k? est.k : (tSec&&p.ps? tSec/p.ps : 0));
+  const big= p.km? kmTxt(p.km) : tSec? hmsSec(tSec) : "", sub= p.km? [tSec? hmsSec(tSec) : "", range] : [kmEst? kmTxt(kmEst) : "", range];
+  c.innerHTML=`<div class="run-h"><b></b><button type="button" class="run-i" aria-label="Che cos'è questo allenamento" aria-expanded="false">i</button><span class="flames" role="img" aria-label="Intensità ${lv} su 5">${("<i class='on'>"+FLAME+"</i>").repeat(lv)}${("<i>"+FLAME+"</i>").repeat(5-lv)}</span></div>
+    <p class="run-info" hidden></p><p class="run-desc"></p>
+    <div class="run-big num">${big}</div>
+    <div class="run-sub num">${sub.filter(Boolean).join(" | ")}</div>
+    <div class="run-chart">${runShapeSVG(d,320,200,true)}</div><div class="run-leg"></div>`;
   c.querySelector(".run-h b").textContent=d.runType||"Corsa"; c.querySelector(".run-desc").textContent=d.description||"";
-  const lg=c.querySelector(".run-leg"); runSegs(d).forEach(g=>{ const row=el("div","rl"); row.innerHTML=`<i style="background:${SEG_COL[g.kind]||"var(--basil)"}"></i><span class="k"></span><span class="t"></span>`;
-    row.querySelector(".k").textContent=SEG_L[g.kind]||g.kind; row.querySelector(".t").textContent=[g.label, g.pace&&(paceSec(g.pace)||p.ps)?paceTxt(paceSec(g.pace)||p.ps)+"/km":"", g.hr||""].filter(Boolean).join(" · "); lg.appendChild(row); });
+  const inf=c.querySelector(".run-info"), ib=c.querySelector(".run-i"); inf.textContent=runInfo(d.runType||d.title);
+  ib.onclick=()=>{ inf.hidden=!inf.hidden; ib.setAttribute("aria-expanded",String(!inf.hidden)); };
+  const lg=c.querySelector(".run-leg"), {warm:w0,cool:c0}=runParts(d), row=g=>{ const r0=el("div","rl"); r0.innerHTML=`<i style="background:${g.kind==="work"&&wp.length&&fast!==slow? workCol(((slow-(paceSec(g.pace)||p.ps))/(slow-fast))||0) : SEG_COL[g.kind]||SEG_COL.work}"></i><span class="k"></span><span class="t"></span>`;
+    r0.querySelector(".k").textContent=SEG_L[g.kind]||g.kind; r0.querySelector(".t").textContent=segTxt(g,p.ps); return r0; };
+  runGroups([...w0,...main,...c0]).forEach(gr=>{ if(gr.rep>1){ const bx=el("div","rg"); bx.appendChild(el("div","rh",`Ripeti ${gr.rep} volte`)); gr.segs.forEach(g=>bx.appendChild(row(g))); lg.appendChild(bx); } else lg.appendChild(row(gr.segs[0])); });
   box.appendChild(c);
   if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta${res.on?" "+dayTxt(res.on):""} ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; { const rw=runResWorkout(res,iso); if(rw){ rc.classList.add("tap"); rc.setAttribute("role","button"); rc.setAttribute("aria-label","Vedi il riepilogo della corsa"); rc.onclick=()=>openRunSummary(rw.id,rw); rc.querySelector("b").textContent+=" ›"; } } box.appendChild(rc); }
   // avvio con Galaxy Watch e risultati
