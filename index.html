@@ -2231,7 +2231,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.13 (fasi dell'allenamento dentro «Allenamento del piano»)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.14 (fasi dell'allenamento nella pagina «Allenamento del piano»)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5882,6 +5882,7 @@ function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur)
     else c.appendChild(el("p","note","Per questa corsa non ho il tempo nelle zone cardio."));
     c.appendChild(el("p","note",`Zone calcolate sulla tua FC massima di ${mx} bpm (la cambi in Statistiche corsa).`)); return; }
   if(sub==="punteggio"){ const c=rdCard(box,null); c.innerHTML=`<b>Allenamento del piano</b><div></div><div class="sub"></div>`; c.children[1].textContent=pl.title; c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? rdKm(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | ");
+    try{ rdPhaseCard(box,x,c); }catch(e){ console.warn("fasi",e); }
     rdScoreCard(box,x,true); rdRecCard(box,x); return; }
   if(sub==="vo2"){ const vo=rdVo2(st,Dx), c=rdCard(box); if(!vo){ c.appendChild(el("p","note","Per stimare il VO₂max servono almeno 10 minuti di corsa con il battito.")); return; } const L0=rdVo2Lvl(vo);
     c.innerHTML=`<div class="rd-vo"><div><b style="color:${L0.col}">${L0.name}</b><span class="num">${fmt(vo)}</span></div><div class="bar"><i style="left:${L0.pos}%;background:${L0.col}"></i></div></div><p class="note">Stima dal ritmo e dal battito di questa corsa (FC max ${mx}, a riposo ${hrRestOf()}): è indicativa e cambia con caldo, salite e stanchezza. Un VO₂max più alto vuol dire più ossigeno usato dai muscoli: migliora con le corse facili lunghe e con le ripetute.</p>`; return; }
@@ -5890,9 +5891,8 @@ function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur)
   hero.querySelector(".rd-hn").textContent=(pl&&pl.type? pl.type : w.name||"Corsa");
   hero.querySelector(".rd-hd").textContent=t0.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+" "+t0.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
   box.appendChild(hero);
-  if(pl){ const pc=el("section","card rd-sec rd-planbox"), c=el("button","rd-plan"); pc.appendChild(c); c.type="button"; c.onclick=()=>rdOpen("punteggio"); c.innerHTML=`<span><b>Allenamento del piano</b><span class="t"></span><span class="sub"></span></span><span class="chev" aria-hidden="true">›</span>`; c.querySelector(".t").textContent=pl.title;
-    c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? rdKm(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | "); box.appendChild(pc);
-    try{ rdPhaseCard(box,x,pc); }catch(e){ console.warn("fasi",e); } }
+  if(pl){ const c=el("button","card rd-sec rd-plan"); c.type="button"; c.onclick=()=>rdOpen("punteggio"); c.innerHTML=`<span><b>Allenamento del piano</b><span class="t"></span><span class="sub"></span></span><span class="chev" aria-hidden="true">›</span>`; c.querySelector(".t").textContent=pl.title;
+    c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? rdKm(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | "); box.appendChild(c); }
   // dettagli
   const tiles=[["Durata allenamento",hms2(sec),"",""],["Andatura media",st.pace? paceTxt(st.pace) : "–","/km","c2"],["Media freq. car.",Dx.avgHr||"–","bpm","c3"],["Calorie allenamento",Dx.kcal||"–","kcal","c4"],["Ritmo medio",st.cad||"–","spm","c5"],["Increm. elevaz.",st.gain!=null? st.gain : "–","m","c6"]];
   const tc=rdCard(box,"Dettagli allenamento","dettagli"); const tg=el("div","rd-tiles"); tiles.forEach(([l,v,u,c])=>{ const d=el("div","rd-tile "+c); d.innerHTML=`<span></span><b class="num">${v}<small> ${v==="–"?"":u}</small></b>`; d.querySelector("span").textContent=l; tg.appendChild(d); }); tg.onclick=()=>rdOpen("dettagli"); tc.appendChild(tg);
