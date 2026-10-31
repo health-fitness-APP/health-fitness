@@ -1091,6 +1091,19 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .btile .v small{font-size:.75rem;font-weight:500;color:var(--muted);margin-left:2px;font-family:"Instrument Sans",sans-serif}
 .btile .d{font-size:.72rem;color:var(--muted)}
 .btile.empty .v{color:var(--muted);opacity:.6}
+.bcust{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.ratio{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.ratio h3{margin:0;font-size:1rem;text-align:center}
+.ratio .rv{font-family:"Bricolage Grotesque",sans-serif;font-size:1.7rem;font-weight:700;text-align:center;margin:4px 0 0}
+.ratio .rv.none{color:var(--muted);opacity:.6}
+.ratio .rk{text-align:center;font-size:.8rem;color:var(--muted);margin:0 0 4px}
+.zbar{position:relative;margin:22px 4px 0}
+.zbar .rseg{display:flex;height:8px;border-radius:5px;overflow:hidden}
+.zbar .rseg i{display:block;height:100%}
+.zbar .th{position:absolute;top:-18px;font-size:.72rem;color:var(--muted);transform:translateX(-50%)}
+.zbar .mk{position:absolute;top:-4px;width:4px;height:16px;border-radius:2px;background:var(--ink);transform:translateX(-50%);box-shadow:0 0 0 2px var(--surface-solid)}
+.zbar .lb{display:flex;font-size:.74rem;color:var(--muted);margin-top:4px}
+.zbar .lb span{text-align:center}
 .btile .two{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:0 4px;font-size:.72rem;margin-top:2px;color:var(--muted)}
 .btile .two b{font-size:.92rem;color:var(--ink);white-space:nowrap}
 .btile .sg{display:flex;gap:6px;flex-wrap:wrap;font-size:.7rem;color:var(--muted);margin-top:3px;border-top:1px dashed var(--line);padding-top:3px}
@@ -1782,6 +1795,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <h2>Misure del corpo</h2>
     <p class="sub" id="bMapSub" style="margin:2px 0 0">Tocca una misura per vederne l'andamento.</p>
     <div class="bodymap" id="bMap"></div>
+    <div class="bcust" id="bCust"></div>
     <div id="bSegLg" hidden>
       <div class="seglg" style="flex-direction:column;gap:4px">
         <span><b style="color:var(--ink)">G</b> = grasso della zona rispetto allo standard</span>
@@ -1791,6 +1805,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <div class="seglg"><span><i style="background:var(--c3)"></i>muscoli sotto lo standard (&lt; 90%)</span><span><i style="background:var(--basil)"></i>nello standard (90–110%)</span><span><i style="background:var(--c2)"></i>sopra lo standard (&gt; 110%)</span></div>
     </div>
     <div class="stats" id="bStats" hidden></div>
+    <div id="bRatios"></div>
   </section>
   <section class="card">
     <h2>Aggiungi misurazione</h2>
@@ -2231,7 +2246,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.15 (cibi di casa: la tua porzione, es. 1 piatto = 90 g)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.16 (misure del corpo: inserimento dal riquadro, 6 parti personalizzate, rapporti vita-fianchi e vita-altezza)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -2283,6 +2298,20 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <label>Giorno della settimana<select class="field" id="cirWd"><option value="1">Lunedì</option><option value="2">Martedì</option><option value="3">Mercoledì</option><option value="4">Giovedì</option><option value="5">Venerdì</option><option value="6">Sabato</option><option value="0">Domenica</option></select></label>
       <p class="note" id="cirPreview"></p>
       <button class="btn" id="cirSave" type="button">Crea il circuito</button>
+    </div>
+  </div>
+</div>
+<div class="sheet" id="mzSheet" role="dialog" aria-modal="true" aria-labelledby="mzTitle">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="mzTitle">Misura</h3>
+    <div class="form">
+      <label id="mzNameL" hidden>Nome della parte<input class="field" id="mzName" maxlength="30" placeholder="Es. Avambraccio sinistro"></label>
+      <div class="two"><label>Misura (cm)<input class="field" id="mzVal" type="number" inputmode="decimal" step="0.1" min="0"></label><label>Data<input class="field" id="mzDate" type="date"></label></div>
+      <button class="btn" id="mzSave" type="button">Salva</button>
+      <button class="btn ghost" id="mzTrend" type="button" hidden>📈 Vedi l'andamento</button>
+      <p class="note" id="mzHistT" style="margin:10px 2px 0" hidden>Storico</p>
+      <ul class="items" id="mzHist"></ul>
     </div>
   </div>
 </div>
@@ -7373,7 +7402,7 @@ function errCopy(e){
 }
 
 /* ================= CORPO ================= */
-const METRICS=[["weight","Peso","kg"],["bmr","Metabolismo basale","kcal"],["bodyAge","Età corporea","anni"],["bone","Massa ossea","kg"],["protein","Proteine","%"],["subfat","Grasso sottocutaneo","%"],["fat","Grasso corporeo","%"],["muscle","Muscolo scheletrico","kg"],["muscleTot","Massa muscolare totale","kg"],["water","Acqua","%"],["visceral","Grasso viscerale",""],["shoulders","Spalle","cm"],["chest","Petto","cm"],["waist","Vita","cm"],["hips","Fianchi / bacino","cm"],["arm","Braccio","cm"],["forearm","Avambraccio","cm"],["thigh","Coscia","cm"],["calf","Polpaccio","cm"],["neck","Collo","cm"],["abdomen","Addome","cm"],["armL","Braccio sinistro","cm"],["armR","Braccio destro","cm"],["thighL","Coscia sinistra","cm"],["thighR","Coscia destra","cm"],["calfL","Polpaccio sinistro","cm"],["calfR","Polpaccio destro","cm"],
+const METRICS=[["weight","Peso","kg"],["bmr","Metabolismo basale","kcal"],["bodyAge","Età corporea","anni"],["bone","Massa ossea","kg"],["protein","Proteine","%"],["subfat","Grasso sottocutaneo","%"],["fat","Grasso corporeo","%"],["muscle","Muscolo scheletrico","kg"],["muscleTot","Massa muscolare totale","kg"],["water","Acqua","%"],["visceral","Grasso viscerale",""],["shoulders","Spalle","cm"],["chest","Petto","cm"],["waist","Vita","cm"],["hips","Fianchi / bacino","cm"],["arm","Braccio","cm"],["forearm","Avambraccio","cm"],["thigh","Coscia","cm"],["calf","Polpaccio","cm"],["neck","Collo","cm"],["abdomen","Addome","cm"],["armL","Braccio sinistro","cm"],["armR","Braccio destro","cm"],["thighL","Coscia sinistra","cm"],["thighR","Coscia destra","cm"],["calfL","Polpaccio sinistro","cm"],["calfR","Polpaccio destro","cm"],["c1","Parte personalizzata 1","cm"],["c2","Parte personalizzata 2","cm"],["c3","Parte personalizzata 3","cm"],["c4","Parte personalizzata 4","cm"],["c5","Parte personalizzata 5","cm"],["c6","Parte personalizzata 6","cm"],
 ["sfArmL","Grasso braccio sx (% std)","%","seg"],["sfArmR","Grasso braccio dx (% std)","%","seg"],["sfTrunk","Grasso tronco (% std)","%","seg"],["sfLegL","Grasso gamba sx (% std)","%","seg"],["sfLegR","Grasso gamba dx (% std)","%","seg"],
 ["smArmL","Muscoli braccio sx (% std)","%","seg"],["smArmR","Muscoli braccio dx (% std)","%","seg"],["smTrunk","Muscoli tronco (% std)","%","seg"],["smLegL","Muscoli gamba sx (% std)","%","seg"],["smLegR","Muscoli gamba dx (% std)","%","seg"]];
 function syncProfileFromBody(){ const last=latestBody(); if(state.profile&&last.weight&&state.profile.weight!==last.weight.v){ state.profile.weight=last.weight.v; save("profile",state.profile); return true; } return false; }
@@ -7459,6 +7488,48 @@ function bodySVG(c){
     <text x="90" y="128" text-anchor="middle" style="font-size:9px;font-weight:700;fill:var(--muted)">D</text>
   </svg>`;
 }
+/* parti personalizzate (c1…c6): il nome scelto sta in body.cnames, i valori nelle misurazioni come le altre misure */
+const CKEYS=["c1","c2","c3","c4","c5","c6"];
+function cLabel(k){ const n=body&&body.cnames&&body.cnames[k]; return n? String(n) : "Parte personalizzata "+k.slice(1); }
+function applyCNames(){ CKEYS.forEach(k=>{ const m=METRICS.find(x=>x[0]===k); if(m) m[1]=cLabel(k); const i=$("b_"+k); if(i&&i.parentNode&&i.parentNode.firstChild&&i.parentNode.firstChild.nodeType===3) i.parentNode.firstChild.nodeValue=m[1]+" (cm)"; }); }
+/* rapporto vita-fianchi (OMS: uomo basso ≤0,95, moderato fino a 1,00; donna ≤0,80 / 0,85) e vita-altezza (sotto 0,5 = buono) */
+function ratioBar(v,lo,hi,ths,labs,cols){ const pts=[lo,...ths,hi], n=pts.length-1, sw=100/n;
+  const pos=x=>{ if(x<=lo) return 0; if(x>=hi) return 100; for(let i=0;i<n;i++) if(x<=pts[i+1]) return (i+(x-pts[i])/(pts[i+1]-pts[i]))*sw; return 100; };
+  return `<div class="zbar">${ths.map((t,i)=>`<span class="th" style="left:${(i+1)*sw}%">${t.toFixed(2).replace(".",",")}</span>`).join("")}<div class="rseg">${cols.map(c=>`<i style="width:${sw}%;background:${c}"></i>`).join("")}</div>${v!=null?`<span class="mk" style="left:${Math.min(98.5,Math.max(1.5,pos(v)))}%"></span>`:""}<div class="lb">${labs.map(l=>`<span style="width:${sw}%">${l}</span>`).join("")}</div></div>`; }
+function renderRatios(w,h){ const box=$("bRatios"), p=state.profile||{}, f=p.sex==="f", ht=+p.height||0;
+  const G="#3BAA5C", O="#F0A020", R="#E0503C", B="#2FA3C4";
+  const whr= w&&h? w/h : null, ths= f? [0.80,0.85] : [0.95,1.00];
+  const k1= whr==null? (w? "Manca la misura dei fianchi" : "Servono vita e fianchi") : whr<=ths[0]? "Rischio basso" : whr<=ths[1]? "Rischio moderato" : "Rischio alto";
+  const wht= w&&ht? w/ht : null;
+  const k2= wht==null? (w? "Manca l'altezza nel profilo" : "Serve la misura della vita") : wht<0.4? "Molto magro" : wht<0.5? "Nella norma" : wht<0.6? "Grasso addominale in aumento" : "Grasso addominale alto";
+  const fx=v=>v.toFixed(2).replace(".",",");
+  box.innerHTML=`<div class="ratio"><h3>Rapporto vita-fianchi</h3><div class="rv num${whr==null?" none":""}">${whr==null?"––":fx(whr)}</div><p class="rk">${k1}</p>${ratioBar(whr,f?0.65:0.75,f?1.0:1.15,ths,["Basso","Moderato","Alto"],[G,O,R])}</div>
+  <div class="ratio"><h3>Rapporto vita-altezza</h3><div class="rv num${wht==null?" none":""}">${wht==null?"––":fx(wht)}</div><p class="rk">${k2}</p>${ratioBar(wht,0.35,0.7,[0.4,0.5,0.6],["Magro","Norma","Attenzione","Alto"],[B,G,O,R])}</div>
+  <p class="note" style="margin:10px 2px 0">Stime di rischio cardiometabolico (OMS): non sono una diagnosi.</p>`; }
+/* foglio di una misura: inserisci il valore, rinomina le parti personalizzate, vedi lo storico */
+let mzKey=null;
+function openMz(k,label){ mzKey=k; const cust=CKEYS.includes(k);
+  $("mzTitle").textContent= cust? cLabel(k) : label; $("mzNameL").hidden=!cust; $("mzName").value= cust&&body.cnames&&body.cnames[k]? body.cnames[k] : "";
+  const ds=bodyDates(), bd=bodyDay(); $("mzDate").value= (bodyDate&&ds.length&&bd<ds[ds.length-1])? bd : todayISO(); $("mzVal").value="";
+  renderMzHist(); openSheet("mzSheet"); if(!cust) setTimeout(()=>$("mzVal").focus(),250); }
+function renderMzHist(){ const k=mzKey, ul=$("mzHist"); ul.innerHTML=""; const es=sortedEntries().filter(x=>x[k]!=null);
+  $("mzHistT").hidden=!es.length; $("mzTrend").hidden=es.length<2;
+  [...es].reverse().slice(0,20).forEach((x,i,a)=>{ const li=el("li"), t=el("div","t"), nx=a[i+1], dd= nx? Math.round((x[k]-nx[k])*10)/10 : null;
+    t.append(el("div","a",new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})), el("div","b",fmt(x[k])+" cm"+(dd? "  ("+(dd>0?"+":"−")+fmt(Math.abs(dd))+")" : "")));
+    const del=el("button","del","×"); del.setAttribute("aria-label","Elimina questo valore");
+    del.onclick=()=>{ if(!confirm("Eliminare il valore del "+new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"long"})+"?")) return;
+      delete x[k]; if(!METRICS.some(([m])=>x[m]!=null)) body.entries=body.entries.filter(e=>e!==x); save("body",body); bodyDate=null; renderAll(); renderMzHist(); };
+    li.append(t,del); ul.appendChild(li); }); }
+$("mzSave").onclick=()=>{ const k=mzKey; if(!k) return; let ch=false;
+  if(CKEYS.includes(k)){ const n=$("mzName").value.trim().slice(0,30), old=(body.cnames&&body.cnames[k])||""; if(n!==old){ body.cnames={...(body.cnames||{})}; if(n) body.cnames[k]=n; else delete body.cnames[k]; ch=true; } }
+  const raw=String($("mzVal").value).replace(",","."), v=+raw;
+  if(raw!==""){ if(!isFinite(v)||v<=0||v>300){ toast("Misura non valida"); return; }
+    const d=/^\d{4}-\d{2}-\d{2}$/.test($("mzDate").value)? $("mzDate").value : todayISO();
+    const same=body.entries.filter(e=>e.date===d), e= same.length? same[same.length-1] : null;
+    if(e) e[k]=Math.round(v*10)/10; else body.entries=[...body.entries,{id:uid(),date:d,source:"manuale",[k]:Math.round(v*10)/10}]; ch=true; }
+  if(!ch){ toast("Scrivi la misura in cm"); return; }
+  save("body",body); bodyDate=null; renderAll(); closeTopSheet(); toast(raw!==""? "Misura salvata ✓" : "Nome salvato ✓"); };
+$("mzTrend").onclick=()=>{ bMetric=mzKey; closeTopSheet(); setTimeout(()=>{ renderBody(); $("bChartCard").scrollIntoView({behavior:"smooth",block:"start"}); },120); };
 function latestBodyFrom(es){ const last={}; es.forEach(x=>METRICS.forEach(([k])=>{ if(x[k]!=null) last[k]={v:x[k],date:x.date}; })); return last; }
 function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e); }
   const bd=bodyDay(), all=sortedEntries(), es=all.filter(e=>e.date<=bd), last=latestBodyFrom(es); renderBodyNav();
@@ -7494,15 +7565,15 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
     const dd= v!=null&&pv!=null? Math.round((v-pv)*10)/10 : null;
     b.innerHTML=`<div class="l"></div><div class="v num">${v!=null?fmt(v)+"<small>cm</small>":"—"}</div>${dd!=null?`<div class="d">${(dd>0?"+":dd<0?"−":"")+Math.abs(dd).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1})}</div>`:""}${segHtml(sk)}`;
     b.querySelector(".l").textContent=label+(key!==k&&alt&&v!=null?" (media)":"");
-    if(v!=null) b.onclick=()=>{ bMetric=key; renderBody(); $("bChartCard").scrollIntoView({behavior:"smooth",block:"start"}); };
+    b.onclick=()=>openMz(k,label);
     return b; };
   const cms=["neck","shoulders","chest","waist","abdomen","hips","arm","armL","armR","thigh","thighL","thighR","calf","calfL","calfR","forearm"];
   const segKeys=["ArmL","ArmR","Trunk","LegL","LegR"];
   const anyCm=cms.some(k=>lastOf(k)!=null), anySeg=segKeys.some(k=>lastOf("sf"+k)!=null||lastOf("sm"+k)!=null);
-  $("bCircCard").hidden=!(anyCm||anySeg);
+  applyCNames(); $("bCircCard").hidden=false;
   $("bSegLg").hidden=!anySeg;
-  $("bMapSub").textContent= anySeg? "Circonferenze e analisi segmentale. Tocca una misura per vederne l'andamento." : "Tocca una misura per vederne l'andamento.";
-  if(anyCm||anySeg){
+  $("bMapSub").textContent= (anySeg? "Circonferenze e analisi segmentale. " : "")+"Tocca una misura per inserirla o vederne l'andamento.";
+  {
     const map=$("bMap"); map.innerHTML="";
     const L=el("div","col"), C=el("div"), R=el("div","col");
     [["Collo","neck"],["Braccio sx","armL","arm","ArmL"],["Petto","chest"],["Addome","abdomen"],["Coscia sx","thighL","thigh","LegL"],["Polpaccio sx","calfL","calf"]].forEach(t=>L.appendChild(tile(...t)));
@@ -7510,6 +7581,8 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
     C.innerHTML=bodySVG(anySeg? {armL:zc(lastOf("smArmL")),armR:zc(lastOf("smArmR")),trunk:zc(lastOf("smTrunk")),legL:zc(lastOf("smLegL")),legR:zc(lastOf("smLegR"))} : {});
     const tr=segHtml("Trunk"); if(tr){ const t=el("div","btile trunk"); t.innerHTML=`<div class="l">Tronco</div>${tr}`; C.appendChild(t); }
     map.append(L,C,R);
+    const cu=$("bCust"); cu.innerHTML=""; CKEYS.forEach(k=>cu.appendChild(tile(cLabel(k),k)));
+    renderRatios(lastOf("waist"),lastOf("hips"));
   }
   // grafici
   const keys=["weight","fatKg","muscleTot","muscle","fat","waterKg","bmi","visceral",...METRICS.filter(m=>m[2]==="cm").map(m=>m[0])];
@@ -7536,7 +7609,7 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
   const ul=$("bHist"); ul.innerHTML="";
   [...es].reverse().forEach(x=>{
     const li=el("li"), t=el("div","t");
-    const parts=METRICS.filter(m=>!m[3]&&x[m[0]]!=null).map(([k,l,u])=>l.split(" ")[0]+(/L$/.test(k)?" sx":/R$/.test(k)?" dx":"")+" "+fmt(x[k])+(u?" "+u:"")); if(METRICS.some(m=>m[3]&&x[m[0]]!=null)) parts.push("analisi segmentale");
+    const parts=METRICS.filter(m=>!m[3]&&x[m[0]]!=null).map(([k,l,u])=>(CKEYS.includes(k)? l : l.split(" ")[0]+(/L$/.test(k)?" sx":/R$/.test(k)?" dx":""))+" "+fmt(x[k])+(u?" "+u:"")); if(METRICS.some(m=>m[3]&&x[m[0]]!=null)) parts.push("analisi segmentale");
     t.append(el("div","a",new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+(x.source==="health"?" · da Samsung Health":x.source==="bilancia"?" · dalla bilancia":x.source&&x.source!=="manuale"?" · da screenshot":"")), el("div","b",parts.join(" · ")));
     t.querySelector(".b").style.whiteSpace="normal";
     const del=el("button","del","×"); del.setAttribute("aria-label","Elimina misurazione");
