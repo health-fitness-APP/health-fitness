@@ -1828,7 +1828,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="form" id="bForm" hidden style="margin-top:14px">
       <label>Data<input id="bDate" type="date"></label>
       <div class="two" id="bFields"></div>
-      <button class="btn" id="bSave">Salva misurazione</button>
+      <div class="two"><button class="btn" id="bSave">Salva misurazione</button><button class="btn ghost" id="bFormClose" type="button">Chiudi</button></div>
     </div>
   </section>
   <section class="card" hidden>
@@ -2247,7 +2247,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.17 (Corpo: valori a mano nascosti, metro dentro Misure del corpo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.18 (Corpo: i valori a mano si chiudono con Chiudi o dopo Salva)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -7633,8 +7633,10 @@ document.addEventListener("click",e=>{ const m=$("bMenu"); if(m&&!m.hidden&&!m.c
 $("bmDel").onclick=()=>{ $("bMenu").hidden=true; const bd=bodyDay(), ids=body.entries.filter(x=>x.date===bd).map(x=>x.id); if(!ids.length) return;
   const lbl=new Date(bd+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
   if(confirm(`Eliminare la misurazione di ${lbl}?`)) deleteBodyEntries(ids); };
-function showBForm(){ $("bForm").hidden=false; $("bFormBtn").hidden=true; setTimeout(()=>$("bForm").scrollIntoView({behavior:"smooth",block:"start"}),60); }
-$("bFormBtn").onclick=showBForm;
+function showBForm(){ $("bForm").hidden=false; $("bFormBtn").textContent="✕ Chiudi i valori a mano"; setTimeout(()=>$("bForm").scrollIntoView({behavior:"smooth",block:"start"}),60); }
+function hideBForm(){ $("bForm").hidden=true; $("bFormBtn").textContent="✏️ Inserisci i valori a mano"; }
+$("bFormClose").onclick=()=>{ hideBForm(); $("bFormBtn").scrollIntoView({behavior:"smooth",block:"center"}); };
+$("bFormBtn").onclick=()=>{ if($("bForm").hidden) showBForm(); else hideBForm(); };
 $("bmAdd").onclick=()=>{ $("bMenu").hidden=true; showBForm(); };
 /* importa una misurazione da un testo JSON (es. preparato da Claude dagli screenshot della bilancia) */
 $("bmImport").onclick=async()=>{ $("bMenu").hidden=true; let t="";
@@ -7705,7 +7707,7 @@ $("bSave").onclick=()=>{
   METRICS.filter(m=>!m[3]).forEach(([k])=>{ const v=$("b_"+k).value; if(v!==""&&isFinite(+v)&&+v>0){ entry[k]=+v; n++; } });
   if(!n){ toast("Inserisci almeno un valore"); return; }
   body.entries=[...body.entries,entry]; save("body",body); bodyDate=null; try{ hcWriteBody(entry); }catch{}
-  METRICS.filter(m=>!m[3]).forEach(([k])=>$("b_"+k).value=""); bSource="manuale"; setStatus("bShotStatus","");
+  METRICS.filter(m=>!m[3]).forEach(([k])=>$("b_"+k).value=""); bSource="manuale"; setStatus("bShotStatus",""); hideBForm();
   const last=latestBody();
   if(entry.weight && state.profile && last.weight && last.weight.date===entry.date && state.profile.weight!==entry.weight){
     state.profile.weight=entry.weight; save("profile",state.profile); toast("Salvato. Peso aggiornato: obiettivi ricalcolati");
