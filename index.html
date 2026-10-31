@@ -1796,6 +1796,14 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <p class="sub" id="bMapSub" style="margin:2px 0 0">Tocca una misura per vederne l'andamento.</p>
     <div class="bodymap" id="bMap"></div>
     <div class="bcust" id="bCust"></div>
+    <button class="btn ghost" id="bTapeBtn" type="button" hidden style="margin-top:8px">📏 Misura con il metro</button>
+    <button class="btn ghost" id="bTapeSetup" type="button" hidden style="margin-top:8px">📏 Collega il metro (una volta sola)</button>
+    <div class="tape-box" id="bTapeBox" hidden>
+      <p class="note" style="margin:8px 0 6px">Scegli la parte, avvolgi il metro e tocca “Misura”: tieni il nastro fermo qualche secondo, leggo e salvo da solo.</p>
+      <div class="chips" id="bTapeParts"></div>
+      <div class="two" style="margin-top:8px"><button class="btn" id="bTapeGo" type="button">Misura</button><button class="btn ghost" id="bTapeDone" type="button">Fine</button></div>
+      <div class="status" id="bTapeStatus" aria-live="polite"></div>
+    </div>
     <div id="bSegLg" hidden>
       <div class="seglg" style="flex-direction:column;gap:4px">
         <span><b style="color:var(--ink)">G</b> = grasso della zona rispetto allo standard</span>
@@ -1816,15 +1824,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button class="btn" id="bScaleBtn" type="button" hidden style="margin-top:8px">⚖️ Pesati con la bilancia</button>
     <p class="note" id="bScaleNote" hidden style="margin:4px 2px 0">Tocca il pulsante e <b>poi</b> sali sulla bilancia, scalzo (chiudi prima l'app Lepulse).</p>
     <button class="btn ghost" id="bScaleSetup" type="button" hidden style="margin-top:8px">⚖️ Collega la bilancia (una volta sola)</button>
-    <button class="btn ghost" id="bTapeBtn" type="button" hidden style="margin-top:8px">📏 Misura con il metro</button>
-    <button class="btn ghost" id="bTapeSetup" type="button" hidden style="margin-top:8px">📏 Collega il metro (una volta sola)</button>
-    <div class="tape-box" id="bTapeBox" hidden>
-      <p class="note" style="margin:0 0 6px">Scegli la parte, avvolgi il metro e tocca “Misura”: tieni il nastro fermo qualche secondo, leggo da solo.</p>
-      <div class="chips" id="bTapeParts"></div>
-      <div class="two" style="margin-top:8px"><button class="btn" id="bTapeGo" type="button">Misura</button><button class="btn ghost" id="bTapeDone" type="button">Fine</button></div>
-      <div class="status" id="bTapeStatus" aria-live="polite"></div>
-    </div>
-    <div class="form" id="bForm" style="margin-top:14px">
+    <button class="btn ghost" id="bFormBtn" type="button" style="margin-top:8px">✏️ Inserisci i valori a mano</button>
+    <div class="form" id="bForm" hidden style="margin-top:14px">
       <label>Data<input id="bDate" type="date"></label>
       <div class="two" id="bFields"></div>
       <button class="btn" id="bSave">Salva misurazione</button>
@@ -2246,7 +2247,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.16 (misure del corpo: inserimento dal riquadro, 6 parti personalizzate, rapporti vita-fianchi e vita-altezza)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.17 (Corpo: valori a mano nascosti, metro dentro Misure del corpo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5191,17 +5192,18 @@ function parseTapeLog(lines){ const vals=[];
   // valore stabile: l'ultimo ripetuto almeno 5 volte di fila
   let best=vals[vals.length-1], run=1, stable=null; for(let i=vals.length-1;i>0;i--){ if(vals[i]===vals[i-1]){ run++; if(run>=5){ stable=vals[i]; break; } } else run=1; }
   return {cm:Math.round((stable??best)*10)/10, stable:stable!=null}; }
-let tapePart="waist";
-function renderTapeParts(){ const box=$("bTapeParts"); box.innerHTML=""; METRICS.filter(m=>m[2]==="cm"&&!m[3]).forEach(([k,l])=>{ const b=el("button","chip"+(k===tapePart?" on":""),l+($("b_"+k)&&$("b_"+k).value? " · "+String($("b_"+k).value).replace(".",",") : "")); b.type="button"; b.onclick=()=>{ tapePart=k; renderTapeParts(); }; box.appendChild(b); }); }
-$("bTapeBtn").onclick=()=>{ $("bTapeBox").hidden=!$("bTapeBox").hidden; if(!$("bTapeBox").hidden) renderTapeParts(); };
-$("bTapeDone").onclick=()=>{ $("bTapeBox").hidden=true; $("bSave").scrollIntoView({behavior:"smooth",block:"center"}); };
+let tapePart="waist", tapeDone={};
+function renderTapeParts(){ const box=$("bTapeParts"); box.innerHTML=""; METRICS.filter(m=>m[2]==="cm"&&!m[3]).forEach(([k,l])=>{ const b=el("button","chip"+(k===tapePart?" on":""),l+(tapeDone[k]!=null? " · "+String(tapeDone[k]).replace(".",",") : "")); b.type="button"; b.onclick=()=>{ tapePart=k; renderTapeParts(); }; box.appendChild(b); }); }
+$("bTapeBtn").onclick=()=>{ $("bTapeBox").hidden=!$("bTapeBox").hidden; if(!$("bTapeBox").hidden){ tapeDone={}; renderTapeParts(); } };
+$("bTapeDone").onclick=()=>{ $("bTapeBox").hidden=true; setStatus("bTapeStatus",""); };
 $("bTapeGo").onclick=async()=>{ const P=HRN(), addr=localStorage.getItem("hf:tapeAddr"); if(!P||!P.inspect||!addr){ toast("Prima fai la prova del metro in Dispositivi collegati"); return; }
   const lab=(METRICS.find(m=>m[0]===tapePart)||[,"Misura"])[1]; $("bTapeGo").disabled=true; setStatus("bTapeStatus",`📏 ${lab}: premi il tasto del metro, avvolgi il nastro e tienilo fermo…`);
   try{ const r0=await P.inspect({address:addr,seconds:15}); const res=parseTapeLog((r0&&r0.log)||[]);
     if(!res){ setStatus("bTapeStatus","Non ho ricevuto la misura: accendi il metro (tasto) e riprova.",true); return; }
-    $("b_"+tapePart).value=res.cm; setStatus("bTapeStatus",`✓ ${lab}: ${String(res.cm).replace(".",",")} cm${res.stable?"":" (nastro non fermo: controlla)"}. Scegli la parte successiva o tocca Fine e poi Salva.`);
+    tapeDone[tapePart]=res.cm; bodySetVal(tapePart,res.cm,todayISO()); save("body",body); bodyDate=null; try{ renderBody(); }catch{}
+    setStatus("bTapeStatus",`✓ ${lab}: ${String(res.cm).replace(".",",")} cm salvato${res.stable?"":" (nastro non fermo: controlla)"}. Scegli la parte successiva o tocca Fine.`);
     try{ navigator.vibrate&&navigator.vibrate(60); }catch{}
-    const order=METRICS.filter(m=>m[2]==="cm"&&!m[3]).map(m=>m[0]), nx=order.find(k=>!$("b_"+k).value); if(nx) tapePart=nx; renderTapeParts(); }
+    const order=METRICS.filter(m=>m[2]==="cm"&&!m[3]).map(m=>m[0]), nx=order.find(k=>tapeDone[k]==null); if(nx) tapePart=nx; renderTapeParts(); }
   catch(e){ setStatus("bTapeStatus","Metro: "+((e&&e.message)||e),true); }
   finally{ $("bTapeGo").disabled=false; } };
 /* bilancia F8 (Lepulse/FitDays, servizio FFB0): trame da 20 byte [seq, lung, 00, comando, …, somma&0x1f].
@@ -7520,13 +7522,15 @@ function renderMzHist(){ const k=mzKey, ul=$("mzHist"); ul.innerHTML=""; const e
     del.onclick=()=>{ if(!confirm("Eliminare il valore del "+new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"long"})+"?")) return;
       delete x[k]; if(!METRICS.some(([m])=>x[m]!=null)) body.entries=body.entries.filter(e=>e!==x); save("body",body); bodyDate=null; renderAll(); renderMzHist(); };
     li.append(t,del); ul.appendChild(li); }); }
+/* salva una misura singola nella misurazione di quel giorno (o in una nuova) */
+function bodySetVal(k,v,d){ const same=body.entries.filter(e=>e.date===d), e= same.length? same[same.length-1] : null;
+  if(e) e[k]=Math.round(v*10)/10; else body.entries=[...body.entries,{id:uid(),date:d,source:"manuale",[k]:Math.round(v*10)/10}]; }
 $("mzSave").onclick=()=>{ const k=mzKey; if(!k) return; let ch=false;
   if(CKEYS.includes(k)){ const n=$("mzName").value.trim().slice(0,30), old=(body.cnames&&body.cnames[k])||""; if(n!==old){ body.cnames={...(body.cnames||{})}; if(n) body.cnames[k]=n; else delete body.cnames[k]; ch=true; } }
   const raw=String($("mzVal").value).replace(",","."), v=+raw;
   if(raw!==""){ if(!isFinite(v)||v<=0||v>300){ toast("Misura non valida"); return; }
     const d=/^\d{4}-\d{2}-\d{2}$/.test($("mzDate").value)? $("mzDate").value : todayISO();
-    const same=body.entries.filter(e=>e.date===d), e= same.length? same[same.length-1] : null;
-    if(e) e[k]=Math.round(v*10)/10; else body.entries=[...body.entries,{id:uid(),date:d,source:"manuale",[k]:Math.round(v*10)/10}]; ch=true; }
+    bodySetVal(k,v,d); ch=true; }
   if(!ch){ toast("Scrivi la misura in cm"); return; }
   save("body",body); bodyDate=null; renderAll(); closeTopSheet(); toast(raw!==""? "Misura salvata ✓" : "Nome salvato ✓"); };
 $("mzTrend").onclick=()=>{ bMetric=mzKey; closeTopSheet(); setTimeout(()=>{ renderBody(); $("bChartCard").scrollIntoView({behavior:"smooth",block:"start"}); },120); };
@@ -7629,7 +7633,9 @@ document.addEventListener("click",e=>{ const m=$("bMenu"); if(m&&!m.hidden&&!m.c
 $("bmDel").onclick=()=>{ $("bMenu").hidden=true; const bd=bodyDay(), ids=body.entries.filter(x=>x.date===bd).map(x=>x.id); if(!ids.length) return;
   const lbl=new Date(bd+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
   if(confirm(`Eliminare la misurazione di ${lbl}?`)) deleteBodyEntries(ids); };
-$("bmAdd").onclick=()=>{ $("bMenu").hidden=true; const f=$("bDate"); if(f){ f.closest("section").scrollIntoView({behavior:"smooth",block:"start"}); } };
+function showBForm(){ $("bForm").hidden=false; $("bFormBtn").hidden=true; setTimeout(()=>$("bForm").scrollIntoView({behavior:"smooth",block:"start"}),60); }
+$("bFormBtn").onclick=showBForm;
+$("bmAdd").onclick=()=>{ $("bMenu").hidden=true; showBForm(); };
 /* importa una misurazione da un testo JSON (es. preparato da Claude dagli screenshot della bilancia) */
 $("bmImport").onclick=async()=>{ $("bMenu").hidden=true; let t="";
   try{ const C=NAT(); t= C&&C.Plugins.Clipboard? ((await C.Plugins.Clipboard.read())||{}).value||"" : await navigator.clipboard.readText(); }catch{}
