@@ -2247,7 +2247,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.19 (dieta: soffiati con più latte, marmellata in proporzione al pane)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.20 (il coach sa sempre che giorno e che ora è)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -3328,6 +3328,7 @@ function mealContext(m,items){
   const wd=new Date(state.date+"T12:00:00").getDay(), pd=state.diet&&state.diet.plan? planDays(state.diet.plan).find(d=>d.weekday===wd) : null, pm=pd&&(pd.meals||[]).find(x=>x.id===m.id);
   const others=mealList().filter(x=>x.id!==m.id).map(x=>{ const it=state.day.meals[x.id]||[]; return it.length? `${x.name}: ${it.map(i=>i.name+" "+r(i.grams)+"g").join(", ")} (${r(it.reduce((a,b)=>a+(+b.kcal||0),0))} kcal)` : null; }).filter(Boolean).join("; ")||"nessuno";
   return `Sei il coach di nutrizione sportiva della persona. Parli in italiano, in modo diretto, concreto e amichevole, con numeri. Risposte brevi (massimo 6-8 righe), niente elenchi lunghi.
+${dateCtx()}
 Pasto: ${m.name}${time?" alle "+time:""} (${({casa:"a casa",schiscetta:"schiscetta",fuori:"fuori casa"})[m.where||"casa"]||""}) del ${state.date===todayISO()?"giorno di oggi":state.date}.
 Cosa ha mangiato: ${items.map(i=>`${i.name} ${r(i.grams)} g (${r(i.kcal)} kcal, P ${r(i.p)}, C ${r(i.c)}, G ${r(i.f)})`).join("; ")}. Totale pasto: ${r(mt.kcal)} kcal, P ${r(mt.p)} g, C ${r(mt.c)} g, G ${r(mt.f)} g.
 ${pm? `Nella sua dieta per questo pasto era previsto: ${(pm.foods||[]).map(f=>f.name+" "+r(f.grams)+"g").join(", ")} (${r(sumFoods(pm.foods).kcal)} kcal).` : ""}
@@ -3463,6 +3464,7 @@ $("askCoach").onclick=async()=>{
   try{
     await sample(
 `Sei un nutrizionista pratico. Rispondi in italiano, massimo 90 parole, senza titoli.
+${dateCtx()}
 Profilo completo della persona (tienine conto): ${profileSummary()}.
 Oggi ha mangiato:\n${eaten}
 In casa ha: ${pantryText()||"non indicato"} (preferisci questi alimenti).
@@ -4343,7 +4345,7 @@ function renderDietAI(){
 /* ===== dieta che si adatta agli allenamenti reali e alla settimana nuova ===== */
 const dietAutoMode=()=>{ try{ return localStorage.getItem("hf:dietAuto")||"auto"; }catch{ return "auto"; } };
 function aiPaused(){ try{ const p=JSON.parse(localStorage.getItem("hf:aiPause")||"null"); return !!(p&&p.until>Date.now()); }catch{ return false; } }
-function mondayOf(iso){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.toISOString().slice(0,10); }
+function mondayOf(iso){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()-((d.getDay()+6)%7)); return todayISO(d); }
 function maybeAdaptDiet(){
   const plan=state.diet&&state.diet.plan; if(!plan||!sample||upActive()||state.date!==todayISO()||aiPaused()) return;
   const mode=dietAutoMode(); if(mode==="off") return;
@@ -6918,6 +6920,7 @@ function sesContext(){ const c=sesCurEx(), el=Math.round(sesElapsed()/60);
   const exs=(logCtx.exercises||[]).map(x=>{ const done=(x.sets||[]).filter(st=>st.done); return `${x.name}${x.rest?` (recupero ${x.rest})`:""}: ${done.length}/${(x.sets||[]).length} serie fatte${done.length?" – "+done.map(st=>[st.kg?st.kg+" kg":"",st.reps?st.reps+" rip":"",st.text||""].filter(Boolean).join(" ")).join(", "):""}${x.target?` · obiettivo ${x.target}`:""}`; }).join("\n");
   const hrNow= (typeof NATHR!=="undefined"&&NATHR.on&&NATHR.st&&NATHR.st.bpm)? NATHR.st.bpm : (typeof hrFresh==="function"&&hrFresh()? HR.bpm : null);
   return `Sei il coach personale della persona e ti sta scrivendo DURANTE l'allenamento, tra una serie e l'altra: rispondi in italiano in 2-4 righe, pratico e diretto, con numeri precisi (secondi di recupero, kg, ripetizioni, tempo di esecuzione).
+${dateCtx()}
 Allenamento in corso: ${logCtx.title} (${logCtx.kind||""}), iniziato da ${el} minuti${logCtx.circuit?" · circuito a giri":""}.
 Esercizio attuale: ${c? c.name+(c.equip?" ("+c.equip+")":"") : "nessuno"}.
 Esercizi:
@@ -7257,11 +7260,47 @@ function renderChat(){
   requestAnimationFrame(()=>{ const lastB=log.lastElementChild; const nearBottom=window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-420; if(lastB&&(renderChat.scrollNext||nearBottom)&&!$("w-chat").hidden){ window.scrollTo({top:document.documentElement.scrollHeight,behavior:"auto"}); } });
   $("chatAttach").hidden=!imgLimits; $("chatSend").disabled=!sample;
 }
+/* ----- data e ora per il coach: ora italiana, giorni del piano di ieri/oggi/domani/settimana e regole per "oggi", "domani", "lunedì" ----- */
+function romeNow(){ const d=new Date(); try{ const o={}; new Intl.DateTimeFormat("it-IT",{timeZone:"Europe/Rome",weekday:"long",day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(d).forEach(x=>o[x.type]=x.value);
+    const iso=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
+    return {iso, text:`${o.weekday} ${o.day} ${o.month} ${o.year}`, time:`${o.hour}:${o.minute}`}; }
+  catch{ return {iso:todayISO(), text:new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"}), time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}; } }
+function dateLong(iso){ return new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}); }
+function dayDietText(iso,full){ const wd=new Date(iso+"T12:00:00").getDay(); let meals=null, who="";
+  try{ if(upActive()){ const d=upDayFor(iso); meals=d&&d.meals; who="dieta del nutrizionista"; }
+    else if(state.diet&&state.diet.plan){ const d=planDays(state.diet.plan).find(x=>x.weekday===wd); meals=d&&d.meals; who="dieta del coach"; } }catch{}
+  if(!meals||!meals.length) return "";
+  const k=Math.round(sumMeals(meals).kcal);
+  return `${who} ~${k} kcal`+(full? ": "+meals.map(m=>(m.name||m.id)+" = "+(m.foods||[]).map(f=>f.name+" "+r(+f.grams||0)+"g").join(", ")).join("; ") : ""); }
+function dayDoneText(iso){ const out=[];
+  try{ const dd=dayDoc(iso); (dd&&dd.workouts||[]).forEach(w=>out.push(w.name+(w.minutes?" "+r(+w.minutes)+" min":"")+(w.distance?" "+w.distance+" km":""))); }catch{}
+  try{ tlog.sessions.filter(x=>x.date===iso).forEach(x=>{ if(!out.some(o=>o.startsWith(x.title))) out.push(x.title+" (scheda registrata)"); }); }catch{}
+  try{ ((hist&&hist.items)||[]).filter(x=>x.date===iso).forEach(x=>{ if(!out.some(o=>o.startsWith(x.name))) out.push(x.name+(x.minutes?" "+r(+x.minutes)+" min":"")); }); }catch{}
+  return out.join(", "); }
+function dayEatenText(iso){ try{ const dd=dayDoc(iso); if(!dd||!dd.meals) return ""; let k=0;
+    const t=mealList().map(m=>{ const it=dd.meals[m.id]||[]; if(!it.length) return null; k+=it.reduce((a,b)=>a+(+b.kcal||0),0); return m.name+": "+it.map(i=>i.name+" "+r(i.grams)+"g").join(", "); }).filter(Boolean);
+    return t.length? `mangiato ${Math.round(k)} kcal (${t.join("; ")})` : ""; }catch{ return ""; } }
+function dateCtx(){
+  const now=romeNow(), today=now.iso, NAMES={"-1":"IERI","0":"OGGI","1":"DOMANI","2":"DOPODOMANI"};
+  const rows=[];
+  for(let i=-1;i<=7;i++){ const iso=shiftDate(today,i), wd=new Date(iso+"T12:00:00").getDay();
+    let pl=null; try{ pl=dayPlanFor(wd); }catch{}
+    const bits=[];
+    bits.push("allenamento previsto: "+(pl? pl.label+(pl.when?" alle "+pl.when:"") : "nessuno"));
+    const diet=dayDietText(iso,i>=0&&i<=1); if(diet) bits.push(diet);
+    if(i<=0){ const done=dayDoneText(iso); bits.push("allenamenti registrati: "+(done||"nessuno")); const ea=dayEatenText(iso); if(ea) bits.push(ea); }
+    rows.push(`- ${NAMES[i]? NAMES[i]+" = " : ""}${dateLong(iso)} (${iso}): ${bits.join(" · ")}`); }
+  const viewed= state.date&&state.date!==today? `\nATTENZIONE: nell'app la persona sta guardando la pagina del ${dateLong(state.date)} (${state.date}), non quella di oggi. I dati "della giornata" qui sotto si riferiscono a quel giorno; se chiede di "oggi" usa comunque la data reale di oggi.` : "";
+  return `DATA E ORA ATTUALI (ora italiana, Europe/Rome): ${now.text}, ore ${now.time}. Oggi è ${now.text.split(" ")[0]} ${today}.
+CALENDARIO (fonte unica per i giorni; il piano si ripete uguale ogni settimana in base al giorno della settimana):
+${rows.join("\n")}${viewed}
+REGOLE SULLE DATE: "oggi" = ${dateLong(today)}; "domani" = ${dateLong(shiftDate(today,1))}; "ieri" = ${dateLong(shiftDate(today,-1))}; "stasera", "stamattina" = oggi. Un giorno della settimana senza altre indicazioni (es. "lunedì", "venerdì") è il PROSSIMO con quel nome da oggi in avanti (se è oggi stesso, è oggi); "lunedì scorso" è quello passato; "questa settimana" va da lunedì a domenica della settimana in corso, "settimana prossima" quella dopo. Prima di rispondere su allenamenti o pasti di un giorno, trova quel giorno nel CALENDARIO e usa quei dati: non inventare e non confondere i giorni. Quando parli di un giorno diverso da oggi scrivi il nome e la data (es. "domani, giovedì 5"). Considera l'ora attuale: se un allenamento o un pasto di oggi è già passato, dillo o chiedi se l'ha fatto.`; }
 function coachContext(){
   const p=state.profile||{}, g=goalOf(p), pr=(activeProg()||{}).pr;
-  const recent=(state.day.workouts||[]).map(w=>w.name+" "+w.minutes+" min"+(w.start?" "+timeRange(w.start,w.end):"")+(w.fed?" "+FED[w.fed]:"")+(w.distance?", "+w.distance+" km":"")+(w.pace?", passo "+w.pace:"")+(w.avgHr?", FC media "+w.avgHr:"")).join("; ")||"nessuno oggi";
+  const recent=(state.day.workouts||[]).map(w=>w.name+" "+w.minutes+" min"+(w.start?" "+timeRange(w.start,w.end):"")+(w.fed?" "+FED[w.fed]:"")+(w.distance?", "+w.distance+" km":"")+(w.pace?", passo "+w.pace:"")+(w.avgHr?", FC media "+w.avgHr:"")).join("; ")||"nessuno";
   return `Sei un coach personale esperto di allenamento (forza, corsa ed endurance) e nutrizione sportiva. Parli in italiano, in modo diretto, motivante e concreto, con numeri e passi pratici. Risposte di massimo 200 parole salvo richiesta. Se ricevi foto del fisico, dai una valutazione rispettosa e utile (punti di forza, priorità), senza giudizi offensivi e senza diagnosi mediche. Per dolori o problemi di salute consiglia un professionista.
-Giornata di oggi: ${eventText()}. Recupero: ${recoveryText()}.
+${dateCtx()}
+Giornata ${state.date===todayISO()?"di oggi":"del "+state.date+" (pagina aperta)"}: ${eventText()}. Recupero: ${recoveryText()}.
 Profilo: ${displayName(p)? "si chiama "+displayName(p)+", ":""}${p.sex==="f"?"donna":"uomo"}, ${p.age||"?"} anni, ${p.height||"?"} cm, ${p.weight||"?"} kg. Obiettivo: ${g?g.t:"non indicato"}. Disponibilità di allenamento: ${trainText(p)}.
 Riepilogo completo del profilo: ${profileSummary()}.
 Cosa ha in frigo e dispensa: ${pantryText()||"non indicato"}.
@@ -7270,7 +7309,7 @@ Se dai dati emerge che non sta raggiungendo l'obiettivo, diglielo chiaramente e 
 Misure più recenti: ${Object.entries(latestBody()).map(([k,o])=>{ const m=METRICS.find(x=>x[0]===k); return m[1]+" "+o.v+m[2]+" ("+o.date+")"; }).join(", ")||"nessuna"}. Storico misurazioni: ${body.entries.length} voci${body.entries.length>1? ", prima del "+sortedEntries()[0].date+" con peso "+(sortedEntries().find(x=>x.weight)||{}).weight+" kg":""}.
 ${upActive()? "Segue una dieta del nutrizionista caricata nell'app (circa "+r(upDayTotals(upDayFor(state.date)).kcal)+" kcal oggi): non contraddirla, al massimo suggerisci di parlarne con il nutrizionista." : ""}
 Programma attuale${activeProg()&&activeProg().kind==="imported"?" (scheda del suo personal trainer: non contraddirla, al massimo suggerisci di parlarne con il trainer)":""}: ${pr? (pr.name+" – "+(pr.summary||"")+" – giorni: "+pr.days.map(d=>d.title+": "+(d.exercises||[]).map(x=>x.name+" "+exTarget(x)).join(", ")).join(" | ")) : "nessuno"}.
-Ultimi allenamenti registrati con la scheda: ${tlog.sessions.slice(-3).map(s=>s.date+" "+s.title+": "+s.exercises.map(x=>x.name+" "+x.sets.map(z=>z.text? z.text : (z.kg!=null? z.kg+"kg×":"")+(z.reps||"")).join("/")).join("; ")+(s.notes?" (note: "+s.notes+")":"")).join(" || ")||"nessuno"}. Allenamenti registrati oggi: ${recent}. Evento di oggi: ${eventText()}.
+Ultimi allenamenti registrati con la scheda: ${tlog.sessions.slice(-3).map(s=>s.date+" "+s.title+": "+s.exercises.map(x=>x.name+" "+x.sets.map(z=>z.text? z.text : (z.kg!=null? z.kg+"kg×":"")+(z.reps||"")).join("/")).join("; ")+(s.notes?" (note: "+s.notes+")":"")).join(" || ")||"nessuno"}. Allenamenti registrati ${state.date===todayISO()?"oggi":"il "+state.date}: ${recent}. Evento ${state.date===todayISO()?"di oggi":"del "+state.date}: ${eventText()}.
 SCHEDA DI ALLENAMENTO. Programma attuale completo (JSON, la posizione nell'array è l'indice del giorno): ${pr? JSON.stringify({name:pr.name,summary:pr.summary,progression:pr.progression,days:pr.days.map(d=>{ const o={title:d.title,minutes:d.minutes}; if(d.kind==="run") Object.assign(o,{kind:"run",runType:d.runType,distanceKm:d.distanceKm,pace:d.pace,intensity:d.intensity,description:d.description,segments:d.segments}); else o.exercises=(d.exercises||[]).map(x=>({name:x.name,sets:x.sets,reps:x.reps,rest:x.rest,equip:x.equip,muscles:x.muscles,...(x.detail?{detail:x.detail}:{})})); return o; }),weekMap:pr.weekMap||null}) : "nessun programma"}. weekMap: {giorno della settimana 0=domenica…6=sabato: indice del giorno o null per riposo}.
 Gestisci la scheda così:
 A) Se l'utente ti RACCONTA cosa fa o cosa ha cambiato (es. "ora faccio la pressa al posto dello squat", "la panca la faccio 4×8 a 70 kg", "mi alleno martedì e giovedì", "il lunedì aggiungo i curl", "ho tolto il cardio"), aggiorna la scheda per rispecchiare ESATTAMENTE quello che fa, senza giudicarlo (al massimo un consiglio breve nel testo): modalità "user".
@@ -7296,16 +7335,16 @@ $("chatNew").onclick=()=>{ chat={turns:[]}; save("coach",chat); renderChat(); };
 $("chatSend").onclick=async()=>{
   const text=$("chatIn").value.trim(); if(!text&&!chatFiles.length) return; renderChat.scrollNext=true; clearTimeout(renderChat.sT); renderChat.sT=setTimeout(()=>{ renderChat.scrollNext=false; },90000);
   const imgs=chatFiles; chatFiles=[]; $("chatThumbs").innerHTML=""; $("chatIn").value="";
-  chat.turns.push({role:"user",content:text||"Guarda le foto e dimmi cosa ne pensi.",...(imgs.length?{imgs:imgs.length}:{})});
+  chat.turns.push({role:"user",d:todayISO(),content:text||"Guarda le foto e dimmi cosa ne pensi.",...(imgs.length?{imgs:imgs.length}:{})});
   renderChat(); const bub=el("div","bubble ai","Sto pensando…"); $("chatLog").appendChild(bub); $("chatLog").scrollTop=1e9;
   $("chatSend").disabled=true; setStatus("chatStatus",""); chatErr=null;
-  const msgs=chat.turns.slice(-16).map(t=>({role:t.role,content:t.content}));
+  const tdy=todayISO(), msgs=chat.turns.slice(-16).map(t=>({role:t.role,content:(t.role==="user"&&t.d&&t.d!==tdy? "[messaggio scritto "+dateLong(t.d)+": qui \"oggi\" voleva dire quel giorno, non oggi] " : "")+t.content}));
   while(msgs.length&&msgs[0].role!=="user") msgs.shift();
   msgs[0]={role:"user",content:coachContext()+"\n\nMessaggio dell'utente:\n"+msgs[0].content};
   try{
     const res=await sample(msgs,{cache:false,...(imgs.length?{images:imgs}:{}),onText:({text})=>{ bub.textContent=splitReply(text).visible||"Sto pensando…"; $("chatLog").scrollTop=1e9; }});
     const sp=splitReply(res.text);
-    const turn={role:"assistant",content:sp.visible||"Ecco le modifiche:",...(sp.changes?{proposal:{changes:sp.changes,status:"pending"}}:{}),...(sp.sched?{sched:{...sp.sched,status:"new"}}:{})};
+    const turn={role:"assistant",d:todayISO(),content:sp.visible||"Ecco le modifiche:",...(sp.changes?{proposal:{changes:sp.changes,status:"pending"}}:{}),...(sp.sched?{sched:{...sp.sched,status:"new"}}:{})};
     chat.turns.push(turn); chat.turns=chat.turns.slice(-30);
     if(turn.sched){ const keep={mode:turn.sched.mode,summary:turn.sched.summary}; applySched(turn); delete turn.sched.program; Object.assign(turn.sched,keep); toast(turn.sched.mode==="user"?"Scheda aggiornata ✓":"Nuova scheda del coach pronta ✓"); }
     save("coach",chat);
@@ -7477,7 +7516,7 @@ function metricRow(k,es){
   row.innerHTML=`<div class="mhead"><span class="l"></span></div><div class="mval"><b class="num">${unit==="kg"||unit==="%"? (Math.round(v*10)/10).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1}) : fmt(v)}${unit?`<small>${unit}</small>`:""}</b><span class="dl">${d}</span></div>`;
   // media degli ultimi 7 giorni (un valore per giorno, l'ultimo), più stabile della singola pesata
   let avgEl=null; { const byDay={}; es.forEach(x=>{ const dv=derivedVal(x,k); if(dv!=null) byDay[x.date]=dv; }); const ds=Object.keys(byDay).sort(), lastD=ds[ds.length-1];
-    if(lastD){ const from=new Date(new Date(lastD+"T12:00:00")-6*864e5).toISOString().slice(0,10), vv=ds.filter(d=>d>=from).map(d=>byDay[d]);
+    if(lastD){ const from=shiftDate(lastD,-6), vv=ds.filter(d=>d>=from).map(d=>byDay[d]);
       if(vv.length>=2){ const m=vv.reduce((a,b)=>a+b,0)/vv.length, avg=el("div","note"); avg.style.margin="2px 0 0"; avg.textContent=`Media 7 giorni: ${unit==="kg"||unit==="%"? (Math.round(m*10)/10).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1}) : fmt(m)}${unit?" "+unit:""} (${vv.length} giorni)`; avgEl=avg; } } }
   const hd=row.querySelector(".l"); hd.textContent=label; if(zone){ const z=el("span","rzone",zone); z.style.color=col; hd.appendChild(z); }
   if(rg){
@@ -7872,6 +7911,7 @@ $("pgGo").onclick=async()=>{
     if(!progress) await refreshProgress();
     const res=await sample.json(
 `Sei il coach di questa persona (nutrizione e allenamento). Analizza i dati reali e dimmi con onestà se sta andando verso l'obiettivo.
+${dateCtx()}
 Profilo: ${profileSummary()}.
 ${progressDataText()}
 Ritmo di variazione del peso atteso per l'obiettivo: tra ${(RANGE[state.profile.goal]||[-0.3,0.3]).join("% e ")}% del peso a settimana.
