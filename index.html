@@ -915,6 +915,10 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .cs-zone .b{height:10px;background:var(--line);border-radius:6px;overflow:hidden}.cs-zone .b i{display:block;height:100%}
 .cs-zone.z1 i{background:#9AA5B1}.cs-zone.z2 i{background:#2F7FD8}.cs-zone.z3 i{background:#2E8B5F}.cs-zone.z4 i{background:#E9A21E}.cs-zone.z5 i{background:#E5484D}
 .cs-zone b{text-align:right}
+.gel-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}.gel-row:first-child{border-top:0}.gel-row .n{flex:1;min-width:0}.gel-row .n b{display:block;font-size:.95rem}.gel-row .n small{color:var(--muted)}
+.gel-q{display:flex;align-items:center;gap:6px}.gel-q button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card,transparent);color:var(--ink);font:inherit;font-size:1.05rem;cursor:pointer}.gel-q span{min-width:22px;text-align:center;font-weight:700}
+.gel-card h3{margin:0 0 4px;font-size:1.02rem}.gel-card .gl{margin:8px 0;padding:0;list-style:none}.gel-card .gl li{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:.93rem}.gel-card .gl li:first-child{border-top:0}.gel-card .gl .ic{flex:none;width:26px;height:26px;border-radius:50%;background:#F5B841;color:#3a2a00;display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.gel-card .warnt{display:block;margin:6px 0;color:#C2410C;font-size:.9rem}.gel-card .note{margin:6px 0 0}
 .cs-shoe{padding:10px 0;border-top:1px solid var(--line)}.cs-shoe:first-child{border-top:0}.cs-shoe.ret{opacity:.55}
 .cs-shoe .h{display:flex;justify-content:space-between;gap:8px;font-size:.92rem}
 .cs-shoe .b{height:8px;background:var(--line);border-radius:5px;overflow:hidden;margin:6px 0}.cs-shoe .b i{display:block;height:100%;background:var(--basil)}.cs-shoe .b i.warn{background:#E5484D}
@@ -1903,6 +1907,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <section class="card"><h2>👟 Le tue scarpe</h2><div id="csShoes"></div>
     <div class="two" style="margin-top:8px"><input class="field" id="shName" placeholder="Nome, es. Pegasus 41"><input class="field" id="shKm" inputmode="numeric" placeholder="km già fatti"></div>
     <button class="btn ghost" id="shAdd" type="button" style="margin-top:8px">＋ Aggiungi scarpe</button></section>
+  <section class="card"><h2>🍯 I miei gel</h2><div id="csGels"></div>
+    <button class="btn ghost" id="csGelBtn" type="button" style="margin-top:8px">＋ Aggiungi o modifica i gel</button></section>
 </main>
 
 <!-- ================= RIEPILOGO CORSA ================= -->
@@ -2247,7 +2253,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.20 (il coach sa sempre che giorno e che ora è)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.21 (gel energetici nelle corse lunghe)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -2313,6 +2319,24 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="mzTrend" type="button" hidden>📈 Vedi l'andamento</button>
       <p class="note" id="mzHistT" style="margin:10px 2px 0" hidden>Storico</p>
       <ul class="items" id="mzHist"></ul>
+    </div>
+  </div>
+</div>
+<div class="sheet" id="gelSheet" role="dialog" aria-modal="true" aria-labelledby="gelTitle">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="gelTitle">🍯 I miei gel</h3>
+    <p class="note" style="margin-top:0">Scrivi i gel che hai a casa: con i grammi di carboidrati calcolo quanti prenderne e quando. Quando li cambi o li finisci aggiornali qui.</p>
+    <div id="gelList"></div>
+    <div class="form" style="margin-top:10px">
+      <p class="note" id="gelFormT" style="margin:0"><b>Nuovo gel</b></p>
+      <button class="btn ghost" id="gelShotBtn" type="button">📷 Leggi dalla foto dell'etichetta</button><input type="file" id="gelShot" accept="image/*" hidden>
+      <label>Nome o marca<input class="field" id="gelName" maxlength="40" placeholder="Es. Enervit Gel Arancia"></label>
+      <div class="two"><label>Carboidrati (g per gel)<input class="field" id="gelCarbs" type="number" inputmode="decimal" min="0" step="1" placeholder="25"></label><label>Quanti ne hai<input class="field" id="gelQty" type="number" inputmode="numeric" min="0" step="1" placeholder="4"></label></div>
+      <label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="gelCaf"> Con caffeina</label>
+      <div class="status" id="gelStatus" aria-live="polite"></div>
+      <button class="btn" id="gelSave" type="button">Aggiungi gel</button>
+      <button class="linkbtn" id="gelCancel" type="button" hidden>Annulla modifica</button>
     </div>
   </div>
 </div>
@@ -4886,6 +4910,7 @@ function defaultWeekMap(n){
 let progOpenWd=null, _prog=null;
 /* ===== statistiche corsa: record, forma, zone, scarpe, numeri, sonno ===== */
 let shoes={list:[],def:null};
+let gels={list:[]};   // gel energetici di casa: {id,name,carbs,caf,qty}
 const dayLocal=d=>{ try{ return JSON.parse(localStorage.getItem("diario:day-"+d)||"null"); }catch{ return null; } };
 // FC max: quella scritta nel profilo; altrimenti la stima per età, alzata se nelle corse dell'ultimo anno hai già toccato battiti più alti
 // (con una FC max sottostimata le zone escono troppo basse e l'orologio dice sempre "sopra la zona")
@@ -4959,7 +4984,7 @@ function renderCorsa(){
   $("csZones").innerHTML= !tot? `<p class="note">Nessun dato sul battito nelle ultime 4 settimane: carica gli screenshot delle corse dal Galaxy Watch (con la frequenza cardiaca o le zone).</p>` :
     ZN.map((n,i)=>`<div class="cs-zone z${i+1}"><span>${n}<small>${Math.round(mx2*ZR[i][0]/100)}–${Math.round(mx2*ZR[i][1]/100)} bpm</small></span><div class="b"><i style="width:${Math.round(Z[i]/tot*100)}%"></i></div><b>${Math.round(Z[i]/tot*100)}%</b></div>`).join("")+
     `<p class="note" style="margin:8px 0 0">Ultime 4 settimane${est?" (in parte stimate dal battito medio)":""}. Per la maratona l'ideale è circa l'80% del tempo in Z1–Z2 e il 20% in Z3–Z5: ora sei al ${Math.round((Z[0]+Z[1])/tot*100)}% facile.${easyFast?` ⚠️ ${easyFast} corse facili con battito troppo alto.`:""}</p>`;
-  renderShoes();
+  renderShoes(); renderGels();
   $("csRowSub").textContent=`Recupero ${rc.lvl[0].toLowerCase()} · ${fmt(Math.round(sumKm(mon)*10)/10)} km questa settimana`;
 }
 ["csHrMax","csHrRest"].forEach(id=>$(id).addEventListener("change",()=>{ const v=+$(id).value; if(!(v>30&&v<230)) return; state.profile=state.profile||{}; state.profile[id==="csHrMax"?"hrMax":"hrRest"]=v; save("profile",state.profile); renderCorsa(); }));
@@ -5428,6 +5453,8 @@ async function watchSend(o){ const P=WBR(); if(!P) return;
   // fasi della seduta: l'orologio avvisa a voce quando finisce il riscaldamento e confronta ogni km con il ritmo obiettivo
   if(Array.isArray(o.segs)) plan.segs=o.segs;
   else if(o.from&&o.from.d&&o.from.d.kind==="run"){ try{ const sg0=runSegs(o.from.d).slice(0,40); plan.segs=sg0.map((g,i)=>{ const ps=paceSec(g.pace); return {k:g.kind||"work",l:String(g.label||"").slice(0,60),min:+g.minutes||(!(+g.km)&&i<sg0.length-1? Math.round(segLen(g,0)) : 0),km:+g.km||0,p:ps? paceStr(ps) : "",...(g.hr?{h:String(g.hr).slice(0,30)}:{})}; }); }catch(e){ console.warn("fasi",e); } }
+  // gel della seduta: l'orologio avvisa a voce e con vibrazione quando prenderli
+  if(o.from&&o.from.d&&o.from.d.kind==="run"){ const ga=gelAlerts(o.from.d); if(ga.length) plan.gels=ga; }
   try{ toast("Mando la corsa all'orologio…"); const r0=await P.sendRun({plan:JSON.stringify(plan)}); toast(`⌚ Corsa inviata a ${r0&&r0.watch||"orologio"}: tocca AVVIA sul polso`); }
   catch(e){ const m=String((e&&e.message)||e); toast(/Nessun orologio/.test(m)? "Orologio non collegato: controlla Bluetooth e Galaxy Wearable" : "Orologio: "+m); } }
 async function watchNodes(){ const P=WBR(); if(!P) return []; try{ const r0=await P.nodes(); return (r0&&r0.nodes)||[]; }catch{ return []; } }
@@ -5479,6 +5506,7 @@ function cdTargetFor(t){ t=String(t||""); return /facile|lungo|recupero/i.test(t
 function openCardio(o){ if(!HRN()&&hrAuto()&&!HR.ch) setTimeout(()=>gymHrStart(),300); if(CD&&CD.running&&!confirm("C'è già una corsa con la fascia in corso: la sostituisco?")) { go("cardio"); return; }
   CD={title:o.title||"Corsa",runType:o.runType||"",kmPlan:o.km||null,pacePlan:o.pace||"",from:o.from||null,noWatch:!!o.noWatch,running:false,paused:false,t0:0,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:cdTargetFor(o.runType||o.title),trk:[],pos:null};
   { const wi=o.from&&o.from.d? runPlanInfo(o.from.d) : null; CD.warm=wi&&wi.warm||0; CD.warmKm=wi&&wi.warmKm||0; CD.w30=false; CD.wEnd=false; }
+  CD.gels= o.from&&o.from.d&&o.from.d.kind==="run"? gelAlerts(o.from.d) : []; CD.gelDone=0;
   $("cdTitle").textContent=CD.title; go("cardio"); renderCardio(); }
 function cdElapsed(){ if(!CD||!CD.t0) return 0; return ((CD.paused? CD.pAt : Date.now())-CD.t0-CD.pausedMs)/1000; }
 function renderCardio(){ if(!CD) return; const nat=CD.native&&CD.nat, isN=!!HRN();
@@ -5496,7 +5524,7 @@ function renderCardio(){ if(!CD) return; const nat=CD.native&&CD.nat, isN=!!HRN(
   if(nat){ CD.running=!!CD.nat.running; CD.paused=!!CD.nat.paused; }
   $("cdStart").hidden=CD.running; $("cdPause").hidden=!CD.running; $("cdEnd").hidden=!CD.t0; $("cdPause").textContent=CD.paused? "▶ Riprendi" : "⏸ Pausa"; $("cdStart").textContent=CD.t0? "▶ Riprendi" : "AVVIA";
   if(isN&&!CD.running) hrnBattery();
-  if(CD.running&&!CD.paused) cdWarm(el0,km);
+  if(CD.running&&!CD.paused){ cdWarm(el0,km); cdGel(el0,km); }
   $("cdWatch").hidden=!WBR()||CD.running;
 }
 HR.fns.add(()=>{ if(view==="cardio") renderCardio(); });
@@ -5507,6 +5535,9 @@ function cdWarm(t,km){ if(!(CD.warm||CD.warmKm)||CD.wEnd) return;
   const say=m=>{ try{ beep(); setTimeout(beep,350); }catch{} if(navigator.vibrate) navigator.vibrate([250,120,250,120,250]); toast(m); try{ const u=new SpeechSynthesisUtterance(m); u.lang="it-IT"; speechSynthesis.speak(u); }catch{} };
   if(left<=0){ CD.wEnd=true; say("Riscaldamento finito: inizia l'allenamento"); }
   else if(!CD.w30&&left<=30&&(CD.warm? CD.warm>=60 : true)){ CD.w30=true; say((CD.warm? "Mancano 30 secondi" : "Circa 30 secondi")+" alla fine del riscaldamento, preparati"); } }
+/* gel: a voce e con vibrazione al minuto (o al km stimato) previsto */
+function cdGel(t,km){ const a=CD.gels&&CD.gels[CD.gelDone||0]; if(!a) return; if(!(t>=a.s||(a.km>0&&km>0.2&&km>=a.km))) return; CD.gelDone=(CD.gelDone||0)+1;
+  const m=gelMsg(a); try{ beep(); setTimeout(beep,350); }catch{} if(navigator.vibrate) navigator.vibrate([500,200,500,200,500]); toast("🍯 "+m); try{ const u=new SpeechSynthesisUtterance(m); u.lang="it-IT"; speechSynthesis.speak(u); }catch{} }
 function cdStep(){ if(!CD||!CD.running||CD.paused) return;
   { const t=Math.round(cdElapsed()); if(CD.trk&&t>=(CD.trkT||0)+5){ CD.trkT=t; const q=CD.pos||{}; CD.trk.push([t,Math.round(CD.km*1000),hrFresh()?HR.bpm:0,q.a!=null?Math.round(q.a):-9999,-1,q.la?Math.round(q.la*1e5):0,q.lo?Math.round(q.lo*1e5):0]); } }
   if(hrFresh()){ const b=HR.bpm, z=zoneOf(b); CD.sum+=b; CD.n++; CD.max=Math.max(CD.max,b); CD.z[z]++;
@@ -5567,6 +5598,84 @@ function renderShoes(){ const box=$("csShoes"); box.innerHTML=""; const act=shoe
     box.appendChild(d); }); void act; }
 $("shAdd").onclick=()=>{ const n=$("shName").value.trim(); if(!n){ toast("Scrivi il nome delle scarpe"); return; }
   const sh={id:uid(),name:n.slice(0,40),start:+$("shKm").value||0,limit:700,added:todayISO()}; shoes.list.push(sh); if(!shoes.def||!shoes.list.find(x=>x.id===shoes.def&&!x.retired)) shoes.def=sh.id; save("shoes",shoes); $("shName").value=""; $("shKm").value=""; renderShoes(); toast("Scarpe aggiunte ✓"); };
+
+/* ===== gel energetici: quelli di casa, quanti e quando nelle corse lunghe (indicazioni generali) ===== */
+const GEL_FIRST=40, GEL_END=10;   // primo gel verso il 40° minuto, nessun gel negli ultimi 10 minuti
+function gelTxt(g){ return [g.carbs? fmt(+g.carbs)+" g di carboidrati" : "", g.caf? "☕ caffeina" : ""].filter(Boolean).join(" · "); }
+function renderGels(){ const box=$("csGels"); if(!box) return; box.innerHTML="";
+  if(!gels.list.length){ box.appendChild(el("p","note","Non hai ancora inserito i tuoi gel. Aggiungili: nelle corse lunghe ti dico quanti prenderne e l'orologio ti avvisa quando.")); return; }
+  gels.list.forEach(g=>{ const r0=el("div","gel-row"), n=el("div","n"); n.append(el("b",null,g.name), el("small",null,gelTxt(g)+" · ne hai "+(+g.qty||0))); r0.appendChild(n); box.appendChild(r0); }); }
+let gelEdit=null;
+function gelSave(){ save("gels",gels); renderGels(); renderGelList(); try{ if(view==="giorno") renderDayPage(); }catch{} }
+function renderGelList(){ const box=$("gelList"); box.innerHTML="";
+  if(!gels.list.length){ box.appendChild(el("p","note","Ancora nessun gel salvato.")); return; }
+  gels.list.forEach(g=>{ const r0=el("div","gel-row"), n=el("div","n"); n.append(el("b",null,g.name), el("small",null,gelTxt(g))); n.style.cursor="pointer"; n.title="Modifica"; n.onclick=()=>gelFill(g);
+    const q=el("div","gel-q"), mi=el("button",null,"−"), v=el("span",null,String(+g.qty||0)), pl=el("button",null,"＋"), x=el("button",null,"✕");
+    [mi,pl,x].forEach(b=>b.type="button"); mi.setAttribute("aria-label","Uno in meno"); pl.setAttribute("aria-label","Uno in più"); x.setAttribute("aria-label","Elimina "+g.name);
+    mi.onclick=()=>{ g.qty=Math.max(0,(+g.qty||0)-1); gelSave(); }; pl.onclick=()=>{ g.qty=(+g.qty||0)+1; gelSave(); };
+    x.onclick=()=>{ if(!confirm(`Elimino ${g.name}?`)) return; gels.list=gels.list.filter(y=>y.id!==g.id); if(gelEdit===g.id) gelFill(null); gelSave(); };
+    q.append(mi,v,pl,x); r0.append(n,q); box.appendChild(r0); }); }
+function gelFill(g){ gelEdit=g? g.id : null; $("gelName").value=g? g.name : ""; $("gelCarbs").value=g? (g.carbs||"") : ""; $("gelQty").value=g? (g.qty??"") : ""; $("gelCaf").checked=!!(g&&g.caf);
+  $("gelFormT").innerHTML= g? "<b>Modifica gel</b>" : "<b>Nuovo gel</b>"; $("gelSave").textContent= g? "Salva modifiche" : "Aggiungi gel"; $("gelCancel").hidden=!g; setStatus("gelStatus",""); }
+function openGels(){ gelFill(null); renderGelList(); $("gelShotBtn").hidden=!imgLimits||!sample; openSheet("gelSheet"); }
+$("csGelBtn").onclick=openGels;
+$("gelCancel").onclick=()=>gelFill(null);
+$("gelSave").onclick=()=>{ const name=$("gelName").value.trim().slice(0,40), carbs=+String($("gelCarbs").value).replace(",","."), qty=Math.max(0,Math.round(+$("gelQty").value||0));
+  if(!name){ setStatus("gelStatus","Scrivi il nome o la marca del gel.",true); return; }
+  if(!(carbs>=5&&carbs<=120)){ setStatus("gelStatus","Scrivi i grammi di carboidrati di un gel (di solito tra 20 e 45 g, sono sull'etichetta).",true); return; }
+  const g0=gelEdit&&gels.list.find(y=>y.id===gelEdit), g=g0||{id:uid()}; Object.assign(g,{name,carbs:Math.round(carbs*10)/10,caf:$("gelCaf").checked,qty});
+  if(!g0) gels.list.push(g); gelFill(null); gelSave(); toast(g0? "Gel aggiornato ✓" : "Gel aggiunto ✓"); };
+$("gelShotBtn").onclick=()=>$("gelShot").click();
+$("gelShot").onchange=async e=>{ const f=e.target.files[0]; $("gelShot").value=""; if(!f) return; setStatus("gelStatus","Leggo l'etichetta…");
+  try{ const img=await shrinkFile(f,1400);
+    const r=await sample.json(`Foto dell'etichetta o della confezione di un gel energetico per lo sport. Estrai: nome commerciale con marca (breve), grammi di carboidrati in UNA confezione/bustina (non per 100 g: se c'è solo il valore per 100 g e il peso della bustina, calcolalo), se contiene caffeina. Rispondi SOLO con JSON: {"name":string|null,"carbs":number|null,"caffeine":boolean}`,{images:[img],modelTier:"quick"});
+    if(!r||!(r.name||r.carbs)) throw {message:"Non riesco a leggere l'etichetta: scrivi i dati a mano."};
+    if(r.name) $("gelName").value=String(r.name).slice(0,40); if(+r.carbs) $("gelCarbs").value=Math.round(+r.carbs*10)/10; $("gelCaf").checked=!!r.caffeine;
+    setStatus("gelStatus","Controlla i dati, scrivi quanti ne hai e tocca Aggiungi."); $("gelQty").focus();
+  }catch(err){ setStatus("gelStatus",(err&&err.message)||errCopy(err),true); } };
+/* durata totale stimata della seduta (secondi) e km stimati a un certo secondo */
+function runTotSec(d){ const p=runPlan(d), sg=runSegs(d); return Math.max(sg.reduce((a,g)=>a+segLen(g,p.ps)*60,0), (+d.minutes? p.min*60 : 0)); }
+function runKmAt(d,sec){ const p=runPlan(d), sg=runSegs(d); let t=0,k=0;
+  for(const g of sg){ const dt=segLen(g,p.ps)*60, gp=paceSec(g.pace)||p.ps||390, dk= +g.km? +g.km : dt/gp; if(t+dt>=sec) return k+dk*(sec-t)/(dt||1); t+=dt; k+=dk; } return k; }
+/* quanti gel servono, quali e quando: niente sotto i 75 minuti, poi 30-60 g di carboidrati l'ora secondo durata e intensità */
+function gelPlan(d){ const T=runTotSec(d), min=T/60, lv=Math.max(1,Math.min(5,+d.intensity||2)), hard=/soglia|ripetut|interval|gara|obiettivo|tempo run|progressiv/i.test([d.runType,d.title].join(" "));
+  const out={T,min,slots:[],rate:0,need:false,low:[],noGels:!gels.list.some(g=>+g.carbs>0)};
+  if(min<75){ out.why= min<60? "short" : "hour"; return out; }
+  let rate= lv>=4||hard? 50 : lv>=3? 40 : 30; if(min>=150) rate=Math.max(rate,50); if(min>=210) rate=60; out.rate=rate; out.need=true;
+  const pool=gels.list.filter(g=>+g.carbs>0).map(g=>({g,left:Math.max(0,Math.round(+g.qty||0))})), byQty=a=>a.sort((x,y)=>y.left-x.left||(+y.g.carbs)-(+x.g.carbs));
+  const plain=()=>byQty(pool.filter(x=>!x.g.caf&&x.left>0))[0], caf=()=>byQty(pool.filter(x=>x.g.caf&&x.left>0))[0];
+  const ivl=c=>Math.max(25,Math.min(40,Math.round(c/rate*60/5)*5));
+  let t=GEL_FIRST, nCaf=0, prev=null;
+  for(let i=0;i<12&&t<=min-GEL_END;i++){
+    let pick=(prev&&prev.left>0&&!prev.g.caf? prev : null)||plain();
+    const c0= pick? +pick.g.carbs : (caf()? +caf().g.carbs : 25), last= t+ivl(c0)>min-GEL_END;
+    if((!pick||(last&&min>=90))&&caf()&&nCaf<(min>=150?2:1)) pick=caf();
+    if(pick){ pick.left--; if(pick.g.caf) nCaf++; prev=pick; }
+    const g= pick? pick.g : null, sec=t*60;
+    out.slots.push({n:i+1,sec,km: runPlan(d).km? Math.round(runKmAt(d,sec)*10)/10 : 0, g, carbs: g? +g.carbs : 25});
+    t+=ivl(g? +g.carbs : 25); }
+  out.carbs=out.slots.reduce((a,x)=>a+x.carbs,0); out.missing=out.slots.filter(x=>!x.g).length;
+  return out; }
+function gelSlotName(x){ return x.g? x.g.name+(x.g.caf?" (con caffeina)":"") : "un gel da circa 25 g"; }
+/* avvisi per l'orologio e il telefono: secondi dall'inizio, km stimato, numero e nome */
+function gelAlerts(d){ try{ const gp=gelPlan(d); if(!gp.need) return []; return gp.slots.map(x=>({s:Math.round(x.sec),km:x.km||0,n:x.n,name:x.g? String(x.g.name).slice(0,40) : "",caf:!!(x.g&&x.g.caf)})); }catch(e){ console.warn("gel",e); return []; } }
+function gelMsg(a){ return `Prendi il gel ${a.n}${a.name? ", "+a.name : ""}, adesso, con un sorso d'acqua`; }
+function gelCardFor(d){ const gp=gelPlan(d), c=el("div","card gel-card"), dur=hmsSec(gp.T).replace(/:\d\d$/,"");
+  const h=el("h3",null,"🍯 Gel per questa corsa"); c.appendChild(h);
+  const durTxt= gp.min>=60? `${Math.floor(gp.min/60)} h ${String(Math.round(gp.min%60)).padStart(2,"0")} min` : `${Math.round(gp.min)} minuti`; void dur;
+  if(!gp.need){ c.appendChild(el("p","sub",`Corsa di circa ${durTxt}: non servono gel.`));
+    c.appendChild(el("p","note", gp.why==="hour"? "Per poco più di un'ora bastano i carboidrati dei pasti e un po' d'acqua. Se la corsa è molto dura puoi portarne uno di scorta." : "Sotto l'ora bastano i carboidrati dei pasti: bevi un po' d'acqua prima e dopo."));
+  } else {
+    c.appendChild(el("p","sub",`Corsa di circa ${durTxt}: ${gp.slots.length===1? "ti serve 1 gel" : `ti servono ${gp.slots.length} gel`} (circa ${gp.rate} g di carboidrati l'ora).`));
+    const ul=el("ul","gl"); gp.slots.forEach(x=>{ const li=el("li"); li.innerHTML=`<span class="ic">${x.n}</span><span></span>`;
+      li.lastChild.textContent=`Al ${Math.round(x.sec/60)}° minuto${x.km? ` (verso il km ${fmt(x.km)})` : ""}: ${gelSlotName(x)}`; ul.appendChild(li); }); c.appendChild(ul);
+    if(gp.noGels) c.appendChild(el("span","warnt","Non so quali gel hai: aggiungili, così calcolo i carboidrati giusti."));
+    else if(gp.missing) c.appendChild(el("span","warnt",`I gel di casa non bastano: ne mancano ${gp.missing}. Comprane altri o aggiorna le quantità.`));
+    c.appendChild(el("p","note","Prendi ogni gel con qualche sorso d'acqua. Se avvii la corsa da HealthFit, l'orologio (o il telefono) ti avvisa a voce e con una vibrazione."));
+  }
+  c.appendChild(el("p","note","Sono indicazioni generali. Prova i gel prima in allenamento, mai per la prima volta in gara. Se hai disturbi allo stomaco, diabete o altre patologie chiedi al medico o al nutrizionista."));
+  const b=el("button", gp.need&&gp.noGels? "btn" : "btn ghost", gels.list.length? "🍯 I miei gel" : "＋ Inserisci i tuoi gel"); b.type="button"; b.style.marginTop="8px"; b.onclick=openGels; c.appendChild(b);
+  return c; }
 /* sonno */
 function renderSleep(){ const s0=state.day.sleep||{}; $("slH").value=s0.h? String(s0.h).replace(".",",") : ""; $("slQ").value=s0.q||""; setStatus("slStatus", s0.h? `Salvato: ${String(s0.h).replace(".",",")} h${s0.score?" · punteggio "+s0.score:""}${s0.deep?" · profondo "+s0.deep+" min":""}` : ""); }
 $("slSave").onclick=()=>{ const h=+String($("slH").value).replace(",","."); if(!(h>0&&h<16)){ toast("Indica le ore dormite"); return; } state.day.sleep={...(state.day.sleep||{}),h,q:+$("slQ").value||null}; saveDay(); renderSleep(); toast("Sonno salvato ✓"); };
@@ -6782,6 +6891,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
     r0.querySelector(".k").textContent=SEG_L[g.kind]||g.kind; r0.querySelector(".t").textContent=segTxt(g,p.ps); return r0; };
   runGroups([...w0,...main,...c0]).forEach(gr=>{ if(gr.rep>1){ const bx=el("div","rg"); bx.appendChild(el("div","rh",`Ripeti ${gr.rep} volte`)); gr.segs.forEach(g=>bx.appendChild(row(g))); lg.appendChild(bx); } else lg.appendChild(row(gr.segs[0])); });
   box.appendChild(c);
+  try{ box.appendChild(gelCardFor(d)); }catch(e){ console.warn("gel",e); }
   if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta${res.on?" "+dayTxt(res.on):""} ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; { const rw=runResWorkout(res,iso); if(rw){ rc.classList.add("tap"); rc.setAttribute("role","button"); rc.setAttribute("aria-label","Vedi il riepilogo della corsa"); rc.onclick=()=>openRunSummary(rw.id,rw); rc.querySelector("b").textContent+=" ›"; } } box.appendChild(rc); }
   // avvio con Galaxy Watch e risultati
   const go=el("div","run-go");
@@ -9122,6 +9232,7 @@ async function loadAll(){
   const hl=await store.getDoc("homeLayout"); applyHomeOrder(hl&&hl.order);
   try{ const rr=await store.getDoc("recipes"); if(rr&&Array.isArray(rr.list)) recipes=rr; }catch{}
   try{ const sh=await store.getDoc("shoes"); if(sh&&Array.isArray(sh.list)) shoes=sh; }catch{}
+  try{ const gd=await store.getDoc("gels"); if(gd&&Array.isArray(gd.list)) gels=gd; }catch{}
   try{ race=await store.getDoc("race"); if(raceRepair()&&race.plan&&race.applied===mondayOf(todayISO())) setTimeout(()=>{ try{ applyRaceWeek(false); }catch(e){ console.warn("gara",e); } },1500); if(race&&race.plan&&race.applied!==mondayOf(todayISO())) setTimeout(async()=>{ try{ if((race.adapt||"auto")!=="off") await raceWeeklyAdapt(false); applyRaceWeek(false); }catch{} },2500); }catch{}
   try{ uiOrder=(await store.getDoc("uiOrder"))||{}; initReorder(); }catch(e){ console.warn("ordine",e); }
   const fd=await store.getDoc("foods"); foods={favs:(fd&&fd.favs)||[],recents:(fd&&fd.recents)||[],saved:(fd&&fd.saved)||[],barcodes:(fd&&fd.barcodes)||{},custom:(fd&&fd.custom)||[]};
