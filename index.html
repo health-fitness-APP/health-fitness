@@ -2258,7 +2258,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.27 (aggiorna l'app dell'orologio dal telefono)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.28 (gel: codice a barre)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2337,7 +2337,11 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div id="gelList"></div>
     <div class="form" style="margin-top:10px">
       <p class="note" id="gelFormT" style="margin:0"><b>Nuovo gel</b></p>
-      <button class="btn ghost" id="gelShotBtn" type="button">📷 Leggi dalla foto dell'etichetta</button><input type="file" id="gelShot" accept="image/*" hidden>
+      <div class="two"><button class="btn ghost" id="gelScanBtn" type="button">▦ Codice a barre</button><button class="btn ghost" id="gelShotBtn" type="button">📷 Foto dell'etichetta</button></div><input type="file" id="gelShot" accept="image/*" capture="environment" hidden>
+      <div id="gelScanBox" hidden><video id="gelVideo" playsinline muted style="width:100%;border-radius:14px;background:#000;max-height:260px;object-fit:cover"></video>
+        <p class="note" id="gelScanHint" style="margin:6px 0">Inquadra il codice a barre del gel.</p>
+        <div class="two"><input class="field" id="gelCode" inputmode="numeric" placeholder="oppure scrivi le cifre"><button class="btn ghost" id="gelCodeGo" type="button">Cerca</button></div>
+        <button class="linkbtn" id="gelScanStop" type="button">Chiudi la fotocamera</button></div>
       <label>Nome o marca<input class="field" id="gelName" maxlength="40" placeholder="Es. Enervit Gel Arancia"></label>
       <div class="two"><label>Carboidrati (g per gel)<input class="field" id="gelCarbs" type="number" inputmode="decimal" min="0" step="1" placeholder="25"></label><label>Quanti ne hai<input class="field" id="gelQty" type="number" inputmode="numeric" min="0" step="1" placeholder="4"></label></div>
       <label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="gelCaf"> Con caffeina</label>
@@ -3569,7 +3573,7 @@ function openSheet(id){
   history.pushState({v:view,sheet:sheetStack.length},"");
 }
 function hideTopSheet(){
-  const id=sheetStack.pop(); if(id){ $(id).classList.remove("open"); if(id==="addSheet"){ try{ stopScan(); }catch{} } }
+  const id=sheetStack.pop(); if(id){ $(id).classList.remove("open"); if(id==="addSheet"){ try{ stopScan(); }catch{} } if(id==="gelSheet"){ try{ gelScanStop(); }catch{} } }
   if(!sheetStack.length) $("scrim").classList.remove("open"); else $("scrim").style.zIndex=String(20+sheetStack.length*2);
 }
 function closeTopSheet(){ if(sheetStack.length) history.back(); }
@@ -5688,13 +5692,45 @@ function renderGelList(){ const box=$("gelList"); box.innerHTML="";
     q.append(mi,v,pl,x); r0.append(n,q); box.appendChild(r0); }); }
 function gelFill(g){ gelEdit=g? g.id : null; $("gelName").value=g? g.name : ""; $("gelCarbs").value=g? (g.carbs||"") : ""; $("gelQty").value=g? (g.qty??"") : ""; $("gelCaf").checked=!!(g&&g.caf);
   $("gelFormT").innerHTML= g? "<b>Modifica gel</b>" : "<b>Nuovo gel</b>"; $("gelSave").textContent= g? "Salva modifiche" : "Aggiungi gel"; $("gelCancel").hidden=!g; setStatus("gelStatus",""); }
-function openGels(){ gelFill(null); renderGelList(); $("gelShotBtn").hidden=!imgLimits||!sample; openSheet("gelSheet"); }
+function openGels(){ gelScanStop(); gelCodeNow=""; gelFill(null); renderGelList(); $("gelShotBtn").hidden=!imgLimits||!sample; openSheet("gelSheet"); }
 $("gelCancel").onclick=()=>gelFill(null);
 $("gelSave").onclick=()=>{ const name=$("gelName").value.trim().slice(0,40), carbs=+String($("gelCarbs").value).replace(",","."), qty=Math.max(0,Math.round(+$("gelQty").value||0));
   if(!name){ setStatus("gelStatus","Scrivi il nome o la marca del gel.",true); return; }
   if(!(carbs>=5&&carbs<=120)){ setStatus("gelStatus","Scrivi i grammi di carboidrati di un gel (di solito tra 20 e 45 g, sono sull'etichetta).",true); return; }
-  const g0=gelEdit&&gels.list.find(y=>y.id===gelEdit), g=g0||{id:uid()}; Object.assign(g,{name,carbs:Math.round(carbs*10)/10,caf:$("gelCaf").checked,qty});
+  const g0=gelEdit&&gels.list.find(y=>y.id===gelEdit), g=g0||{id:uid()}; Object.assign(g,{name,carbs:Math.round(carbs*10)/10,caf:$("gelCaf").checked,qty}); if(gelCodeNow) g.code=gelCodeNow; gelCodeNow="";
   if(!g0) gels.list.push(g); gelFill(null); gelSave(); toast(g0? "Gel aggiornato ✓" : "Gel aggiunto ✓"); };
+
+/* codice a barre del gel: Open Food Facts (nome, carboidrati per bustina, caffeina); se manca qualcosa si passa alla foto dell'etichetta */
+let gelStream=null, gelTimer=null, gelZx=null;
+function gelScanStop(){ clearInterval(gelTimer); gelTimer=null; clearTimeout(gelScanStop.t); if(gelZx){ try{ gelZx.reset(); }catch{} gelZx=null; } if(gelStream){ gelStream.getTracks().forEach(t=>t.stop()); gelStream=null; } $("gelScanBox").hidden=true; }
+async function gelScanStart(){ $("gelScanBox").hidden=false; $("gelCode").value=""; $("gelScanHint").textContent="Inquadra il codice a barre del gel."; setStatus("gelStatus","");
+  const v=$("gelVideo"), got=code=>{ gelScanStop(); gelLookup(code); };
+  try{ if("BarcodeDetector" in window){ const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
+      gelStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720},advanced:[{focusMode:"continuous"}]},audio:false});
+      v.srcObject=gelStream; await v.play(); let busy=false;
+      gelScanStop.t=setTimeout(()=>{ if(gelStream) $("gelScanHint").textContent="Non riesco a leggerlo: avvicinati (10-15 cm), metti più luce o scrivi le cifre qui sotto."; },10000);
+      gelTimer=setInterval(async()=>{ if(busy||v.readyState<2) return; busy=true; try{ const c=await det.detect(v); if(c&&c.length) got(c[0].rawValue); }catch{} finally{ busy=false; } },350);
+    } else { if(!window.ZXing) await loadScript("https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js");
+      gelZx=new ZXing.BrowserMultiFormatReader(); await gelZx.decodeFromConstraints({video:{facingMode:{ideal:"environment"}}},v,res=>{ if(res) got(res.getText()); }); }
+  }catch(e){ $("gelScanHint").textContent= e&&e.name==="NotAllowedError"? "Permesso fotocamera negato: scrivi le cifre del codice qui sotto." : "Non riesco ad aprire la fotocamera: scrivi le cifre del codice qui sotto.";
+    if(gelStream){ gelStream.getTracks().forEach(t=>t.stop()); gelStream=null; } } }
+async function gelLookup(code){ code=String(code||"").replace(/\D/g,""); if(code.length<8){ setStatus("gelStatus","Codice non valido: servono 8 o 13 cifre.",true); return; }
+  gelCodeNow=code; setStatus("gelStatus","Cerco il gel "+code+"…");
+  try{ const res=await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,product_name_it,brands,nutriments,serving_quantity,product_quantity,quantity,ingredients_text_it,ingredients_text`);
+    const j=await res.json().catch(()=>null), pr=j&&j.status===1&&j.product;
+    if(!pr){ setStatus("gelStatus","Questo gel non è nel database. Fotografa l'etichetta e compilo io i dati.",true); if(imgLimits&&sample) setTimeout(()=>$("gelShot").click(),600); return; }
+    const n=pr.nutriments||{}, w=+pr.serving_quantity||+pr.product_quantity||0;
+    let carbs=+n.carbohydrates_serving||0; if(!carbs&&+n.carbohydrates_100g&&w>0&&w<=200) carbs=+n.carbohydrates_100g*w/100;
+    const ing=String(pr.ingredients_text_it||pr.ingredients_text||"").toLowerCase(), caf= +n.caffeine_100g>0||+n.caffeine_serving>0||/caffein|caffeine|guaran/.test(ing);
+    const name=[String(pr.brands||"").split(",")[0].trim(), pr.product_name_it||pr.product_name||""].filter(Boolean).join(" ").replace(/^(.+?)\s+\1\b/i,"$1").slice(0,40);
+    if(name) $("gelName").value=name; $("gelCaf").checked=caf;
+    if(carbs>=5&&carbs<=120){ $("gelCarbs").value=Math.round(carbs*10)/10; setStatus("gelStatus",`Trovato: ${name||"gel"}, ${fmt(Math.round(carbs*10)/10)} g di carboidrati${caf?", con caffeina":""}. Controlla, scrivi quanti ne hai e tocca Aggiungi.`); $("gelQty").focus(); }
+    else { setStatus("gelStatus",`Trovato ${name||"il gel"}, ma nel database mancano i carboidrati per bustina. Fotografa l'etichetta e li leggo io.`,true); if(imgLimits&&sample) setTimeout(()=>$("gelShot").click(),600); }
+  }catch{ setStatus("gelStatus","Non riesco a cercare il gel: controlla la connessione, oppure usa la foto dell'etichetta.",true); } }
+let gelCodeNow="";
+$("gelScanBtn").onclick=()=>{ if(!$("gelScanBox").hidden) gelScanStop(); else gelScanStart(); };
+$("gelScanStop").onclick=gelScanStop;
+$("gelCodeGo").onclick=()=>{ const c=$("gelCode").value; gelScanStop(); gelLookup(c); };
 $("gelShotBtn").onclick=()=>$("gelShot").click();
 $("gelShot").onchange=async e=>{ const f=e.target.files[0]; $("gelShot").value=""; if(!f) return; setStatus("gelStatus","Leggo l'etichetta…");
   try{ const img=await shrinkFile(f,1400);
