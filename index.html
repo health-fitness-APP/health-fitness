@@ -2258,7 +2258,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.28 (gel: codice a barre)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.29 (la corsa di oggi tenuta fino a 16 km; taglia la corsa anche senza percorso GPS)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6159,19 +6159,28 @@ async function rdSetWorkout(id,f){ const its=(hist&&hist.items)||[], it=its.find
   if(doc){ const w=(doc.workouts||[]).find(x=>x.id===id); if(w){ Object.assign(w,f); date===state.date? saveDay() : save("day-"+date,doc); } }
   try{ const A=activeProg(), rr=A&&A.pr.runResults; if(rr){ let ch=false; for(const k of Object.keys(rr)){ const r=rr[k]; if(r&&r.wid===id){ const dd=A.pr.days[+k.split("|")[1]];
       Object.assign(r,{km:f.distance,minutes:f.minutes,pace:f.pace,avgHr:f.avgHr||null,maxHr:f.maxHr||null,kcal:f.kcal||null}); if(dd) r.score=runScore(dd,{km:r.km,minutes:r.minutes,pace:r.pace}); ch=true; } } if(ch) saveActive(A); } }catch(e){ console.warn("piano",e); } }
-async function rdCut(id,cutKm){ const D=rdCur&&rdCur.D, w=rdCur&&rdCur.w; if(!D||!D.tr||!w) return; const P=rdTrack(D.tr), cutM=cutKm*1000, tC=rdTAtM(P,cutM);
-  if(tC==null||!(tC>60)){ toast("Non riesco a tagliare a quella distanza"); return; }
+async function rdCut(id,cutKm){ const r=await rdCutCore(id,rdCur&&rdCur.D,rdCur&&rdCur.w,cutKm); if(!r) return;
+  rdCur.D=r.ND; rdCur.w={...rdCur.w,...r.f}; renderRunSummary(); try{ renderAll(); }catch{} toast(`✂️ Corsa tagliata a ${rdKm(cutKm)} km ✓`); }
+async function rdCutCore(id,D,w,cutKm){ if(!D||!w) return null;
+  // senza percorso punto per punto: taglio in proporzione al ritmo medio (battito e zone restano quelli della corsa intera)
+  const P=D.tr? rdTrack(D.tr) : null, cutM=cutKm*1000, tC= P? rdTAtM(P,cutM) : (+D.sec||(+w.minutes||0)*60)*cutKm/Math.max(0.01,+D.km||+w.distance||cutKm);
+  if(tC==null||!(tC>60)){ toast("Non riesco a tagliare a quella distanza"); return null; }
   const it=((hist&&hist.items)||[]).find(x=>x.id===id)||w;
   save("runOrig-"+id,{D,w:{minutes:it.minutes,distance:it.distance,pace:it.pace,avgHr:it.avgHr||null,maxHr:it.maxHr||null,zones:it.zones||null,kcal:it.kcal||null}});
-  const n=D.tr.t.findIndex(t=>+t>tC), N= n<0? D.tr.t.length : n, tr={}; for(const k of Object.keys(D.tr)) tr[k]=Array.isArray(D.tr[k])? D.tr[k].slice(0,N) : D.tr[k];
+  let tr=null; if(D.tr){ const n=D.tr.t.findIndex(t=>+t>tC), N= n<0? D.tr.t.length : n; tr={}; for(const k of Object.keys(D.tr)) tr[k]=Array.isArray(D.tr[k])? D.tr[k].slice(0,N) : D.tr[k]; }
   let hs=0, ht=0, mx=0; const zs=[0,0,0,0,0];
-  for(let i=1;i<P.length&&P[i].t<=tC;i++){ const dt=P[i].t-P[i-1].t, h=P[i].h; if(h>0&&dt>0&&dt<60){ hs+=h*dt; ht+=dt; mx=Math.max(mx,h); zs[zoneOf(h)]+=dt; } }
-  const sec=Math.round(tC), r=sec/Math.max(1,+D.sec||sec), rk=cutKm/Math.max(0.01,+D.km||cutKm), ND={...D,tr,sec,km:cutKm,tot:Math.max(sec,Math.round((+D.tot||+D.sec||sec)-((+D.sec||sec)-tC))),cut:{km:cutKm,was:+D.km||0,at:Date.now()}};
+  for(let i=1;P&&i<P.length&&P[i].t<=tC;i++){ const dt=P[i].t-P[i-1].t, h=P[i].h; if(h>0&&dt>0&&dt<60){ hs+=h*dt; ht+=dt; mx=Math.max(mx,h); zs[zoneOf(h)]+=dt; } }
+  const sec=Math.round(tC), r=sec/Math.max(1,+D.sec||sec), rk=cutKm/Math.max(0.01,+D.km||cutKm), ND={...D,tr,sec,km:cutKm,tot:Math.max(sec,Math.round((+D.tot||+D.sec||sec)-((+D.sec||sec)-tC))),cut:{km:cutKm,was:+D.km||+w.distance||0,at:Date.now()}}; if(!tr) delete ND.tr;
   if(ht>0){ ND.avgHr=Math.round(hs/ht); ND.maxHr=mx; ND.zs=zs; } if(D.kcal) ND.kcal=Math.round(D.kcal*rk); if(D.steps) ND.steps=Math.round(D.steps*r); if(D.eg!=null) ND.eg=Math.round(D.eg*rk); if(D.el!=null) ND.el=Math.round(D.el*rk);
   delete ND.rec; delete ND.st;   // il recupero era misurato dopo la vera fine: non vale più
   await runDetSave(id,ND);
   const f={minutes:Math.round(sec/60),distance:Math.round(cutKm*100)/100,pace:rdPace(sec,cutKm),avgHr:ND.avgHr||null,maxHr:ND.maxHr||null,zones:ht>0? zs.map(x=>Math.round(x/6)/10) : (it.zones||null),kcal:it.kcal? Math.round(it.kcal*rk) : null};
-  await rdSetWorkout(id,f); rdCur.D=ND; rdCur.w={...rdCur.w,...f}; renderRunSummary(); try{ renderAll(); }catch{} toast(`✂️ Corsa tagliata a ${rdKm(cutKm)} km ✓`); }
+  await rdSetWorkout(id,f); return {ND,f}; }
+/* una tantum (Daniele, 07/11/2026): la corsa di oggi va tenuta solo fino a 16 km, l'orologio aveva continuato a registrare */
+async function rdFix0711(){ try{ if(localStorage.getItem("hf:cut0711")) return;
+    const w=((hist&&hist.items)||[]).find(x=>x.date==="2026-11-07"&&isRun(x)&&+x.distance>16.02&&+x.distance<18); if(!w) return;
+    const D=await store.getDoc("run-"+w.id).catch(()=>null); if(!D||D.cut) { localStorage.setItem("hf:cut0711","1"); return; }
+    const r=await rdCutCore(w.id,D,w,16); if(r){ localStorage.setItem("hf:cut0711","1"); try{ renderAll(); }catch{} toast("✂️ Corsa di oggi tenuta fino a 16 km ✓"); } }catch(e){ console.warn("taglio 07/11",e); } }
 async function rdUncut(id){ const B=await store.getDoc("runOrig-"+id).catch(()=>null); if(!B||!B.D){ toast("Copia di riserva non trovata"); return; }
   const D={...B.D}; delete D.cut; await runDetSave(id,D); await rdSetWorkout(id,B.w); save("runOrig-"+id,{});
   rdCur.D=D; rdCur.w={...rdCur.w,...B.w}; renderRunSummary(); try{ renderAll(); }catch{} toast("↩ Corsa ripristinata com'era ✓"); }
@@ -6238,7 +6247,7 @@ function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur)
     ta.oninput=()=>{ fit(); clearTimeout(tm); tm=setTimeout(()=>rdSaveNote(id,ta.value),700); }; ta.onblur=()=>{ clearTimeout(tm); rdSaveNote(id,ta.value); };
     c.appendChild(ta); requestAnimationFrame(fit); }
   // taglia la corsa (es. l'orologio ha continuato a registrare dopo la fine): copia di riserva per annullare
-  if(D.tr&&P&&P.length>5){ const c=rdCard(box,"Taglia la corsa");
+  if(rdCur.D&&km>1){ const c=rdCard(box,"Taglia la corsa");
     if(D.cut){ c.appendChild(el("p","note",`Corsa tagliata a ${rdKm(D.cut.km)} km (prima era di ${rdKm(D.cut.was)} km).`)); const b=el("button","btn ghost","↩ Annulla il taglio"); b.type="button"; b.onclick=()=>rdUncut(w.id); c.appendChild(b); }
     else { const pk=pl&&+pl.km>0&&+pl.km<km? +pl.km : Math.floor(km);
       c.appendChild(el("p","note","Se l'orologio ha continuato a registrare dopo che ti sei fermato, tieni solo la prima parte: ricalcolo tempo, ritmo, battito, zone, calorie, giri e percorso."));
@@ -9432,7 +9441,7 @@ async function loadAll(){
     setTimeout(()=>hcSync(false),3500);
     try{ const W=WBR(); if(W){ W.addListener("watchResult",async o=>{ const id=await saveWatchResult(o); if(id){ renderAll(); actionToast("⌚ Corsa dal Galaxy Watch salvata ✓","Vedi riepilogo",()=>openRunSummary(id)); } }); setTimeout(watchPending,2500); NAT().Plugins.App.addListener("resume",()=>watchPending()); } }catch(e){ console.warn("orologio",e); }
     try{ NAT().Plugins.App.addListener("resume",()=>{ const l=+new Date(localStorage.getItem("hf:hcLast")||0); if(Date.now()-l>10*60000) hcSync(false); }); }catch{}
-    setTimeout(()=>{ hrnRestore(); },900);
+    setTimeout(()=>{ hrnRestore(); },900); setTimeout(()=>{ rdFix0711(); },3000);
     try{ NAT().Plugins.App.addListener("backButton",()=>{ if(view==="diario"&&!sheetStack.length) NAT().Plugins.App.minimizeApp(); else history.back(); }); }catch{}
     try{ NAT().Plugins.App.addListener("resume",()=>{ if(CD&&CD.native){ HRN().state().then(st=>{ CD.nat=st; if(view==="cardio") renderCardio(); }).catch(()=>{}); } else hrnRestore(); }); }catch{}
     setTimeout(async()=>{ try{ const info=await NAT().Plugins.App.getInfo(); const mine=+info.build||0;
