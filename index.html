@@ -910,6 +910,11 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .cs-bars small{font-size:.62rem;color:var(--muted);height:14px}
 .cs-paces{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;text-align:center}
 .cs-paces b{display:block;font-size:.9rem}.cs-paces span{font-size:.72rem;color:var(--muted)}
+.hr-cap h2{margin:0 0 4px}.hc-big{margin:2px 0 6px;font-size:1rem}.hc-big b{font-size:1.9rem;color:#2F7FD8;margin-right:6px}
+.hc-tips{margin:6px 0 8px;padding-left:18px;font-size:.88rem;line-height:1.45}.hc-tips li{margin:3px 0}
+.hc-adv{background:var(--line);border-radius:10px;padding:9px 11px;font-size:.88rem;line-height:1.4;margin:8px 0}
+.hc-row{display:grid;grid-template-columns:70px 1fr 64px;gap:8px;align-items:center;font-size:.82rem;padding:3px 0}.hc-row .b{height:8px;background:var(--line);border-radius:5px;overflow:hidden}.hc-row .b i{display:block;height:100%;background:#2F7FD8}
+.hc-why summary{cursor:pointer;font-weight:600;font-size:.9rem;margin:8px 0 4px}
 .cs-zone{display:grid;grid-template-columns:120px 1fr 40px;gap:8px;align-items:center;padding:5px 0;font-size:.85rem}
 .cs-zone small{display:block;color:var(--muted);font-size:.72rem}
 .cs-zone .b{height:10px;background:var(--line);border-radius:6px;overflow:hidden}.cs-zone .b i{display:block;height:100%}
@@ -1904,6 +1909,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div id="csZones"></div>
     <div class="cs-strap"><span id="csStrap">🫀 Fascia cardio: non collegata</span><button class="linkbtn" id="csStrapBtn" type="button">Collega e prova</button></div>
     <button class="btn ghost" id="csFreeRun" type="button" style="margin-top:8px">🏃 Corsa libera con la fascia</button></section>
+  <section class="card"><h2>🫀 Il tuo battito</h2><div id="csHrBody"></div></section>
   <section class="card"><h2>👟 Le tue scarpe</h2><div id="csShoes"></div>
     <div class="two" style="margin-top:8px"><input class="field" id="shName" placeholder="Nome, es. Pegasus 41"><input class="field" id="shKm" inputmode="numeric" placeholder="km già fatti"></div>
     <button class="btn ghost" id="shAdd" type="button" style="margin-top:8px">＋ Aggiungi scarpe</button></section>
@@ -2253,7 +2259,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.22 (riepilogo corsa: taglia la corsa se l'orologio ha continuato a registrare)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.23 (battito guidato nelle corse facili · gel energetici · taglio della corsa nel riepilogo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4918,6 +4924,45 @@ function hrMaxOf(){ const p=state.profile||{}; if(+p.hrMax) return +p.hrMax; con
   let obs=0; try{ const from=shiftDate(todayISO(),-365); ((hist&&hist.items)||[]).forEach(w=>{ const m=+w.maxHr||0; if(m>obs&&m<=215&&(w.date||"")>=from) obs=m; }); }catch{}
   return Math.max(est,obs); }
 function hrRestOf(){ return +(state.profile||{}).hrRest||60; }
+// tetto di battito delle corse facili e dei lunghi: 70% della riserva cardiaca (FC riposo + 70% di max−riposo), mai sopra l'80% della FC max
+function hrCapAuto(){ const mx=hrMaxOf(), rs=hrRestOf(); return Math.round(Math.min(rs+0.7*(mx-rs), mx*0.8)); }
+function hrCapOf(){ const v=+(state.profile||{}).hrCap; return v>90&&v<200? v : hrCapAuto(); }
+// corsa facile/lunga (guidata dal battito): non soglia, ripetute, ritmo gara…
+function isEasyRunName(t){ t=String(t||""); return /facile|lent[oa]|lungo|recupero|jogging/i.test(t)&&!/ritmo gara|soglia|progress|ripetut|fartlek|interval/i.test(t); }
+// corse facili delle ultime settimane con battito medio: ritmo stimato al tetto (più basso = cuore più allenato)
+function hrEasyRuns(days){ const from=shiftDate(todayISO(),-(days||84)), rs=hrRestOf(), cap=hrCapOf();
+  return runsAll().filter(w=>w.date>=from&&+w.avgHr>rs+20&&+w.distance>=3&&(+w.capB>0||isEasyRunName(w.name))).map(w=>{ const ps=+w.minutes*60/+w.distance; return {date:w.date,hr:+w.avgHr,ps,pc:ps*(+w.avgHr-rs)/(cap-rs)}; })
+    .filter(x=>x.ps>180&&x.ps<900&&x.pc>150&&x.pc<1200).sort((a,b)=>a.date<b.date?-1:1); }
+// consiglio della settimana in base alle corse facili delle ultime 2 settimane
+function hrAdvice(){ const cap=hrCapOf(), rr=hrEasyRuns(14);
+  if(!rr.length) return {lvl:0,t:`Nelle corse facili e nei lunghi resta sotto ${cap} battiti. Se sale rallenta, se non scende cammina 30-60 secondi e poi riparti piano.`};
+  const hi=rr.filter(x=>x.hr>cap+5).length/rr.length, near=rr.filter(x=>x.hr>cap).length/rr.length;
+  if(hi>=0.5) return {lvl:2,t:`Consiglio di questa settimana: corsa e cammino nelle corse facili. Alterna 4 minuti di corsa lenta e 1 minuto di cammino, sempre sotto ${cap} battiti. Nelle ultime 2 settimane il battito medio delle corse facili è stato troppo alto: camminare un po' non è un passo indietro, è il modo più veloce per abbassarlo. Quando per 2 settimane resti sotto ${cap}, passa a 8 minuti di corsa e 1 di cammino, poi corsa continua.`};
+  if(near>=0.3) return {lvl:1,t:`Consiglio di questa settimana: tutte le corse facili sotto ${cap} battiti, anche se il ritmo ti sembra lento. Ci sei quasi: se a metà corsa sale, rallenta di 20-30 secondi al km o cammina 30 secondi.`};
+  return {lvl:0,t:`Ottimo: nelle ultime corse facili sei rimasto sotto ${cap} battiti. Continua così: è proprio in questo modo che, settimana dopo settimana, a questi battiti correrai più veloce.`}; }
+const HR_TIPS=["Se sale: rallenta di 20-30 secondi al km e accorcia il passo (passi più corti e più frequenti).","Respira lento: butta fuori l'aria piano, più a lungo di quando la prendi. Se riesci a parlare a frasi intere, sei all'andatura giusta.","Se dopo un minuto è ancora alto: cammina 30-60 secondi, finché scende, poi riparti piano.","In salita cammina a passo svelto: è normale, lo fanno anche i bravi.","Con caldo, poco sonno, stress o dopo il caffè il battito sale di 5-15 colpi: quei giorni vai ancora più piano."];
+const HR_NOTE="Indicazioni generali, non mediche. Se hai dolore al petto, capogiri, fiato corto strano o palpitazioni, fermati e senti il medico.";
+function renderHrCard(){ const box=$("csHrBody"); if(!box) return; const cap=hrCapOf(), auto=hrCapAuto(), rr=hrEasyRuns(84), ad=hrAdvice();
+  let trend="";
+  if(rr.length>=3){ const k=Math.max(1,Math.floor(rr.length/3)), avg=a=>a.reduce((s,x)=>s+x.pc,0)/a.length, a0=avg(rr.slice(0,k)), a1=avg(rr.slice(-k)), d=Math.round(a0-a1), wk=Math.max(1,Math.round((new Date(rr[rr.length-1].date)-new Date(rr[0].date))/(7*864e5)));
+    const last=rr.slice(-8), mx=Math.max(...last.map(x=>x.pc)), mn=Math.min(...last.map(x=>x.pc));
+    trend=`<p class="rq-h" style="margin-top:10px">Ritmo a ${cap} battiti nelle corse facili</p>`+last.map(x=>`<div class="hc-row"><span>${new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"})}</span><div class="b"><i style="width:${Math.round(35+65*(mx-x.pc)/((mx-mn)||1))}%"></i></div><b class="num">${paceStr(x.pc)}</b></div>`).join("")+
+      `<p class="note" style="margin:6px 0 0">${d>=5? `👍 Stai migliorando: a ${cap} battiti ora corri a circa ${paceStr(a1)}/km, ${wk} settimane fa a ${paceStr(a0)}/km (${d} secondi al km più veloce).` : d<=-5? `Ultimamente a ${cap} battiti vai ${-d} secondi al km più piano: può essere stanchezza, caldo o poco sonno. Tieni le corse facili davvero facili e riposa bene.` : `Per ora stabile intorno a ${paceStr(a1)}/km a ${cap} battiti: con le corse facili sotto il tetto migliora in 6-10 settimane.`} Più la barra è lunga, meglio è. È una stima dal battito medio di ogni corsa.</p>`; }
+  else trend=`<p class="note" style="margin-top:8px">Dopo 3 corse facili con il battito ti mostro qui se, a parità di battito, stai diventando più veloce: è il segno che il cuore si sta allenando.</p>`;
+  let rhr=""; try{ const L=JSON.parse(localStorage.getItem("hf:rhrLog")||"{}"), ks=Object.keys(L).sort(), old=ks.filter(x=>x<=shiftDate(todayISO(),-28)).pop();
+    if(ks.length){ const now=L[ks[ks.length-1]]; rhr=`<p class="note" style="margin-top:8px">Battito a riposo: <b>${now}</b>${old? ` (4 settimane fa ${L[old]})${now<L[old]? " 👍 scende: buon segno" : ""}` : ""}. Se una mattina è 5-7 battiti sopra il solito, quel giorno fai solo una corsa facile o riposa.</p>`; } }catch{}
+  box.innerHTML=`<div class="two"><label>Tetto corse facili (bpm)<input class="field" id="csHrCap" inputmode="numeric" placeholder="${auto}" value="${+(state.profile||{}).hrCap||""}"></label><div class="note" style="align-self:end">Vuoto = automatico (${auto}), calcolato da FC massima e a riposo.</div></div>
+    <p class="hc-adv"></p>${trend}${rhr}
+    <details class="hc-why"><summary>Perché il mio battito è sempre alto?</summary><ul class="hc-tips">
+      <li><b>Le corse facili sono troppo veloci.</b> È la causa più comune: il cuore impara a lavorare con meno battiti solo se corri davvero piano, anche se sembra lentissimo.</li>
+      <li><b>La base aerobica è ancora giovane.</b> Con 3-4 corse facili a settimana sotto il tetto, in 6-10 settimane a parità di ritmo i battiti scendono.</li>
+      <li><b>Caldo, sonno, stress, caffè, malanni.</b> Alzano il battito di 5-15 colpi: in quei giorni rallenta ancora.</li>
+      <li><b>Battito dal polso.</b> Il sensore del polso a volte segna il ritmo dei passi invece del cuore: con la fascia cardio il dato è più preciso.</li>
+      <li><b>Ripetute e soglia restano a ritmo.</b> Lì il battito alto è normale: si alleneranno meglio proprio grazie alle corse facili.</li></ul>
+      <p class="rq-h">Cosa fare in corsa</p><ul class="hc-tips">${HR_TIPS.map(t=>`<li>${t}</li>`).join("")}</ul></details>
+    <p class="note" style="margin-top:8px">${HR_NOTE}</p>`;
+  box.querySelector(".hc-adv").textContent=ad.t;
+  $("csHrCap").addEventListener("change",()=>{ const v=+$("csHrCap").value; state.profile=state.profile||{}; if(v>90&&v<200) state.profile.hrCap=v; else delete state.profile.hrCap; save("profile",state.profile); renderCorsa(); }); }
 function wLoad(w){ const min=+w.minutes||0; if(!min) return 0; const mx=hrMaxOf(), rs=hrRestOf();
   let x= w.avgHr? (w.avgHr-rs)/(mx-rs) : Math.min(0.95,Math.max(0.3,((+w.kcal||0)/min)/16));
   if(!(x>0)) x=0.4; return min*x*0.64*Math.exp(1.92*x); }
@@ -4984,7 +5029,7 @@ function renderCorsa(){
   $("csZones").innerHTML= !tot? `<p class="note">Nessun dato sul battito nelle ultime 4 settimane: carica gli screenshot delle corse dal Galaxy Watch (con la frequenza cardiaca o le zone).</p>` :
     ZN.map((n,i)=>`<div class="cs-zone z${i+1}"><span>${n}<small>${Math.round(mx2*ZR[i][0]/100)}–${Math.round(mx2*ZR[i][1]/100)} bpm</small></span><div class="b"><i style="width:${Math.round(Z[i]/tot*100)}%"></i></div><b>${Math.round(Z[i]/tot*100)}%</b></div>`).join("")+
     `<p class="note" style="margin:8px 0 0">Ultime 4 settimane${est?" (in parte stimate dal battito medio)":""}. Per la maratona l'ideale è circa l'80% del tempo in Z1–Z2 e il 20% in Z3–Z5: ora sei al ${Math.round((Z[0]+Z[1])/tot*100)}% facile.${easyFast?` ⚠️ ${easyFast} corse facili con battito troppo alto.`:""}</p>`;
-  renderShoes(); renderGels();
+  renderShoes(); renderGels(); try{ renderHrCard(); }catch(e){ console.warn("battito",e); }
   $("csRowSub").textContent=`Recupero ${rc.lvl[0].toLowerCase()} · ${fmt(Math.round(sumKm(mon)*10)/10)} km questa settimana`;
 }
 ["csHrMax","csHrRest"].forEach(id=>$(id).addEventListener("change",()=>{ const v=+$(id).value; if(!(v>30&&v<230)) return; state.profile=state.profile||{}; state.profile[id==="csHrMax"?"hrMax":"hrRest"]=v; save("profile",state.profile); renderCorsa(); }));
@@ -5130,7 +5175,7 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
           body.entries=[...body.entries,{id:uid(),date:d,source:"health",weight:Math.round(v.w*10)/10,...(v.fat?{fat:Math.round(v.fat*10)/10}:{})}]; n++; });
         if(n){ save("body",body); bodyDate=null; try{ syncProfileFromBody(); }catch{} msgs.push(`${n} ${n===1?"pesata":"pesate"}`); } }catch{} }
     // --- battito a riposo
-    try{ const r0=await H.readSamples({dataType:"restingHeartRate",startDate:iso(new Date(Date.now()-7*864e5)),endDate:iso(now),limit:20}); const ss=(r0&&r0.samples)||[]; if(ss.length){ const v=Math.round(ss.reduce((a,x)=>a+(+x.value),0)/ss.length); if(v>30&&v<110&&state.profile&&state.profile.hrRest!==v){ state.profile.hrRest=v; save("profile",state.profile); } } }catch{}
+    try{ const r0=await H.readSamples({dataType:"restingHeartRate",startDate:iso(new Date(Date.now()-7*864e5)),endDate:iso(now),limit:20}); const ss=(r0&&r0.samples)||[]; if(ss.length){ const v=Math.round(ss.reduce((a,x)=>a+(+x.value),0)/ss.length); if(v>30&&v<110){ try{ const L=JSON.parse(localStorage.getItem("hf:rhrLog")||"{}"); L[todayISO()]=v; const ks=Object.keys(L).sort(); while(ks.length>120) delete L[ks.shift()]; localStorage.setItem("hf:rhrLog",JSON.stringify(L)); }catch{} } if(v>30&&v<110&&state.profile&&state.profile.hrRest!==v){ state.profile.hrRest=v; save("profile",state.profile); } } }catch{}
     localStorage.setItem("hf:hcLast",new Date().toISOString()); localStorage.setItem("hf:hcDiag",JSON.stringify(diag)); try{ hcRenderState(); }catch{}
     const t=new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
     let runLine=""; if(manual){ if(!HCW()) runLine=" · Per tempo e distanza esatti delle corse aggiorna l’APK all’ultima versione.";
@@ -5448,6 +5493,8 @@ async function watchSend(o){ const P=WBR(); if(!P) return;
   const t=cdTargetFor(o.runType||o.title)||[-1,-1,""];
   const plan={title:o.title||"Corsa",runType:o.runType||"",km:+o.km||0,pace:o.pace||"",desc:(o.desc||t[2]||"").slice(0,160),lo:t[0],hi:t[1],hrMax:hrMaxOf(),
     hrAddr:localStorage.getItem("hf:hrAddr")||"",hrName:localStorage.getItem("hf:hrName")||""};
+  // corsa facile o lungo: guidata dal battito (l'orologio dice come farlo scendere e quando è rientrato)
+  if(isEasyRunName(o.runType||o.title)) plan.hrCap=hrCapOf();
   // corsa del piano: l'orologio la rimanda indietro e il risultato va su quella seduta (nel giorno in cui corri davvero)
   if(o.from&&o.from.d) plan.ref={iso:o.from.iso,di:o.from.di,t:o.from.d.title||""};
   // fasi della seduta: l'orologio avvisa a voce quando finisce il riscaldamento e confronta ogni km con il ritmo obiettivo
@@ -5481,7 +5528,7 @@ async function saveWatchResult(o){ if(!o||!(+o.seconds>60)) return false;
     const D0=await store.getDoc("run-"+ex.id).catch(()=>null); if(!D0||!D0.t0){ const D=runDetFrom(o,plan); if(D0&&D0.note) D.note=D0.note; await runDetSave(ex.id,D); ch=true; }
     return ch? ex.id : false; }
   const wt=(state.profile&&state.profile.weight)||70;
-  const item={id:wid,name:o.title||"Corsa",minutes:min,intensity:"Galaxy Watch",kcal:Math.round(+o.kcal||(km? km*wt : 8*wt*min/60)),distance:km,pace:km? paceOf(min,km) : null,start:hhmm,avgHr:+o.avgHr||null,maxHr:+o.maxHr||null,zones,src:"watch"};
+  const item={id:wid,name:o.title||"Corsa",minutes:min,intensity:"Galaxy Watch",kcal:Math.round(+o.kcal||(km? km*wt : 8*wt*min/60)),distance:km,pace:km? paceOf(min,km) : null,start:hhmm,avgHr:+o.avgHr||null,maxHr:+o.maxHr||null,zones,src:"watch",...(+o.hrCap>0?{capB:+o.hrCap}:{})};
   try{ if(shoes&&shoes.def) item.shoe=shoes.def; }catch{}
   hist.items=[...hist.items,{...item,date}]; save("workoutHistory",hist);
   if(date===state.date){ state.day.workouts=[...(state.day.workouts||[]),item]; saveDay(); } else { const doc=(await store.getDoc("day-"+date).catch(()=>null))||{meals:{},workouts:[]}; doc.workouts=[...(doc.workouts||[]),item]; save("day-"+date,doc); }
@@ -5541,7 +5588,7 @@ function cdGel(t,km){ const a=CD.gels&&CD.gels[CD.gelDone||0]; if(!a) return; if
 function cdStep(){ if(!CD||!CD.running||CD.paused) return;
   { const t=Math.round(cdElapsed()); if(CD.trk&&t>=(CD.trkT||0)+5){ CD.trkT=t; const q=CD.pos||{}; CD.trk.push([t,Math.round(CD.km*1000),hrFresh()?HR.bpm:0,q.a!=null?Math.round(q.a):-9999,-1,q.la?Math.round(q.la*1e5):0,q.lo?Math.round(q.lo*1e5):0]); } }
   if(hrFresh()){ const b=HR.bpm, z=zoneOf(b); CD.sum+=b; CD.n++; CD.max=Math.max(CD.max,b); CD.z[z]++;
-    if(CD.target){ const [lo,hi]=CD.target, hard=lo>=3; if(z>hi){ CD.outSince=CD.outSince||Date.now(); if(Date.now()-CD.outSince>20000) cdAlert(hard? "Battito molto alto: rallenta un attimo" : "Rallenta: sei sopra la zona facile"); }
+    if(CD.target){ const [lo,hi]=CD.target, hard=lo>=3; const capT=!hard&&isEasyRunName(CD.runType||CD.title)? hrCapOf() : 0; if(capT? b>capT : z>hi){ CD.outSince=CD.outSince||Date.now(); const ov=Date.now()-CD.outSince; if(ov>20000) cdAlert(hard? "Battito molto alto: rallenta un attimo e respira lento" : ov>80000? `Battito ${b}, ancora alto: cammina 30-60 secondi finché scende sotto ${(capT||b)-5}, poi riparti piano` : `Battito ${b}, sopra ${capT||"la zona facile"}: rallenta, accorcia il passo e butta fuori l'aria piano`); }
       else if(hard&&z<lo&&!/ripetut|interval|fartlek/i.test(CD.runType)){ CD.outSince=CD.outSince||Date.now(); if(Date.now()-CD.outSince>60000) cdAlert("Puoi spingere un po' di più"); } else CD.outSince=0; } }
   renderCardio(); }
 function cdGps(on){ if(cdWatch!=null){ try{ navigator.geolocation.clearWatch(cdWatch); }catch{} cdWatch=null; } if(!on||!navigator.geolocation) return;
@@ -5732,7 +5779,7 @@ function runDetFrom(o,plan){ const D={v:1,src:o.source||"phone",t0:+o.startedAt|
   if(Array.isArray(o.zoneSec)&&o.zoneSec.length===5) D.zs=o.zoneSec.map(Number);
   if(+o.steps>0) D.steps=+o.steps; if(o.elevGain!=null&&+o.elevGain>=0) D.eg=+o.elevGain; if(o.elevLoss!=null&&+o.elevLoss>=0) D.el=+o.elevLoss;
   if(o.tr&&Array.isArray(o.tr.t)&&o.tr.t.length>1) D.tr=o.tr; if(Array.isArray(o.rec)&&o.rec.length) D.rec=o.rec;
-  if(o.hrSrc) D.hrSrc=o.hrSrc; if(plan) D.plan=plan; if(o.dyn&&+o.dyn.gct>0&&+o.dyn.step>0) D.dyn=o.dyn; return D; }
+  if(o.hrSrc) D.hrSrc=o.hrSrc; if(+o.hrCap>0) D.cap={b:+o.hrCap,on:+o.capSec||0,over:+o.capOver||0}; if(plan) D.plan=plan; if(o.dyn&&+o.dyn.gct>0&&+o.dyn.step>0) D.dyn=o.dyn; return D; }
 async function runDetSave(id,D){
   try{ const st=rdStats(D); const {P,alt,...keep}=st; D.st=keep; }catch(e){ console.warn("riepilogo",e); }
   save("run-"+id,D);
@@ -6234,6 +6281,7 @@ Atleta: ${profileSummary()}. Livello ${g.level}. Gara recente: ${fmt(g.recKm)} k
 Ritmi: facile ${paceStr(P.facile[0])}-${paceStr(P.facile[1])}, lungo ${paceStr(P.lungo[0])}-${paceStr(P.lungo[1])}, soglia ${paceStr(P.soglia)}, ripetute ${paceStr(P.ripetute)}, brevi ${paceStr(P.veloci)} al km.
 Corre ${g.runs} volte a settimana nei giorni: ${g.days.map(d=>names[d]).join(", ")} (weekday 0=domenica…6=sabato); il lungo sempre di ${names[g.longWd]}. Gli altri giorni fa forza o circuiti: non metterci corse.
 Fasi: base, costruzione, picco, scarico (taper di 2-3 settimane per maratona, 1-2 per mezza, 1 per 10 km); aumento del volume non oltre il 10% a settimana con una settimana di scarico ogni 3-4; lungo massimo 30-32 km per la maratona, 18-21 per la mezza. L'ultima settimana termina con la gara (runType "Gara").
+Le corse Facile e Lungo sono guidate dal battito: tetto ${hrCapOf()} bpm (anche rallentando o camminando 30-60 s); scrivilo nella desc (es. "sotto ${hrCapOf()} bpm"). ${hrAdvice().lvl===2? "Nelle ultime corse facili il battito è stato troppo alto: nelle prime 2-3 settimane metti corsa-cammino nelle corse facili (es. 4' corsa + 1' cammino) e poi corsa continua. " : ""}Soglia, ripetute e ritmo gara restano a ritmo.
 Rispondi SOLO con JSON compatto: {"summary":"logica del piano in 2 frasi","weeks":[{"week":1,"phase":"Base|Costruzione|Picco|Scarico","km":number,"note":"focus della settimana, 1 frase","runs":[{"wd":number,"runType":"Facile|Lungo|Soglia|Ripetute|Fartlek|Progressivo|Ritmo gara|Gara","km":number,"pace":"m:ss","intensity":1-5,"desc":"cosa fare, breve (es. 6×1000 m a 4:55 rec 2')"}]}]}`,{modelTier:"default",maxTokens:16000});
     if(!res||!Array.isArray(res.weeks)||!res.weeks.length) throw {code:"bad_output"};
     race.plan={summary:res.summary||"",start:mondayOf(todayISO()),weeks:res.weeks.slice(0,26),createdAt:todayISO()}; race.applied=null; save("race",race);
@@ -6923,6 +6971,10 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
   runGroups([...w0,...main,...c0]).forEach(gr=>{ if(gr.rep>1){ const bx=el("div","rg"); bx.appendChild(el("div","rh",`Ripeti ${gr.rep} volte`)); gr.segs.forEach(g=>bx.appendChild(row(g))); lg.appendChild(bx); } else lg.appendChild(row(gr.segs[0])); });
   box.appendChild(c);
   try{ box.appendChild(gelCardFor(d)); }catch(e){ console.warn("gel",e); }
+  if(isEasyRunName(d.runType||d.title)){ const cap=hrCapOf(), hc=el("div","card hr-cap");
+    hc.innerHTML=`<h2>❤️ Guidata dal battito</h2><p class="hc-big"><b class="num">${cap}</b>battiti al massimo</p><p class="note" style="margin:0">Oggi conta il battito, non il ritmo: se il ritmo ti esce più lento del previsto va benissimo. Sull'orologio ti dico a voce come farlo scendere e quando è rientrato.</p>
+      <ul class="hc-tips">${HR_TIPS.map(t=>`<li>${t}</li>`).join("")}</ul><p class="hc-adv"></p><p class="note">${HR_NOTE}</p>`;
+    hc.querySelector(".hc-adv").textContent=hrAdvice().t; box.appendChild(hc); }
   if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta${res.on?" "+dayTxt(res.on):""} ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; { const rw=runResWorkout(res,iso); if(rw){ rc.classList.add("tap"); rc.setAttribute("role","button"); rc.setAttribute("aria-label","Vedi il riepilogo della corsa"); rc.onclick=()=>openRunSummary(rw.id,rw); rc.querySelector("b").textContent+=" ›"; } } box.appendChild(rc); }
   // avvio con Galaxy Watch e risultati
   const go=el("div","run-go");
@@ -7290,7 +7342,7 @@ Allenamenti a settimana: ${days}. Disponibilità indicata nel profilo: ${trainTe
 Rendi il programma adatto agli obiettivi (più forte: fondamentali pesanti a basse ripetizioni con progressione; massa: ipertrofia 6-12 ripetizioni con volume crescente; snello e definito: forza a ripetizioni medie, circuiti e cardio; ridurre il peso: forza + cardio e attività quotidiana; salute e benessere: allenamento completo e sostenibile con mobilità e cardio moderato; prestazioni sportive: preparazione specifica per lo sport indicato con forza, potenza e condizionamento). Se l'obiettivo specifico è una gara di corsa (es. maratona) costruisci una settimana tipo da runner (lento, ripetute o tempo run, lungo, eventuale forza complementare) e spiega in "progression" come aumentare volume e lungo settimana dopo settimana, con scarico e tapering prima della gara.
 Rispondi SOLO con JSON valido, in italiano:
 {"name":"string","summary":"2 frasi sulla logica del programma","progression":"come progredire nelle prossime settimane","weeks":[{"week":1,"focus":"es. base / carico / scarico","note":"cosa cambia rispetto alla settimana prima (carichi, ripetizioni, km), una frase"},{"week":2,...},{"week":3,...},{"week":4,...}],"days":[{"title":"Giorno A – focus","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"recupero tra le serie, es. 90 s o 2-3 min","tip":"consiglio breve","equip":"attrezzo principale o corpo libero","muscles":["muscoli principali tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}]}]}
-Se l'obiettivo specifico o il profilo riguardano la corsa (gara, 10 km, mezza, maratona, trail) o la persona corre regolarmente, includi le sedute di corsa necessarie con una progressione realistica rispetto alle corse recenti: ${runsRecent()}. Le sedute di CORSA vanno come giorni a sé con questi campi in più: "kind":"run","runType":"Jogging|Corsa lenta|Lungo|Fartlek|Ripetute|Corsa in soglia|Progressivo|Recupero attivo","distanceKm":number|null,"minutes":number,"pace":"m:ss ritmo medio al km o null","intensity":1-5,"description":"1-2 frasi sull'obiettivo della seduta","segments":[{"kind":"warmup|work|recovery|cooldown","label":"es. Jogging leggero di 5 minuti","km":number|null,"minutes":number|null,"pace":"m:ss o null","hr":"es. fino a 115 bpm o vuoto"}] ed "exercises":[]. Per fartlek e ripetute alterna segmenti work e recovery. I CIRCUITI (esercizi fatti uno dopo l'altro a giri, es. piramidi 1-2-3…10…3-2-1) vanno come giorno a sé: "kind":"circuit","circuit":{"exercises":["nome esercizio 1","nome 2",...],"rounds":[[ripetizioni di ciascun esercizio nel giro 1],[giro 2],...],"rest":"riposo tra un giro e l'altro, es. 90 s"},"exercises":[]. Scrivi TUTTI i giri in ordine (andata e ritorno). Per brevi parti di cardio dentro una seduta di forza usa invece il campo "detail" (es. "15 minuti di tapis roulant"). Esattamente ${days} giorni; le sedute di forza con 3-7 esercizi.`,{modelTier:"default"});
+Se l'obiettivo specifico o il profilo riguardano la corsa (gara, 10 km, mezza, maratona, trail) o la persona corre regolarmente, includi le sedute di corsa necessarie con una progressione realistica rispetto alle corse recenti: ${runsRecent()}. Le sedute di CORSA vanno come giorni a sé con questi campi in più: "kind":"run","runType":"Jogging|Corsa lenta|Lungo|Fartlek|Ripetute|Corsa in soglia|Progressivo|Recupero attivo","distanceKm":number|null,"minutes":number,"pace":"m:ss ritmo medio al km o null","intensity":1-5,"description":"1-2 frasi sull'obiettivo della seduta","segments":[{"kind":"warmup|work|recovery|cooldown","label":"es. Jogging leggero di 5 minuti","km":number|null,"minutes":number|null,"pace":"m:ss o null","hr":"es. fino a 115 bpm o vuoto"}] ed "exercises":[]. Per fartlek e ripetute alterna segmenti work e recovery. Corsa lenta, Jogging, Lungo e Recupero attivo sono guidati dal battito: nei segmenti metti "hr":"sotto ${hrCapOf()} bpm" e scrivilo nella description${hrAdvice().lvl===2? "; nelle prime 2-3 settimane fai corsa-cammino (es. 4 minuti di corsa e 1 di cammino) perché il battito nelle corse facili recenti è stato troppo alto" : ""}. I CIRCUITI (esercizi fatti uno dopo l'altro a giri, es. piramidi 1-2-3…10…3-2-1) vanno come giorno a sé: "kind":"circuit","circuit":{"exercises":["nome esercizio 1","nome 2",...],"rounds":[[ripetizioni di ciascun esercizio nel giro 1],[giro 2],...],"rest":"riposo tra un giro e l'altro, es. 90 s"},"exercises":[]. Scrivi TUTTI i giri in ordine (andata e ritorno). Per brevi parti di cardio dentro una seduta di forza usa invece il campo "detail" (es. "15 minuti di tapis roulant"). Esattamente ${days} giorni; le sedute di forza con 3-7 esercizi.`,{modelTier:"default"});
     if(!res||!Array.isArray(res.days)) throw {code:"bad_output"};
     state.program={...res,startDate:mondayOf(todayISO()),settings:{days,place,level,notes,spec}}; save("program",state.program);
     if(imported&&imported.active){ imported.active=false; save("programImported",imported); }
