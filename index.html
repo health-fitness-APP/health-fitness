@@ -923,6 +923,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .gel-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}.gel-row:first-child{border-top:0}.gel-row .n{flex:1;min-width:0}.gel-row .n b{display:block;font-size:.95rem}.gel-row .n small{color:var(--muted)}
 .gel-q{display:flex;align-items:center;gap:6px}.gel-q button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card,transparent);color:var(--ink);font:inherit;font-size:1.05rem;cursor:pointer}.gel-q span{min-width:22px;text-align:center;font-weight:700}
 .gel-card h3{margin:0 0 4px;font-size:1.02rem}.gel-card .gl{margin:8px 0;padding:0;list-style:none}.gel-card .gl li{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:.93rem}.gel-card .gl li:first-child{border-top:0}.gel-card .gl .ic{flex:none;width:26px;height:26px;border-radius:50%;background:#F5B841;color:#3a2a00;display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.gel-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}.gel-chips button{border:1px solid var(--line);background:none;color:var(--muted);border-radius:16px;padding:5px 11px;font:inherit;font-size:.86rem;cursor:pointer}.gel-chips button.on{border-color:#F5B841;background:#FFF4D6;color:#3a2a00}
 .gel-card .warnt{display:block;margin:6px 0;color:#C2410C;font-size:.9rem}.gel-card .note{margin:6px 0 0}
 .cs-shoe{padding:10px 0;border-top:1px solid var(--line)}.cs-shoe:first-child{border-top:0}.cs-shoe.ret{opacity:.55}
 .cs-shoe .h{display:flex;justify-content:space-between;gap:8px;font-size:.92rem}
@@ -2259,7 +2260,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.24 (dieta: il totale di oggi torna sempre con l'obiettivo di Cibo · battito guidato nelle corse facili · gel energetici)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.25 (gel preferito e gel da portare per ogni corsa)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -5665,12 +5666,15 @@ const GEL_FIRST=40, GEL_END=10;   // primo gel verso il 40° minuto, nessun gel 
 function gelTxt(g){ return [g.carbs? fmt(+g.carbs)+" g di carboidrati" : "", g.caf? "☕ caffeina" : ""].filter(Boolean).join(" · "); }
 function renderGels(){ const box=$("csGels"); if(!box) return; box.innerHTML="";
   if(!gels.list.length){ box.appendChild(el("p","note","Non hai ancora inserito i tuoi gel. Aggiungili: nelle corse lunghe ti dico quanti prenderne e l'orologio ti avvisa quando.")); return; }
-  gels.list.forEach(g=>{ const r0=el("div","gel-row"), n=el("div","n"); n.append(el("b",null,g.name), el("small",null,gelTxt(g)+" · ne hai "+(+g.qty||0))); r0.appendChild(n); box.appendChild(r0); }); }
+  gels.list.forEach(g=>{ const r0=el("div","gel-row"), n=el("div","n"); n.append(el("b",null,(g.fav?"⭐ ":"")+g.name), el("small",null,gelTxt(g)+" · ne hai "+(+g.qty||0))); r0.appendChild(n); box.appendChild(r0); }); }
 let gelEdit=null;
 function gelSave(){ save("gels",gels); renderGels(); renderGelList(); try{ if(view==="giorno") renderDayPage(); }catch{} }
 function renderGelList(){ const box=$("gelList"); box.innerHTML="";
   if(!gels.list.length){ box.appendChild(el("p","note","Ancora nessun gel salvato.")); return; }
-  gels.list.forEach(g=>{ const r0=el("div","gel-row"), n=el("div","n"); n.append(el("b",null,g.name), el("small",null,gelTxt(g))); n.style.cursor="pointer"; n.title="Modifica"; n.onclick=()=>gelFill(g);
+  box.appendChild(el("p","note","Tocca ☆ per scegliere il tuo gel preferito: lo uso per primo nei consigli. Tocca il nome per modificarlo."));
+  gels.list.forEach(g=>{ const r0=el("div","gel-row"), n=el("div","n"), st=el("button","icon-btn",g.fav?"⭐":"☆"); st.type="button"; st.style.cssText="background:none;border:0;font-size:1.3rem;padding:0 2px;cursor:pointer";
+    st.setAttribute("aria-label",g.fav?"Togli dai preferiti":"Segna come preferito"); st.onclick=()=>{ const on=!g.fav; gels.list.forEach(y=>delete y.fav); if(on) g.fav=true; gelSave(); toast(on? `⭐ ${g.name} è il tuo gel preferito` : "Nessun gel preferito"); }; r0.appendChild(st);
+    n.append(el("b",null,g.name), el("small",null,gelTxt(g))); n.style.cursor="pointer"; n.title="Modifica"; n.onclick=()=>gelFill(g);
     const q=el("div","gel-q"), mi=el("button",null,"−"), v=el("span",null,String(+g.qty||0)), pl=el("button",null,"＋"), x=el("button",null,"✕");
     [mi,pl,x].forEach(b=>b.type="button"); mi.setAttribute("aria-label","Uno in meno"); pl.setAttribute("aria-label","Uno in più"); x.setAttribute("aria-label","Elimina "+g.name);
     mi.onclick=()=>{ g.qty=Math.max(0,(+g.qty||0)-1); gelSave(); }; pl.onclick=()=>{ g.qty=(+g.qty||0)+1; gelSave(); };
@@ -5703,7 +5707,7 @@ function gelPlan(d){ const T=runTotSec(d), min=T/60, lv=Math.max(1,Math.min(5,+d
   const out={T,min,slots:[],rate:0,need:false,low:[],noGels:!gels.list.some(g=>+g.carbs>0)};
   if(min<75){ out.why= min<60? "short" : "hour"; return out; }
   let rate= lv>=4||hard? 50 : lv>=3? 40 : 30; if(min>=150) rate=Math.max(rate,50); if(min>=210) rate=60; out.rate=rate; out.need=true;
-  const pool=gels.list.filter(g=>+g.carbs>0).map(g=>({g,left:Math.max(0,Math.round(+g.qty||0))})), byQty=a=>a.sort((x,y)=>y.left-x.left||(+y.g.carbs)-(+x.g.carbs));
+  const off=gelOffFor(d), pool=gels.list.filter(g=>+g.carbs>0&&!off.includes(g.id)).map(g=>({g,left:Math.max(0,Math.round(+g.qty||0))})), byQty=a=>a.sort((x,y)=>(y.g.fav?1:0)-(x.g.fav?1:0)||y.left-x.left||(+y.g.carbs)-(+x.g.carbs));
   const plain=()=>byQty(pool.filter(x=>!x.g.caf&&x.left>0))[0], caf=()=>byQty(pool.filter(x=>x.g.caf&&x.left>0))[0];
   const ivl=c=>Math.max(25,Math.min(40,Math.round(c/rate*60/5)*5));
   let t=GEL_FIRST, nCaf=0, prev=null;
@@ -5717,6 +5721,10 @@ function gelPlan(d){ const T=runTotSec(d), min=T/60, lv=Math.max(1,Math.min(5,+d
     t+=ivl(g? +g.carbs : 25); }
   out.carbs=out.slots.reduce((a,x)=>a+x.carbs,0); out.missing=out.slots.filter(x=>!x.g).length;
   return out; }
+/* gel lasciati a casa per una corsa (scelti nella scheda): chiave = titolo della seduta */
+function gelOffAll(){ try{ return JSON.parse(localStorage.getItem("hf:gelOff")||"{}")||{}; }catch{ return {}; } }
+function gelOffFor(d){ const v=gelOffAll()[String(d&&(d.title||d.runType)||"")]; return Array.isArray(v)? v : []; }
+function gelOffToggle(d,id){ const all=gelOffAll(), k=String(d.title||d.runType||""), v=new Set(all[k]||[]); v.has(id)? v.delete(id) : v.add(id); if(v.size) all[k]=[...v]; else delete all[k]; try{ localStorage.setItem("hf:gelOff",JSON.stringify(all)); }catch{} }
 function gelSlotName(x){ return x.g? x.g.name+(x.g.caf?" (con caffeina)":"") : "un gel da circa 25 g"; }
 /* avvisi per l'orologio e il telefono: secondi dall'inizio, km stimato, numero e nome */
 function gelAlerts(d){ try{ const gp=gelPlan(d); if(!gp.need) return []; return gp.slots.map(x=>({s:Math.round(x.sec),km:x.km||0,n:x.n,name:x.g? String(x.g.name).slice(0,40) : "",caf:!!(x.g&&x.g.caf)})); }catch(e){ console.warn("gel",e); return []; } }
@@ -5728,6 +5736,10 @@ function gelCardFor(d){ const gp=gelPlan(d), c=el("div","card gel-card"), dur=hm
     c.appendChild(el("p","note", gp.why==="hour"? "Per poco più di un'ora bastano i carboidrati dei pasti e un po' d'acqua. Se la corsa è molto dura puoi portarne uno di scorta." : "Sotto l'ora bastano i carboidrati dei pasti: bevi un po' d'acqua prima e dopo."));
   } else {
     c.appendChild(el("p","sub",`Corsa di circa ${durTxt}: ${gp.slots.length===1? "ti serve 1 gel" : `ti servono ${gp.slots.length} gel`} (circa ${gp.rate} g di carboidrati l'ora).`));
+    const usable=gels.list.filter(g=>+g.carbs>0);
+    if(usable.length>1){ const off=gelOffFor(d), ch=el("div","gel-chips"); c.appendChild(el("p","note","Gel che porti in questa corsa (tocca per togliere o rimettere):"));
+      usable.forEach(g=>{ const b=el("button",off.includes(g.id)?"":"on",(g.fav?"⭐ ":"")+g.name); b.type="button"; b.setAttribute("aria-pressed",String(!off.includes(g.id)));
+        b.onclick=()=>{ gelOffToggle(d,g.id); c.replaceWith(gelCardFor(d)); }; ch.appendChild(b); }); c.appendChild(ch); }
     const ul=el("ul","gl"); gp.slots.forEach(x=>{ const li=el("li"); li.innerHTML=`<span class="ic">${x.n}</span><span></span>`;
       li.lastChild.textContent=`Al ${Math.round(x.sec/60)}° minuto${x.km? ` (verso il km ${fmt(x.km)})` : ""}: ${gelSlotName(x)}`; ul.appendChild(li); }); c.appendChild(ul);
     if(gp.noGels) c.appendChild(el("span","warnt","Non so quali gel hai: aggiungili, così calcolo i carboidrati giusti."));
