@@ -1914,8 +1914,6 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <section class="card"><h2>👟 Le tue scarpe</h2><div id="csShoes"></div>
     <div class="two" style="margin-top:8px"><input class="field" id="shName" placeholder="Nome, es. Pegasus 41"><input class="field" id="shKm" inputmode="numeric" placeholder="km già fatti"></div>
     <button class="btn ghost" id="shAdd" type="button" style="margin-top:8px">＋ Aggiungi scarpe</button></section>
-  <section class="card"><h2>🍯 I miei gel</h2><div id="csGels"></div>
-    <button class="btn ghost" id="csGelBtn" type="button" style="margin-top:8px">＋ Aggiungi o modifica i gel</button></section>
 </main>
 
 <!-- ================= RIEPILOGO CORSA ================= -->
@@ -2260,7 +2258,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.25 (gel preferito e gel da portare per ogni corsa)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.26 (I miei gel nella pagina Corsa)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4728,7 +4726,13 @@ function renderRaceRow(){ const host=$("raceRowBox"); if(!host) return; host.inn
   try{ renderGoalRow(host); }catch(e){ console.warn("obiettivo",e); }
   const st=el("button","card raceRow"); st.type="button"; st.id="csRow2";
   st.innerHTML=`<span class="mi">📈</span><span class="mt"><b>Statistiche corsa</b><span class="ms">Ultime corse, record, forma, zone cardio e scarpe</span></span><span class="chev">›</span>`;
-  st.onclick=()=>{ go("corsa"); renderCorsa(); }; const sb=$("corsaStatsBox"); if(sb){ sb.innerHTML=""; sb.appendChild(st); } }
+  st.onclick=()=>{ go("corsa"); renderCorsa(); }; const sb=$("corsaStatsBox"); if(sb){ sb.innerHTML=""; sb.appendChild(st); sb.appendChild(gelRow()); } }
+/* riquadro "I miei gel" nella pagina Corsa: archivio dei gel con il preferito */
+function gelRow(){ const b=el("button","card raceRow"); b.type="button"; b.id="gelRow";
+  b.innerHTML=`<span class="mi">🍯</span><span class="mt"><b>I miei gel</b><span class="ms"></span></span><span class="chev">›</span>`;
+  const n=gels.list.length, fav=gels.list.find(g=>g.fav), tot=gels.list.reduce((a,g)=>a+(+g.qty||0),0);
+  b.querySelector(".ms").textContent= !n? "Salva i gel che usi e scegli il preferito: nelle corse lunghe ti dico quanti prenderne" : `${n} ${n===1?"gel salvato":"gel salvati"} · ${tot} a casa`+(fav? ` · ⭐ ${fav.name}` : " · tocca per scegliere il preferito");
+  b.onclick=openGels; return b; }
 /* corsa con obiettivo: prova libera di oggi (distanza + tempo), separata dall'Allenatore gara: non tocca né la gara né il piano */
 function goalRunGet(){ try{ return JSON.parse(localStorage.getItem("hf:goalRun")||"{}")||{}; }catch{ return {}; } }
 function renderGoalRow(host){ const g0=goalRunGet();
@@ -5668,7 +5672,7 @@ function renderGels(){ const box=$("csGels"); if(!box) return; box.innerHTML="";
   if(!gels.list.length){ box.appendChild(el("p","note","Non hai ancora inserito i tuoi gel. Aggiungili: nelle corse lunghe ti dico quanti prenderne e l'orologio ti avvisa quando.")); return; }
   gels.list.forEach(g=>{ const r0=el("div","gel-row"), n=el("div","n"); n.append(el("b",null,(g.fav?"⭐ ":"")+g.name), el("small",null,gelTxt(g)+" · ne hai "+(+g.qty||0))); r0.appendChild(n); box.appendChild(r0); }); }
 let gelEdit=null;
-function gelSave(){ save("gels",gels); renderGels(); renderGelList(); try{ if(view==="giorno") renderDayPage(); }catch{} }
+function gelSave(){ save("gels",gels); renderGels(); renderGelList(); try{ renderRaceRow(); }catch{} try{ if(view==="giorno") renderDayPage(); }catch{} }
 function renderGelList(){ const box=$("gelList"); box.innerHTML="";
   if(!gels.list.length){ box.appendChild(el("p","note","Ancora nessun gel salvato.")); return; }
   box.appendChild(el("p","note","Tocca ☆ per scegliere il tuo gel preferito: lo uso per primo nei consigli. Tocca il nome per modificarlo."));
@@ -5683,7 +5687,6 @@ function renderGelList(){ const box=$("gelList"); box.innerHTML="";
 function gelFill(g){ gelEdit=g? g.id : null; $("gelName").value=g? g.name : ""; $("gelCarbs").value=g? (g.carbs||"") : ""; $("gelQty").value=g? (g.qty??"") : ""; $("gelCaf").checked=!!(g&&g.caf);
   $("gelFormT").innerHTML= g? "<b>Modifica gel</b>" : "<b>Nuovo gel</b>"; $("gelSave").textContent= g? "Salva modifiche" : "Aggiungi gel"; $("gelCancel").hidden=!g; setStatus("gelStatus",""); }
 function openGels(){ gelFill(null); renderGelList(); $("gelShotBtn").hidden=!imgLimits||!sample; openSheet("gelSheet"); }
-$("csGelBtn").onclick=openGels;
 $("gelCancel").onclick=()=>gelFill(null);
 $("gelSave").onclick=()=>{ const name=$("gelName").value.trim().slice(0,40), carbs=+String($("gelCarbs").value).replace(",","."), qty=Math.max(0,Math.round(+$("gelQty").value||0));
   if(!name){ setStatus("gelStatus","Scrivi il nome o la marca del gel.",true); return; }
