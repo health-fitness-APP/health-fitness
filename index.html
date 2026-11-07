@@ -2258,8 +2258,10 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.26 (I miei gel nella pagina Corsa)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.27 (aggiorna l'app dell'orologio dal telefono)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
+    <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
+    <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
       <button class="btn ghost" id="btTest" type="button">Cerca dispositivo</button>
@@ -9008,6 +9010,13 @@ $("updBtn").onclick=async()=>{
       setTimeout(()=>location.reload(),600); }
     else setStatus("updStatus", nv? `Hai già l'ultima versione (${cur}).` : "Non riesco a leggere la versione sul sito.");
   }catch(e){ setStatus("updStatus","Non riesco a collegarmi al sito: controlla la connessione.",true); } };
+/* aggiornamento dell'app del Galaxy Watch dal telefono: il telefono scarica l'APK dell'orologio e lo manda al polso */
+$("updWatchBtn").hidden=!WBR();
+$("updWatchBtn").onclick=async()=>{ const P=WBR(); if(!P) return; const b=$("updWatchBtn"); b.disabled=true;
+  setStatus("updWatchStatus","Scarico l'app dell'orologio e la mando al Watch… (1-2 minuti, tieni l'orologio vicino)");
+  try{ const r0=await P.updateWatch(); setStatus("updWatchStatus",`Mandata a ${r0&&r0.watch||"orologio"} (${r0&&r0.version||"ultima versione"}) ✓ Ora sull'orologio tocca la notifica "aggiornamento pronto" e poi Installa.`); }
+  catch(e){ const m=String((e&&e.message)||e); setStatus("updWatchStatus", /not implemented|non implementat|is not a function/i.test(m)? "Prima aggiorna l'app del telefono (HealthFit.apk), poi riprova." : m, true); }
+  finally{ b.disabled=false; } };
 $("hello").onclick=()=>go("profilo");
 function readForm(){ return {...draft, fname:$("fname").value.trim(), lname:$("lname").value.trim(), nick:$("nick").value.trim(), sex:$("sex").value, age:+$("age").value, height:+$("height").value, weight:+$("weight").value, activity:+$("activity").value}; }
 ["sex","age","height","weight","activity"].forEach(id=>$(id).addEventListener("input",updCalc));
