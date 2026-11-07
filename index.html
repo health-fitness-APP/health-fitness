@@ -2259,7 +2259,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.23 (battito guidato nelle corse facili · gel energetici · taglio della corsa nel riepilogo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.24 (dieta: il totale di oggi torna sempre con l'obiettivo di Cibo · battito guidato nelle corse facili · gel energetici)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <details class="bttest"><summary class="note" style="cursor:pointer">🔍 Prova un dispositivo Bluetooth (bilancia, metro…)</summary>
       <p class="note">1) Accendi il dispositivo (sali sulla bilancia o premi il tasto del metro) · 2) tocca “Cerca” e sceglilo · 3) aspetta 20 secondi, rifai una misura · 4) manda uno screenshot del risultato.</p>
@@ -4247,10 +4247,10 @@ function balanceSpread(m){
 const fixMeal=m=>fixCereal(balanceSpread(withSupport(m&&Array.isArray(m.foods)? {...m,foods:m.foods.map(f=>snapFood(f,0))} : m)));
 /* piani già salvati: aggiungo il supporto e ricalibro le porzioni perché ogni giorno torni all'obiettivo */
 function fixSpreadPlan(plan){
-  if(!plan||plan.fixV>=4) return plan;
+  if(!plan||plan.fixV>=5) return plan;
   const fixD=d=>{ const {syncedFor,...rest}=d; return {...rest,meals:(d.meals||[]).map(fixMeal)}; };   // il giorno di oggi si riallinea da solo all'obiettivo di Cibo
-  const out={...plan,spreadOk:true,fixV:4};
-  if(Array.isArray(plan.days)&&plan.days.length) return {...calibratePlan({...out,days:plan.days.map(fixD)}),fixV:4};
+  const out={...plan,spreadOk:true,fixV:5};
+  if(Array.isArray(plan.days)&&plan.days.length) return {...calibratePlan({...out,days:plan.days.map(fixD)}),fixV:5};
   if(Array.isArray(plan.meals)) out.meals=plan.meals.map(m=>({...fixMeal(m),foods:(fixMeal(m).foods||[]).map(f=>snapFood(f,0))}));
   return out;
 }
@@ -4271,12 +4271,25 @@ function calibrateMeals(meals,tgt){
   }
   ms=ms.map(m=>fixCereal(balanceSpread(m)));   // la calibrazione può aver aumentato i cereali: rimetto abbastanza latte o yogurt
   { const t=sum(), dk=(tgt.kcal||0)-t.kcal; if(tgt.kcal&&Math.abs(dk)/tgt.kcal>0.03){ const k=1+dk/Math.max(1,t.kcal); ms=ms.map(m=>({...m,foods:m.foods.map(f=>scaleFood(f,k))})); } }
+  // ultimo ritocco: una dose alla volta (una fetta, 10 g di pasta, un cucchiaino d'olio…) finché il totale è a ±1,5% dall'obiettivo
+  if(tgt.kcal) for(let n=0; n<40; n++){
+    const dk=tgt.kcal-sum().kcal; if(Math.abs(dk)<=tgt.kcal*0.015) break;
+    let best=null;
+    ms.forEach((m,mi)=>{ const lock=m.foods.some(isSpread)||m.foods.some(f=>{ const x=fnorm(f.name); return CEREAL_RE.test(x)&&!NOT_CEREAL_RE.test(x); });   // non rompo le proporzioni pane/marmellata e cereali/latte
+      m.foods.forEach((f,fi)=>{ const g=+f.grams||0; if(!g||!(+f.kcal>0)||lock) return; const R=portionOf(f), st=R? R[3] : 5, g0=+f._g0||g;
+        const ng=snapG(f,g+Math.sign(dk)*st,dk>0?1:0); if(ng===g||ng<g0*0.4||ng>g0*2.2) return;
+        const dkc=(+f.kcal)*(ng/g-1), left=Math.abs(dk-dkc); if(left>=Math.abs(dk)) return;
+        const score=left-(share(f,"c",4)>0.45? 15 : 0);   // a parità, meglio i carboidrati
+        if(!best||score<best.score) best={mi,fi,ng,score}; }); });
+    if(!best) break;
+    ms[best.mi]={...ms[best.mi],foods:ms[best.mi].foods.map((f,fi)=> fi===best.fi? reGram(f,best.ng) : f)};
+  }
   return ms.map(m=>({...m,foods:m.foods.map(f=>{ const {_g0,...rest}=f; return rest; })}));
 }
 function calibratePlan(plan){
   const wt=weekTargets(); if(!plan||!wt) return plan;
   const fix=d=>{ const tt=wt.find(x=>x.wd===d.weekday); return tt? {...d,meals:calibrateMeals(d.meals,{kcal:tt.kcal,p:tt.p})} : d; };
-  if(Array.isArray(plan.days)&&plan.days.length) return {...plan,days:plan.days.map(fix),calibrated:true,spreadOk:true,fixV:4};
+  if(Array.isArray(plan.days)&&plan.days.length) return {...plan,days:plan.days.map(fix),calibrated:true,spreadOk:true,fixV:5};
   return plan;
 }
 function planDays(plan){
@@ -4298,7 +4311,7 @@ function renderDietAI(){
   $("makeDiet").disabled = !tg || !sample;
   if(document.activeElement!==$("dietPrefs") && !$("dietPrefs").value) $("dietPrefs").value = (state.diet&&state.diet.prefs) || (state.profile&&state.profile.foodPrefs) || "";
   if(state.diet&&state.diet.plan&&Array.isArray(state.diet.plan.days)&&state.diet.plan.days.length&&!state.diet.plan.calibrated){ state.diet.plan=calibratePlan(state.diet.plan); save("diet",state.diet); }
-  if(state.diet&&state.diet.plan&&!(state.diet.plan.fixV>=4)){ state.diet.plan=fixSpreadPlan(state.diet.plan); save("diet",state.diet); }
+  if(state.diet&&state.diet.plan&&!(state.diet.plan.fixV>=5)){ state.diet.plan=fixSpreadPlan(state.diet.plan); save("diet",state.diet); }
   const plan=state.diet&&state.diet.plan, days=planDays(plan);
   if($("dietAuto")){ $("dietAuto").value=dietAutoMode(); $("dietAuto").onchange=e=>{ try{ localStorage.setItem("hf:dietAuto",e.target.value); }catch{} toast(e.target.value==="auto"?"La dieta si adatterà da sola":e.target.value==="ask"?"Ti chiederò prima di adattare la dieta":"Adattamento automatico disattivato"); }; }
   $("dietPlanCard").hidden=!days.length; $("dietChatCard").hidden=!days.length||!sample; $("dietWeekCard").hidden=!days.length;
@@ -4319,11 +4332,12 @@ function renderDietAI(){
   // giorno selezionato
   // oggi: il piano segue sempre l'obiettivo di Cibo (allenamento reale di oggi + quello di domani)
   if(liveT){ const iT=days.findIndex(x=>x.weekday===curWd);
-    if(iT>=0){ const td=days[iT], tot=sumMeals(td.meals).kcal, key=todayISO()+"|"+liveT.kcal;
-      if(Math.abs(tot-liveT.kcal)/liveT.kcal>0.03&&td.syncedFor!==key){
-        const eatenIds=mealList().filter(m=>(state.day.meals[m.id]||[]).length).map(m=>m.id), tE=totals();
-        const rest=td.meals.filter(m=>!eatenIds.includes(m.id)), doneM=td.meals.filter(m=>eatenIds.includes(m.id)), doneK=sumMeals(doneM);
-        const tgtRest={kcal:Math.max(0,liveT.kcal-(eatenIds.length? Math.max(tE.kcal,doneK.kcal) : 0)), p:Math.max(0,liveT.p-(eatenIds.length? Math.max(tE.p,doneK.p) : 0))};
+    // il totale da confrontare è quello che vedi: pasti già mangiati (dal diario) + pasti ancora da fare; si riallinea anche ogni volta che registri qualcosa
+    if(iT>=0){ const td=days[iT], tot=sumMeals(mealsWithEaten(td)).kcal, eatenIds=Object.keys(state.day.meals||{}).filter(k=>(state.day.meals[k]||[]).length), tE=totals();
+      const key=todayISO()+"|"+liveT.kcal+"|"+eatenIds.sort().join(",")+"|"+Math.round(tE.kcal/10);
+      if(Math.abs(tot-liveT.kcal)/liveT.kcal>0.02&&td.syncedFor!==key){
+        const rest=td.meals.filter(m=>!eatenIds.includes(m.id));
+        const tgtRest={kcal:Math.max(0,liveT.kcal-tE.kcal), p:Math.max(0,liveT.p-tE.p)};
         const cal=rest.length? calibrateMeals(rest,tgtRest) : [];
         days[iT]={...td, meals:td.meals.map(m=>cal.find(x=>x.id===m.id)||m), syncedFor:key};
         state.diet.plan={...state.diet.plan, days}; save("diet",state.diet);
