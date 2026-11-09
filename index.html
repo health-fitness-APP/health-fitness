@@ -2338,7 +2338,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.46 («Prova chiavi» controlla anche OpenRouter e Groq)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.47 (dieta, scheda e piano gara col modello Pro di Gemini)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2825,7 +2825,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     }
     throw lastErr;
   }
-  const USE_PRO=false;   // si accende quando Daniele dà l'ok al modello Pro
+  const USE_PRO=true;   // ok di Daniele (2026-11-09): Pro solo per dieta, scheda palestra e piano gara
   async function proModel(key){
     const c=LS("proModel"), at=+LS("proModelAt")||0; if(c&&Date.now()-at<7*864e5) return c;
     try{ const res=await fetch(`${API}/models?pageSize=200`,{headers:{"x-goog-api-key":key}}); if(!res.ok) return c||"";
