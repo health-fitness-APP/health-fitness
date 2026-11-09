@@ -2334,7 +2334,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.33 (pagina Sci con neve a Claviere, stretching guidato, memoria del coach tra le chat)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.34 (Dispositivi collegati riparato, permessi di Health Connect richiesti da soli)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3222,6 +3222,7 @@ function go(v,fromHistory){ if(v==="gara"){ setTimeout(()=>{ try{ openRaceCoach(
     else if(["cibo","pasto","casa","valuta","ricetta","pset","gara","corsa","cardio","riepilogo","attivita","attrezzatura","giorno","sessione"].includes(v)||!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
   }
   if(v!=="diario"&&typeof editMode!=="undefined"&&editMode) setEdit(false);
+  if(v!=="pset"&&v!=="profilo"&&typeof psCur!=="undefined"&&psCur){ try{ psRestore(); }catch{} }
   view=v;
   ["diario","cibo","pasto","casa","valuta","ricetta","pset","gara","corsa","cardio","riepilogo","attivita","attrezzatura","giorno","sessione","dieta","allenamento","corpo","profilo"].forEach(x=>$("view-"+x).hidden = x!==v);
   document.querySelectorAll("nav.tabbar button").forEach(b=> b.dataset.v===((v==="cibo"||v==="attivita"||v==="pasto")?"diario":v==="attrezzatura"?"profilo":(v==="giorno"||v==="sessione"||v==="gara")?"allenamento":(v==="corsa"||v==="cardio"||v==="riepilogo")?"attivita":v==="pset"?"profilo":(v==="casa"||v==="valuta"||v==="ricetta")?"dieta":v) ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
@@ -5248,6 +5249,18 @@ const HCP=()=>{ const C=NAT(); return C? (C.Plugins&&C.Plugins.Health)||(C.regis
 const HC_TYPES={running:"Corsa",walking:"Camminata",hiking:"Escursione",cycling:"Bici",swimming:"Nuoto",swimmingPool:"Nuoto in piscina",swimmingOpenWater:"Nuoto in acque libere",strengthTraining:"Pesi / palestra",traditionalStrengthTraining:"Pesi / palestra",functionalStrengthTraining:"Circuito / funzionale",weightlifting:"Pesi / palestra",crossTraining:"Circuito / funzionale",highIntensityIntervalTraining:"HIIT",coreTraining:"Core",yoga:"Yoga",pilates:"Pilates",elliptical:"Ellittica",rowing:"Vogatore",stairClimbing:"Scale",soccer:"Calcio",tennis:"Tennis",padel:"Padel",basketball:"Basket",dance:"Ballo",mixedCardio:"Cardio",trackAndField:"Atletica",skiing:"Sci",downhillSkiing:"Sci alpino",skiingDownhill:"Sci alpino",crossCountrySkiing:"Sci di fondo",skiingCrossCountry:"Sci di fondo",snowboarding:"Snowboard",backcountrySkiing:"Scialpinismo",snowSports:"Sport sulla neve",skating:"Pattinaggio",iceSkating:"Pattinaggio"};
 const hcOpt=k=>localStorage.getItem("hf:hc"+k)!=="0";
 function hcReadTypes(){ const t=[]; if(hcOpt("W")) t.push("workouts","heartRate","distance","calories"); if(hcOpt("A")) t.push("steps","calories","distance"); if(hcOpt("S")) t.push("sleep"); if(hcOpt("B")) t.push("weight","bodyFat"); t.push("restingHeartRate"); return [...new Set(t)]; }
+// permessi tolti (es. dopo un aggiornamento di Health Connect): l'app li richiede da sola, al massimo ogni 6 ore
+async function hcAutoFix(){ const H=HCP(); if(!H||localStorage.getItem("hf:hcOn")!=="1") return;
+  try{ const st=await H.checkAuthorization({read:hcReadTypes(),write:["weight","bodyFat"]}); const no=(st&&st.readDenied)||[]; if(!no.length) return;
+    const last=+localStorage.getItem("hf:hcAsk")||0; if(Date.now()-last<6*3600e3) return; localStorage.setItem("hf:hcAsk",String(Date.now()));
+    toast("Health Connect ha tolto i permessi a HealthFit: te li richiedo. Tocca «Consenti tutto»");
+    await new Promise(r=>setTimeout(r,1200));
+    try{ await H.requestAuthorization({read:hcReadTypes(),write:["weight","bodyFat"],requestHistoryAccess:true}); }catch{}
+    const st2=await H.checkAuthorization({read:hcReadTypes(),write:["weight","bodyFat"]}); const no2=(st2&&st2.readDenied)||[];
+    if(no2.length&&H.openHealthConnectSettings){ toast("Mancano ancora dei permessi: in Health Connect apri HealthFit e attiva «Consenti tutto»"); setTimeout(()=>H.openHealthConnectSettings().catch(()=>{}),1500); }
+    else if(!no2.length) toast("Permessi di Health Connect a posto ✓ Sincronizzo…");
+    try{ hcRenderState(); }catch{}
+  }catch(e){ console.warn("hc permessi",e); } }
 async function hcConnect(){ const H=HCP(); if(!H) return;
   try{ const av=await H.isAvailable(); if(!av||!av.available){ setStatus("hcStatus","Health Connect non è disponibile: su Android 13 o precedenti installa “Health Connect” dal Play Store.",true); return; }
     const st=await H.requestAuthorization({read:hcReadTypes(),write:["weight","bodyFat"],requestHistoryAccess:true});
@@ -5639,7 +5652,7 @@ const PFI={
   ai:'<circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"/>',
   chat:'<path d="M4.5 6.5a2.5 2.5 0 0 1 2.5-2.5h10a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 3.5V16H7a2.5 2.5 0 0 1-2.5-2.5z"/>'};
 const pfSvg=k=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PFI[k]||PFI.chi}</svg>`;
-function pfCardFor(title){ return [...document.querySelectorAll("#pfCards > section.card")].find(c=>{ const h=c.querySelector(":scope > h2"); return h&&h.textContent.toLowerCase().includes(title.toLowerCase()); }); }
+function pfCardFor(title){ return [...document.querySelectorAll("#pfCards > section.card, #psBody > section.card")].find(c=>{ const h=c.querySelector(":scope > h2"); return h&&h.textContent.toLowerCase().includes(title.toLowerCase()); }); }
 function pfSubtitle(k){ const p=state.profile||{}, d=typeof draft!=="undefined"&&draft? draft : p;
   try{ switch(k){
     case "chi": return [displayName(p)||"", p.age? p.age+" anni" : "", p.sex? (p.sex==="f"?"donna":"uomo") : ""].filter(Boolean).join(" · ")||"Nome, foto, età";
@@ -5664,10 +5677,11 @@ function renderPfList(){ const box=$("pfList"); if(!box) return; box.innerHTML="
     box.appendChild(g); });
   const chat=el("button","pf-row pf-chat"); chat.type="button"; chat.innerHTML=`<span class="ic">${pfSvg("chat")}</span><span class="t"><b>Compila con il coach</b><span>Ti fa lui le domande e chiede conferma prima di cambiare</span></span><span class="chev">›</span>`; chat.onclick=()=>$("profByChat").click();
   box.appendChild(el("p","pf-gh","Aiuto")); const g2=el("div","pf-group"); g2.appendChild(chat); box.appendChild(g2); }
-function openPset(title,label,k){ const c=pfCardFor(title); if(!c) return; psCur={card:c,parent:c.parentNode,next:c.nextSibling,k};
+function psRestore(){ if(!psCur) return; try{ const pc=$("pfCards"), ok=psCur.parent&&psCur.parent.isConnected? psCur.parent : pc; ok.insertBefore(psCur.card, psCur.next&&psCur.next.parentNode===ok? psCur.next : null); }catch(e){ try{ $("pfCards").appendChild(psCur.card); }catch{} } psCur=null; }
+function openPset(title,label,k){ psRestore(); const c=pfCardFor(title); if(!c){ toast("Non trovo questa sezione: chiudi e riapri l'app"); return; } psCur={card:c,parent:c.parentNode,next:c.nextSibling,k};
   $("psTitle").textContent=label; c.classList.remove("collapsed"); $("psBody").innerHTML=""; $("psBody").appendChild(c);
   const needSave=(PF_GROUPS.flatMap(x=>x[1]).find(x=>x[2]===k)||[])[3]; $("psSaveBar").hidden=!needSave; go("pset"); window.scrollTo(0,0); }
-function closePset(){ if(psCur){ psCur.parent.insertBefore(psCur.card,psCur.next); psCur=null; } renderPfList(); }
+function closePset(){ psRestore(); renderPfList(); }
 $("psBack").onclick=()=>{ if(history.state&&history.state.v==="pset") history.back(); else { go("profilo"); closePset(); } };
 $("psSave").onclick=()=>{ $("saveProfile").click(); setTimeout(()=>{ renderPfList(); },300); };
 $("pfAcct").onclick=()=>openPset("Chi sei","Chi sei","chi");
@@ -10046,7 +10060,7 @@ async function loadAll(){
     hcRenderState();
     $("hcConnect").onclick=hcConnect; $("hcPermsLink").onclick=hcConnect; $("hcSyncNow").onclick=()=>hcSync(true); $("hcSettings").onclick=()=>{ const H=HCP(); if(H&&H.openHealthConnectSettings) H.openHealthConnectSettings().catch(()=>{}); };
     if(localStorage.getItem("hf:hcLast")) setStatus("hcStatus","Ultima sincronizzazione: "+new Date(localStorage.getItem("hf:hcLast")).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}));
-    setTimeout(()=>hcSync(false),3500);
+    setTimeout(()=>{ hcAutoFix().finally(()=>hcSync(false)); },3500);
     try{ const W=WBR(); if(W){ W.addListener("watchResult",async o=>{ const id=await saveWatchResult(o); if(id){ renderAll(); actionToast("⌚ Corsa dal Galaxy Watch salvata ✓","Vedi riepilogo",()=>openRunSummary(id)); } }); setTimeout(watchPending,2500); NAT().Plugins.App.addListener("resume",()=>watchPending()); } }catch(e){ console.warn("orologio",e); }
     try{ NAT().Plugins.App.addListener("resume",()=>{ const l=+new Date(localStorage.getItem("hf:hcLast")||0); if(Date.now()-l>10*60000) hcSync(false); }); }catch{}
     setTimeout(()=>{ hrnRestore(); },900); setTimeout(()=>{ rdFix0711(); },3000);
