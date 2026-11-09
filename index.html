@@ -970,7 +970,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .gel-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}.gel-chips button{border:1px solid var(--line);background:none;color:var(--muted);border-radius:16px;padding:5px 11px;font:inherit;font-size:.86rem;cursor:pointer}.gel-chips button.on{border-color:#F5B841;background:#FFF4D6;color:#3a2a00}
 .gel-card .warnt{display:block;margin:6px 0;color:#C2410C;font-size:.9rem}.gel-card .note{margin:6px 0 0}
 .cs-pred{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cs-pred div{background:var(--chip,rgba(0,0,0,.04));border-radius:12px;padding:10px}.cs-pred span{display:block;font-size:.8rem;opacity:.75}.cs-pred b{display:block;font-size:1.25rem}.cs-pred small{font-size:.75rem;opacity:.75}
-.ss-tog{width:100%}.ss-tog.on{border-color:var(--basil);color:var(--basil)}
+.ss-tog{width:100%}.bp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.bp-c img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:var(--line);margin-top:6px;display:block}.pain-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.pain-row:first-child{border-top:0}.pain-row small{display:block;opacity:.75}.pain-b{display:flex;gap:8px;align-items:center}.ss-tog.on{border-color:var(--basil);color:var(--basil)}
 .cs-shoe{padding:10px 0;border-top:1px solid var(--line)}.cs-shoe:first-child{border-top:0}.cs-shoe.ret{opacity:.55}
 .cs-shoe .h{display:flex;justify-content:space-between;gap:8px;font-size:.92rem}
 .cs-shoe .b{height:8px;background:var(--line);border-radius:5px;overflow:hidden;margin:6px 0}.cs-shoe .b i{display:block;height:100%;background:var(--basil)}.cs-shoe .b i.warn{background:#E5484D}
@@ -1321,6 +1321,12 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </section>
   <section class="card" id="nutriCard"></section>
   <section class="card" id="fatigueCard" hidden></section>
+  <section class="card" id="painWarnCard" hidden></section>
+  <section class="card" id="deloadCard" hidden></section>
+  <section class="card" id="suppCard" hidden></section>
+  <section class="card" id="nightCard" hidden></section>
+  <section class="card" id="waterCard" hidden></section>
+  <section class="card" id="monthCard" hidden></section>
   <section class="card" id="fuelCard" hidden></section>
   <section class="card" id="weekCard" hidden></section>
   <section class="card" id="progCard">
@@ -1464,6 +1470,14 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <input type="file" id="slShot" accept="image/*" hidden>
     <div class="two" style="margin-top:8px"><button class="btn ghost" id="slSave" type="button">Salva</button><button class="btn ghost" id="slShotBtn" type="button">📷 Da screenshot</button></div>
     <div class="status" id="slStatus" aria-live="polite"></div>
+  </section>
+  <section class="card" id="painCard">
+    <h2>🩹 Fastidi e dolori</h2>
+    <p class="sub">Segna dove ti fa male e quanto (da 1 a 10): il coach adatta palestra e corsa e ti avvisa se peggiora.</p>
+    <div id="painList"></div>
+    <div class="two" style="margin-top:8px"><select class="field" id="painZone" aria-label="Dove"></select>
+      <label style="display:flex;align-items:center;gap:8px">Quanto <input type="range" id="painLv" min="1" max="10" value="3" style="flex:1"><b id="painLvT">3</b></label></div>
+    <button class="btn ghost" id="painAdd" type="button" style="margin-top:8px">＋ Segna il fastidio</button>
   </section>
   <section class="card" id="aTellCard">
     <h2>Cosa hai fatto?</h2>
@@ -1889,6 +1903,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="chips" id="bMetricChips" style="margin-top:10px"></div>
     <div id="bChart"></div>
     <p class="sub" id="bTrend" style="margin:6px 0 0"></p>
+  </section>
+  <section class="card" id="bPhotoCard">
+    <h2>📸 Foto del fisico</h2>
+    <p class="sub" id="bpSub" style="margin:2px 0 0">Una foto ogni 4 settimane, stessa luce, stessa posa, stessa ora: le metto a confronto una accanto all'altra.</p>
+    <input type="file" id="bpFile" accept="image/*" capture="environment" hidden>
+    <div id="bpCmp"></div>
+    <div class="two" style="margin-top:8px"><button class="btn ghost" id="bpAdd" type="button">📷 Aggiungi la foto di oggi</button><button class="btn ghost" id="bpAsk" type="button" hidden>Chiedi al coach</button></div>
   </section>
   <section class="card" id="bCircCard" hidden>
     <h2>Misure del corpo</h2>
@@ -2354,7 +2375,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.52 (progressione serie per serie, superserie, test di soglia, tempi previsti, tecnica di corsa)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.53 (fastidi, integratori, sonno, scarico, foto del fisico, acqua, riepilogo del mese)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3279,6 +3300,7 @@ function profileSummary(){
     set.level? "livello "+set.level : "", set.place? "si allena in "+set.place : "",
     equipText(p)? "attrezzatura disponibile: "+equipText(p) : "",
     notes? "infortuni/note: "+notes : "",
+    (()=>{ try{ return painText(); }catch{ return ""; } })(),
     "pasti: "+mealList().map(m=>m.name+({casa:" (a casa)",schiscetta:" (schiscetta portata da casa)",fuori:" (fuori casa: bar, mensa o ristorante)"}[m.where||"casa"]||"")).join(", "),
     (p.supplements||[]).filter(x=>x&&x.name).length? "integratori: "+p.supplements.filter(x=>x&&x.name).map(x=>x.name+(x.dose?" "+x.dose:"")+" ("+((SUPP_WHEN.find(w=>w[0]===x.when)||[,""])[1]||"").toLowerCase()+")").join(", ") : "",
     p.foodPrefs? "preferenze alimentari: "+p.foodPrefs : "",
@@ -7915,11 +7937,11 @@ function openLogger(a,di){
     logCtx={live:true, kind:a.kind, title:d.title||"Allenamento", plannedMin:+d.minutes||60, startedAt:Date.now(), date:state.date, notes:"",
       exercises:(d.exercises||[]).map(x=>{ const last=lastFor(x.name);
         if(x.detail&&!x.sets) return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:x.rest||"",cardio:true,sets:[{text:last&&last.ex.sets[0]&&last.ex.sets[0].text||"",done:false}]};
-        const n=Math.max(1,Math.min(10,+x.sets||3)), timed=/\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||""));
+        const dl=deloadOn(state.date), n=Math.max(dl? 2 : 1,Math.min(10,(+x.sets||3)-(dl&&(+x.sets||3)>2? 1 : 0))), timed=/\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||""));
         const pg=progFor(x), rr=repRange(x.reps);
         const bw=isBodyweight({name:x.name,equip:x.equip||exEquip(x)}), lv=bw? lastVest(x.name) : 0;
         return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),timed,repsLabel:timed? String(x.reps).trim() : "",prog:pg,bw,vest:lv,rr,
-          sets:Array.from({length:n},(_,i)=>{ const ls=last&&last.ex.sets[i]; const kg= bw? (lv||"") : pg&&pg.kg!=null&&pg.kind!=="hold"? pg.kg : (ls&&ls.kg!=null? ls.kg:"");
+          sets:Array.from({length:n},(_,i)=>{ const ls=last&&last.ex.sets[i]; let kg= bw? (lv||"") : pg&&pg.kg!=null&&pg.kind!=="hold"? pg.kg : (ls&&ls.kg!=null? ls.kg:""); if(dl&&!bw&&+kg>0) kg=r25(+(ls&&ls.kg||kg)*0.9);
             const reps= timed? String(x.reps).trim() : (pg&&pg.kind==="up"&&rr? rr[0] : (ls&&ls.reps? ls.reps : firstNum(x.reps))); return {kg, reps, done:false}; })};
       })};
   }
@@ -8357,7 +8379,7 @@ function dateCtx(){
     if(i<=0){ const done=dayDoneText(iso); bits.push("allenamenti registrati: "+(done||"nessuno")); const ea=dayEatenText(iso); if(ea) bits.push(ea); }
     rows.push(`- ${NAMES[i]? NAMES[i]+" = " : ""}${dateLong(iso)} (${iso}): ${bits.join(" · ")}`); }
   const viewed= state.date&&state.date!==today? `\nATTENZIONE: nell'app la persona sta guardando la pagina del ${dateLong(state.date)} (${state.date}), non quella di oggi. I dati "della giornata" qui sotto si riferiscono a quel giorno; se chiede di "oggi" usa comunque la data reale di oggi.` : "";
-  const fz=fatigueText(), th=thrText(); const ev=runEvalText(21), evT=(fz? "\n"+fz : "")+(th? "\n"+th : "")+(ev? `\nESITO DELLE ULTIME CORSE DEL PIANO (previsto → fatto, ultime 3 settimane; usalo per giudicare la forma e per consigliare ritmi e volumi dei prossimi giorni: se le fasi sono spesso più lente con FC alta segnala fatica e alleggerisci, se le corse facili sono troppo veloci dillo, se va tutto bene conferma o proponi un piccolo aumento):\n${ev}` : "");
+  const fz=[fatigueText(),deloadText(),nightText()].filter(Boolean).join("\n"), th=thrText(); const ev=runEvalText(21), evT=(fz? "\n"+fz : "")+(th? "\n"+th : "")+(ev? `\nESITO DELLE ULTIME CORSE DEL PIANO (previsto → fatto, ultime 3 settimane; usalo per giudicare la forma e per consigliare ritmi e volumi dei prossimi giorni: se le fasi sono spesso più lente con FC alta segnala fatica e alleggerisci, se le corse facili sono troppo veloci dillo, se va tutto bene conferma o proponi un piccolo aumento):\n${ev}` : "");
   return `DATA E ORA ATTUALI (ora italiana, Europe/Rome): ${now.text}, ore ${now.time}. Oggi è ${now.text.split(" ")[0]} ${today}.
 CALENDARIO (fonte unica per i giorni; il piano si ripete uguale ogni settimana in base al giorno della settimana):
 ${rows.join("\n")}${viewed}${evT}
@@ -8696,7 +8718,7 @@ $("mzSave").onclick=()=>{ const k=mzKey; if(!k) return; let ch=false;
   save("body",body); bodyDate=null; renderAll(); closeTopSheet(); toast(raw!==""? "Misura salvata ✓" : "Nome salvato ✓"); };
 $("mzTrend").onclick=()=>{ bMetric=mzKey; closeTopSheet(); setTimeout(()=>{ renderBody(); $("bChartCard").scrollIntoView({behavior:"smooth",block:"start"}); },120); };
 function latestBodyFrom(es){ const last={}; es.forEach(x=>METRICS.forEach(([k])=>{ if(x[k]!=null) last[k]={v:x[k],date:x.date}; })); return last; }
-function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e); }
+function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e); } try{ renderBPhotos(); }catch(e){ console.warn("foto fisico",e); }
   const bd=bodyDay(), all=sortedEntries(), es=all.filter(e=>e.date<=bd), last=latestBodyFrom(es); renderBodyNav();
   if(!$("bDate").value) $("bDate").value=todayISO();
   $("bShotBtn").hidden=!imgLimits||!sample; $("bTapeBtn").hidden=!(localStorage.getItem("hf:tapeAddr")&&HRN());
@@ -8993,6 +9015,138 @@ Recupero: ${recoveryText()}.`}],{cache:false,pro:true});
     weekRev={from:D.from,text:String((res&&res.text)||"").trim(),at:todayISO()}; save("weekReview",weekRev); }
   catch(e){ if(box) box.textContent="Il commento del coach non è arrivato: "+errCopy(e); return; }
   renderWeekCard(); }
+/* ===== foto del fisico: una ogni 4 settimane, confronto affiancato (ogni foto in un suo documento, ne tengo 12) ===== */
+let bphotos={list:[]}; const BP_MAX=12;
+async function bpImg(id){ try{ const d=await store.getDoc("bphoto-"+id); return d&&d.img||""; }catch{ return ""; } }
+async function renderBPhotos(){ const box=$("bpCmp"); if(!box) return; box.innerHTML=""; const L=(bphotos.list||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const last=L[L.length-1], days= last? Math.round((new Date(todayISO()+"T12:00:00")-new Date(last.date+"T12:00:00"))/864e5) : null;
+  $("bpSub").textContent= !L.length? "Una foto ogni 4 settimane, stessa luce, stessa posa, stessa ora: le metto a confronto una accanto all'altra." : days>=28? `Ultima foto ${days} giorni fa: è ora della prossima (stessa luce e stessa posa).` : `Ultima foto ${days===0? "oggi" : days+" giorni fa"}: la prossima tra ${28-days} giorni.`;
+  $("bpAsk").hidden=L.length<2||!sample; if(!L.length) return;
+  if(!renderBPhotos.sel||!L.some(x=>x.id===renderBPhotos.sel[0])||!L.some(x=>x.id===renderBPhotos.sel[1])) renderBPhotos.sel=[L[0].id,last.id];
+  const pick=(k)=>{ const sel=el("select","field"); L.forEach(x=>{ const o=el("option",null,dateLong(x.date)+(x.w? " · "+fmt(x.w)+" kg" : "")); o.value=x.id; sel.appendChild(o); }); sel.value=renderBPhotos.sel[k]; sel.onchange=()=>{ renderBPhotos.sel[k]=sel.value; renderBPhotos(); }; return sel; };
+  const g=el("div","bp-grid"); for(const k of [0,1]){ const c=el("div","bp-c"), im=el("img"); im.alt="Foto del fisico"; c.append(pick(k),im); g.appendChild(c); bpImg(renderBPhotos.sel[k]).then(src=>{ if(src) im.src=src; }); }
+  box.appendChild(g);
+  const a=L.find(x=>x.id===renderBPhotos.sel[0]), b=L.find(x=>x.id===renderBPhotos.sel[1]);
+  if(a&&b&&a.id!==b.id){ const bits=[]; if(a.w&&b.w) bits.push(`peso ${b.w-a.w>=0?"+":""}${fmt(Math.round((b.w-a.w)*10)/10)} kg`); if(a.f&&b.f) bits.push(`grasso ${b.f-a.f>=0?"+":""}${fmt(Math.round((b.f-a.f)*10)/10)}%`); if(a.v&&b.v) bits.push(`vita ${b.v-a.v>=0?"+":""}${fmt(Math.round((b.v-a.v)*10)/10)} cm`);
+    if(bits.length) box.appendChild(el("p","note","Tra le due foto: "+bits.join(" · ")+".")); }
+  const del=el("button","linkbtn","Elimina la foto di destra"); del.type="button"; del.onclick=async()=>{ if(!confirm("Eliminare questa foto?")) return; const id=renderBPhotos.sel[1]; bphotos.list=bphotos.list.filter(x=>x.id!==id); save("bphotos",bphotos); save("bphoto-"+id,null); renderBPhotos.sel=null; renderBPhotos(); }; box.appendChild(del); }
+$("bpAdd").onclick=()=>$("bpFile").click();
+$("bpFile").onchange=async e=>{ const f=e.target.files&&e.target.files[0]; $("bpFile").value=""; if(!f) return;
+  try{ const blob=await shrinkFile(f,720), img=await new Promise((res,rej)=>{ const r0=new FileReader(); r0.onload=()=>res(r0.result); r0.onerror=rej; r0.readAsDataURL(blob); });
+    const lb=latestBody(), id=uid(); save("bphoto-"+id,{img}); bphotos.list=[...(bphotos.list||[]),{id,date:todayISO(),w:lb.weight&&+lb.weight.v||null,f:lb.fat&&+lb.fat.v||null,v:lb.waist&&+lb.waist.v||null}];
+    const L=bphotos.list.slice().sort((a,b)=>a.date<b.date?-1:1); while(L.length>BP_MAX){ const x=L.splice(1,1)[0]; save("bphoto-"+x.id,null); } bphotos.list=L; save("bphotos",bphotos); renderBPhotos.sel=null; renderBPhotos(); toast("Foto salvata ✓"); }
+  catch(err){ toast("Non riesco a salvare la foto"); console.warn("foto fisico",err); } };
+$("bpAsk").onclick=async()=>{ const S=renderBPhotos.sel; if(!S) return; const L=bphotos.list, a=L.find(x=>x.id===S[0]), b=L.find(x=>x.id===S[1]);
+  const toBlob=async id=>{ const src=await bpImg(id); return src? await (await fetch(src)).blob() : null; };
+  chatFiles=(await Promise.all([toBlob(S[0]),toBlob(S[1])])).filter(Boolean); go("allenamento"); setW("chat"); $("chatThumbs").innerHTML="";
+  chatFiles.forEach(bl=>{ const im=el("img"); im.src=URL.createObjectURL(bl); im.alt="Foto allegata"; $("chatThumbs").appendChild(im); });
+  $("chatIn").value=`Confronta le mie due foto del fisico: la prima del ${a&&a.date}, la seconda del ${b&&b.date}. Cosa è cambiato e su cosa devo lavorare?`; };
+/* ===== acqua della giornata: obiettivo dal peso + quello che sudi negli allenamenti ===== */
+function waterGoal(){ const w=+(state.profile&&state.profile.weight)||75; let extra=0; try{ const pb=plannedBurn(); extra=Math.round(((workoutKcal()||(pb?pb.kcal:0))*0.8)/50)*50; }catch{} return {base:Math.round(w*35/50)*50, extra, tot:Math.round(w*35/50)*50+extra}; }
+function renderWaterCard(){ const card=$("waterCard"); if(!card) return; let on=true; try{ on=localStorage.getItem("hf:waterOff")!=="1"; }catch{} card.hidden= view!=="diario"||!on||!state.profile; if(card.hidden) return;
+  const G=waterGoal(), ml=+(state.day.water||0), pc=Math.min(100,Math.round(ml/G.tot*100)), h=+romeNow().time.slice(0,2), expect= state.date===todayISO()? Math.max(0,Math.min(100,Math.round((h-7)/15*100))) : 100;
+  card.innerHTML=""; const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"💧 Acqua")); const off=el("button","link","Nascondi"); off.type="button"; off.onclick=()=>{ try{ localStorage.setItem("hf:waterOff","1"); }catch{} card.hidden=true; toast("Scheda dell'acqua nascosta"); }; hd.appendChild(off); card.appendChild(hd);
+  card.insertAdjacentHTML("beforeend",`<p class="sub" style="margin:0"><b>${(ml/1000).toLocaleString("it-IT",{maximumFractionDigits:2})} l</b> su ${(G.tot/1000).toLocaleString("it-IT",{maximumFractionDigits:2})} l${G.extra? ` (di cui ${G.extra} ml per l'allenamento)` : ""}</p><div class="bar" style="height:8px;background:var(--line);border-radius:5px;overflow:hidden;margin:8px 0"><i style="display:block;height:100%;width:${pc}%;background:#1EA7E0"></i></div>`);
+  if(state.date===todayISO()&&pc+15<expect&&h>=11) card.appendChild(el("p","note",`Sei un po' indietro: a quest'ora dovresti essere verso ${Math.round(G.tot*expect/100/50)*50} ml. Bevi un bicchiere adesso.`));
+  const row=el("div","chips"); [[250,"＋ bicchiere 250 ml"],[500,"＋ bottiglietta 500 ml"],[-250,"− 250"]].forEach(([v,l])=>{ const b=el("button","chip",l); b.type="button"; b.onclick=()=>{ state.day.water=Math.max(0,(+state.day.water||0)+v); saveDay(); renderWaterCard(); }; row.appendChild(b); }); card.appendChild(row); }
+/* ===== riepilogo del mese (nei primi 5 giorni del mese successivo) ===== */
+function monthData(from,to){ const inR=d=>d>=from&&d<=to, H=(hist&&hist.items)||[], runs=H.filter(w=>inR(w.date)&&isRun(w)), gym=tlog.sessions.filter(x=>inR(x.date));
+  const km=runs.reduce((a,w)=>a+(+w.distance||0),0), longest=runs.reduce((a,w)=>Math.max(a,+w.distance||0),0);
+  let bestPace=null; runs.filter(w=>+w.distance>=5&&+w.minutes>0).forEach(w=>{ const p=w.minutes*60/w.distance; if(!bestPace||p<bestPace.p) bestPace={p,km:+w.distance,date:w.date}; });
+  const ups=[]; const seen=new Set(); gym.forEach(x=>(x.exercises||[]).forEach(e=>{ if(seen.has(e.name)) return; seen.add(e.name); const all=exHistory(e.name,30), cur=all.filter(h=>inR(h.date)), old=all.filter(h=>h.date<from);
+    if(!cur.length||!old.length) return; const best=h=>Math.max(0,...(h.sets||[]).map(z=>e1rm(+z.kg||0,+z.reps||0))); const b1=Math.max(...cur.map(best)), b0=best(old[0]); if(b1&&b0&&b1>b0*1.02) ups.push([e.name,Math.round(b1-b0)]); }));
+  ups.sort((a,b)=>b[1]-a[1]);
+  const ws=sortedEntries().filter(x=>x.weight&&inR(x.date)), w0=ws[0]&&+ws[0].weight, w1=ws.length&&+ws[ws.length-1].weight;
+  let logged=0, kc=0; for(let d=from;d<=to;d=shiftDate(d,1)){ const dd=dayDoc(d); if(dd&&dd.meals){ const k=Object.values(dd.meals).flat().reduce((a,b)=>a+(+b.kcal||0),0); if(k>500){ logged++; kc+=k; } } }
+  return {from,to,runs:runs.length,km:Math.round(km*10)/10,longest,bestPace,gym:gym.length,ups:ups.slice(0,4),w0,w1,logged,avgK:logged? Math.round(kc/logged) : null}; }
+function monthLines(M){ const L=[];
+  L.push(["🏃",`Corsa: ${M.runs} uscite, ${fmt(M.km)} km${M.longest? `, la più lunga ${fmt(M.longest)} km` : ""}${M.bestPace? `, ritmo migliore ${paceTxt(M.bestPace.p)}/km su ${fmt(M.bestPace.km)} km` : ""}.`]);
+  L.push(["🏋️",`Palestra: ${M.gym} sedute.`+(M.ups.length? " Progressi: "+M.ups.map(u=>`${u[0]} +${u[1]} kg di massimale stimato`).join(", ")+"." : "")]);
+  if(M.w0&&M.w1) L.push(["⚖️",`Peso: da ${fmt(M.w0)} a ${fmt(M.w1)} kg (${M.w1-M.w0>=0?"+":""}${fmt(Math.round((M.w1-M.w0)*10)/10)} kg).`]);
+  L.push(["🍽️",`Alimentazione registrata ${M.logged} giorni${M.avgK? `, in media ${M.avgK} kcal` : ""}.`]);
+  return L; }
+function renderMonthCard(){ const card=$("monthCard"); if(!card) return; const t=todayISO(), dd=+t.slice(8,10); card.hidden=true; if(view!=="diario"||dd>5||state.date!==t) return;
+  const d1=new Date(t.slice(0,8)+"01T12:00:00"); d1.setMonth(d1.getMonth()-1); const from=todayISO(d1), to=shiftDate(t.slice(0,8)+"01",-1);
+  let seen=""; try{ seen=localStorage.getItem("hf:monthSeen")||""; }catch{} if(seen===from) return; const M=monthData(from,to); if(!M.runs&&!M.gym) return;
+  card.hidden=false; card.innerHTML=""; const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"🗓 Il tuo "+d1.toLocaleDateString("it-IT",{month:"long"}))); const x0=el("button","link","Chiudi"); x0.type="button"; x0.onclick=()=>{ try{ localStorage.setItem("hf:monthSeen",from); }catch{} card.hidden=true; }; hd.appendChild(x0); card.appendChild(hd);
+  monthLines(M).forEach(([ic,tx])=>{ const d=el("div","pline"); d.append(el("span","ic",ic), el("span",null,tx)); card.appendChild(d); });
+  if(sample){ const b=el("button","btn ghost","Parlane con il coach"); b.type="button"; b.style.marginTop="8px"; b.onclick=()=>{ go("allenamento"); setW("chat"); $("chatIn").value="Ecco il mio mese: "+monthLines(M).map(x=>x[1]).join(" ")+" Com'è andata e cosa cambio il mese prossimo?"; }; card.appendChild(b); } }
+/* ===== fastidi e dolori: zona, intensità 1-10 giorno per giorno ===== */
+let pains={list:[]};
+const PAIN_Z=["Ginocchio destro","Ginocchio sinistro","Caviglia destra","Caviglia sinistra","Tendine d'Achille","Tibia (periostite)","Polpaccio","Pianta del piede","Anca / bandelletta","Coscia dietro (femorali)","Inguine","Schiena bassa","Collo","Spalla destra","Spalla sinistra","Gomito","Polso","Altro"];
+function painActive(){ return (pains.list||[]).filter(x=>!x.closed); }
+function painLast(x){ const ks=Object.keys(x.log||{}).sort(); return ks.length? {d:ks[ks.length-1],v:x.log[ks[ks.length-1]]} : null; }
+function painTrend(x){ const ks=Object.keys(x.log||{}).sort(); if(ks.length<2) return 0; const a=x.log[ks[Math.max(0,ks.length-3)]], b=x.log[ks[ks.length-1]]; return b-a; }
+function painText(){ const A=painActive(); if(!A.length) return ""; return "FASTIDI IN CORSO (adatta allenamenti ed esercizi, niente che li carichi; se intensità ≥6 o in peggioramento consiglia di fermarsi e sentire un medico o un fisioterapista): "+A.map(x=>{ const l=painLast(x), t=painTrend(x), days=Math.round((new Date(todayISO()+"T12:00:00")-new Date(x.start+"T12:00:00"))/864e5);
+  return `${x.zone} ${l? l.v : "?"}/10 (da ${days} giorni${t>=2? ", in peggioramento" : t<=-2? ", in miglioramento" : ""}${l&&l.d!==todayISO()? ", ultimo valore del "+l.d : ""})`; }).join("; ")+"."; }
+function savePains(){ save("pains",pains); }
+function renderPains(){ const box=$("painList"); if(!box) return; box.innerHTML=""; const sel=$("painZone"); if(!sel.options.length) PAIN_Z.forEach(z=>{ const o=el("option",null,z); o.value=z; sel.appendChild(o); });
+  const A=painActive(); if(!A.length) box.appendChild(el("p","note","Nessun fastidio segnato 👍"));
+  A.forEach(x=>{ const l=painLast(x), t=painTrend(x), r0=el("div","pain-row"); const today=x.log&&x.log[todayISO()];
+    r0.innerHTML=`<div><b></b><small></small></div><div class="pain-b"></div>`; r0.querySelector("b").textContent=x.zone;
+    r0.querySelector("small").textContent=`${l? l.v+"/10" : ""}${t>=2? " ↗ peggiora" : t<=-2? " ↘ migliora" : ""} · da ${dateLong(x.start)}`;
+    const bb=r0.querySelector(".pain-b"); [["Oggi",null]].forEach(()=>{ const inp=document.createElement("input"); inp.type="number"; inp.min=0; inp.max=10; inp.className="field"; inp.style.width="64px"; inp.placeholder="oggi"; inp.value= today!=null? today : ""; inp.setAttribute("aria-label","Quanto oggi da 0 a 10");
+      inp.onchange=()=>{ const v=Math.max(0,Math.min(10,Math.round(+inp.value))); if(isNaN(v)) return; x.log=x.log||{}; x.log[todayISO()]=v; if(v===0) x.closed=todayISO(); savePains(); renderPains(); try{ renderPainWarn(); }catch{} toast(v===0? "Bene, fastidio passato ✓" : "Segnato ✓"); }; bb.appendChild(inp); });
+    const ok=el("button","linkbtn","Passato"); ok.type="button"; ok.onclick=()=>{ x.closed=todayISO(); savePains(); renderPains(); toast("Fastidio chiuso ✓"); }; bb.appendChild(ok); box.appendChild(r0); }); }
+$("painLv").oninput=()=>{ $("painLvT").textContent=$("painLv").value; };
+$("painAdd").onclick=()=>{ const z=$("painZone").value, v=+$("painLv").value; let x=painActive().find(y=>y.zone===z);
+  if(!x){ x={id:uid(),zone:z,start:todayISO(),log:{}}; pains.list=[...(pains.list||[]),x].slice(-40); } x.log[todayISO()]=v; savePains(); renderPains(); try{ renderPainWarn(); }catch{}
+  toast(v>=6? "Segnato. Con un dolore così forte oggi riposa e, se non passa in pochi giorni, senti un medico o un fisioterapista." : "Segnato: il coach ne tiene conto ✓"); };
+function renderPainWarn(){ const card=$("painWarnCard"); if(!card) return; const bad=painActive().filter(x=>{ const l=painLast(x); return l&&(l.v>=6||painTrend(x)>=2||(l.v>=3&&x.start<=shiftDate(todayISO(),-10))); });
+  let seen=""; try{ seen=localStorage.getItem("hf:painSeen")||""; }catch{}
+  const show= view==="diario"&&state.date===todayISO()&&bad.length&&seen!==todayISO(); card.hidden=!show; if(!show) return; card.innerHTML="";
+  const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"🩹 Attenzione al fastidio")); const x0=el("button","link","Chiudi"); x0.type="button"; x0.onclick=()=>{ try{ localStorage.setItem("hf:painSeen",todayISO()); }catch{} card.hidden=true; }; hd.appendChild(x0); card.appendChild(hd);
+  bad.forEach(x=>{ const l=painLast(x), long=x.start<=shiftDate(todayISO(),-10); card.appendChild(el("p","note",`${x.zone}: ${l.v}/10${painTrend(x)>=2? ", sta peggiorando" : ""}${long? `, dura da più di 10 giorni` : ""}. ${l.v>=6||painTrend(x)>=2? "Oggi niente corsa o esercizi che lo caricano." : "Tieni leggero quello che lo carica."} Se non migliora in pochi giorni fatti vedere da un medico o da un fisioterapista.`)); });
+  if(sample){ const b=el("button","btn ghost","Chiedi al coach come adattare"); b.type="button"; b.onclick=()=>{ go("allenamento"); setW("chat"); $("chatIn").value=`Ho questo fastidio: ${bad.map(x=>x.zone+" "+painLast(x).v+"/10").join(", ")}. Come adatto gli allenamenti dei prossimi giorni?`; }; card.appendChild(b); } }
+/* ===== integratori di oggi (dal Profilo): spunte nel Diario ===== */
+function suppToday(){ const p=state.profile||{}, L=(p.supplements||[]).filter(x=>x&&x.name); if(!L.length) return [];
+  let pl=null; try{ pl=dayPlanFor(new Date(state.date+"T12:00:00").getDay(),state.date); }catch{} const train= pl&&pl.kind!=="rest";
+  return L.filter(x=>!["allenamento","pre","post"].includes(x.when)||train); }
+function renderSuppCard(){ const card=$("suppCard"); if(!card) return; const L=suppToday(); card.hidden= view!=="diario"||!L.length; if(card.hidden) return; card.innerHTML="";
+  const done=state.day.supp||{}; const n=L.filter(x=>done[x.name]).length;
+  const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"💊 Integratori di oggi")); hd.appendChild(el("span","note",`${n}/${L.length}`)); card.appendChild(hd);
+  const W=Object.fromEntries(SUPP_WHEN);
+  L.forEach(x=>{ const lab=el("label","chk"); lab.style.cssText="display:flex;gap:10px;align-items:center;margin:6px 0"; const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!done[x.name];
+    cb.onchange=()=>{ state.day.supp={...(state.day.supp||{})}; if(cb.checked) state.day.supp[x.name]=1; else delete state.day.supp[x.name]; saveDay(); renderSuppCard(); };
+    const t=el("span"); t.textContent=`${x.name}${x.dose? " · "+x.dose : ""} · ${(W[x.when]||"").toLowerCase()}`; lab.append(cb,t); card.appendChild(lab); }); }
+/* ===== stasera a letto: ora consigliata in base all'allenamento di domani ===== */
+function wakeTime(){ try{ return localStorage.getItem("hf:wake")||"07:00"; }catch{ return "07:00"; } }
+function nightPlan(){ const today=todayISO(), nx=shiftDate(today,1); let pl=null; try{ pl=dayPlanFor(new Date(nx+"T12:00:00").getDay(),nx); }catch{}
+  const hm=String(pl&&pl.when||"").match(/(\d{1,2})[:.](\d{2})/), st= hm? +hm[1]*60+ +hm[2] : null;
+  let wake=wakeTime().split(":").map(Number), wk=wake[0]*60+(wake[1]||0), why="";
+  if(st!=null&&st<=10*60){ const need=st-60; if(need<wk){ wk=need; why=` (domani ${pl.label.toLowerCase()} alle ${hm[1]}:${hm[2]}: sveglia un'ora prima)`; } }
+  const big= pl&&(pl.key||/lungo|gara/i.test(pl.label)), hours= big? 8.5 : pl&&pl.kind!=="rest"? 8 : 7.5;
+  let bed=wk-hours*60-15; bed=(bed+1440)%1440; const f=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(Math.round(m%60)).padStart(2,"0");
+  return {bed:f(bed),wake:f(wk),hours,why,pl,big}; }
+function nightText(){ try{ const n=nightPlan(); return `SONNO STANOTTE: a letto entro le ${n.bed} per dormire circa ${String(n.hours).replace(".",",")} ore, sveglia alle ${n.wake}${n.why}.`; }catch{ return ""; } }
+function renderNightCard(){ const card=$("nightCard"); if(!card) return; const h=+romeNow().time.slice(0,2); let seen=""; try{ seen=localStorage.getItem("hf:nightSeen")||""; }catch{}
+  const show= view==="diario"&&state.date===todayISO()&&h>=17&&seen!==todayISO(); card.hidden=!show; if(!show) return; const n=nightPlan(); card.innerHTML="";
+  const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"🌙 Stasera")); const x0=el("button","link","Chiudi"); x0.type="button"; x0.onclick=()=>{ try{ localStorage.setItem("hf:nightSeen",todayISO()); }catch{} card.hidden=true; }; hd.appendChild(x0); card.appendChild(hd);
+  card.appendChild(el("p",null,`A letto entro le ${n.bed}: così dormi circa ${String(n.hours).replace(".",",")} ore e ti svegli alle ${n.wake}${n.why}.`));
+  card.appendChild(el("p","note", n.big? "Domani c'è un allenamento importante: cena con carboidrati, niente alcol, schermi spenti mezz'ora prima." : n.pl&&n.pl.kind!=="rest"? "Domani ti alleni: dormire bene vale quanto l'allenamento." : "Domani è riposo: buona occasione per recuperare sonno."));
+  const row=el("label","note"); row.style.cssText="display:flex;gap:8px;align-items:center"; row.appendChild(document.createTextNode("Di solito mi sveglio alle")); const i=document.createElement("input"); i.type="time"; i.className="field"; i.style.width="110px"; i.value=wakeTime(); i.onchange=()=>{ try{ localStorage.setItem("hf:wake",i.value||"07:00"); }catch{} renderNightCard(); }; row.appendChild(i); card.appendChild(row); }
+/* ===== settimana di scarico: ogni 4-6 settimane, se i segnali lo dicono ===== */
+function deloadGet(){ try{ return JSON.parse(localStorage.getItem("hf:deload")||"{}")||{}; }catch{ return {}; } }
+function deloadOn(iso){ const d=deloadGet(); return !!d.week&&d.week===mondayOf(iso||todayISO()); }
+function deloadSignals(){ const out=[]; let r0=null; try{ r0=recoveryNow(); }catch{}
+  if(r0&&r0.tsb<-20) out.push(`fatica accumulata alta (freschezza ${Math.round(r0.tsb)})`);
+  try{ const f=fatigueNow(); if(f.level>=2) out.push("battito a riposo o sonno peggiorati"); }catch{}
+  try{ const a=activeProg(), pr=a&&a.pr; let st=0; const seen=new Set(); (pr&&pr.days||[]).forEach(d=>(d.exercises||[]).forEach(x=>{ if(seen.has(x.name)) return; seen.add(x.name); const g=progFor(x); if(g&&g.kind==="down") st++; })); if(st>=2) out.push(`${st} esercizi fermi da 3 sedute`); }catch{}
+  try{ const t=tlog.sessions.filter(s=>s.date>=shiftDate(todayISO(),-14)); const eff=t.flatMap(s=>(s.exercises||[]).map(x=>x.eff)).filter(Boolean); if(eff.length>=6&&eff.filter(e=>e==="h").length/eff.length>=0.5) out.push("metà degli esercizi recenti al limite"); }catch{}
+  return out; }
+function deloadDue(){ const d=deloadGet(), last=d.week||d.skip||"", first=(tlog.sessions[0]||{}).date||todayISO();
+  const since=Math.floor((new Date(mondayOf(todayISO())+"T12:00:00")-new Date(mondayOf(last||first)+"T12:00:00"))/(7*864e5));
+  if(deloadOn()) return null; const sig=deloadSignals(); if(since>=4&&sig.length) return {since,sig}; if(since>=6&&tlog.sessions.filter(s=>s.date>=shiftDate(todayISO(),-28)).length>=8) return {since,sig:["sono passate "+since+" settimane dall'ultimo scarico"]}; return null; }
+function deloadText(){ return deloadOn()? "SETTIMANA DI SCARICO IN CORSO (decisa dalla persona): palestra con una serie in meno e carichi -10%, corse più corte (circa -25%) e senza lavori duri, salvo quanto previsto dal piano gara." : ""; }
+function renderDeloadCard(){ const card=$("deloadCard"); if(!card) return; card.hidden=true; if(view!=="diario"||state.date!==todayISO()) return; card.innerHTML="";
+  if(deloadOn()){ card.hidden=false; const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"🔋 Settimana di scarico")); card.appendChild(hd);
+    card.appendChild(el("p","note","Questa settimana: in palestra una serie in meno per esercizio e carichi un po' più bassi (li preparo io in seduta), corse più corte di circa un quarto e senza ripetute. La settimana dopo riparti più forte."));
+    const b=el("button","linkbtn","Annulla lo scarico"); b.type="button"; b.onclick=()=>{ localStorage.setItem("hf:deload",JSON.stringify({skip:mondayOf(todayISO())})); renderDeloadCard(); toast("Scarico annullato"); }; card.appendChild(b); return; }
+  const due=deloadDue(); let seen=""; try{ seen=localStorage.getItem("hf:deloadSeen")||""; }catch{} if(!due||seen===mondayOf(todayISO())) return;
+  card.hidden=false; const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"🔋 Ti serve una settimana di scarico?")); const x0=el("button","link","Più tardi"); x0.type="button"; x0.onclick=()=>{ try{ localStorage.setItem("hf:deloadSeen",mondayOf(todayISO())); }catch{} card.hidden=true; }; hd.appendChild(x0); card.appendChild(hd);
+  card.appendChild(el("p","note",`Ho visto: ${due.sig.join(", ")}. Una settimana più leggera adesso ti fa recuperare e poi salire meglio.`));
+  try{ if(race&&race.plan) card.appendChild(el("p","note","Hai il piano gara: lo scarico vale per la palestra, le corse seguono il piano (che ha già le sue settimane leggere).")); }catch{}
+  const b=el("button","btn ghost","Sì, fai lo scarico questa settimana"); b.type="button"; b.onclick=()=>{ localStorage.setItem("hf:deload",JSON.stringify({week:mondayOf(todayISO())})); renderDeloadCard(); toast("Settimana di scarico attiva 🔋"); }; card.appendChild(b); }
 /* ===== controllo della fatica: battito a riposo del mattino sopra il solito e sonno scarso ===== */
 function fatigueNow(){ const out={signs:[],level:0}; const today=todayISO();
   try{ const Dm=JSON.parse(localStorage.getItem("hf:rhrDay")||"{}"), ks=Object.keys(Dm).sort();
@@ -9036,6 +9190,8 @@ function renderFuelCard(){ const card=$("fuelCard"); if(!card) return; const iso
   const L=[];
   if(H!=null&&H<9.5) L.push(["🌅","Prima: corri presto. "+(long||hard? `Mangia 30-60 minuti prima qualcosa di facile, circa ${Math.round(carbPre/2/5)*5} g di carboidrati (una banana o 2-3 fette biscottate con miele), poco grasso e poche fibre.` : "Una corsa così si può fare anche a digiuno; se hai fame basta una banana.")]);
   else L.push(["⏱",`Prima: ${before? "nel pasto «"+before.name+"» ("+(H-before.h<2? "circa un'ora e mezza" : "2-3 ore")+" prima) " : "2-3 ore prima "}circa ${carbPre} g di carboidrati facili (pane, riso, pasta, frutta), poche fibre e pochi grassi. Se hai fame 30-60 minuti prima, una banana.`]);
+  if(long){ const g=Math.round(w*1.3/10)*10; L.push(["🍳",`Idee veloci prima del lungo: pasta al pomodoro (${g} g) con un filo d'olio e parmigiano · riso in bianco (${g} g) con un po' di pollo · 2 fette di pane con miele e una banana (se mancano meno di 2 ore) · porridge con ${Math.round(w*0.8/10)*10} g di avena, latte e miele.`]);
+    L.push(["🥗",`Dopo il lungo: piatto unico di riso o pasta (${g} g) con tonno, pollo o uova e verdure, oppure yogurt greco, banana e un panino al prosciutto se hai poco tempo.`]); }
   if(long) L.push(["🍝","Il giorno prima: cena con un buon piatto di carboidrati (l'app li ha già aggiunti nel giorno prima del lungo). Durante: i gel come da scheda della corsa."]);
   L.push(["💧","Bevi 400-500 ml d'acqua nelle 2 ore prima, e dopo la corsa 500-750 ml (di più se hai sudato molto)."]);
   L.push(["🥛",`Dopo: entro un'ora ${protPost} g di proteine e circa ${carbPost} g di carboidrati${after&&after.h-(H+(pl.minutes||45)/60)<=1.5? " (va bene il pasto «"+after.name+"»)" : ": per esempio uno yogurt greco con una banana e un po' di miele, o un panino con prosciutto"}.`]);
@@ -9054,7 +9210,7 @@ function renderWeekCard(){ const card=$("weekCard"); if(!card) return; const tod
   card.appendChild(cb);
   if(sample){ const ask=el("button","btn ghost","Parlane con il coach"); ask.type="button"; ask.style.marginTop="8px";
     ask.onclick=()=>{ go("allenamento"); setW("chat"); $("chatIn").value="Guardiamo insieme la settimana scorsa: "+weekLines(D).map(x0=>x0[1]).join(" ")+" Cosa cambio questa settimana?"; }; card.appendChild(ask); } }
-function renderProgress(){ try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); }
+function renderProgress(){ try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); }catch(e){ console.warn("schede diario",e); }
   const card=$("progCard"); if(!card) return; card.hidden=!state.profile||!goalOf(state.profile);
   const pg=progress, box=$("pgLines"); box.innerHTML=""; $("pgGo").disabled=!sample||progBusy;
   if(!pg){ $("pgPill").className="pill na"; $("pgPill").textContent="calcolo…"; return; }
@@ -10439,7 +10595,7 @@ $("dBody").onclick=()=>go("corpo");
 function renderAll(){ document.body.classList.toggle("home",view==="diario"); try{ csTabs(); }catch{} try{ if(view==="allenamento"&&!$("w-chat").hidden&&document.activeElement&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) renderCoachSetup(); }catch{} if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
  if(view==="profilo"){ try{ if(psCur) closePset(); else renderPfList(); }catch(e){ console.warn("profilo lista",e); } }
  if(view==="profilo"&&HCP()){ try{ hcRenderState(); }catch{} }
- if(view==="attivita"){ try{ renderSleep(); const r0=recoveryNow(); $("csRowSub").textContent=`Recupero ${r0.lvl[0].toLowerCase()} (${r0.score}/100) · record, forma, zone, scarpe`; }catch(e){ console.warn("sonno",e); } }
+ if(view==="attivita"){ try{ renderPains(); }catch(e){ console.warn("fastidi",e); } try{ renderSleep(); const r0=recoveryNow(); $("csRowSub").textContent=`Recupero ${r0.lvl[0].toLowerCase()} (${r0.score}/100) · record, forma, zone, scarpe`; }catch(e){ console.warn("sonno",e); } }
  if(view==="corsa"){ try{ renderCorsa(); }catch(e){ console.warn("corsa",e); } } if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento"||view==="attivita") renderWorkouts(); if(view==="corpo") renderBody(); }
 renderAll();
 async function loadAll(){
@@ -10447,6 +10603,8 @@ async function loadAll(){
   const hl=await store.getDoc("homeLayout"); applyHomeOrder(hl&&hl.order);
   try{ const rr=await store.getDoc("recipes"); if(rr&&Array.isArray(rr.list)) recipes=rr; }catch{}
   try{ const sh=await store.getDoc("shoes"); if(sh&&Array.isArray(sh.list)) shoes=sh; }catch{}
+  try{ const bp0=await store.getDoc("bphotos"); if(bp0&&Array.isArray(bp0.list)) bphotos=bp0; }catch{}
+  try{ const pn0=await store.getDoc("pains"); if(pn0&&Array.isArray(pn0.list)) pains=pn0; }catch{}
   try{ const gd=await store.getDoc("gels"); if(gd&&Array.isArray(gd.list)) gels=gd; }catch{}
   try{ const wr=await store.getDoc("weekReview"); if(wr&&wr.from) weekRev=wr; }catch{}
   setTimeout(()=>{ autoBackup(false).catch(()=>{}); try{ renderBkAuto(); }catch{} },20000);
