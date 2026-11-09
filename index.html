@@ -1821,6 +1821,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn" id="csGen" type="button">Genera la scheda</button>
       <div class="status" id="csStatus" aria-live="polite"></div>
     </section>
+    <button class="card raceRow" id="csMemRow" type="button" hidden aria-expanded="false"><span class="mi">📌</span><span class="mt"><b>Cosa ricorda il coach</b><span class="ms" id="csMemSub"></span></span><span class="chev">›</span></button>
     <section class="card" id="csMemCard" hidden>
       <h2>📌 Cosa ricorda il coach</h2>
       <p class="sub">Le cose che gli hai detto e che deve rispettare sempre, anche se fai «Nuova chat». Tocca ✕ per toglierne una.</p>
@@ -2383,7 +2384,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.59 («Cosa fare» in «Verso il tuo obiettivo»)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.60 («Cosa ricorda il coach» come riga da aprire)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6926,7 +6927,12 @@ function renderCoachSetup(){ if(!$("csSports")) return; csGet();
 document.querySelector('#csGoalCard .cs-hd').onclick=()=>{ const c=$("csGoalCard"), op=!c.classList.contains("open"); c.classList.toggle("open",op); if(op) csOpen.add("goal"); else csOpen.delete("goal"); };
 $("csGoalEdit").onclick=()=>{ try{ fillProfile(); }catch(e){ console.warn("profilo",e); } openPset("obiettivo","Il tuo obiettivo","goal"); };
 $("csSpec").onchange=()=>{ csGet().spec=$("csSpec").value.trim(); csSave(); };
-function renderCsMem(){ const m=(chat&&chat.mem)||[], box=$("csMem"); $("csMemCard").hidden=!m.length; box.innerHTML="";
+let csMemOpen=false;
+function renderCsMem(){ const m=(chat&&chat.mem)||[], box=$("csMem"), row=$("csMemRow"); if(!m.length) csMemOpen=false;
+  if(row){ row.hidden=!m.length; row.setAttribute("aria-expanded",String(csMemOpen)); const ch=row.querySelector(".chev"); if(ch) ch.style.transform= csMemOpen? "rotate(90deg)" : "";
+    $("csMemSub").textContent= m.length? `${m.length} ${m.length===1?"cosa":"cose"} · ${m.slice(0,3).map(x=>x.t.length>28? x.t.slice(0,26)+"…" : x.t).join(" · ")}` : "";
+    if(!row._b){ row._b=true; row.onclick=()=>{ csMemOpen=!csMemOpen; renderCsMem(); }; } }
+  $("csMemCard").hidden=!m.length||!csMemOpen; box.innerHTML="";
   m.forEach((x,i)=>{ const r0=el("div","cs-mem"); r0.appendChild(el("span",null,x.t)); const b=el("button",null,"✕"); b.type="button"; b.setAttribute("aria-label","Dimentica");
     b.onclick=()=>{ chat.mem.splice(i,1); save("coach",chat); renderCsMem(); }; r0.appendChild(b); box.appendChild(r0); }); }
 function memText(){ const m=(chat&&chat.mem)||[]; return m.length? "COSE CHE LA PERSONA TI HA DETTO E CHE DEVI SEMPRE RISPETTARE (memoria del coach):\n"+m.map(x=>"- "+x.t).join("\n") : ""; }
