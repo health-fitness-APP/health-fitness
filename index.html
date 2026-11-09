@@ -2336,7 +2336,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.41 (passi, sonno e peso si aggiornano senza avvisi)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.42 (sincronizzazione con Samsung Health senza avvisi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5287,7 +5287,6 @@ async function hcAutoFix(){ const H=HCP(); if(!H||localStorage.getItem("hf:hcOn"
     try{ await H.requestAuthorization({read:hcReadTypes(),write:["weight","bodyFat"],requestHistoryAccess:true}); }catch{}
     const st2=await H.checkAuthorization({read:hcReadTypes(),write:["weight","bodyFat"]}); const no2=(st2&&st2.readDenied)||[];
     if(no2.length&&H.openHealthConnectSettings){ toast("Mancano ancora dei permessi: in Health Connect apri HealthFit e attiva «Consenti tutto»"); setTimeout(()=>H.openHealthConnectSettings().catch(()=>{}),1500); }
-    else if(!no2.length) toast("Permessi di Health Connect a posto ✓ Sincronizzo…");
     try{ hcRenderState(); }catch{}
   }catch(e){ console.warn("hc permessi",e); } }
 async function hcConnect(){ const H=HCP(); if(!H) return;
@@ -5414,7 +5413,7 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
     let runLine=""; if(manual){ if(!HCW()) runLine=" · Per tempo e distanza esatti delle corse aggiorna l’APK all’ultima versione.";
       else { try{ const d=JSON.parse(localStorage.getItem("hf:hcRunDiag")||"[]").pop(); if(d) runLine=` · Ultima corsa letta: ${d.tempo} (da ${d.tempoDa}), ${String(d.km).replace(".",",")} km (da ${d.fonte}), ${d.kcal} kcal (da ${d.kcalDa}).`; }catch{} } }
     setStatus("hcStatus",`Ultima sincronizzazione alle ${t}`+(msgs.length? ": "+msgs.join(", ") : ": niente di nuovo")+runLine);
-    { const wm=msgs.filter(m=>/allenament/.test(m)&&!/corrett/.test(m)); if(wm.length&&!manual) toast("Da Samsung Health: "+wm.join(", ")); }   // passi, sonno e pesate si aggiornano in silenzio
+    // sincronizzazione automatica sempre in silenzio (richiesta di Daniele): l'esito resta scritto in Dispositivi collegati
     if(msgs.length) renderAll();
   }catch(e){ setStatus("hcStatus","Errore nella sincronizzazione: "+((e&&e.message)||e),true); }
   finally{ hcBusy=false; } }
