@@ -2338,7 +2338,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.47 (dieta, scheda e piano gara col modello Pro di Gemini)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.48 (foto dei pasti e chat del coach più precise col piano a pagamento)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2696,7 +2696,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     return {code:"api_"+status,message:msg.slice(0,160)}; }
   const noThink=new Set((LS("noThink")||"").split(",").filter(Boolean));
   const paid=()=>LS("keyTier")==="paid";
-  function thinkCfg(model,deep){
+  function thinkCfg(model,deep,light){
+    if(light&&!deep){ if(/2\.5-flash/.test(model)) return {thinkingBudget:1024}; if(/gemini-[3-9]/.test(model)&&!noThink.has(model)) return {thinkingLevel:"low"}; }
     if(deep){ if(/pro/.test(model)) return /gemini-[3-9]/.test(model)? {thinkingLevel:"high"} : {thinkingBudget:8192};
       if(/2\.5-flash/.test(model)) return {thinkingBudget:4096}; if(/gemini-[3-9]/.test(model)) return {thinkingLevel:"medium"}; if(/2\.5-pro/.test(model)) return {thinkingBudget:4096}; }
     if(noThink.has(model)) return null;
@@ -2709,8 +2710,9 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   async function once(model,key,contents,json,signal,tmo){ const ts=Date.now(); try{ const out=await once0(model,key,contents,json,signal,tmo); window.HF_TRACE.push({m:model,ms:Date.now()-ts,ok:true}); return out; }catch(e){ window.HF_TRACE.push({m:model,ms:Date.now()-ts,ok:false,code:e&&e.code}); throw e; } }
   async function once0(model,key,contents,json,signal,tmo,noDeep){
     const deep=once.deep&&!noDeep;   // piano a pagamento: il modello "ragiona" prima di rispondere sui lavori importanti
-    const tc=thinkCfg(model,deep);
-    const mt=once.maxTokens? once.maxTokens+(deep?8192:0) : 0;
+    const light=once.light&&!noDeep&&!deep;   // piano a pagamento: foto e chat con un ragionamento leggero
+    const tc=thinkCfg(model,deep,light);
+    const mt=once.maxTokens? once.maxTokens+(deep?8192:light?2048:0) : 0;
     const gc={temperature:json?0.3:0.7,...(json?{responseMimeType:"application/json"}:{}),...(tc?{thinkingConfig:tc}:{}),...(mt?{maxOutputTokens:mt}:{})};
     const ctl=new AbortController(), t=setTimeout(()=>ctl.abort("timeout"),deep? Math.max(tmo||0,90000) : (tmo||35000));
     if(signal) signal.addEventListener("abort",()=>ctl.abort("user"),{once:true});
@@ -2721,7 +2723,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     const data=await res.json().catch(()=>null);
     if(!res.ok){
       const msg=(data&&data.error&&data.error.message)||"";
-      if(deep&&res.status===400&&/think/i.test(msg)) return once0(model,key,contents,json,signal,tmo,true);
+      if((deep||light)&&res.status===400&&/think/i.test(msg)) return once0(model,key,contents,json,signal,tmo,true);
       if(res.status===400&&tc&&tc.thinkingLevel&&/think/i.test(msg)&&tc.thinkingLevel!=="low"){ try{ localStorage.setItem("hf:thinkLv:"+model,"low"); }catch{} return once0(model,key,contents,json,signal,tmo); }
       if(res.status===400&&tc&&/think/i.test(msg)){ noThink.add(model); try{ localStorage.setItem("hf:noThink",[...noThink].join(",")); }catch{} return once0(model,key,contents,json,signal,tmo); }
       const e=err(res.status,data); if([500,502,503,504].includes(res.status)||e.code==="rate_limited") e.retry=true; throw e;
@@ -2820,7 +2822,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     if(LS("groqKey")){ status(LS("orKey")? "Provo con Groq…" : "Gemini è sovraccarico: passo a Groq…"); try{ return await groqOnce(contents,json,opts); }catch(e){ lastErr=e; } }
     for(const m of reserveModels(chain)){
       status("I modelli scelti sono sovraccarichi: provo con "+m.replace("gemini-","")+"…");
-      try{ once.deep=false; const t=await once(m,key,contents,json,opts.signal,20000); try{ localStorage.setItem("hf:lastReserve",m); }catch{} return t; }
+      try{ once.deep=false; once.light=false; const t=await once(m,key,contents,json,opts.signal,20000); try{ localStorage.setItem("hf:lastReserve",m); }catch{} return t; }
       catch(e){ lastErr=e; if(e&&/404/.test(String(e.code))){ const d=(LS("deadModels")||"").split(",").filter(Boolean); if(!d.includes(m)){ d.push(m); try{ localStorage.setItem("hf:deadModels",d.join(",")); }catch{} } } }
     }
     throw lastErr;
@@ -2838,7 +2840,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   async function call(input,opts={},json=false){
     const key=LS("apiKey"); if(!key) throw {code:"no_key"};
     const main=LS("mMain")||"gemini-2.5-flash", quick=LS("mQuick")||main;
-    const first = opts.modelTier==="quick"? quick : main;
+    const hasImgs=!!(opts.images&&opts.images.length);
+    const first = (opts.modelTier==="quick" && !(paid()&&hasImgs))? quick : main;   // a pagamento le foto le legge il modello principale
     const chain=[first, first===main? quick : main].filter((m,i,a)=>m&&a.indexOf(m)===i);
     let msgs = typeof input==="string"? [{role:"user",content:input}] : input.map(m=>({role:m.role,content:String(m.content)}));
     const contents=msgs.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]}));
@@ -2848,9 +2851,10 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     once.maxTokens=opts.maxTokens||0;
     // lavori importanti (diete, schede, piani, analisi: JSON senza foto, modello principale) → più ragionamento se la chiave è a pagamento
     const deepCall= paid() && json && opts.modelTier!=="quick" && !(opts.images&&opts.images.length) && !opts.fast; once.deep=deepCall;
+    const lightCall= paid() && !deepCall && (hasImgs || !json); once.light=lightCall;
     // piani importanti (dieta, scheda palestra, piano gara) col modello Pro, solo con la chiave a pagamento; se non va, si prosegue con Flash
     if(opts.pro&&deepCall&&USE_PRO){ const pm=await proModel(key);
-      if(pm){ try{ status("Il coach esperto sta preparando il piano (può volerci un minuto)…"); once.maxTokens=opts.maxTokens||0; once.deep=true;
+      if(pm){ try{ status("Il coach esperto sta preparando il piano (può volerci un minuto)…"); once.maxTokens=opts.maxTokens||0; once.deep=true; once.light=false;
           const text=await once(pm,key,contents,json,opts.signal,180000); if(opts.onText) opts.onText({text,done:true}); return text; }
         catch(e){ if(e&&e.code==="cancelled") throw e; if(e&&/404/.test(String(e.code))) try{ localStorage.removeItem("hf:proModel"); }catch{}
           status("Il modello esperto non risponde: uso quello veloce…"); once.maxTokens=opts.maxTokens||0; once.deep=deepCall; } } }
@@ -2860,7 +2864,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
         let done=false, started=0, failed=0, tm=null; const ctls=[];
         const finishOk=(t,c)=>{ if(done) return; done=true; clearTimeout(tm); ctls.forEach(x=>{ if(x!==c) x.abort(); }); resolve(t); };
         const run=(model,retry)=>{ started++; const c=new AbortController(); ctls.push(c); if(opts.signal) opts.signal.addEventListener("abort",()=>c.abort(),{once:true});
-          (once.deep=false, once(model,key,contents,json,c.signal,14000)).then(t=>finishOk(t,c)).catch(async e=>{ if(done) return; lastErr=e;
+          (once.deep=false, once.light=lightCall, once(model,key,contents,json,c.signal,lightCall?25000:14000)).then(t=>finishOk(t,c)).catch(async e=>{ if(done) return; lastErr=e;
             if(e.code==="cancelled"&&opts.signal&&opts.signal.aborted){ done=true; reject(e); return; }
             if(!e.retry&&e.code!=="quota"){ done=true; clearTimeout(tm); ctls.forEach(x=>x.abort()); reject(e); return; }
             if(retry&&Date.now()-t0<30000&&e.code!=="quota"&&e.code!=="timeout"){ await sleep(700); if(!done){ started--; run(model,false); } return; }
@@ -2878,7 +2882,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     }
     for(let mi=0; mi<chain.length; mi++){
       for(let attempt=0; attempt<2; attempt++){
-        try{ once.maxTokens=opts.maxTokens||0; once.deep=deepCall; const text=await once(chain[mi],key,contents,json,opts.signal); try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{} if(opts.onText) opts.onText({text,done:true}); return text; }
+        try{ once.maxTokens=opts.maxTokens||0; once.deep=deepCall; once.light=lightCall; const text=await once(chain[mi],key,contents,json,opts.signal); try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{} if(opts.onText) opts.onText({text,done:true}); return text; }
         catch(e){
           lastErr=e; if(e.code==="quota"&&mi+1<chain.length){ status("Richieste esaurite su questo modello: provo con l'altro…"); break; }
           if(!e.retry) throw e;
