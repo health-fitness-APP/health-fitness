@@ -863,6 +863,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .raceRow{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;margin-bottom:10px;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
 .raceRow .mi{flex:none;width:44px;height:44px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.4rem}
 .grBox{padding:14px 16px;margin:-4px 0 10px}.grBox .two{margin-top:6px}.grBox .grOut{font-size:.95rem;margin:10px 0 4px}.grBox .grOut b{font-size:1.2rem}
+#progCard{padding:12px 14px}.pg-row{background:none;border:0;padding:0;margin:0;box-shadow:none}.pg-row .pill{display:inline-block;font-size:.72rem;padding:2px 8px;margin:3px 4px 0 0;vertical-align:middle}.pg-row .chev{transition:transform .2s}.pg-row[aria-expanded="true"] .chev{transform:rotate(90deg)}#pgBody{margin-top:10px}
 .raceRow .mt{flex:1;min-width:0;display:flex;flex-direction:column}.raceRow b{font-size:1.05rem}.raceRow .ms{font-size:.82rem;color:var(--muted)}.raceRow .chev{color:var(--muted);font-size:1.4rem}
 #rcDays .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
 .cs-sp{display:flex;flex-wrap:wrap;gap:14px 6px;justify-content:space-around;margin:6px 0 4px}
@@ -1332,11 +1333,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <section class="card" id="fuelCard" hidden></section>
   <section class="card" id="weekCard" hidden></section>
   <section class="card" id="progCard">
-    <div class="meal-head"><h2>Verso il tuo obiettivo</h2><span class="pill na" id="pgPill">…</span></div>
+    <button class="raceRow pg-row" id="pgRow" type="button" aria-expanded="false"><span class="mi">🎯</span><span class="mt"><b>Verso il tuo obiettivo</b><span class="ms"><span class="pill na" id="pgPill">…</span> <span id="pgSub">Sto calcolando…</span></span></span><span class="chev">›</span></button>
+    <div id="pgBody" hidden>
     <div id="pgLines"></div>
     <button class="btn ghost" id="pgGo" style="margin-top:12px">Analisi completa del coach</button>
     <div class="status" id="pgStatus" aria-live="polite"></div>
     <div id="pgOut"></div>
+    </div>
   </section>
   <section class="card" id="eventCard">
     <h2>Com'è la tua giornata?</h2>
@@ -2384,7 +2387,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.60 («Cosa ricorda il coach» come riga da aprire)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.61 («Verso il tuo obiettivo» come riga da aprire)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9384,8 +9387,9 @@ function progTips(wSt,kSt,pLow,tLow,pg,rg){ const T=[], gain=rg[0]>0, loss=rg[1]
   return T; }
 function renderProgress(){ try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); renderHidCard(); }catch(e){ console.warn("schede diario",e); }
   const card=$("progCard"); if(!card) return; card.hidden=!state.profile||!goalOf(state.profile);
+  { const rw=$("pgRow"); if(rw&&!rw._b){ rw._b=true; rw.onclick=()=>{ if(typeof editMode!=="undefined"&&editMode) return; const op=$("pgBody").hidden; $("pgBody").hidden=!op; rw.setAttribute("aria-expanded",String(op)); try{ localStorage.setItem("hf:pgOpen",op?"1":"0"); }catch{} }; let o=false; try{ o=localStorage.getItem("hf:pgOpen")==="1"; }catch{} $("pgBody").hidden=!o; rw.setAttribute("aria-expanded",String(o)); } }
   const pg=progress, box=$("pgLines"); box.innerHTML=""; $("pgGo").disabled=!sample||progBusy;
-  if(!pg){ $("pgPill").className="pill na"; $("pgPill").textContent="calcolo…"; return; }
+  if(!pg){ $("pgPill").className="pill na"; $("pgPill").textContent="calcolo…"; $("pgSub").textContent="Sto calcolando…"; return; }
   const g=state.profile.goal, rg=RANGE[g]||[-0.3,0.3]; let warn=0, known=0, wSt=0, kSt=0, pLow=0, tLow=0;
   const line=(ic,t)=>{ const d=el("div","pline"); d.append(el("span","ic",ic), el("span",null,t)); box.appendChild(d); };
   if(pg.weight){ known++; const pct=pg.weight.perWeek/pg.weight.last*100, ok=pct>=rg[0]&&pct<=rg[1]; if(!ok) warn++; wSt= ok? 0 : pct>rg[1]? 1 : -1;
@@ -9403,6 +9407,7 @@ function renderProgress(){ try{ renderWeekCard(); }catch(e){ console.warn("setti
   if(known<2){ pill.className="pill na"; pill.textContent="Servono più dati"; }
   else if(warn){ pill.className="pill warn"; pill.textContent="Da rivedere"; }
   else { pill.className="pill ok"; pill.textContent="In linea"; }
+  $("pgSub").textContent= known<2? "Servono più pesate e pasti registrati" : warn? `${warn} ${warn===1?"cosa":"cose"} da sistemare` : "Peso, calorie e allenamenti nella norma";
   renderCheck();
 }
 function progressDataText(){
