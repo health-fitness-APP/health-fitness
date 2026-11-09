@@ -2390,7 +2390,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.62 («▲ Chiudi» in fondo ai riquadri che si aprono)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.63 (dieta: obiettivo spiegato quando hai già mangiato tutto)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -4632,7 +4632,9 @@ function renderDietAI(){
     <div class="top"><span class="day"></span><span class="kind">${tt&&tt.train? (tt.kind==="run"?"🏃 ":"🏋️ ")+(tt.label||"giorno di allenamento")+(tt.when?" · "+tt.when:"") : "giorno di riposo"}</span></div>
     <div class="kc num">${r(t.kcal).toLocaleString("it-IT")} kcal<small>${eatenK? "nella giornata" : "nel piano"}</small></div>
     ${eatenK? `<div class="dnote">Già mangiato: <b>${r(eatenK).toLocaleString("it-IT")} kcal</b> · ancora da mangiare secondo il piano: <b>${r(Math.max(0,t.kcal-eatenK)).toLocaleString("it-IT")} kcal</b></div>` : ""}
-    ${tt? `<div class="dgoal ${Math.abs(t.kcal-tt.kcal)/tt.kcal<=0.03?"ok":"off"}">🎯 Obiettivo ${tt.live?"di oggi":"del giorno"}: <b>${r(tt.kcal).toLocaleString("it-IT")} kcal</b>${Math.abs(t.kcal-tt.kcal)/tt.kcal<=0.03? " ✓" : ` · ${t.kcal>tt.kcal?"il piano è sopra di":"al piano mancano"} ${r(Math.abs(t.kcal-tt.kcal))} kcal`}</div>` : ""}
+    ${tt? (()=>{ const allEaten= eatenK>0&&t.kcal-eatenK<1, gap=tt.kcal-t.kcal, ok=Math.abs(gap)/tt.kcal<=0.03;
+      if(allEaten&&!ok) return `<div class="dgoal ${Math.abs(gap)/tt.kcal<=0.1?"ok":"off"}">🎯 Obiettivo di oggi: <b>${r(tt.kcal).toLocaleString("it-IT")} kcal</b> · ${gap>0? `hai mangiato ${r(gap)} kcal in meno` : `hai mangiato ${r(-gap)} kcal in più`}</div><div class="dnote">${gap>0? `Il piano non è sbagliato: hai già fatto tutti i pasti, ma l'obiettivo durante la giornata è salito con i passi, l'allenamento e il carico per domani. ${gap>=150? `Se hai ancora fame, uno spuntino da circa ${r(Math.min(gap,350)/50)*50} kcal va bene (yogurt greco con miele, pane e marmellata o una banana con frutta secca).` : "Va bene così, la differenza è piccola."}` : "Nessun problema per un giorno: domani resta sul piano."}</div>`;
+      return `<div class="dgoal ${ok?"ok":"off"}">🎯 Obiettivo ${tt.live?"di oggi":"del giorno"}: <b>${r(tt.kcal).toLocaleString("it-IT")} kcal</b>${ok? " ✓" : ` · ${t.kcal>tt.kcal?"il piano è sopra di":"al piano mancano"} ${r(Math.abs(gap))} kcal`}</div>`; })() : ""}
     ${tt&&tt.live&&tt.burnReal&&Math.abs(tt.burnReal-tt.burnPlan)>=50? `<div class="dnote">Porzioni adattate all'allenamento che hai registrato oggi: +${tt.burnReal} kcal invece dei +${tt.burnPlan} previsti. Lo stesso obiettivo che vedi in Cibo.</div>` : ""}
     ${tt&&tt.pre? `<div class="dnote">🍝 +${tt.pre} kcal di carboidrati per arrivare carico domani (${String(tt.preLabel||"").replace(/</g,"")}): meglio a cena.</div>` : ""}
     ${tt&&tt.live&&Math.abs(t.kcal-tt.kcal)/tt.kcal>0.03&&sample? `<button class="btn ghost adtoday" type="button">Adatta i pasti di oggi all'obiettivo</button>` : ""}
