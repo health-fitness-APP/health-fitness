@@ -864,6 +864,18 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .grBox{padding:14px 16px;margin:-4px 0 10px}.grBox .two{margin-top:6px}.grBox .grOut{font-size:.95rem;margin:10px 0 4px}.grBox .grOut b{font-size:1.2rem}
 .raceRow .mt{flex:1;min-width:0;display:flex;flex-direction:column}.raceRow b{font-size:1.05rem}.raceRow .ms{font-size:.82rem;color:var(--muted)}.raceRow .chev{color:var(--muted);font-size:1.4rem}
 #rcDays .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
+.cs-sports .chip.on,.cs-days .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
+.cs-panel h2{display:flex;align-items:center;gap:8px}
+.cs-days{margin:4px 0 8px}
+.cs-race{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.cs-race>summary{font-weight:700;cursor:pointer;list-style:none}
+.cs-race>summary::-webkit-details-marker{display:none}
+.cs-race .card{margin-top:10px;padding:12px;background:var(--surface2)}
+.cs-mem{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
+.cs-mem:first-child{border-top:0}
+.cs-mem span{flex:1}
+.cs-mem button{border:0;background:none;font-size:1rem;color:var(--muted,#888)}
+
 .rc-verdict{font-weight:600;margin:0 0 10px}
 .rc-date{display:flex;gap:8px;align-items:center;position:relative}.rc-date .field{flex:1;min-width:0}
 .rc-date input[type=date]{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
@@ -1725,7 +1737,28 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </div>
 
   <div id="w-chat" hidden>
-    <section class="card">
+    <section class="card" id="csGoalCard">
+      <h2>🎯 Il tuo obiettivo</h2>
+      <div class="form">
+        <label>Obiettivo del fisico<select class="field" id="csGoal"></select></label>
+        <label>Obiettivo specifico (facoltativo)<input class="field" id="csSpec" placeholder="Es. 5 kg in meno, prime trazioni, 10 km sotto i 50 minuti"></label>
+      </div>
+      <p class="lab" style="margin:12px 0 6px">Cosa fai? Tocca le attività</p>
+      <div class="chips cs-sports" id="csSports"></div>
+    </section>
+    <div id="csPanels"></div>
+    <div id="csRaceBox" hidden></div>
+    <section class="card" id="csGenCard">
+      <p class="note" id="csGenNote" style="margin:0 0 8px"></p>
+      <button class="btn" id="csGen" type="button">Genera la scheda</button>
+      <div class="status" id="csStatus" aria-live="polite"></div>
+    </section>
+    <section class="card" id="csMemCard" hidden>
+      <h2>📌 Cosa ricorda il coach</h2>
+      <p class="sub">Le cose che gli hai detto e che deve rispettare sempre, anche se fai «Nuova chat». Tocca ✕ per toglierne una.</p>
+      <div id="csMem"></div>
+    </section>
+    <section class="card" id="chatCard">
       <div class="meal-head"><h2>Il tuo coach</h2><button class="link" id="chatNew">Nuova chat</button></div>
       <p class="sub">Raccontagli obiettivi, gare, dubbi. Puoi allegare foto (fisico, progressi, esercizi): conosce già il tuo profilo, il programma e gli allenamenti registrati.</p>
       <div class="chatlog" id="chatLog"></div>
@@ -1927,7 +1960,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 <main id="view-gara" hidden>
   <header class="cibo-top"><button class="icon-btn" id="raceBack" aria-label="Indietro">‹</button><h1>Allenatore gara</h1></header>
   <section class="card">
-    <h2>🏁 Il tuo obiettivo</h2>
+    <h2>🏁 La tua gara</h2>
     <div class="form">
       <div class="two"><label>Gara<select class="field" id="rcDist"><option value="5">5 km</option><option value="10">10 km</option><option value="21.0975">Mezza maratona</option><option value="42.195" selected>Maratona</option><option value="x">Altra distanza</option></select></label>
         <label>Data della gara<span class="rc-date"><input class="field" id="rcDateTxt" inputmode="numeric" placeholder="gg/mm/aaaa" maxlength="10" autocomplete="off"><button class="icon-btn" type="button" id="rcDateBtn" aria-label="Scegli dal calendario">📅</button><input type="date" id="rcDate" tabindex="-1" aria-hidden="true"></span></label></div>
@@ -2259,7 +2292,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.30 (il coach unisce palestra e corsa: niente gambe pesanti prima delle corse dure)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.31 (Coach: obiettivo, attività e giorni scelti da te; scheda unica palestra + corsa; il coach si ricorda cosa gli dici)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2948,6 +2981,10 @@ function targets(p){
   return {bmr,bmrSrc,lbm,fatPct:b.fat||null,tdee,kcal,prot,fat,carb,floored:tdee*g.mult<floor};
 }
 /* che allenamento è previsto in un giorno della settimana: prima il programma, poi gli orari del profilo */
+/* attività scelte nel Coach (palestra, corsa, bici…) con i loro giorni: sono la regola per la scheda */
+const CS_SPORTS=[["palestra","🏋️ Palestra"],["corsa","🏃 Corsa"],["bici","🚴 Bici"],["nuoto","🏊 Nuoto"],["sci","⛷️ Sci"],["altro","⚡ Altro sport"]];
+const CS_NAME={palestra:"Palestra",corsa:"Corsa",bici:"Bici",nuoto:"Nuoto",sci:"Sci",altro:"Altro sport"};
+let cs=null;
 /* ----- palestra e corsa insieme: un solo carico settimanale, niente gambe pesanti prima delle corse dure ----- */
 const LEG_M=["quadricipiti","femorali","glutei","polpacci"], WD_IT=["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
 // carico sulle gambe di un giorno di forza o circuito: 0 nessuno, 1 leggero, 2 pesante
@@ -3004,7 +3041,7 @@ function dayPlanFor(wd){
   if(d){ const min=+d.minutes||sesMin||60, rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*w/60;
     return {kind:"strength", label:`Forza – ${String(d.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"")} (${min} min)`, minutes:min, kcal:kpm*min, when, leg:legLoad(d)}; }
   if(pr&&pr.weekMap&&di==null&&!ses.length) return {kind:"rest",label:"riposo",minutes:0,kcal:0,when:""};
-  if(sesMin){ const rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*w/60; return {kind:"strength",label:`Allenamento (${sesMin} min)`,minutes:sesMin,kcal:kpm*sesMin,when}; }
+  if(sesMin){ const rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*w/60, spn=[...new Set(ses.map(x=>x.sport).filter(Boolean))]; return {kind: spn.length===1&&spn[0]==="corsa"? "run" : "strength",label:`${spn.length? spn.map(x=>CS_NAME[x]||x).join(" + ") : "Allenamento"} (${sesMin} min)`,minutes:sesMin,kcal:kpm*sesMin,when}; }
   return {kind:"rest",label:"riposo",minutes:0,kcal:0,when:""};
 }
 function workoutKcal(){ return (state.day.workouts||[]).reduce((a,w)=>a+(+w.kcal||0),0) + (+state.day.burned||0); }
@@ -3071,7 +3108,7 @@ function trainOf(p){ const t=(p&&p.train)||{}; let sessions;
   if(Array.isArray(t.sessions)) sessions=t.sessions;
   else if(Array.isArray(t.days)&&t.days.length) sessions=[{id:"s1",days:t.days,start:t.time||"",end:"",fed:t.fasted==="sì"?"digiuno":t.fasted==="no"?"pasto":""}];
   else sessions=[];
-  sessions=sessions.map(s=>({id:s.id||uid(),days:Array.isArray(s.days)?s.days:[],start:s.start||"",end:s.end||"",fed:s.fed||""}));
+  sessions=sessions.map(s=>({id:s.id||uid(),...(s.sport?{sport:s.sport}:{}),days:Array.isArray(s.days)?s.days:[],start:s.start||"",end:s.end||"",fed:s.fed||""}));
   const days=[...new Set(sessions.flatMap(s=>s.days))];
   return {sessions,days}; }
 function timeRange(a,b){ return a? a+(b?"–"+b:"") : ""; }
@@ -3099,7 +3136,7 @@ function profileSummary(){
   ].filter(Boolean).join("; ");
 }
 function sessionText(s){ const d=WD_ORDER.filter(x=>s.days.includes(x)).map(x=>WD[x].slice(0,3).toLowerCase());
-  return [d.length? d.join(", ") : "giorni non indicati", timeRange(s.start,s.end), FED[s.fed]||""].filter(Boolean).join(" ").replace(/ +/g," "); }
+  return [s.sport? (CS_NAME[s.sport]||s.sport)+":" : "", d.length? d.join(", ") : "giorni non indicati", timeRange(s.start,s.end), FED[s.fed]||""].filter(Boolean).join(" ").replace(/ +/g," "); }
 function trainText(p){ const t=trainOf(p); if(!t.sessions.length) return "non indicata";
   return t.days.length+" giorni a settimana; sessioni: "+t.sessions.map(sessionText).join("; "); }
 function eventText(){ const e=state.day.event, note=e&&e.note? ` — racconto della giornata: "${e.note}"` : "";
@@ -3117,7 +3154,7 @@ function mealList(){ return (state.profile&&state.profile.meals&&state.profile.m
 let view="diario";
 const SUB_VIEWS=["cibo","pasto","casa","valuta","ricetta","pset","gara","corsa","cardio","riepilogo","attivita","attrezzatura","giorno"];
 function rememberView(v){ if(!state.profile||!goalOf(state.profile)) return; try{ sessionStorage.setItem("hf:where",JSON.stringify({v,meal:typeof mealPageId!=="undefined"?mealPageId:null,wd:typeof progOpenWd!=="undefined"?progOpenWd:null,date:state.date,at:Date.now()})); }catch{} }
-function go(v,fromHistory){ setTimeout(()=>rememberView(v),0);
+function go(v,fromHistory){ if(v==="gara"){ setTimeout(()=>{ try{ openRaceCoach(); }catch{} },0); return; } setTimeout(()=>rememberView(v),0);
   if(!fromHistory && v!==view){
     if(v==="diario"){ try{ history.replaceState({v:"diario"},""); }catch{} }
     else if(["cibo","pasto","casa","valuta","ricetta","pset","gara","corsa","cardio","riepilogo","attivita","attrezzatura","giorno","sessione"].includes(v)||!history.state||!history.state.v||history.state.v==="diario") history.pushState({v},""); else history.replaceState({v},"");
@@ -4550,7 +4587,7 @@ function setW(w){
   if(w==="oggi"){ go("attivita"); return; }
   ["oggi","programma","chat","corsa","coach"].forEach(x=>$("w-"+x).hidden=x!==w);
   if(w==="corsa") try{ renderProgram(); }catch(e){ console.warn("corsa",e); }
-  if(w==="chat") renderChat();
+  if(w==="chat"){ try{ renderCoachSetup(); }catch(e){ console.warn("coach",e); } renderChat(); }
 }
 document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>setW(b.dataset.w));
 /* il registro vive nella pagina Attività (quella con il cuore): sposto lì i suoi riquadri */
@@ -4773,7 +4810,7 @@ function renderRaceRow(){ const host=$("raceRowBox"); if(!host) return; host.inn
   // il titolo resta sempre "Allenatore gara", così si trova anche quando c'è già una gara impostata
   rr.querySelector("b").textContent="Allenatore gara";
   rr.querySelector(".ms").textContent= rc? `${rc.name||raceLabel(rc.km)} · `+(wl>0? `mancano ${wl} settimane · obiettivo ${rc.target||"finirla"}` : "gara passata: imposta la prossima") : "Imposta gara, data e tempo obiettivo: ti preparo il piano";
-  rr.onclick=()=>{ go("gara"); renderRace(); }; host.appendChild(rr);
+  rr.onclick=()=>openRaceCoach();   // l'Allenatore gara ora sta nel Coach: la riga non va più in Corsa
   try{ renderGoalRow(host); }catch(e){ console.warn("obiettivo",e); }
   const st=el("button","card raceRow"); st.type="button"; st.id="csRow2";
   st.innerHTML=`<span class="mi">📈</span><span class="mt"><b>Statistiche corsa</b><span class="ms">Ultime corse, record, forma, zone cardio e scarpe</span></span><span class="chev">›</span>`;
@@ -4835,7 +4872,7 @@ function goalRunPlan(km,sec,wu){ const pace=paceStr(sec/km), title=`Obiettivo ${
 function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e); }
   if($("corsaWeek")) $("corsaWeek").innerHTML="";
   try{ const wp=$("w-programma"), hp=!!activeProg(); wp.classList.toggle("has-prog",hp);
-    const order= hp? ["raceRowBox","progOut","cirOpen","progMore","progPick","aiProgCard","impCard"] : ["raceRowBox","progPick","aiProgCard","impCard","progOut","cirOpen","progMore"];
+    const order= hp? ["raceRowBox","progOut","cirOpen","progMore","progPick","aiProgCard","progCoachCard","impCard"] : ["raceRowBox","progPick","aiProgCard","progCoachCard","impCard","progOut","cirOpen","progMore"];
     order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===wp) wp.appendChild(n); }); applyOrder(wp,"programma"); }catch{}
   try{ const cg=state.profile&&state.profile.customGoal; if($("pGoal")&&!$("pGoal").value&&cg&&cg.active&&cg.programGoal) $("pGoal").value=cg.programGoal; }catch{}
   const box=$("progOut"); box.innerHTML="";
@@ -4847,7 +4884,7 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
     b.onclick=()=>{ imported.active=(k==="imported"); save("programImported",imported); editDay=null; renderWorkouts(); }; ch.appendChild(b); }); }
   const impOn=hasImp&&imported.active;
   $("impCard").hidden = hasImp && !$("impCard").dataset.open; $("impCancel").hidden=!hasImp;
-  $("aiProgCard").hidden = impOn;
+  $("aiProgCard").hidden = impOn||$("aiProgCard").dataset.off==="1"; if($("progCoachCard")) $("progCoachCard").hidden=impOn;
   $("impGo").disabled=!sample; $("impPick").hidden=!imgLimits;
   if(!a || (a.kind==="ai" && impOn)) return;
   const pr=a.pr;
@@ -5506,7 +5543,7 @@ async function nativeShareGemini(file,txt){ const C=NAT(); if(!C) return false;
 const PF_GROUPS=[
   ["Il tuo profilo",[["Chi sei","👤","chi",true],["obiettivo","🎯","goal",true],["I tuoi dati","📏","dati",true]]],
   ["Alimentazione",[["I tuoi pasti","🍽️","pasti",true],["Integratori","💊","supp",true]]],
-  ["Allenamento",[["Quando ti alleni","🗓️","train",true],["__eq","🏋️","eq",false]]],
+  ["Allenamento",[["__eq","🏋️","eq",false]]],
   ["Dispositivi",[["Dispositivi collegati","🔌","dev",false]]],
   ["App",[["Aspetto","🎨","look",false],["Impostazioni AI e dati","⚙️","ai",false]]]];
 let psCur=null;
@@ -6374,8 +6411,9 @@ function rcLive(){ const g=readRaceForm(), recPace= g.recKm>0&&g.recSec>0? g.rec
 function readRaceForm(){
   const km= $("rcDist").value==="x"? +String($("rcKm").value).replace(",",".") : +$("rcDist").value;
   const recKm=+String($("rcRecKm").value).replace(",","."), recSec=tSec($("rcRecT").value,recKm);
-  const days=[...$("rcDays").querySelectorAll("button.on")].map(b=>+b.dataset.wd);
-  return {km, date:$("rcDate").value, name:$("rcName").value.trim(), target:$("rcTarget").value.trim(), level:$("rcLevel").value, recKm, recSec, runs:+$("rcRuns").value, days, longWd:+$("rcLong").value};
+  const csr=cs&&cs.sports.includes("corsa")&&cs.sp.corsa, days= csr&&csr.days.length? csSort(csr.days) : [...$("rcDays").querySelectorAll("button.on")].map(b=>+b.dataset.wd);
+  const lw0= csr? +csr.longWd : +$("rcLong").value;
+  return {km, date:$("rcDate").value, name:$("rcName").value.trim(), target:$("rcTarget").value.trim(), level:$("rcLevel").value, recKm, recSec, runs:days.length, days, longWd: days.includes(lw0)? lw0 : days[days.length-1]};
 }
 $("rcCalc").onclick=()=>{
   const g=readRaceForm();
@@ -6384,7 +6422,7 @@ $("rcCalc").onclick=()=>{
   if(!paceOk(g.recSec/g.recKm)){ toast("Il tempo della corsa recente non torna con i km: controlla ore e minuti"); return; }
   const tg=tSec(g.target); if(tg&&!paceOk(tg/g.km)){ toast("Il tempo obiettivo non torna con la distanza: controlla ore e minuti"); return; }
   g.level=levelOf(vdotOf(g.recKm,g.recSec));
-  if(!g.days.includes(g.longWd)) g.days.push(g.longWd);
+  if(!g.days.length){ toast("Scegli i giorni in cui corri, nel riquadro Corsa qui sopra"); return; }
   g.vdot=Math.round(vdotOf(g.recKm,g.recSec)*10)/10; g.pred=Math.round(predictSec(g.vdot,g.km));
   race={...(race||{}),goal:g}; save("race",race); showPaces(g); renderProgram();
 };
@@ -6397,7 +6435,7 @@ function showPaces(g){
   $("rcPaces").innerHTML=`<p class="rc-verdict"></p><div class="rc-pred"><span>Previsione oggi</span><b>${hms2(g.pred)}</b><span>${raceLabel(g.km)} · ${weeks} settimane alla gara</span></div>`+rows.map(r=>`<div class="rc-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join("");
   $("rcPaces").querySelector(".rc-verdict").textContent=verdict; $("rcPaceCard").hidden=false; $("rcPlanBtn").disabled=!sample;
 }
-$("rcPlanBtn").onclick=async()=>{
+async function raceMakePlan(throwErr){
   const g=race&&race.goal; if(!g||!sample) return; const P=racePaces(g.vdot), tgt=tSec(g.target,g.km)||g.pred;
   const weeks=Math.max(1,Math.min(26,Math.ceil((new Date(g.date+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5))));
   const names=["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
@@ -6406,17 +6444,18 @@ $("rcPlanBtn").onclick=async()=>{
     const res=await sample.json(`Sei un allenatore di corsa esperto (metodo Daniels/Pfitzinger). Prepara il piano per ${raceLabel(g.km)}${g.name?" ("+g.name+")":""} del ${g.date}: mancano ${weeks} settimane (la settimana 1 inizia lunedì ${mondayOf(todayISO())}).
 Atleta: ${profileSummary()}. Livello ${g.level}. Gara recente: ${fmt(g.recKm)} km in ${hms2(g.recSec)} (VDOT ${g.vdot}). Tempo obiettivo: ${g.target||"finire bene"} (ritmo gara ${paceStr(tgt/g.km)}/km). Corse recenti: ${runsRecent()}.
 Ritmi: facile ${paceStr(P.facile[0])}-${paceStr(P.facile[1])}, lungo ${paceStr(P.lungo[0])}-${paceStr(P.lungo[1])}, soglia ${paceStr(P.soglia)}, ripetute ${paceStr(P.ripetute)}, brevi ${paceStr(P.veloci)} al km.
-Corre ${g.runs} volte a settimana nei giorni: ${g.days.map(d=>names[d]).join(", ")} (weekday 0=domenica…6=sabato); il lungo sempre di ${names[g.longWd]}. Gli altri giorni fa forza o circuiti: non metterci corse.
+Corre ESATTAMENTE ${g.days.length} volte a settimana, SOLO nei giorni: ${g.days.map(d=>names[d]).join(", ")} (weekday 0=domenica…6=sabato); il lungo sempre di ${names[g.longWd]}. Gli altri giorni fa forza o circuiti: non metterci corse.
 ${(()=>{ const c=weekCombo(); if(!c) return ""; const gy=c.rows.filter(x=>/: (forza|circuito)/.test(x)); return gy.length? "Palestra della settimana: "+gy.join(" | ")+". Scegli i giorni dei lavori chiave (ripetute, soglia, ritmo gara) in modo che NON cadano il giorno dopo un giorno con gambe pesanti; se non è possibile mettili lo stesso giorno della forza (prima la corsa) e scrivilo nella desc." : ""; })()}
 Fasi: base, costruzione, picco, scarico (taper di 2-3 settimane per maratona, 1-2 per mezza, 1 per 10 km); aumento del volume non oltre il 10% a settimana con una settimana di scarico ogni 3-4; lungo massimo 30-32 km per la maratona, 18-21 per la mezza. L'ultima settimana termina con la gara (runType "Gara").
 Le corse Facile e Lungo sono guidate dal battito: tetto ${hrCapOf()} bpm (anche rallentando o camminando 30-60 s); scrivilo nella desc (es. "sotto ${hrCapOf()} bpm"). ${hrAdvice().lvl===2? "Nelle ultime corse facili il battito è stato troppo alto: nelle prime 2-3 settimane metti corsa-cammino nelle corse facili (es. 4' corsa + 1' cammino) e poi corsa continua. " : ""}Soglia, ripetute e ritmo gara restano a ritmo.
 Rispondi SOLO con JSON compatto: {"summary":"logica del piano in 2 frasi","weeks":[{"week":1,"phase":"Base|Costruzione|Picco|Scarico","km":number,"note":"focus della settimana, 1 frase","runs":[{"wd":number,"runType":"Facile|Lungo|Soglia|Ripetute|Fartlek|Progressivo|Ritmo gara|Gara","km":number,"pace":"m:ss","intensity":1-5,"desc":"cosa fare, breve (es. 6×1000 m a 4:55 rec 2')"}]}]}`,{modelTier:"default",maxTokens:16000});
     if(!res||!Array.isArray(res.weeks)||!res.weeks.length) throw {code:"bad_output"};
-    race.plan={summary:res.summary||"",start:mondayOf(todayISO()),weeks:res.weeks.slice(0,26),createdAt:todayISO()}; race.applied=null; save("race",race);
+    race.plan={summary:res.summary||"",start:mondayOf(todayISO()),weeks:raceFixDays(res.weeks.slice(0,26),g),createdAt:todayISO(),days:JSON.stringify(g.days)}; race.applied=null; save("race",race);
     clearInterval(tick); setStatus("rcStatus",""); renderRacePlan(); applyRaceWeek(true);
-  }catch(e){ clearInterval(tick); setStatus("rcStatus",errCopy(e),true); }
+  }catch(e){ clearInterval(tick); setStatus("rcStatus",errCopy(e),true); if(throwErr) throw e; }
   finally{ clearInterval(tick); $("rcPlanBtn").disabled=false; }
-};
+}
+$("rcPlanBtn").onclick=()=>raceMakePlan(false);
 function raceWeekIdx(){ if(!race||!race.plan) return -1; return Math.floor((new Date(mondayOf(todayISO())+"T12:00:00")-new Date(race.plan.start+"T12:00:00"))/(7*864e5)); }
 function renderRacePlan(){
   const pl=race&&race.plan; $("rcPlanCard").hidden=!pl; if(!pl) return;
@@ -6433,6 +6472,7 @@ function renderRacePlan(){
 }
 /* piani gara creati con un tempo letto male ("1:00" su 10 km preso come 1 minuto): correggo tempo, VDOT e ritmi impossibili */
 function raceRepair(){ const g=race&&race.goal; if(!g) return false; let ch=false;
+  if(race.plan&&Array.isArray(race.plan.weeks)){ const b0=JSON.stringify(race.plan.weeks); raceFixDays(race.plan.weeks,g); if(JSON.stringify(race.plan.weeks)!==b0) ch=true; }
   if(g.recKm>0&&g.recSec>0&&g.recSec/g.recKm<150){ g.recSec*=60; g.vdot=Math.round(vdotOf(g.recKm,g.recSec)*10)/10; g.pred=Math.round(predictSec(g.vdot,g.km)); ch=true; }
   if(race.plan&&g.vdot>=20&&g.vdot<=90){ const P=racePaces(g.vdot), gp=(tSec(g.target,g.km)||g.pred)/g.km;
     const byType=t=>/facile|recupero/i.test(t)? (P.facile[0]+P.facile[1])/2 : /lungo/i.test(t)? (P.lungo[0]+P.lungo[1])/2 : /soglia|fartlek|progress/i.test(t)? P.soglia : /ripetut/i.test(t)? P.ripetute : /gara/i.test(t)? gp : (P.facile[0]+P.facile[1])/2;
@@ -6453,6 +6493,190 @@ function applyRaceWeek(manual){
   if(manual){ const cf=(weekCombo()||{}).conflicts||[]; toast(`Corse della settimana ${i+1} in Allenamento → Corsa ✓`+(moved.length?` · al posto di: ${moved.join(", ")}`:"")+(cf.length?` · ⚠️ attenzione: ${cf[0].text}`:"")); }
 }
 $("rcApply").onclick=()=>applyRaceWeek(true);
+/* ===== Coach: obiettivo, attività e giorni scelti dalla persona; una sola scheda per palestra e corsa ===== */
+function csDefault(){ // prima volta: parto da quello che c'è già (giorni del profilo, del programma e del piano gara)
+  const t=trainOf(state.profile), g=race&&race.goal; let a=null; try{ a=activeProg(); }catch{}
+  const pr=a&&a.pr, wm=(pr&&pr.weekMap)||{}, dk=wd=>{ const i=wm[wd]; return i!=null&&pr&&pr.days[i]? pr.days[i] : null; };
+  const progRun=[0,1,2,3,4,5,6].filter(wd=>dk(wd)&&dk(wd).kind==="run"), progGym=[0,1,2,3,4,5,6].filter(wd=>dk(wd)&&dk(wd).kind!=="run");
+  const run=(g&&Array.isArray(g.days)&&g.days.length? g.days.map(Number) : progRun).filter((x,i,a0)=>a0.indexOf(x)===i);
+  let gym=progGym.filter(x=>!run.includes(x)); if(!gym.length) gym=t.days.filter(x=>!run.includes(x));
+  const s0=t.sessions[0]||{}, st=(pr&&pr.settings)||{}, o={sports:[],sp:{},spec:st.spec||""};
+  if(gym.length){ o.sports.push("palestra"); o.sp.palestra={days:gym,start:s0.start||"",end:s0.end||"",fed:s0.fed||"",place:st.place||"palestra",level:st.level||"intermedio",minutes:60,notes:st.notes||""}; }
+  if(run.length||g){ o.sports.push("corsa"); o.sp.corsa={days:run,start:"",end:"",fed:"",goal:"",longWd: g&&g.longWd!=null&&run.includes(+g.longWd)? +g.longWd : run.includes(0)?0 : run.includes(6)?6 : (run[run.length-1]??0)}; }
+  return o; }
+function csGet(){ if(!cs) cs=csDefault(); cs.sp=cs.sp||{}; cs.sports=cs.sports||[]; return cs; }
+const csSort=d=>[...new Set(d.map(Number).filter(x=>x>=0&&x<=6))].sort((a,b)=>WD_ORDER.indexOf(a)-WD_ORDER.indexOf(b));
+function csDaysTxt(o){ return csSort((o&&o.days)||[]).map(x=>WD[x].toLowerCase()).join(", ")||"nessun giorno"; }
+function csSave(){ save("coachSetup",cs); csSyncProfile(); csSyncRace(); }
+// i giorni del profilo (usati da dieta, calorie e promemoria) ora vengono dal Coach
+function csSyncProfile(){ const p=state.profile; if(!p||!cs) return;
+  const ss=cs.sports.filter(k=>cs.sp[k]&&cs.sp[k].days&&cs.sp[k].days.length).map(k=>({id:"cs-"+k,sport:k,days:csSort(cs.sp[k].days),start:cs.sp[k].start||"",end:cs.sp[k].end||"",fed:cs.sp[k].fed||""}));
+  if(JSON.stringify((p.train&&p.train.sessions)||[])===JSON.stringify(ss)) return;
+  p.train={sessions:ss}; save("profile",p); }
+// il piano gara usa gli stessi giorni di corsa scelti qui: numero di corse = numero di giorni, lungo in uno di quei giorni
+function csSyncRace(){ const r0=cs&&cs.sports.includes("corsa")&&cs.sp.corsa; if(!r0||!race||!race.goal) return; const g=race.goal, d=csSort(r0.days); if(!d.length) return;
+  const lw=d.includes(+r0.longWd)? +r0.longWd : d[d.length-1];
+  if(JSON.stringify(g.days)===JSON.stringify(d)&&g.runs===d.length&&+g.longWd===lw) return;
+  g.days=d; g.runs=d.length; g.longWd=lw; if(race.plan) raceFixDays(race.plan.weeks,g); save("race",race);
+  if(race.plan&&race.applied) try{ applyRaceWeek(false); }catch(e){ console.warn("gara",e); } }
+// il piano gara mette le corse SOLO nei giorni scelti (prima poteva metterne una in più)
+function raceFixDays(weeks,g){ if(!g||!Array.isArray(g.days)||!g.days.length||!Array.isArray(weeks)) return weeks;
+  const ok=csSort(g.days), raceWd= g.date? new Date(g.date+"T12:00:00").getDay() : null;
+  if(!ok.includes(+g.longWd)) g.longWd= ok.includes(0)?0 : ok.includes(6)?6 : ok[ok.length-1];
+  const lw=+g.longWd, pri=r=>/gara/i.test(r.runType||"")? 0 : /lungo/i.test(r.runType||"")? 1 : 2+(5-(+r.intensity||2))/10;
+  weeks.forEach(w=>{ const runs=(w.runs||[]).filter(Boolean).slice().sort((a,b)=>pri(a)-pri(b)), byWd={};
+    runs.forEach(r=>{ let d=null;
+      if(/gara/i.test(r.runType||"")) d= raceWd!=null? raceWd : +r.wd;              // la gara resta nel suo giorno
+      else if(/lungo/i.test(r.runType||"")&&!byWd[lw]) d=lw;                        // il lungo nel giorno scelto
+      else if(ok.includes(+r.wd)&&byWd[+r.wd]==null) d=+r.wd;
+      else { const free=ok.filter(x=>byWd[x]==null); if(free.length) d=free[0]; }
+      if(d!=null&&byWd[d]==null){ r.wd=d; byWd[d]=r; } });                           // le corse in più si tolgono
+    w.runs=WD_ORDER.filter(x=>byWd[x]).map(x=>byWd[x]); w.km=Math.round(w.runs.reduce((a,r)=>a+(+r.km||0),0)*10)/10; });
+  return weeks; }
+function csTabs(){ try{ const c=cs, hideRun= c&&c.sports.length&&!c.sports.includes("corsa");
+  document.querySelectorAll('.seg button[data-w="corsa"]').forEach(b=>b.hidden=!!hideRun);
+  if(hideRun&&!$("w-corsa").hidden) setW("programma"); }catch{} }
+function openRaceCoach(){ go("allenamento"); setW("chat"); const d=$("csRaceDet"); if(d){ d.open=true; try{ renderRace(); }catch{} setTimeout(()=>d.scrollIntoView({behavior:"smooth",block:"start"}),120); } }
+// l'Allenatore gara si sposta dentro il Coach, nel riquadro della corsa
+(function moveRace(){ const rb=$("csRaceBox"), v=$("view-gara"); if(!rb||!v) return;
+  const d=el("details","cs-race"); d.id="csRaceDet"; const sm=el("summary",null,"🏁 Allenatore gara"); sm.id="csRaceSum"; d.appendChild(sm);
+  [...v.querySelectorAll(":scope > section")].forEach(s=>d.appendChild(s)); rb.appendChild(d);
+  d.addEventListener("toggle",()=>{ if(d.open) try{ renderRace(); }catch(e){ console.warn("gara",e); } });
+  [$("rcRuns"),$("rcLong")].forEach(x=>{ const lb=x&&x.closest("label"); if(lb) lb.hidden=true; });
+  const rd=$("rcDays"); if(rd){ rd.hidden=true; const pl=rd.previousElementSibling; if(pl) pl.hidden=true; }
+  const pc=$("aiProgCard"); if(pc){ const nc=el("section","card"); nc.id="progCoachCard";
+    nc.innerHTML=`<h2>Crea o rifai la scheda</h2><p class="sub">Ora la scheda si crea nel Coach: scegli obiettivo, cosa fai (palestra, corsa…) e i giorni, poi «Genera la scheda». Il coach mette insieme palestra e corsa.</p>`;
+    const b=el("button","btn","Vai al Coach"); b.type="button"; b.onclick=()=>{ setW("chat"); window.scrollTo({top:0}); }; nc.appendChild(b); pc.after(nc); pc.hidden=true; pc.dataset.off="1"; }
+})();
+function csPanel(k,l){ const o=cs.sp[k]=cs.sp[k]||{days:[],start:"",end:"",fed:""}; o.days=o.days||[];
+  if(k==="palestra"){ o.place=o.place||"palestra"; o.level=o.level||"intermedio"; o.minutes=o.minutes||60; }
+  const c=el("section","card cs-panel"); c.appendChild(el("h2",null,l));
+  c.appendChild(el("p","lab",k==="corsa"?"Giorni in cui corri":k==="palestra"?"Giorni in cui fai palestra":"Giorni"));
+  const dd=el("div","chips cs-days");
+  WD_ORDER.forEach(wd=>{ const b=el("button","chip",WD[wd].slice(0,3)); b.type="button"; const on=o.days.includes(wd); b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
+    b.onclick=()=>{ if(o.days.includes(wd)) o.days=o.days.filter(x=>x!==wd);
+      else { const clash=["palestra","corsa"].filter(x=>x!==k&&(k==="palestra"||k==="corsa")&&cs.sports.includes(x)&&cs.sp[x]&&(cs.sp[x].days||[]).includes(wd));
+        if(clash.length){ toast(`Il ${WD[wd].toLowerCase()} c'è già la ${CS_NAME[clash[0]].toLowerCase()}: nella scheda va un allenamento al giorno`); return; }
+        o.days.push(wd); }
+      o.days=csSort(o.days); if(k==="corsa"&&!o.days.includes(+o.longWd)) o.longWd=o.days.includes(0)?0:o.days.includes(6)?6:o.days[o.days.length-1];
+      csSave(); renderCoachSetup(); };
+    dd.appendChild(b); });
+  c.appendChild(dd);
+  const f=el("div","form");
+  let h=`<div class="two"><label>Inizio<input type="time" data-f="start"></label><label>Fine<input type="time" data-f="end"></label></div>
+   <label>Pasto prima<select data-f="fed"><option value="">Non specificato</option><option value="digiuno">Digiuno</option><option value="leggero">Pasto leggero</option><option value="abbondante">Pasto abbondante</option></select></label>`;
+  if(k==="palestra") h+=`<div class="three"><label>Dove<select data-f="place"><option value="palestra">Palestra</option><option value="casa">Casa</option><option value="casa con manubri">Casa + manubri</option><option value="corsa e all'aperto">All'aperto</option></select></label><label>Livello<select data-f="level"><option>principiante</option><option>intermedio</option><option>avanzato</option></select></label><label>Minuti<input type="number" inputmode="numeric" min="20" max="180" step="5" data-f="minutes"></label></div>
+   <label>Note (infortuni, preferenze)<textarea data-f="notes" placeholder="Es. fastidio alla spalla destra, mi piace allenare le gambe"></textarea></label>`;
+  else if(k==="corsa") h+=(o.days.length? `<label>Giorno del lungo<select data-f="longWd">${o.days.map(wd=>`<option value="${wd}">${WD[wd]}</option>`).join("")}</select></label>` : "")+
+   `<label>Obiettivo di corsa senza gara (facoltativo)<input class="field" data-f="goal" placeholder="Es. correre 10 km sotto i 50 minuti"></label>`;
+  else h+=`<label>Note<input class="field" data-f="notes" placeholder="Es. uscita di 2 ore, giornata sulla neve"></label>`;
+  f.innerHTML=h;
+  f.querySelectorAll("[data-f]").forEach(inp=>{ const key=inp.dataset.f; inp.value= o[key]!=null? String(o[key]) : "";
+    inp.onchange=()=>{ o[key]= key==="longWd"||key==="minutes"? +inp.value : inp.value; csSave(); }; });
+  c.appendChild(f);
+  if(k==="corsa"){ const rb=$("csRaceBox"); rb.hidden=false; c.appendChild(rb);
+    const g=race&&race.goal, wl=g&&g.date? Math.ceil((new Date(g.date+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5)) : 0;
+    const sum=rb.querySelector("summary"); if(sum) sum.textContent= g&&wl>0? `🏁 Allenatore gara · ${g.name||raceLabel(g.km)} tra ${wl} settimane ›` : "🏁 Hai una gara? Allenatore gara ›"; }
+  return c; }
+function renderCoachSetup(){ if(!$("csSports")) return; csGet();
+  const p=state.profile||{}, sel=$("csGoal");
+  if(!sel.options.length){ sel.appendChild(new Option("Scegli…","")); GOALS.forEach(g=>sel.appendChild(new Option(g.t,g.id))); }
+  sel.value=p.goal||""; if(document.activeElement!==$("csSpec")) $("csSpec").value=cs.spec||"";
+  const sb=$("csSports"); sb.innerHTML="";
+  CS_SPORTS.forEach(([k,l])=>{ const b=el("button","chip",l); b.type="button"; const on=cs.sports.includes(k); b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
+    b.onclick=()=>{ if(cs.sports.includes(k)) cs.sports=cs.sports.filter(x=>x!==k); else { cs.sports.push(k); cs.sp[k]=cs.sp[k]||{days:[],start:"",end:"",fed:""}; }
+      cs.sports=CS_SPORTS.map(x=>x[0]).filter(x=>cs.sports.includes(x)); csSave(); renderCoachSetup(); csTabs(); };
+    sb.appendChild(b); });
+  const rb=$("csRaceBox"); rb.hidden=true; $("w-chat").appendChild(rb);   // lo stacco prima di ridisegnare i riquadri
+  const host=$("csPanels"); host.innerHTML="";
+  CS_SPORTS.filter(([k])=>cs.sports.includes(k)).forEach(([k,l])=>host.appendChild(csPanel(k,l)));
+  const parts=cs.sports.filter(k=>cs.sp[k]&&cs.sp[k].days&&cs.sp[k].days.length).map(k=>`${CS_NAME[k].toLowerCase()} ${csDaysTxt(cs.sp[k])}`);
+  $("csGenNote").textContent= parts.length? `Il coach prepara una scheda unica: ${parts.join(" · ")}. Rispetta questi giorni e il tuo obiettivo.` : "Scegli cosa fai e in quali giorni: poi il coach prepara la scheda.";
+  $("csGen").disabled=!sample; renderCsMem(); csTabs(); try{ csSyncProfile(); }catch{} }
+$("csGoal").onchange=()=>{ if(!state.profile) return; state.profile.goal=$("csGoal").value||state.profile.goal; save("profile",state.profile); try{ renderAll(); }catch{} };
+$("csSpec").onchange=()=>{ csGet().spec=$("csSpec").value.trim(); csSave(); };
+function renderCsMem(){ const m=(chat&&chat.mem)||[], box=$("csMem"); $("csMemCard").hidden=!m.length; box.innerHTML="";
+  m.forEach((x,i)=>{ const r0=el("div","cs-mem"); r0.appendChild(el("span",null,x.t)); const b=el("button",null,"✕"); b.type="button"; b.setAttribute("aria-label","Dimentica");
+    b.onclick=()=>{ chat.mem.splice(i,1); save("coach",chat); renderCsMem(); }; r0.appendChild(b); box.appendChild(r0); }); }
+function memText(){ const m=(chat&&chat.mem)||[]; return m.length? "COSE CHE LA PERSONA TI HA DETTO E CHE DEVI SEMPRE RISPETTARE (memoria del coach):\n"+m.map(x=>"- "+x.t).join("\n") : ""; }
+function csText(){ const c=cs; if(!c||!c.sports.length) return "";
+  return "ATTIVITÀ E GIORNI SCELTI DALLA PERSONA NEL COACH (sono la regola: la scheda li rispetta sempre): "+c.sports.map(k=>{ const o=c.sp[k]||{}; return `${CS_NAME[k]}: ${csDaysTxt(o)}${o.start?" alle "+o.start:""}${k==="corsa"&&o.days&&o.days.length?", lungo il "+WD[+o.longWd||0].toLowerCase():""}${o.goal?", obiettivo "+o.goal:""}${o.notes?" ("+o.notes+")":""}`; }).join("; ")+"."+(c.spec? " Obiettivo specifico: "+c.spec+"." : ""); }
+function csApplyGiorni(gi){ csGet(); let ch=false;
+  ["palestra","corsa"].forEach(k=>{ if(Array.isArray(gi[k])){ const d=csSort(gi[k]); cs.sp[k]=cs.sp[k]||{days:[],start:"",end:"",fed:""}; cs.sp[k].days=d; if(d.length&&!cs.sports.includes(k)) cs.sports.push(k); ch=true; } });
+  if(gi.lungo!=null&&cs.sp.corsa&&cs.sp.corsa.days.includes(+gi.lungo)){ cs.sp.corsa.longWd=+gi.lungo; ch=true; }
+  if(cs.sp.palestra&&cs.sp.corsa) cs.sp.palestra.days=cs.sp.palestra.days.filter(x=>!cs.sp.corsa.days.includes(x));
+  if(ch){ csSave(); try{ renderCoachSetup(); }catch{} toast("Giorni aggiornati nel Coach ✓"); } }
+// dopo una modifica del coach in chat le corse del piano gara restano (anche quelle che il coach ha "dimenticato")
+function keepRaceRuns(){ if(!race||!race.plan||!state.program||!Array.isArray(state.program.days)) return;
+  const i=raceWeekIdx(), w=race.plan.weeks[i]; if(!w) return; const pr=state.program; pr.weekMap=pr.weekMap||{0:null,1:null,2:null,3:null,4:null,5:null,6:null}; let ch=false; const used=new Set();
+  const mark=k=>{ used.add(k); if(!pr.days[k].fromRace){ pr.days[k].fromRace=true; ch=true; } };
+  (w.runs||[]).forEach(r=>{ const t=`${r.runType||"Corsa"} – settimana ${i+1}`, cur=pr.weekMap[r.wd];
+    if(cur!=null&&pr.days[cur]&&pr.days[cur].kind==="run"&&pr.days[cur].title===t&&!used.has(cur)){ mark(cur); return; } });
+  (w.runs||[]).forEach(r=>{ const t=`${r.runType||"Corsa"} – settimana ${i+1}`, cur=pr.weekMap[r.wd];
+    if(cur!=null&&used.has(cur)&&pr.days[cur].title===t) return;
+    const k=pr.days.findIndex((d,j)=>!used.has(j)&&d.kind==="run"&&d.title===t);
+    if(k>=0){ mark(k); if(!Object.values(pr.weekMap).includes(k)){ pr.weekMap[r.wd]=k; ch=true; } return; }
+    const km=+r.km||null, ps=paceSec(r.pace);   // il coach l'ha tolta: la rimetto nel suo giorno
+    pr.days.push({title:t,kind:"run",fromRace:true,runType:r.runType||"Corsa",distanceKm:km,minutes:km&&ps? Math.round(km*ps/60) : 45,pace:r.pace||null,intensity:+r.intensity||2,description:r.desc||"",segments:[],exercises:[]});
+    pr.weekMap[r.wd]=pr.days.length-1; used.add(pr.days.length-1); ch=true; });
+  if(ch) save("program",pr); }
+function csPrompt(gym,run,runInProg,useRace){ const p=state.profile, g=goalOf(p);
+  const others=cs.sports.filter(k=>!["palestra","corsa"].includes(k)&&cs.sp[k]&&cs.sp[k].days&&cs.sp[k].days.length).map(k=>`${CS_NAME[k]} ${csDaysTxt(cs.sp[k])}${cs.sp[k].notes?" ("+cs.sp[k].notes+")":""}`);
+  return `Sei un personal trainer e allenatore di corsa esperto. Prepara la scheda settimanale di questa persona tenendo conto INSIEME dell'obiettivo del fisico, dell'obiettivo di corsa e di tutte le attività che fa: è un unico piano.
+Persona: ${profileSummary()}.
+OBIETTIVO DEL FISICO: ${g.t} (${g.d}).${cs.spec? " Obiettivo specifico: "+cs.spec+"." : ""}
+${equipText(p)? "ATTREZZATURA DISPONIBILE: "+equipText(p)+". Usa SOLO esercizi eseguibili con questa attrezzatura o a corpo libero." : "Attrezzatura non indicata: usa esercizi comuni per il luogo scelto."}
+Storico recente dei carichi (per calibrare i pesi): ${tlog.sessions.slice(-4).map(s=>s.title+": "+s.exercises.map(x=>x.name+" "+x.sets.map(z=>z.text? z.text : (z.kg!=null? z.kg+"kg×":"")+(z.reps||"")).join("/")).join("; ")).join(" || ")||"nessuno"}.
+Corse recenti: ${runsRecent()}.
+${memText()}
+GIORNI SCELTI DALLA PERSONA (rispettali ESATTAMENTE: non aggiungere, non togliere e non spostare giorni):
+${gym? `- PALESTRA: ${csDaysTxt(gym)} (${gym.days.length} sedute${gym.start?", alle "+gym.start:""}, circa ${gym.minutes||60} minuti${gym.fed?", "+FED[gym.fed]:""}). Dove: ${gym.place||"palestra"}. Livello: ${gym.level||"intermedio"}. Note: ${gym.notes||"nessuna"}.` : "- Palestra: non la fa."}
+${run? `- CORSA: ${csDaysTxt(run)} (${run.days.length} corse${run.start?", alle "+run.start:""}${run.fed?", "+FED[run.fed]:""}), lungo il ${WD[+run.longWd||0].toLowerCase()}.${run.goal? " Obiettivo di corsa: "+run.goal+"." : ""}` : "- Corsa: non la fa."}
+${others.length? "- ALTRE ATTIVITÀ (non vanno nella scheda ma pesano sul recupero, soprattutto delle gambe): "+others.join("; ")+"." : ""}
+${useRace? raceWeekText()+" Le corse le prepara il piano gara nei giorni di corsa: tu NON creare giorni di corsa, crea SOLO le sedute di palestra pensate per non rovinare le corse." : ""}
+${[doneWeekText(),COMBO_RULES].join("\n")}
+Crea ${gym? "esattamente "+gym.days.length+" giorni di palestra, uno per ogni giorno indicato" : "nessun giorno di palestra"}${runInProg? " ed esattamente "+run.days.length+" giorni di corsa, uno per ogni giorno di corsa (il lungo il "+WD[+run.longWd||0].toLowerCase()+")" : ""}. Ogni giorno ha il campo "wd" (0=domenica…6=sabato) e il titolo inizia con il nome del giorno (es. "Lunedì – Petto e dorso").
+Rendi le sedute adatte all'obiettivo del fisico (più forte: fondamentali pesanti a basse ripetizioni con progressione; massa: ipertrofia 6-12 ripetizioni con volume crescente; snello e definito: forza a ripetizioni medie e circuiti; ridurre il peso: forza + attività; salute: allenamento completo e sostenibile; prestazioni: forza, potenza e prevenzione infortuni per lo sport che fa).
+Rispondi SOLO con JSON valido, in italiano:
+{"name":"string","summary":"2 frasi su come palestra e corsa lavorano insieme","progression":"come progredire nelle prossime settimane","days":[{"wd":number,"title":"Lunedì – focus","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"es. 90 s","tip":"consiglio breve","equip":"attrezzo o corpo libero","muscles":["tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}]}]}
+${runInProg? `Giorni di CORSA: stessi campi più "kind":"run","runType":"Jogging|Corsa lenta|Lungo|Fartlek|Ripetute|Corsa in soglia|Progressivo|Recupero attivo","distanceKm":number|null,"minutes":number,"pace":"m:ss o null","intensity":1-5,"description":"1-2 frasi","segments":[{"kind":"warmup|work|recovery|cooldown","label":"es. Jogging leggero di 5 minuti","km":number|null,"minutes":number|null,"pace":"m:ss o null","hr":"es. sotto ${hrCapOf()} bpm o vuoto"}],"exercises":[]. Corsa lenta, Jogging, Lungo e Recupero attivo sono guidati dal battito (sotto ${hrCapOf()} bpm). Progressione realistica rispetto alle corse recenti.` : ""} Circuiti a giri: "kind":"circuit","circuit":{"exercises":["nome 1","nome 2"],"rounds":[[ripetizioni giro 1],[giro 2]],"rest":"90 s"},"exercises":[]. Sedute di forza con 3-7 esercizi.`; }
+const WD_RE=/^(luned[iì]|marted[iì]|mercoled[iì]|gioved[iì]|venerd[iì]|sabato|domenica)(?=[\s–:,-]|$)/i;
+function csApplyProgram(res,gym,run){
+  const days=res.days.filter(d=>d&&(Array.isArray(d.exercises)||d.kind==="run"||d.kind==="circuit")).map(d=>({...d,exercises:Array.isArray(d.exercises)? d.exercises.filter(x=>x&&x.name).slice(0,15) : []}));
+  const out=[], map={0:null,1:null,2:null,3:null,4:null,5:null,6:null};
+  const place=(list,allowed)=>{ const free=allowed.slice(), rest=[];
+    list.forEach(d=>{ const i=free.indexOf(+d.wd); if(i>=0){ free.splice(i,1); out.push(d); map[+d.wd]=out.length-1; } else rest.push(d); });
+    rest.forEach(d=>{ if(!free.length) return; d.wd=free.shift(); out.push(d); map[d.wd]=out.length-1; }); };
+  if(gym) place(days.filter(d=>d.kind!=="run"), csSort(gym.days));
+  if(run) place(days.filter(d=>d.kind==="run"), csSort(run.days));
+  out.forEach(d=>{ const t=String(d.title||(d.kind==="run"?d.runType:"Allenamento")); d.title= WD_RE.test(t)? t.replace(WD_RE,WD[d.wd]) : WD[d.wd]+" – "+t; delete d.wd; });
+  state.program={name:res.name||"Il mio programma",summary:res.summary||"",progression:res.progression||"",days:out,weekMap:map,startDate:mondayOf(todayISO()),
+    settings:{days:String(out.length),place:(gym&&gym.place)||"",level:(gym&&gym.level)||"",notes:(gym&&gym.notes)||"",spec:cs.spec||""},fromCoach:true};
+  save("program",state.program); if(imported&&imported.active){ imported.active=false; save("programImported",imported); } }
+$("csGen").onclick=async()=>{ csGet();
+  if(!sample){ setStatus("csStatus","Il coach non è disponibile: serve l'AI attiva (Profilo → Impostazioni AI e dati).",true); return; }
+  const p=state.profile, g=goalOf(p); if(!p){ toast("Completa prima il profilo"); return; }
+  if(!g){ toast("Scegli l'obiettivo del fisico"); $("csGoal").focus(); return; }
+  const gym=cs.sports.includes("palestra")? cs.sp.palestra : null, run=cs.sports.includes("corsa")? cs.sp.corsa : null;
+  if(!gym&&!run){ toast("Scegli almeno palestra o corsa"); return; }
+  if(gym&&!gym.days.length){ toast("Scegli i giorni della palestra"); return; }
+  if(run&&!run.days.length){ toast("Scegli i giorni della corsa"); return; }
+  if(activeProg()&&!confirm("Il coach prepara una scheda nuova al posto di quella attuale. Continuo?")) return;
+  $("csGen").disabled=true; const t0=Date.now(); let step="Il coach prepara la scheda"; const tick=setInterval(()=>setStatus("csStatus",`${step}… ${Math.round((Date.now()-t0)/1000)} s`),1000);
+  try{ csSyncRace();
+    const useRace= !!(run&&race&&race.goal&&race.goal.vdot&&race.goal.date>todayISO());
+    if(useRace&&(!race.plan||race.plan.days!==JSON.stringify(race.goal.days))){ step="Preparo il piano di corsa fino alla gara"; await raceMakePlan(true); }
+    const runInProg= !!(run&&!useRace);
+    if(gym||runInProg){ step="Il coach prepara la scheda"; const res=await sample.json(csPrompt(gym,run,runInProg,useRace),{modelTier:"default",maxTokens:12000});
+      if(!res||!Array.isArray(res.days)||!res.days.length) throw {code:"bad_output"};
+      csApplyProgram(res,gym,runInProg? run : null); }
+    else { state.program={name:"Il mio programma",summary:"",days:[],weekMap:{0:null,1:null,2:null,3:null,4:null,5:null,6:null},startDate:mondayOf(todayISO()),fromCoach:true}; save("program",state.program); }
+    if(useRace) applyRaceWeek(false);
+    clearInterval(tick); setStatus("csStatus","Scheda pronta ✓");
+    actionToast("Scheda pronta: palestra e corsa insieme","Vedi",()=>{ setW("programma"); window.scrollTo({top:0}); },10000);
+    try{ renderProgram(); }catch{}
+  }catch(e){ clearInterval(tick); setStatus("csStatus",errCopy(e),true); }
+  finally{ clearInterval(tick); $("csGen").disabled=!sample; } };
 /* ----- adattamento automatico del piano gara ----- */
 const isRun=w=>w&&+w.distance>0&&(w.src==="watch"||/corsa|run|jog|lungo|ripetute|soglia|fartlek|gara|progressiv|trail|tapis/i.test((w.name||"")+" "+(w.runType||"")));
 function raceFeed(text,kind){ race.feed=[{date:todayISO(),text,kind:kind||"info"},...(race.feed||[])].slice(0,20); save("race",race); renderRaceFeed(); }
@@ -6513,7 +6737,7 @@ Rispondi SOLO con JSON: {"note":"cosa hai cambiato e perché, 1-2 frasi","weeks"
       const ws=JSON.parse(JSON.stringify(next)); ws.forEach((w,k)=>{ (w.runs||[]).forEach(r=>{ if(r.km){ r.km=Math.round(r.km*(k===0?f:Math.min(1,f+0.04))*10)/10; if(/Lungo/i.test(r.runType)&&capLong&&k===0) r.km=Math.min(r.km,capLong); } }); w.km=Math.round((w.runs||[]).reduce((a,r)=>a+(+r.km||0),0)*10)/10; });
       newWeeks={weeks:ws,note: f<1? "Volume ridotto per ripartire gradualmente." : "Piano confermato."}; }
     const undo=JSON.parse(JSON.stringify(race.plan.weeks));
-    newWeeks.weeks.forEach((w,k)=>{ race.plan.weeks[i+k]={...race.plan.weeks[i+k],...w}; });
+    newWeeks.weeks.forEach((w,k)=>{ race.plan.weeks[i+k]={...race.plan.weeks[i+k],...w}; }); raceFixDays(race.plan.weeks,race.goal);
     race.lastReview=from; save("race",race); raceFeed(summary+" "+newWeeks.note,"week"); applyRaceWeek(false); renderRacePlan(); setStatus("rcAdStatus","Fatto ✓");
     actionToast("Piano gara adattato alla settimana passata","Annulla",()=>{ race.plan.weeks=undo; save("race",race); applyRaceWeek(false); renderRacePlan(); toast("Piano ripristinato"); },10000);
   };
@@ -7531,12 +7755,15 @@ function proposalCard(turn){
   row.append(ok,no); box.appendChild(row); return box;
 }
 function splitReply(text){
-  const ip=text.indexOf("<<PROFILO"), is=text.indexOf("<<SCHEDA"), cut=[ip,is].filter(i=>i>=0);
+  const mem=[]; let giorni=null; text=String(text||"");
+  text=text.replace(/<<RICORDA\s*([\s\S]*?)>>/g,(m0,t)=>{ t=t.trim().replace(/^["“']|["”']$/g,"").trim(); if(t) mem.push(t.slice(0,240)); return ""; });
+  text=text.replace(/<<GIORNI\s*(\{[\s\S]*?\})\s*>>/g,(m0,j)=>{ try{ giorni=JSON.parse(j); }catch{} return ""; });
+  const ip=text.indexOf("<<PROFILO"), is=text.indexOf("<<SCHEDA"), iu=text.indexOf("<<"), cut=[ip,is,iu].filter(i=>i>=0);
   const visible= cut.length? text.slice(0,Math.min(...cut)).trim() : text;
   let changes=null, sched=null;
   if(ip>=0){ const m=text.slice(ip).match(/<<PROFILO\s*([\s\S]*?)>>/); if(m){ try{ changes=cleanChanges(JSON.parse(m[1])); }catch{} } }
   if(is>=0){ const rest=text.slice(is+8), end=rest.lastIndexOf(">>"); if(end>0){ try{ sched=cleanSched(JSON.parse(rest.slice(0,end).trim())); }catch{} } }
-  return {visible,changes,sched};
+  return {visible,changes,sched,mem,giorni};
 }
 function cleanSched(o){
   if(!o||!o.program||!Array.isArray(o.program.days)||!o.program.days.length) return null;
@@ -7556,7 +7783,7 @@ function applySched(turn){
   const next={...target, name:sc.program.name||target.name, summary:sc.program.summary||target.summary, progression:sc.program.progression||target.progression, days,
     weekMap: sc.program.weekMap || (sameLen? oldMap : null), runResults: sameLen? target.runResults : {}};
   if(useImported){ imported=Object.assign(imported,next); save("programImported",imported); sc.where="imported"; }
-  else { state.program=next; save("program",state.program); if(imported&&imported.active){ imported.active=false; save("programImported",imported); } sc.where="ai"; }
+  else { state.program=next; save("program",state.program); if(imported&&imported.active){ imported.active=false; save("programImported",imported); } sc.where="ai"; try{ keepRaceRuns(); }catch(e){ console.warn("gara",e); } }
   sc.prev=prev; sc.status="applied"; save("coach",chat);
   try{ renderProgram(); }catch{}
 }
@@ -7636,6 +7863,8 @@ Se dai dati emerge che non sta raggiungendo l'obiettivo, diglielo chiaramente e 
 Misure più recenti: ${Object.entries(latestBody()).map(([k,o])=>{ const m=METRICS.find(x=>x[0]===k); return m[1]+" "+o.v+m[2]+" ("+o.date+")"; }).join(", ")||"nessuna"}. Storico misurazioni: ${body.entries.length} voci${body.entries.length>1? ", prima del "+sortedEntries()[0].date+" con peso "+(sortedEntries().find(x=>x.weight)||{}).weight+" kg":""}.
 ${upActive()? "Segue una dieta del nutrizionista caricata nell'app (circa "+r(upDayTotals(upDayFor(state.date)).kcal)+" kcal oggi): non contraddirla, al massimo suggerisci di parlarne con il nutrizionista." : ""}
 Programma attuale${activeProg()&&activeProg().kind==="imported"?" (scheda del suo personal trainer: non contraddirla, al massimo suggerisci di parlarne con il trainer)":""}: ${pr? (pr.name+" – "+(pr.summary||"")+" – giorni: "+pr.days.map(d=>d.title+": "+(d.exercises||[]).map(x=>x.name+" "+exTarget(x)).join(", ")).join(" | ")) : "nessuno"}.
+${csText()}
+${memText()}
 ${comboText()}
 Ultimi allenamenti registrati con la scheda: ${tlog.sessions.slice(-3).map(s=>s.date+" "+s.title+": "+s.exercises.map(x=>x.name+" "+x.sets.map(z=>z.text? z.text : (z.kg!=null? z.kg+"kg×":"")+(z.reps||"")).join("/")).join("; ")+(s.notes?" (note: "+s.notes+")":"")).join(" || ")||"nessuno"}. Allenamenti registrati ${state.date===todayISO()?"oggi":"il "+state.date}: ${recent}. Evento ${state.date===todayISO()?"di oggi":"del "+state.date}: ${eventText()}.
 SCHEDA DI ALLENAMENTO. Programma attuale completo (JSON, la posizione nell'array è l'indice del giorno): ${pr? JSON.stringify({name:pr.name,summary:pr.summary,progression:pr.progression,days:pr.days.map(d=>{ const o={title:d.title,minutes:d.minutes}; if(d.kind==="run") Object.assign(o,{kind:"run",runType:d.runType,distanceKm:d.distanceKm,pace:d.pace,intensity:d.intensity,description:d.description,segments:d.segments}); else o.exercises=(d.exercises||[]).map(x=>({name:x.name,sets:x.sets,reps:x.reps,rest:x.rest,equip:x.equip,muscles:x.muscles,...(x.detail?{detail:x.detail}:{})})); return o; }),weekMap:pr.weekMap||null}) : "nessun programma"}. weekMap: {giorno della settimana 0=domenica…6=sabato: indice del giorno o null per riposo}.
@@ -7645,9 +7874,12 @@ B) Se ti CHIEDE supporto o un consiglio (es. "cosa mi consigli?", "fammi una sch
 In entrambi i casi spiega in breve cosa cambia e aggiungi alla FINE della risposta una riga esatta:
 <<SCHEDA {"mode":"user" o "coach","summary":"cosa cambia, una frase","program":{"name":"...","summary":"...","progression":"...","days":[giorni COMPLETI nello stesso formato del programma attuale, anche quelli che non cambiano],"weekMap":{...}}}>>
 Esercizi: {"name","sets","reps","rest" (es. "90 s"),"tip","equip","muscles":[tra petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci]}. Circuiti a giri: "kind":"circuit","circuit":{"exercises":[...],"rounds":[[reps per esercizio nel giro 1],...],"rest":"90 s"},"exercises":[] (es. piramide fino a 6 e ritorno). Giorni di corsa: "kind":"run","runType","distanceKm","minutes","pace","intensity" 1-5,"description","segments", "exercises":[]. Non aggiungere la riga SCHEDA se la scheda non deve cambiare. L'app la applica subito e l'utente può annullare.
+FAI LE COSE: se scrivi di aver cambiato, spostato, aggiunto, tolto o rimesso qualcosa nella scheda (anche una corsa), DEVI aggiungere la riga <<SCHEDA ...>>: senza quella riga nell'app non cambia niente. I giorni di palestra e di corsa sono quelli scelti dalla persona nel Coach: non spostarli di tua iniziativa. Le corse del piano gara restano sempre nella scheda.
+GIORNI: se la persona ti dice che cambia i giorni in cui fa palestra o corre, aggiungi alla FINE anche la riga <<GIORNI {"palestra":[numeri 0=domenica…6=sabato],"corsa":[...],"lungo":numero}>> (solo le attività che cambiano) e aggiorna la scheda.
+MEMORIA: quando la persona ti dice qualcosa che deve valere anche in futuro (una preferenza, un vincolo, un infortunio, un esercizio che non vuole fare, come vuole la scheda, un impegno fisso), aggiungi alla FINE una riga <<RICORDA frase breve>> per ogni cosa nuova (non ripetere quelle già in memoria). Rispetta sempre la memoria.
 
 PROFILO. Dati attuali del profilo (JSON): ${JSON.stringify({fname:p.fname||"",lname:p.lname||"",nick:p.nick||"",sex:p.sex||"",age:p.age||"",height:p.height||"",weight:p.weight||"",activity:p.activity||"",goal:p.goal||"",meals:mealList().map(m=>m.name),foodPrefs:p.foodPrefs||"",train:trainOf(p)})}.
-Se l'utente chiede di compilare o aggiornare il profilo, fai UNA domanda alla volta, breve, partendo da ciò che manca (nome o nickname, sesso, età, altezza, peso, attività quotidiana, obiettivo, pasti, preferenze alimentari, giorni/orari di allenamento, digiuno al mattino). I dati facoltativi si possono saltare.
+Se l'utente chiede di compilare o aggiornare il profilo, fai UNA domanda alla volta, breve, partendo da ciò che manca (nome o nickname, sesso, età, altezza, peso, attività quotidiana, obiettivo, pasti, preferenze alimentari, digiuno al mattino; i giorni di allenamento si scelgono nel Coach e si cambiano con la riga GIORNI). I dati facoltativi si possono saltare.
 Quando l'utente ti fornisce dati del profilo diversi da quelli attuali, NON dire che li hai salvati: aggiungi alla FINE della risposta una riga esatta nel formato
 <<PROFILO {"campo":valore}>>
 con solo i campi da cambiare. L'app mostrerà all'utente le modifiche e chiederà conferma prima di salvarle; puoi dire "conferma qui sotto". Campi e valori ammessi: fname, lname, nick (testo); sex "m" o "f"; age, height (cm), weight (kg) numeri; activity 1.2 (sedentaria), 1.375 (leggera), 1.55 (moderata, lavoro fisico); goal uno tra ${GOALS.map(g=>'"'+g.id+'" ('+g.t+')').join(", ")}; meals array di nomi dei pasti in ordine; foodPrefs testo; train oggetto {"sessions":[{"days":[numeri 0=domenica…6=sabato],"start":"HH:MM","end":"HH:MM","fed":"digiuno" o "leggero" o "abbondante" o ""}]} che SOSTITUISCE tutte le sessioni (includi anche quelle attuali da mantenere; una sessione per ogni allenamento ricorrente, due sessioni se si allena due volte nello stesso giorno). Non usare mai quella riga per dati che l'utente non ha detto chiaramente.`;
@@ -7659,7 +7891,7 @@ $("chatFile").onchange=async e=>{
   chatFiles.forEach(b=>{ const im=el("img"); im.src=URL.createObjectURL(b); im.alt="Foto allegata"; $("chatThumbs").appendChild(im); });
   $("chatFile").value="";
 };
-$("chatNew").onclick=()=>{ chat={turns:[]}; save("coach",chat); renderChat(); };
+$("chatNew").onclick=()=>{ chat={turns:[],mem:(chat&&chat.mem)||[]}; save("coach",chat); renderChat(); };
 $("chatSend").onclick=async()=>{
   const text=$("chatIn").value.trim(); if(!text&&!chatFiles.length) return; renderChat.scrollNext=true; clearTimeout(renderChat.sT); renderChat.sT=setTimeout(()=>{ renderChat.scrollNext=false; },90000);
   const imgs=chatFiles; chatFiles=[]; $("chatThumbs").innerHTML=""; $("chatIn").value="";
@@ -7672,10 +7904,17 @@ $("chatSend").onclick=async()=>{
   try{
     const res=await sample(msgs,{cache:false,...(imgs.length?{images:imgs}:{}),onText:({text})=>{ bub.textContent=splitReply(text).visible||"Sto pensando…"; $("chatLog").scrollTop=1e9; }});
     const sp=splitReply(res.text);
-    const turn={role:"assistant",d:todayISO(),content:sp.visible||"Ecco le modifiche:",...(sp.changes?{proposal:{changes:sp.changes,status:"pending"}}:{}),...(sp.sched?{sched:{...sp.sched,status:"new"}}:{})};
+    // dice di aver cambiato la scheda ma non ha scritto la riga SCHEDA: gliela chiedo subito, così la modifica si fa davvero
+    if(!sp.sched&&/\b(ho|abbiamo)\s+(gi[aà]\s+)?(aggiornato|modificato|spostato|messo|inserito|tolto|aggiunto|cambiato|sistemato|rimesso|creato|preparato|ridotto|alleggerito)\b/i.test(sp.visible)&&/scheda|programma|corsa|allenament|giorn|palestra|eserciz|lungo|ripetute|gambe/i.test(sp.visible)){
+      bub.textContent=sp.visible+"\n\n⏳ Applico la modifica alla scheda…";
+      try{ const fx=await sample([...msgs,{role:"assistant",content:res.text},{role:"user",content:"Hai scritto di aver cambiato la scheda ma manca la riga <<SCHEDA ...>>: senza quella riga nell'app non cambia niente. Scrivi ADESSO solo la riga <<SCHEDA {...}>> completa (tutti i giorni) con le modifiche che hai descritto, nient'altro."}],{cache:false});
+        const sp2=splitReply((fx&&fx.text)||""); if(sp2.sched) sp.sched=sp2.sched; }catch(e){ console.warn("scheda mancante",e); } }
+    if(sp.mem&&sp.mem.length){ chat.mem=chat.mem||[]; sp.mem.forEach(t=>{ if(!chat.mem.some(m=>m.t.toLowerCase()===t.toLowerCase())) chat.mem.push({t,d:todayISO()}); }); chat.mem=chat.mem.slice(-40); }
+    if(sp.giorni&&typeof sp.giorni==="object") try{ csApplyGiorni(sp.giorni); }catch(e){ console.warn("giorni",e); }
+    const turn={role:"assistant",d:todayISO(),content:(sp.visible||"Ecco le modifiche:")+(sp.mem&&sp.mem.length? "\n\n📌 Me lo ricordo: "+sp.mem.join(" · ") : ""),...(sp.changes?{proposal:{changes:sp.changes,status:"pending"}}:{}),...(sp.sched?{sched:{...sp.sched,status:"new"}}:{})};
     chat.turns.push(turn); chat.turns=chat.turns.slice(-30);
     if(turn.sched){ const keep={mode:turn.sched.mode,summary:turn.sched.summary}; applySched(turn); delete turn.sched.program; Object.assign(turn.sched,keep); toast(turn.sched.mode==="user"?"Scheda aggiornata ✓":"Nuova scheda del coach pronta ✓"); }
-    save("coach",chat);
+    save("coach",chat); try{ renderCsMem(); }catch{}
   }catch(e){ chat.turns.pop(); chatErr={msg:errCopy(e),code:(e&&e.code)||"sconosciuto",detail:(e&&e.message)||""}; $("chatIn").value=text; }
   finally{ $("chatSend").disabled=!sample; renderChat(); }
 };
@@ -8231,7 +8470,7 @@ function renderCheck(){
 function applyAction(a){
   if(a.type==="kcal"){ const d=Math.max(-400,Math.min(400,Math.round((+a.delta||0)/50)*50)); state.profile.kcalAdjust=Math.max(-600,Math.min(600,(+state.profile.kcalAdjust||0)+d)); save("profile",state.profile); toast("Obiettivo calorico aggiornato"); }
   a.done=true; save("progressCheck",lastCheck); renderAll();
-  if(a.type==="program"){ go("allenamento"); setW("programma"); $("pNotes").value=(($("pNotes").value||"")+" Indicazioni dal controllo progressi: "+(a.notes||a.label)).trim(); $("makeProg").click(); }
+  if(a.type==="program"){ go("allenamento"); setW("chat"); csGet(); if(cs.sp.palestra){ cs.sp.palestra.notes=((cs.sp.palestra.notes||"")+" Indicazioni dal controllo progressi: "+(a.notes||a.label)).trim(); } else cs.spec=((cs.spec||"")+" "+(a.notes||a.label)).trim(); csSave(); renderCoachSetup(); $("csGen").click(); }
   if(a.type==="diet"){ go("dieta"); setD("plan"); $("dietPrefs").value=(($("dietPrefs").value||"")+" Indicazioni dal controllo progressi: "+(a.notes||a.label)).trim(); $("makeDiet").click(); }
 }
 $("pgGo").onclick=async()=>{
@@ -9459,6 +9698,7 @@ async function loadAll(){
   try{ const rr=await store.getDoc("recipes"); if(rr&&Array.isArray(rr.list)) recipes=rr; }catch{}
   try{ const sh=await store.getDoc("shoes"); if(sh&&Array.isArray(sh.list)) shoes=sh; }catch{}
   try{ const gd=await store.getDoc("gels"); if(gd&&Array.isArray(gd.list)) gels=gd; }catch{}
+  try{ const c0=await store.getDoc("coachSetup"); if(c0&&Array.isArray(c0.sports)) cs=c0; }catch{}
   try{ race=await store.getDoc("race"); if(raceRepair()&&race.plan&&race.applied===mondayOf(todayISO())) setTimeout(()=>{ try{ applyRaceWeek(false); }catch(e){ console.warn("gara",e); } },1500); if(race&&race.plan&&race.applied!==mondayOf(todayISO())) setTimeout(async()=>{ try{ if((race.adapt||"auto")!=="off") await raceWeeklyAdapt(false); applyRaceWeek(false); }catch{} },2500); }catch{}
   try{ uiOrder=(await store.getDoc("uiOrder"))||{}; initReorder(); }catch(e){ console.warn("ordine",e); }
   const fd=await store.getDoc("foods"); foods={favs:(fd&&fd.favs)||[],recents:(fd&&fd.recents)||[],saved:(fd&&fd.saved)||[],barcodes:(fd&&fd.barcodes)||{},custom:(fd&&fd.custom)||[]};
