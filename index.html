@@ -2338,7 +2338,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.43 (pulsante «Prova chiave» Gemini: gratuita o a pagamento)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.44 («Prova chiave»: salta i modelli Pro ritirati)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9423,13 +9423,16 @@ $("apiTest").onclick=async()=>{
     const main=G.LS("mMain")||"gemini-2.5-flash", r=await geminiProbe(main,key);
     if(r.ok) line("✓ Il modello principale ("+main+") risponde in "+(r.ms/1000).toFixed(1)+" s","#1e8449");
     else line("❌ Il modello principale ("+main+") non risponde: errore "+r.status+(r.msg?" · "+r.msg.slice(0,160):""),"#c0392b");
-    // modello Pro stabile più recente: con il piano gratuito non è disponibile, con quello a pagamento sì
-    const pro=names.filter(n=>/pro/.test(n)&&!/preview|exp|image|tts|audio|live|vision|computer/.test(n)).sort((a,b)=>verNum(b)-verNum(a))[0]
-      || names.filter(n=>/pro/.test(n)&&!/image|tts|audio|live|computer/.test(n)).sort((a,b)=>verNum(b)-verNum(a))[0];
-    let paid=null;
+    // modelli Pro dal più recente: con il piano gratuito non sono disponibili, con quello a pagamento sì (salto quelli ritirati, 404)
+    const pros=names.filter(n=>/pro/.test(n)&&!/image|tts|audio|live|vision|computer|embedding/.test(n)).sort((a,b)=>(verNum(b)-verNum(a))||(/preview|exp/.test(a)-/preview|exp/.test(b)));
+    let paid=null, pro="", lastP=null;
     if(r.free||r.zero) paid=false;
-    else if(pro){ const p=await geminiProbe(pro,key); if(p.ok) paid=true; else if(p.status===429&&(p.free||p.zero)) paid=false; else if(p.status===429) paid=null;
-      if(!p.ok&&paid!==false) line("Prova con "+pro+": errore "+p.status+(p.msg?" · "+p.msg.slice(0,160):"")); }
+    else for(const m of pros.slice(0,4)){ const p=await geminiProbe(m,key); lastP={m,p};
+      if(p.ok){ paid=true; pro=m; break; }
+      if(p.status===429&&(p.free||p.zero)){ paid=false; break; }
+      if(p.status===404||p.status===400) continue;
+      break; }
+    if(paid===null&&lastP&&!lastP.p.ok) line("Prova con "+lastP.m+": errore "+lastP.p.status+(lastP.p.msg?" · "+lastP.p.msg.slice(0,160):""));
     if(paid===true) line("💳 Piano A PAGAMENTO attivo: anche "+pro+" risponde (con il piano gratuito non sarebbe possibile). Limiti molto più alti e i dati non vengono usati da Google per addestrare i modelli.","#1e8449");
     else if(paid===false) line("🆓 Questa chiave è ancora sul PIANO GRATUITO: la fatturazione non è collegata al progetto Google di questa chiave. In aistudio.google.com → API keys controlla che accanto alla chiave ci sia «Paid» / il piano a pagamento; se c'è scritto «Free», tocca «Set up billing» per quel progetto, oppure crea la chiave nel progetto dove hai attivato il pagamento e incollala qui.","#b9770e");
     else line("Non riesco a capire con certezza se il piano è a pagamento: guarda in aistudio.google.com → API keys la colonna del piano accanto alla chiave che finisce con …"+key.slice(-4)+".");
