@@ -2334,7 +2334,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.36 (foto giusta per Pectoral machine e altre macchine)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.37 (stretching proposto alla fine della seduta)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7933,7 +7933,8 @@ $("logSave").onclick=async()=>{
   addWorkout({name:logCtx.title+(vestKg?` (gilet ${fmt(vestKg)} kg)`:""), minutes:min, intensity:"scheda", kcal:5*(w+vestKg*0.8)*min/60, details:summary.slice(0,600), ...(logCtx.hr&&logCtx.hr.n? {avgHr:Math.round(logCtx.hr.sum/logCtx.hr.n),maxHr:logCtx.hr.max,zones:logCtx.hr.z.map(x=>Math.round(x/6)/10)} : {}), start:hhmm(startT), end:hhmm(new Date(logCtx.paused&&logCtx.pausedAt? logCtx.pausedAt : Date.now()))});
   logCtx.live=false; clearInterval(sesTick); restEnd=0; restNative(); keepAwake(false); try{ localStorage.removeItem("hf:live"); }catch{} renderLiveBanner();
   const ready=exs.filter(e=>{ const pg=progFor({name:e.name,sets:e.sets.length,reps:(logCtx.exercises.find(z=>z.name===e.name)||{}).repsLabel||String(Math.max(...e.sets.map(z=>+z.reps||0)))}); return pg&&pg.kind==="up"; }).length;
-  toast(`Allenamento salvato: ${min} minuti ✓`+(ready?` · ${ready} ${ready===1?"esercizio pronto":"esercizi pronti"} ad aumentare il peso la prossima volta 📈`:""));
+  const stK= /corsa|run|tapis/i.test(logCtx.title||"")? "corsa" : "palestra", stMin=Math.round(STRETCH[stK].ex.reduce((a,x)=>a+x[2]*(x[3]?2:1),0)/60);
+  actionToast(`Allenamento salvato: ${min} minuti ✓`+(ready?` · ${ready} ${ready===1?"esercizio pronto":"esercizi pronti"} ad aumentare il peso 📈`:"")+` · Ora ${stMin} min di stretching?`,"🧘 Inizia",()=>{ try{ startStretch(stK); }catch(e){ console.warn("stretching",e); } },15000);
   if(history.state&&history.state.v==="sessione") history.back(); else go("allenamento"); renderProgram();
 };
 /* ----- importa scheda ----- */
