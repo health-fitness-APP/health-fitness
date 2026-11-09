@@ -2392,7 +2392,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.65 (tutti i riquadri si aprono e chiudono toccando il titolo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.66 (integratori di oggi nella pagina Cibo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9270,7 +9270,7 @@ function renderPainWarn(){ const card=$("painWarnCard"); if(!card) return; const
 function suppToday(){ const p=state.profile||{}, L=(p.supplements||[]).filter(x=>x&&x.name); if(!L.length) return [];
   let pl=null; try{ pl=dayPlanFor(new Date(state.date+"T12:00:00").getDay(),state.date); }catch{} const train= pl&&pl.kind!=="rest";
   return L.filter(x=>!["allenamento","pre","post"].includes(x.when)||train); }
-function renderSuppCard(){ const card=$("suppCard"); if(!card) return; const L=suppToday(); card.hidden= view!=="diario"||!L.length; if(card.hidden) return; card.innerHTML="";
+function renderSuppCard(){ const card=$("suppCard"); if(!card) return; const L=suppToday(); card.hidden= view!=="cibo"||!L.length; if(card.hidden) return; card.innerHTML="";
   const done=state.day.supp||{}; const n=L.filter(x=>done[x.name]).length;
   const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"💊 Integratori di oggi")); hd.appendChild(el("span","note",`${n}/${L.length}`)); card.appendChild(hd);
   const W=Object.fromEntries(SUPP_WHEN);
@@ -10608,7 +10608,7 @@ function renderDash(){
 }
 /* ---------- ordine dei riquadri della home (tieni premuto e trascina) ---------- */
 const TILES=[["hero","dHero"],["food","dFood"],["act","dAct"],["body","dBody"],["progress","progCard"],["event","eventCard"]];
-["summary","nutriCard","meals","coach"].forEach(id=>{ const n=$(id); n.style.marginTop="0"; $("ciboBody").appendChild(n); });
+["summary","nutriCard","meals","suppCard","coach"].forEach(id=>{ const n=$(id); n.style.marginTop="0"; $("ciboBody").appendChild(n); });
 const HALF=["food","act"], DEF_ORDER=TILES.map(t=>t[0]);
 let homeOrder=[...DEF_ORDER]; var editMode=false;
 (function initHomeGrid(){
