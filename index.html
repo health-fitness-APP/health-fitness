@@ -1268,7 +1268,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 <main id="view-diario">
   <section class="card" id="keyBanner" hidden style="border:2px solid var(--basil)">
     <h2>Collega l'intelligenza artificiale</h2>
-    <p class="sub">Per foto dei pasti, coach, schede e diete serve la tua chiave gratuita di Google Gemini. Ci vogliono 2 minuti.</p>
+    <p class="sub">Per foto dei pasti, coach, schede e diete serve la tua chiave di Google Gemini (gratuita o a pagamento). Ci vogliono 2 minuti.</p>
     <button class="btn" id="keyGo">Configura ora</button>
   </section>
   <button class="hello" id="hello" hidden><span class="mini-av" id="miniAv"></span><span id="helloTxt"></span></button>
@@ -2260,7 +2260,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="apiTest" type="button">🔍 Prova chiave (gratuita o a pagamento?)</button>
       <div class="status" id="apiTestOut" aria-live="polite"></div>
       <details>
-        <summary class="note" style="cursor:pointer">Come ottenere la chiave gratuita</summary>
+        <summary class="note" style="cursor:pointer">Come ottenere la chiave</summary>
         <div class="pline"><span class="ic">1</span><span>Apri <b>aistudio.google.com</b> e accedi con il tuo account Google.</span></div>
         <div class="pline"><span class="ic">2</span><span>Tocca <b>Get API key</b> → <b>Create API key</b>.</span></div>
         <div class="pline"><span class="ic">3</span><span>Copia la chiave, incollala qui sopra e tocca “Salva e verifica”.</span></div>
@@ -2338,7 +2338,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.44 («Prova chiave»: salta i modelli Pro ritirati)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.45 (piano Gemini a pagamento: più ragionamento su diete, schede e piani)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2695,7 +2695,10 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     if(status===401||status===403) return {code:"bad_key",message:msg};
     return {code:"api_"+status,message:msg.slice(0,160)}; }
   const noThink=new Set((LS("noThink")||"").split(",").filter(Boolean));
-  function thinkCfg(model){ if(noThink.has(model)) return null;
+  const paid=()=>LS("keyTier")==="paid";
+  function thinkCfg(model,deep){
+    if(deep){ if(/2\.5-flash/.test(model)) return {thinkingBudget:4096}; if(/gemini-[3-9]/.test(model)) return {thinkingLevel:"medium"}; if(/2\.5-pro/.test(model)) return {thinkingBudget:4096}; }
+    if(noThink.has(model)) return null;
     if(/2\.5-flash/.test(model)) return {thinkingBudget:0};          // risposta immediata, senza "ragionamento"
     if(/gemini-[3-9]/.test(model)){ const lv=(LS("thinkLv:"+model)||"minimal"); return {thinkingLevel:lv}; }   // il "ragionamento" più corto possibile: risposte rapide
     return null; }
@@ -2703,10 +2706,12 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   const status=msg=>{ try{ window.dispatchEvent(new CustomEvent("hf-ai-status",{detail:msg})); }catch{} };
   window.HF_TRACE=[];
   async function once(model,key,contents,json,signal,tmo){ const ts=Date.now(); try{ const out=await once0(model,key,contents,json,signal,tmo); window.HF_TRACE.push({m:model,ms:Date.now()-ts,ok:true}); return out; }catch(e){ window.HF_TRACE.push({m:model,ms:Date.now()-ts,ok:false,code:e&&e.code}); throw e; } }
-  async function once0(model,key,contents,json,signal,tmo){
-    const tc=thinkCfg(model);
-    const gc={temperature:json?0.3:0.7,...(json?{responseMimeType:"application/json"}:{}),...(tc?{thinkingConfig:tc}:{}),...(once.maxTokens?{maxOutputTokens:once.maxTokens}:{})};
-    const ctl=new AbortController(), t=setTimeout(()=>ctl.abort("timeout"),tmo||35000);
+  async function once0(model,key,contents,json,signal,tmo,noDeep){
+    const deep=once.deep&&!noDeep;   // piano a pagamento: il modello "ragiona" prima di rispondere sui lavori importanti
+    const tc=thinkCfg(model,deep);
+    const mt=once.maxTokens? once.maxTokens+(deep?8192:0) : 0;
+    const gc={temperature:json?0.3:0.7,...(json?{responseMimeType:"application/json"}:{}),...(tc?{thinkingConfig:tc}:{}),...(mt?{maxOutputTokens:mt}:{})};
+    const ctl=new AbortController(), t=setTimeout(()=>ctl.abort("timeout"),deep? Math.max(tmo||0,90000) : (tmo||35000));
     if(signal) signal.addEventListener("abort",()=>ctl.abort("user"),{once:true});
     let res;
     try{ res=await fetch(`${API}/models/${model}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents,generationConfig:gc}),signal:ctl.signal}); }
@@ -2715,6 +2720,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     const data=await res.json().catch(()=>null);
     if(!res.ok){
       const msg=(data&&data.error&&data.error.message)||"";
+      if(deep&&res.status===400&&/think/i.test(msg)) return once0(model,key,contents,json,signal,tmo,true);
       if(res.status===400&&tc&&tc.thinkingLevel&&/think/i.test(msg)&&tc.thinkingLevel!=="low"){ try{ localStorage.setItem("hf:thinkLv:"+model,"low"); }catch{} return once0(model,key,contents,json,signal,tmo); }
       if(res.status===400&&tc&&/think/i.test(msg)){ noThink.add(model); try{ localStorage.setItem("hf:noThink",[...noThink].join(",")); }catch{} return once0(model,key,contents,json,signal,tmo); }
       const e=err(res.status,data); if([500,502,503,504].includes(res.status)||e.code==="rate_limited") e.retry=true; throw e;
@@ -2813,7 +2819,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     if(LS("groqKey")){ status(LS("orKey")? "Provo con Groq…" : "Gemini è sovraccarico: passo a Groq…"); try{ return await groqOnce(contents,json,opts); }catch(e){ lastErr=e; } }
     for(const m of reserveModels(chain)){
       status("I modelli scelti sono sovraccarichi: provo con "+m.replace("gemini-","")+"…");
-      try{ const t=await once(m,key,contents,json,opts.signal,20000); try{ localStorage.setItem("hf:lastReserve",m); }catch{} return t; }
+      try{ once.deep=false; const t=await once(m,key,contents,json,opts.signal,20000); try{ localStorage.setItem("hf:lastReserve",m); }catch{} return t; }
       catch(e){ lastErr=e; if(e&&/404/.test(String(e.code))){ const d=(LS("deadModels")||"").split(",").filter(Boolean); if(!d.includes(m)){ d.push(m); try{ localStorage.setItem("hf:deadModels",d.join(",")); }catch{} } } }
     }
     throw lastErr;
@@ -2829,20 +2835,22 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       for(const b of opts.images){ last.parts.push({inline_data:{mime_type:b.type||"image/jpeg",data:await blobToB64(b)}}); } }
     let lastErr=null;
     once.maxTokens=opts.maxTokens||0;
+    // lavori importanti (diete, schede, piani, analisi: JSON senza foto, modello principale) → più ragionamento se la chiave è a pagamento
+    const deepCall= paid() && json && opts.modelTier!=="quick" && !(opts.images&&opts.images.length) && !opts.fast; once.deep=deepCall;
     if(opts.fast&&chain.length>1){   // foto: se il primo modello tarda, parte anche l'altro e vince il più veloce
       const t0=Date.now();
       const text=await new Promise((resolve,reject)=>{
         let done=false, started=0, failed=0, tm=null; const ctls=[];
         const finishOk=(t,c)=>{ if(done) return; done=true; clearTimeout(tm); ctls.forEach(x=>{ if(x!==c) x.abort(); }); resolve(t); };
         const run=(model,retry)=>{ started++; const c=new AbortController(); ctls.push(c); if(opts.signal) opts.signal.addEventListener("abort",()=>c.abort(),{once:true});
-          once(model,key,contents,json,c.signal,14000).then(t=>finishOk(t,c)).catch(async e=>{ if(done) return; lastErr=e;
+          (once.deep=false, once(model,key,contents,json,c.signal,14000)).then(t=>finishOk(t,c)).catch(async e=>{ if(done) return; lastErr=e;
             if(e.code==="cancelled"&&opts.signal&&opts.signal.aborted){ done=true; reject(e); return; }
             if(!e.retry&&e.code!=="quota"){ done=true; clearTimeout(tm); ctls.forEach(x=>x.abort()); reject(e); return; }
             if(retry&&Date.now()-t0<30000&&e.code!=="quota"&&e.code!=="timeout"){ await sleep(700); if(!done){ started--; run(model,false); } return; }
             failed++; if(started<2){ clearTimeout(tm); status("Provo con l'altro modello…"); run(chain[1],true); }
             else if(failed>=started){ done=true; reject(e); } }); };
         run(chain[0],true);
-        tm=setTimeout(()=>{ if(!done&&started<2){ status("Il server è lento: provo in parallelo anche l'altro modello…"); run(chain[1],true); } },5000);
+        tm=setTimeout(()=>{ if(!done&&started<2){ status("Il server è lento: provo in parallelo anche l'altro modello…"); run(chain[1],true); } }, paid()? 12000 : 5000);   // a pagamento: niente doppia richiesta se non serve davvero
         // con la riserva Groq: dopo 9 secondi parte anche lei, vince la prima risposta
         const alt= LS("orKey")? orOnce : LS("groqKey")? groqOnce : null;
         if(alt) setTimeout(()=>{ if(done) return; status(alt===orOnce? "Gemini è lento: provo anche con OpenRouter…" : "Gemini è lento: provo anche con Groq…"); started++;
@@ -2853,7 +2861,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     }
     for(let mi=0; mi<chain.length; mi++){
       for(let attempt=0; attempt<2; attempt++){
-        try{ once.maxTokens=opts.maxTokens||0; const text=await once(chain[mi],key,contents,json,opts.signal); try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{} if(opts.onText) opts.onText({text,done:true}); return text; }
+        try{ once.maxTokens=opts.maxTokens||0; once.deep=deepCall; const text=await once(chain[mi],key,contents,json,opts.signal); try{ localStorage.removeItem("hf:aiPause"); const pb=document.getElementById("aiPauseBar"); if(pb) pb.hidden=true; }catch{} if(opts.onText) opts.onText({text,done:true}); return text; }
         catch(e){
           lastErr=e; if(e.code==="quota"&&mi+1<chain.length){ status("Richieste esaurite su questo modello: provo con l'altro…"); break; }
           if(!e.retry) throw e;
@@ -2874,7 +2882,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     if(v!==undefined) return v; throw {code:"bad_output"}; };
   sample.limits=async()=>({images:{maxCount:8},maxPromptBytes:900000});
   window.claude={use:async name=> name==="sample"? sample : null};
-  window.HF_GEMINI={API,LS};
+  window.HF_GEMINI={API,LS,paid};
 })();
 </script>
 <script>
@@ -8317,6 +8325,11 @@ function nextPacificMidnight(){ const now=new Date(); let la; try{ la=new Date(n
 function hhmm(d){ return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
 function aiResetText(e){
   e=e||{}; let txt;
+  if(G.paid()){ const at=new Date((e.at||Date.now())+Math.min(e.retrySec||60,300)*1000);
+    txt= e.daily? "Hai raggiunto il limite giornaliero del tuo piano Google a pagamento, o il tetto di spesa che hai impostato. Controlla in aistudio.google.com → Billing. Intanto puoi usare ricerca, codice a barre, preferiti e valori a mano."
+      : `Troppe richieste in poco tempo. Riprova tra ${Math.round((at-Date.now())/1000)} secondi.`;
+    try{ localStorage.setItem("hf:aiPause",JSON.stringify({until:at.getTime(),daily:false})); }catch{}
+    try{ renderAiPause(); }catch{} return txt; }
   if(!e.daily&&e.retrySec&&e.retrySec<=120){ const at=new Date((e.at||Date.now())+e.retrySec*1000);
     txt=`Hai superato il limite di richieste al minuto del piano gratuito. Puoi riprovare tra ${e.retrySec} secondi (alle ${hhmm(at)}:${String(at.getSeconds()).padStart(2,"0")}).`;
     try{ localStorage.setItem("hf:aiPause",JSON.stringify({until:at.getTime(),daily:false})); }catch{}
@@ -8330,7 +8343,7 @@ function aiResetText(e){
 function renderAiPause(){ let p=null; try{ p=JSON.parse(localStorage.getItem("hf:aiPause")||"null"); }catch{}
   const b=$("aiPauseBar"); if(!b) return; if(!p||p.until<=Date.now()){ b.hidden=true; try{ localStorage.removeItem("hf:aiPause"); }catch{} return; }
   const at=new Date(p.until), today=new Date().toDateString()===at.toDateString();
-  b.hidden=false; b.textContent= p.daily? `⏸ AI gratuita esaurita per oggi: torna ${today?"oggi":"domani"} alle ${hhmm(at)}` : `⏸ Limite al minuto raggiunto: AI di nuovo pronta alle ${hhmm(at)}:${String(at.getSeconds()).padStart(2,"0")}`; }
+  b.hidden=false; b.textContent= p.daily? `⏸ AI ${G.paid()?"":"gratuita "}esaurita per oggi: torna ${today?"oggi":"domani"} alle ${hhmm(at)}` : `⏸ Limite al minuto raggiunto: AI di nuovo pronta alle ${hhmm(at)}:${String(at.getSeconds()).padStart(2,"0")}`; }
 setInterval(()=>{ try{ renderAiPause(); }catch{} },15000); setTimeout(()=>{ try{ renderAiPause(); }catch{} },600);
 function errCopy(e){
   const c=e&&e.code;
@@ -8343,9 +8356,9 @@ function errCopy(e){
   if(c==="no_groq_vision") return "Gemini è sovraccarico e Groq al momento non ha modelli che leggono le foto. Riprova tra poco oppure descrivi il piatto a parole: il testo funziona anche con Groq.";
   if(c==="no_groq_model") return "Gemini è sovraccarico e Groq non ha risposto. Riprova tra poco.";
   if(c==="timeout") return "L'AI ci sta mettendo troppo: riprova tra poco.";
-  if(c==="api_503"||c==="api_500"||c==="api_502"||c==="api_504") return "I server gratuiti di Google sono sovraccarichi in questo momento. Ho già riprovato anche con il modello di riserva: riprova tra un minuto.";
+  if(c==="api_503"||c==="api_500"||c==="api_502"||c==="api_504") return (G.paid()? "I server di Google sono sovraccarichi in questo momento." : "I server gratuiti di Google sono sovraccarichi in questo momento.")+" Ho già riprovato anche con il modello di riserva: riprova tra un minuto.";
   if(c==="not_granted") return "Serve il permesso per usare l'AI.";
-  if(c==="rate_limited") return "Troppe richieste ravvicinate (limite del piano gratuito). Aspetta un minuto e riprova.";
+  if(c==="rate_limited") return "Troppe richieste ravvicinate"+(G.paid()?"":" (limite del piano gratuito)")+". Aspetta un minuto e riprova.";
   if(c==="bad_image") return "Questa immagine non si apre. Prova con un'altra foto.";
   if(c==="bad_output") return "La risposta non era completa. Riprova.";
   if(c==="cancelled") return "Operazione interrotta.";
@@ -9390,12 +9403,13 @@ async function testModel(model,key){
 }
 $("apiSave").onclick=async()=>{
   const key=$("apiKey").value.trim(); if(!key){ setStatus("apiStatus","Incolla prima la chiave."); return; }
-  $("apiSave").disabled=true; $("apiStatus").classList.remove("ok"); setStatus("apiStatus","Verifico la chiave e cerco i modelli gratuiti disponibili…");
+  $("apiSave").disabled=true; $("apiStatus").classList.remove("ok"); setStatus("apiStatus","Verifico la chiave e cerco i modelli disponibili…");
   try{
     const m=await detectModels(key); if(!m.main) throw {code:"bad_output",message:"nessun modello Flash trovato"};
     let main=m.main, quick=m.quick;
     if(!(await testModel(main,key))){ const alt=m.all.find(x=>x!==main); if(alt&&await testModel(alt,key)) main=alt; else throw {code:"quota",message:"il modello non risponde con questa chiave"}; }
     if(quick!==main && !(await testModel(quick,key))) quick=main;
+    try{ localStorage.removeItem("hf:keyTier"); }catch{}
     lsSet("apiKey",key); lsSet("mMain",main); lsSet("mQuick",quick); lsSet("models",m.all.join(",")); fillModelSelects(m.all);
     $("apiKey").value=""; $("apiKey").placeholder="Chiave salvata ✓ (incollane una nuova per cambiarla)";
     markDirty("aiSettings"); schedulePush(); setStatus("apiStatus",""); showAiOk(); renderKeyBanner(); toast("✓ AI collegata");
