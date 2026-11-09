@@ -371,6 +371,7 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .gd-move{display:block;margin:16px 4px 4px;font-size:.88rem;color:var(--muted)}
 .gd-bar{margin-top:16px}
 .btn.gd-start-top{font-size:1.1rem;letter-spacing:.04em;padding:16px;margin:4px 0 14px}
+.btn.gd-warm{width:100%;margin:-6px 0 14px}
 .gd-bar .btn{font-size:1.1rem;letter-spacing:.04em;padding:16px}
 .gd-row{display:grid;grid-template-columns:1fr 1fr;margin-top:8px}
 .gd-row button{border:0;background:none;font:inherit;font-weight:600;color:var(--ink);padding:12px;cursor:pointer}
@@ -2334,7 +2335,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.38 (mobilità facoltativa nei giorni di riposo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.39 (riscaldamento guidato prima della palestra)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6852,6 +6853,7 @@ const STRETCH={
  corsa:{t:"Dopo la corsa",ic:"🏃",ex:[["Polpacci al muro","Gamba dietro tesa, tallone a terra, spingi il muro",45,1],["Flessori dell'anca","Affondo basso, bacino in avanti, busto dritto",45,1],["Quadricipiti in piedi","Tallone al gluteo, ginocchia vicine",40,1],["Femorali seduto","Gamba tesa, schiena dritta, piegati dall'anca",45,1],["Glutei a figura 4","Sdraiato, caviglia sul ginocchio, tira la coscia verso il petto",45,1],["Adduttori a farfalla","Piante dei piedi unite, ginocchia verso terra",40,0]]},
  palestra:{t:"Dopo la palestra",ic:"🏋️",ex:[["Pettorali allo stipite","Avambraccio sullo stipite, ruota il busto dall'altra parte",40,1],["Dorsali in ginocchio","Seduto sui talloni, braccia avanti, fronte a terra",45,0],["Spalle a braccio incrociato","Tira il braccio teso verso il petto",30,1],["Tricipiti dietro la testa","Gomito in alto, spingi piano con l'altra mano",30,1],["Quadricipiti in piedi","Tallone al gluteo, ginocchia vicine",40,1],["Femorali seduto","Gamba tesa, schiena dritta",45,1]]},
  sci:{t:"Dopo lo sci",ic:"⛷️",ex:[["Quadricipiti in piedi","Tallone al gluteo: sono i muscoli che lavorano di più sugli sci",45,1],["Flessori dell'anca","Affondo basso, bacino in avanti",45,1],["Glutei a figura 4","Sdraiato, caviglia sul ginocchio",45,1],["Polpacci al muro","Tallone a terra, gamba tesa",40,1],["Adduttori larghi","Gambe larghe, spostati piano su un lato",40,1],["Ginocchia al petto","Sdraiato, abbraccia le ginocchia: scarica la schiena",45,0],["Collo","Orecchio verso la spalla, senza forzare",30,1]]},
+ riscaldamento:{t:"Riscaldamento prima della palestra",ic:"🔥",warm:true,ex:[["Cardio leggero","Cyclette, tapis roulant, ellittica o corsetta sul posto: devi scaldarti e respirare un po' più forte, senza fatica",120,0],["Cerchi con le braccia","Prima piccoli poi ampi, avanti e indietro",30,0],["Gatto e mucca","A quattro zampe: inarca e arrotonda la schiena",30,0],["Rotazioni del torace","A quattro zampe, mano dietro la testa, apri il gomito",20,1],["Squat a corpo libero","Lenti e profondi, talloni a terra",40,0],["Affondi alternati","Passo lungo, ginocchio dietro vicino a terra",40,0],["Ponte per i glutei","Sdraiato, spingi il bacino in alto e stringi i glutei",30,0],["Piegamenti facili","Sulle ginocchia o con le mani su una panca",30,0]]},
  mattino:{t:"Mobilità del mattino",ic:"🌅",ex:[["Gatto e mucca","A quattro zampe: inarca e arrotonda la schiena, lento",45,0],["Cerchi con le anche","In piedi, mani sui fianchi, cerchi ampi",30,1],["Affondo con rotazione","Affondo, mano a terra, apri l'altro braccio verso l'alto",30,1],["Rotazioni del torace","A quattro zampe, mano dietro la testa, apri il gomito",30,1],["Caviglie","Ginocchio in avanti oltre la punta, tallone a terra",30,1],["Respirazione","Seduto, inspira 4 secondi, espira 6",45,0]]},
  riposo:{t:"Giorno di riposo (mobilità completa)",ic:"🧘",ex:[["Gatto e mucca","Lento, segui il respiro",45,0],["Flessori dell'anca","Affondo basso",60,1],["Femorali sdraiato","Gamba tesa in alto con un asciugamano",60,1],["Glutei a figura 4","Sdraiato",60,1],["Piriforme seduto","Gamba incrociata, ruota il busto",45,1],["Rotazioni del torace","A quattro zampe",40,1],["Pettorali allo stipite","Braccio a 90°",45,1],["Dorsali in ginocchio","Fronte a terra, braccia lunghe",60,0],["Polpacci al muro","Tallone a terra",45,1]]}};
 const STRETCH_TIPS=["Prima di allenarti fai mobilità dinamica (movimenti ampi e controllati), non allungamenti fermi: quelli vanno DOPO.","Tieni ogni posizione 30-60 secondi, senza molleggiare.","Deve tirare, non fare male: se senti dolore torna indietro.","Respira lento ed espira mentre ti allunghi: il muscolo si rilassa di più.","Meglio 10 minuti tutti i giorni che un'ora una volta a settimana.","Dopo una corsa lunga o una giornata sugli sci fai la routine con calma: aiuta a sentirti meno rigido il giorno dopo."];
@@ -6863,9 +6865,9 @@ function renderStretchCard(){ const host=$("stretchBox"); if(!host) return; host
   const d=el("details","cs-race"); d.appendChild(el("summary",null,"💡 Consigli sullo stretching ›")); STRETCH_TIPS.forEach(t=>{ const r0=el("div","pline"); r0.append(el("span","ic","•"),el("span",null,t)); d.appendChild(r0); }); c.appendChild(d);
   host.appendChild(c); }
 let STR=null;
-function startStretch(k){ const R=STRETCH[k]; if(!R) return; const steps=[]; R.ex.forEach(([n,tip,sec,sides])=>{ if(sides){ steps.push({n,tip,sec,side:"lato destro"}); steps.push({n,tip,sec,side:"lato sinistro"}); } else steps.push({n,tip,sec,side:""}); });
+function startStretch(k,opt){ const R=STRETCH[k]; if(!R) return; const steps=[]; R.ex.forEach(([n,tip,sec,sides])=>{ if(sides){ steps.push({n,tip,sec,side:"lato destro"}); steps.push({n,tip,sec,side:"lato sinistro"}); } else steps.push({n,tip,sec,side:""}); });
   let ov=$("strOv"); if(!ov){ ov=el("div","str-ov"); ov.id="strOv"; document.body.appendChild(ov); }
-  STR={k,steps,i:0,left:steps[0].sec,run:true,t0:Date.now(),prep:5}; ov.hidden=false; strDraw(); clearInterval(strDraw.t); strDraw.t=setInterval(strTick,1000); try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>STR.wl=l).catch(()=>{}); }catch{} }
+  STR={k,steps,i:0,left:steps[0].sec,run:true,t0:Date.now(),prep:5,...(opt||{})}; ov.hidden=false; strDraw(); clearInterval(strDraw.t); strDraw.t=setInterval(strTick,1000); try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>STR.wl=l).catch(()=>{}); }catch{} }
 function strTick(){ if(!STR||!STR.run) return; if(STR.prep>0){ STR.prep--; if(!STR.prep) strBeep(); strDraw(); return; }
   STR.left--; if(STR.left<=0){ strBeep(); STR.i++; if(STR.i>=STR.steps.length){ strEnd(true); return; } STR.left=STR.steps[STR.i].sec; STR.prep=5; } strDraw(); }
 function strBeep(){ try{ navigator.vibrate&&navigator.vibrate(120); }catch{} try{ const A=new (window.AudioContext||window.webkitAudioContext)(), o=A.createOscillator(), g=A.createGain(); o.frequency.value=880; o.connect(g); g.connect(A.destination); g.gain.value=0.15; o.start(); o.stop(A.currentTime+0.18); }catch{} }
@@ -6884,6 +6886,10 @@ function strDraw(){ const ov=$("strOv"); if(!ov||!STR) return; const s=STR.steps
   ov.querySelector('[data-a="prev"]').onclick=()=>{ if(STR.i>0) STR.i--; STR.left=STR.steps[STR.i].sec; STR.prep=3; strDraw(); }; }
 function strEnd(done){ clearInterval(strDraw.t); const ov=$("strOv"); const S0=STR; STR=null; try{ S0&&S0.wl&&S0.wl.release(); }catch{}
   if(!ov) return; if(!done||!S0){ ov.hidden=true; return; }
+  if(STRETCH[S0.k].warm){ const fx=S0.first? `Ora 2 serie leggere di ${S0.first}: 10 ripetizioni con circa metà del peso, poi 5 con circa il 70%. Poi parti con le serie vere.` : "Ora fai 1-2 serie leggere del primo esercizio prima delle serie vere.";
+    ov.innerHTML=`<div class="str-in"><h2 class="str-n">Sei caldo! 🔥</h2><p class="str-tip"></p><div class="str-b"><button type="button" class="btn ghost" data-a="no">Chiudi</button>${S0.after?'<button type="button" class="btn" data-a="go">INIZIA LA SEDUTA</button>':""}</div></div>`;
+    ov.querySelector(".str-tip").textContent=fx; ov.querySelector('[data-a="no"]').onclick=()=>{ ov.hidden=true; };
+    if(S0.after) ov.querySelector('[data-a="go"]').onclick=()=>{ ov.hidden=true; try{ S0.after(); }catch(e){ console.warn("seduta",e); } }; return; }
   const min=Math.max(1,Math.round((Date.now()-S0.t0)/60000)), R=STRETCH[S0.k], w=+(state.profile&&state.profile.weight)||75;
   ov.innerHTML=`<div class="str-in"><h2 class="str-n">Fatto! 🧘</h2><p class="str-tip">${R.t}: ${min} minuti. Vuoi registrarla negli allenamenti di oggi?</p><div class="str-b"><button type="button" class="btn ghost" data-a="no">No</button><button type="button" class="btn" data-a="si">Registra</button></div></div>`;
   ov.querySelector('[data-a="no"]').onclick=()=>{ ov.hidden=true; };
@@ -7695,6 +7701,9 @@ function renderDayPage(){
   doneB.onclick=()=>{ const w=(state.profile&&state.profile.weight)||70, min=+d.minutes||60; addWorkout({name:d.title||"Allenamento", minutes:min, intensity:"programma", kcal:5*w*min/60}); renderProgram(); renderDayPage(); };
   edB.onclick=()=>{ editDay=di; renderDayPage(); window.scrollTo(0,0); };
   row.append(rgB,edB); bar.append(row,doneB); box.appendChild(bar); placeStart(box,bar,start);
+  if(!liveHere){ const wb=el("button","btn ghost gd-warm",`🔥 Prima il riscaldamento guidato (${stretchMin("riscaldamento")} min)`); wb.type="button";
+    const fe=(d.exercises||[]).find(x=>x&&x.name&&!/corsa|tapis|bike|cyclette|ellittic|vogat|camminat|stretch|mobilit|riscald/i.test(x.name));
+    wb.onclick=()=>startStretch("riscaldamento",{first:fe? fe.name : "", after:()=>openLogger(a,di)}); start.after(wb); }
   const st=el("div","status"); st.id="gdStatus"; st.setAttribute("aria-live","polite"); box.appendChild(st);
 }
 async function regenDay(a,pr,di){
