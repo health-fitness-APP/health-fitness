@@ -1352,6 +1352,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="out" id="coachOut" aria-live="polite"></div>
   </section>
   <div id="meals"></div>
+  <section class="card" id="hidCard" hidden></section>
 </main>
 
 <!-- ================= RICETTA ================= -->
@@ -2382,7 +2383,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.56 (Profilo → Riquadri nascosti: rimetti quelli che hai nascosto)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.57 (riquadri nascosti in fondo alla pagina Oggi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9053,15 +9054,18 @@ async function notifSchedule(){ const L=LN(); if(!L||localStorage.getItem("hf:no
 /* riquadri nascosti: dal Profilo si rimettono */
 const HIDE_KEYS=[["hf:waterOff","💧 Acqua","1"],["hf:chalOff","🎯 Sfide del mese","1"]];
 const SEEN_KEYS=["hf:fatSeen","hf:fuelSeen","hf:nightSeen","hf:painSeen","hf:deloadSeen","hf:weekSeen","hf:monthSeen"];
-function renderHiddenBox(){ const box=$("hiddenBox"); if(!box) return; box.innerHTML=""; const g=k=>{ try{ return localStorage.getItem(k); }catch{ return null; } };
+function renderHiddenBox(id){ const box=$(id||"hiddenBox"); if(!box) return; box.innerHTML=""; const re=()=>{ renderHiddenBox(); renderHidCard(); }; const g=k=>{ try{ return localStorage.getItem(k); }catch{ return null; } };
   const h=el("h3",null,"👁 Riquadri nascosti"); h.style.cssText="margin:14px 0 4px;font-size:1rem"; box.appendChild(h);
-  const off=HIDE_KEYS.filter(([k,,v])=>g(k)===v), closed=SEEN_KEYS.filter(k=>g(k));
+  const off=HIDE_KEYS.filter(([k,,v])=>g(k)===v), closed= id==="hidCard"? [] : SEEN_KEYS.filter(k=>g(k));
   if(!off.length&&!closed.length){ box.appendChild(el("p","note","Nessun riquadro nascosto: nella pagina Oggi vedi tutto.")); return; }
   off.forEach(([k,name])=>{ const r0=el("div","pline"); r0.style.cssText="display:flex;align-items:center;gap:8px"; r0.appendChild(el("span",null,name)); const b=el("button","btn ghost","Rimetti"); b.type="button"; b.style.cssText="width:auto;margin-left:auto;padding:6px 14px";
-    b.onclick=()=>{ try{ localStorage.removeItem(k); }catch{} renderAll(); renderHiddenBox(); try{ notifSchedule(); }catch{} toast(name+" di nuovo nella pagina Oggi ✓"); }; r0.appendChild(b); box.appendChild(r0); });
+    b.onclick=()=>{ try{ localStorage.removeItem(k); }catch{} renderAll(); re(); try{ notifSchedule(); }catch{} toast(name+" di nuovo nella pagina Oggi ✓"); }; r0.appendChild(b); box.appendChild(r0); });
   if(closed.length){ const b=el("button","btn ghost","Rimetti anche i riquadri chiusi per oggi"); b.type="button"; b.style.marginTop="8px";
-    b.onclick=()=>{ closed.forEach(k=>{ try{ localStorage.removeItem(k); }catch{} }); renderAll(); renderHiddenBox(); toast("Riquadri rimessi ✓"); }; box.appendChild(b);
+    b.onclick=()=>{ closed.forEach(k=>{ try{ localStorage.removeItem(k); }catch{} }); renderAll(); re(); toast("Riquadri rimessi ✓"); }; box.appendChild(b);
     box.appendChild(el("p","note","Quelli chiusi con «Chiudi» (settimana, stanchezza, stasera, corsa, fastidio, scarico, mese) tornano comunque da soli quando c'è qualcosa di nuovo.")); } }
+/* in fondo alla pagina Oggi, solo se c'è qualcosa di nascosto */
+function renderHidCard(){ const c=$("hidCard"); if(!c) return; const g=k=>{ try{ return localStorage.getItem(k); }catch{ return null; } };
+  const n=HIDE_KEYS.filter(([k,,v])=>g(k)===v).length; c.hidden= view!=="diario"||!n; if(c.hidden) return; renderHiddenBox("hidCard"); }
 function renderNotifBox(){ const box=$("notifBox"); if(!box) return; box.innerHTML=""; const L=LN(); box.appendChild(el("h3",null,"🔔 Notifiche")); box.lastChild.style.cssText="margin:14px 0 4px;font-size:1rem";
   if(!L){ box.appendChild(el("p","note",NAT()? "Per le notifiche aggiorna l'app del telefono (HealthFit.apk, dalla versione apk-48)." : "Le notifiche funzionano nell'app del telefono.")); return; }
   const on=localStorage.getItem("hf:notifOn")==="1", P=notifPrefs();
@@ -9358,7 +9362,7 @@ function renderWeekCard(){ const card=$("weekCard"); if(!card) return; const tod
   card.appendChild(cb);
   if(sample){ const ask=el("button","btn ghost","Parlane con il coach"); ask.type="button"; ask.style.marginTop="8px";
     ask.onclick=()=>{ go("allenamento"); setW("chat"); $("chatIn").value="Guardiamo insieme la settimana scorsa: "+weekLines(D).map(x0=>x0[1]).join(" ")+" Cosa cambio questa settimana?"; }; card.appendChild(ask); } }
-function renderProgress(){ try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); }catch(e){ console.warn("schede diario",e); }
+function renderProgress(){ try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); renderHidCard(); }catch(e){ console.warn("schede diario",e); }
   const card=$("progCard"); if(!card) return; card.hidden=!state.profile||!goalOf(state.profile);
   const pg=progress, box=$("pgLines"); box.innerHTML=""; $("pgGo").disabled=!sample||progBusy;
   if(!pg){ $("pgPill").className="pill na"; $("pgPill").textContent="calcolo…"; return; }
