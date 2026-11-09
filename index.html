@@ -863,6 +863,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .raceRow{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;margin-bottom:10px;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
 .raceRow .mi{flex:none;width:44px;height:44px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.4rem}
 .grBox{padding:14px 16px;margin:-4px 0 10px}.grBox .two{margin-top:6px}.grBox .grOut{font-size:.95rem;margin:10px 0 4px}.grBox .grOut b{font-size:1.2rem}
+.fold-x{display:block;width:100%;margin-top:12px;padding:10px;border:0;border-top:1px solid var(--line,rgba(0,0,0,.08));background:none;color:var(--muted);font:inherit;font-size:.9rem;cursor:pointer}
 #progCard{padding:12px 14px}.pg-row{background:none;border:0;padding:0;margin:0;box-shadow:none}.pg-row .pill{display:inline-block;font-size:.72rem;padding:2px 8px;margin:3px 4px 0 0;vertical-align:middle}.pg-row .chev{transition:transform .2s}.pg-row[aria-expanded="true"] .chev{transform:rotate(90deg)}#pgBody{margin-top:10px}
 .raceRow .mt{flex:1;min-width:0;display:flex;flex-direction:column}.raceRow b{font-size:1.05rem}.raceRow .ms{font-size:.82rem;color:var(--muted)}.raceRow .chev{color:var(--muted);font-size:1.4rem}
 #rcDays .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
@@ -1339,6 +1340,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button class="btn ghost" id="pgGo" style="margin-top:12px">Analisi completa del coach</button>
     <div class="status" id="pgStatus" aria-live="polite"></div>
     <div id="pgOut"></div>
+    <button class="fold-x" id="pgClose" type="button">▲ Chiudi</button>
     </div>
   </section>
   <section class="card" id="eventCard">
@@ -1829,6 +1831,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <h2>📌 Cosa ricorda il coach</h2>
       <p class="sub">Le cose che gli hai detto e che deve rispettare sempre, anche se fai «Nuova chat». Tocca ✕ per toglierne una.</p>
       <div id="csMem"></div>
+      <button class="fold-x" id="csMemClose" type="button">▲ Chiudi</button>
     </section>
     <section class="card" id="chatCard">
       <div class="meal-head"><h2>Il tuo coach</h2><button class="link" id="chatNew">Nuova chat</button></div>
@@ -2387,7 +2390,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.61 («Verso il tuo obiettivo» come riga da aprire)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.62 («▲ Chiudi» in fondo ai riquadri che si aprono)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9371,6 +9374,14 @@ function renderWeekCard(){ const card=$("weekCard"); if(!card) return; const tod
   card.appendChild(cb);
   if(sample){ const ask=el("button","btn ghost","Parlane con il coach"); ask.type="button"; ask.style.marginTop="8px";
     ask.onclick=()=>{ go("allenamento"); setW("chat"); $("chatIn").value="Guardiamo insieme la settimana scorsa: "+weekLines(D).map(x0=>x0[1]).join(" ")+" Cosa cambio questa settimana?"; }; card.appendChild(ask); } }
+/* «▲ Chiudi» in fondo a ogni riquadro che si apre al tocco */
+$("pgClose").onclick=()=>{ const rw=$("pgRow"); $("pgBody").hidden=true; rw.setAttribute("aria-expanded","false"); try{ localStorage.setItem("hf:pgOpen","0"); }catch{} rw.scrollIntoView({block:"nearest",behavior:"smooth"}); };
+$("csMemClose").onclick=()=>{ csMemOpen=false; renderCsMem(); const rw=$("csMemRow"); if(rw) rw.scrollIntoView({block:"nearest",behavior:"smooth"}); };
+document.addEventListener("toggle",e=>{ const d=e.target; if(!d||d.tagName!=="DETAILS"||!d.open) return;
+  requestAnimationFrame(()=>{ let b=[...d.children].find(n=>n.classList&&n.classList.contains("fold-x"));
+    if(d.scrollHeight<260){ if(b) b.hidden=true; return; }
+    if(!b){ b=el("button","fold-x","▲ Chiudi"); b.type="button"; b.onclick=ev=>{ ev.preventDefault(); d.open=false; const sm=d.querySelector("summary"); (sm||d).scrollIntoView({block:"nearest",behavior:"smooth"}); }; }
+    b.hidden=false; d.appendChild(b); }); },true);
 /* consigli pratici che uniscono peso, calorie, proteine e allenamenti */
 function progTips(wSt,kSt,pLow,tLow,pg,rg){ const T=[], gain=rg[0]>0, loss=rg[1]<0, kt=r(pg.avgT||0), runHeavy=!!(race&&race.plan);
   if(wSt>0&&kSt<=0){ T.push("Il peso sale anche se mangi meno dell'obiettivo: di solito non è grasso. Spesso è acqua e carboidrati nei muscoli (succede quando aumenti i km o mangi più carboidrati) oppure cibi non registrati: condimenti, olio, bevande, assaggi. Registra proprio tutto per una settimana.");
