@@ -969,6 +969,8 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .gel-card h3{margin:0 0 4px;font-size:1.02rem}.gel-card .gl{margin:8px 0;padding:0;list-style:none}.gel-card .gl li{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:.93rem}.gel-card .gl li:first-child{border-top:0}.gel-card .gl .ic{flex:none;width:26px;height:26px;border-radius:50%;background:#F5B841;color:#3a2a00;display:grid;place-items:center;font-weight:700;font-size:.85rem}
 .gel-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}.gel-chips button{border:1px solid var(--line);background:none;color:var(--muted);border-radius:16px;padding:5px 11px;font:inherit;font-size:.86rem;cursor:pointer}.gel-chips button.on{border-color:#F5B841;background:#FFF4D6;color:#3a2a00}
 .gel-card .warnt{display:block;margin:6px 0;color:#C2410C;font-size:.9rem}.gel-card .note{margin:6px 0 0}
+.cs-pred{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cs-pred div{background:var(--chip,rgba(0,0,0,.04));border-radius:12px;padding:10px}.cs-pred span{display:block;font-size:.8rem;opacity:.75}.cs-pred b{display:block;font-size:1.25rem}.cs-pred small{font-size:.75rem;opacity:.75}
+.ss-tog{width:100%}.ss-tog.on{border-color:var(--basil);color:var(--basil)}
 .cs-shoe{padding:10px 0;border-top:1px solid var(--line)}.cs-shoe:first-child{border-top:0}.cs-shoe.ret{opacity:.55}
 .cs-shoe .h{display:flex;justify-content:space-between;gap:8px;font-size:.92rem}
 .cs-shoe .b{height:8px;background:var(--line);border-radius:5px;overflow:hidden;margin:6px 0}.cs-shoe .b i{display:block;height:100%;background:var(--basil)}.cs-shoe .b i.warn{background:#E5484D}
@@ -1989,6 +1991,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <header class="cibo-top"><button class="icon-btn" id="corsaBack" aria-label="Indietro">‹</button><h1>Statistiche corsa</h1></header>
   <section class="card" id="csRec"><h2>💚 Recupero di oggi</h2><div id="csRecBody"></div></section>
   <section class="card"><h2>📈 Forma e affaticamento</h2><p class="sub" style="margin-top:0">Ultimi 90 giorni, calcolati da tutti i tuoi allenamenti.</p><div id="csFit"></div></section>
+  <section class="card"><h2>⏱ Tempo previsto in gara</h2><div id="csPred"></div></section>
+  <section class="card"><h2>🧪 Test di soglia</h2><div id="csTest"></div></section>
   <section class="card"><h2>🏃 Ultime corse</h2><div id="csRuns"></div></section>
   <section class="card"><h2>🏅 Record personali</h2><div id="csPR"></div></section>
   <section class="card"><h2>📊 I tuoi numeri</h2><div id="csStats"></div></section>
@@ -2350,7 +2354,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.51 (fatica, cibo per la corsa, lista della spesa, scarpe, copia settimanale)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.52 (progressione serie per serie, superserie, test di soglia, tempi previsti, tecnica di corsa)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -4919,7 +4923,7 @@ const r25=v=>Math.round(v/0.5)*0.5;
 function progFor(x){
   if(x.detail&&!x.sets||isTimed(x)) return null;
   const n=String(x.name||"").toLowerCase().trim(), hist2=[];
-  for(let i=tlog.sessions.length-1;i>=0&&hist2.length<3;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>sameEx(e.name,x.name)); if(ex&&ex.sets&&ex.sets.length&&!ex.sets[0].text) hist2.push({date:tlog.sessions[i].date,sets:ex.sets}); }
+  for(let i=tlog.sessions.length-1;i>=0&&hist2.length<3;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>sameEx(e.name,x.name)); if(ex&&ex.sets&&ex.sets.length&&!ex.sets[0].text) hist2.push({date:tlog.sessions[i].date,sets:ex.sets,eff:ex.eff||""}); }
   if(!hist2.length) return {kind:"new",text:"Prima volta: scegli un peso che ti lasci 1-2 ripetizioni di margine a fine serie."};
   const rr=repRange(x.reps)||[8,12], [lo,hi]=rr, last=hist2[0], kgs=last.sets.map(s=>+s.kg||0), top=Math.max(...kgs);
   const target=+x.sets||last.sets.length, work=last.sets.filter(s=>(+s.kg||0)===top), reps=work.map(s=>+s.reps||0);
@@ -4933,6 +4937,10 @@ function progFor(x){
   const sumR=h=>h.sets.reduce((a,z)=>a+(+z.reps||0),0);
   const stalled= hist2.length>=3 && hist2.every(h=>Math.max(...h.sets.map(s=>+s.kg||0))===top) && !allTop && sumR(hist2[0])<=sumR(hist2[2]);
   const when=new Date(last.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
+  const nearTop= work.length>=target && reps.every(v=>v>=hi-1);
+  if(allTop&&last.eff==="e") return {kind:"up",kg:r25(top+step*2),text:`Aumenta a ${fmt(r25(top+step*2))} kg (+${fmt(step*2)} kg): l'ultima volta hai chiuso ${work.length}×${Math.min(...reps)} a ${fmt(top)} kg e ti è sembrato facile. Riparti da ${lo} ripetizioni.`};
+  if(!allTop&&nearTop&&last.eff==="e") return {kind:"up",kg:r25(top+step),text:`Aumenta a ${fmt(r25(top+step))} kg: l'ultima volta eri quasi a ${hi} ripetizioni in tutte le serie e ti è sembrato facile.`};
+  if(allTop&&last.eff==="h") return {kind:"up",kg:r25(top+step),text:`Aumenta a ${fmt(r25(top+step))} kg, ma l'ultima volta eri al limite: se la prima serie non arriva a ${lo} ripetizioni, torna a ${fmt(top)} kg.`};
   if(allTop) return {kind:"up",kg:r25(top+step),text:`Aumenta a ${fmt(r25(top+step))} kg (+${fmt(step)} kg): nell'ultima seduta (${when}) hai chiuso ${work.length}×${Math.min(...reps)} a ${fmt(top)} kg. ${lo<hi? `Riparti da ${lo} ripetizioni e risali fino a ${hi}.` : `Con il peso nuovo è normale fare 1-2 ripetizioni in meno: risali fino a ${hi}.`}`};
   if(stalled) return {kind:"down",kg:r25(top*0.9),text:`Fermo a ${fmt(top)} kg da 3 sedute: scarica a ${fmt(r25(top*0.9))} kg per una settimana, poi riprendi a salire.`};
   if(anyLow>=2) return {kind:"hold",kg:top,text:`Resta a ${fmt(top)} kg: alcune serie sono finite sotto le ${lo} ripetizioni. Se succede di nuovo, togli ${fmt(step)} kg.`};
@@ -5248,7 +5256,44 @@ function recoveryNow(){ const f=fitnessSeries(42), last=f[f.length-1]||{ctl:0,at
   return {score,lvl,avg,ctl:last.ctl,atl:last.atl,tsb:last.tsb,sl}; }
 function recoveryText(){ try{ const r0=recoveryNow(); return `recupero ${r0.lvl[0].toLowerCase()} (${r0.score}/100), forma ${Math.round(r0.ctl)}, fatica ${Math.round(r0.atl)}, freschezza ${Math.round(r0.tsb)}${r0.avg!=null?", sonno medio ultime notti "+fmt(Math.round(r0.avg*10)/10)+" h":""}`; }catch{ return ""; } }
 function runsAll(){ return ((hist&&hist.items)||[]).filter(w=>isRun(w)&&+w.minutes>0); }
-function renderCorsa(){
+/* ===== tempo previsto in gara e test di soglia ===== */
+const THR_TITLE="Test di soglia";
+function thrGet(){ const t=(state.profile||{}).thr; return t&&t.date? t : null; }
+function vdotNow(){ const out=[]; const t=thrGet();
+  if(t&&t.vdot&&t.date>=shiftDate(todayISO(),-60)) out.push({v:t.vdot,src:`test di soglia del ${dateLong(t.date)}`,w:3});
+  try{ if(race&&race.goal&&race.goal.vdot) out.push({v:+race.goal.vdot,src:"piano gara (aggiornato con le corse dure)",w:2}); }catch{}
+  try{ const b=bestRecentRun(); if(b) out.push({v:b.v,src:`la tua corsa migliore: ${fmt(b.km)} km in ${hms2(b.sec)} (${dateLong(b.date)})`,w:1}); }catch{}
+  if(!out.length) return null; out.sort((a,b)=>b.w-a.w||b.v-a.v); const best=out[0]; return {v:Math.round(best.v*10)/10,src:best.src}; }
+function predHist(v){ let H={}; try{ H=JSON.parse(localStorage.getItem("hf:vdotHist")||"{}"); }catch{} if(v){ H[mondayOf(todayISO())]=v; const ks=Object.keys(H).sort(); while(ks.length>26) delete H[ks.shift()]; try{ localStorage.setItem("hf:vdotHist",JSON.stringify(H)); }catch{} } return H; }
+function renderPred(){ const box=$("csPred"); if(!box) return; box.innerHTML=""; const V=vdotNow();
+  if(!V){ box.appendChild(el("p","note","Servono corse di almeno 5 km o un test di soglia per stimare i tuoi tempi.")); return; }
+  const H=predHist(V.v), ks=Object.keys(H).sort(), old=ks.length>1? H[ks[Math.max(0,ks.length-9)]] : null;
+  const D=[["5 km",5],["10 km",10],["Mezza maratona",21.0975],["Maratona",42.195]];
+  box.innerHTML=`<div class="cs-pred">${D.map(([n,k])=>{ const t=predictSec(V.v,k), o=old&&old!==V.v? predictSec(old,k) : null; return `<div><span>${n}</span><b class="num">${hms2(t)}</b><small>${paceTxt(t/k)}/km${o? ` · ${t<o?"−":"+"}${hms2(Math.abs(o-t))}` : ""}</small></div>`; }).join("")}</div>`;
+  box.appendChild(el("p","note",`Stima dal tuo livello attuale (VDOT ${fmt(V.v)}), calcolata da: ${V.src}.${old&&old!==V.v? ` Le differenze sono rispetto a ${ks.length>=9? "8 settimane fa" : "quando ho iniziato a seguirle"}.` : ""} Vale se sei preparato per quella distanza: per mezza e maratona servono i lunghi.`));
+  try{ const g=race&&race.goal; if(g&&g.date>=todayISO()&&g.km){ const t=predictSec(V.v,g.km), tg=tSec(g.target,g.km); const p0=el("p","note"); p0.style.fontWeight="600";
+      p0.textContent=`La tua gara (${g.name||raceLabel(g.km)}): oggi la chiuderesti in circa ${hms2(t)}`+(tg? ` · obiettivo ${hms2(tg)}: ${t<=tg? "ci sei 👍" : "mancano "+hms2(t-tg)}` : "")+"."; box.appendChild(p0); } }catch{} }
+function thrPlan(){ return {title:THR_TITLE,runType:THR_TITLE,km:0,pace:"",desc:"20 minuti al massimo che riesci a tenere in modo costante",
+  segs:[{k:"warmup",l:"Riscaldamento: corsa facile, poi 3 allunghi",min:15,km:0,p:""},{k:"work",l:"20 minuti al massimo costante",min:20,km:0,p:""},{k:"cooldown",l:"Defaticamento: corsa lenta o camminata",min:10,km:0,p:""}]}; }
+function renderThr(){ const box=$("csTest"); if(!box) return; box.innerHTML=""; const t=thrGet(), days= t? Math.round((new Date(todayISO()+"T12:00:00")-new Date(t.date+"T12:00:00"))/864e5) : null;
+  box.appendChild(el("p","note","Ogni 4-6 settimane: 15 minuti di riscaldamento, 20 minuti al massimo che riesci a tenere costante (non partire forte), 10 di defaticamento. Dal risultato aggiorno ritmi, battito di soglia e tempi previsti. Fallo da riposato, su strada piatta."));
+  if(t){ const r0=el("div","cs-mini"); r0.innerHTML=`<div><b>${paceTxt(t.pace)}/km</b><span>ritmo di soglia</span></div><div><b>${t.lthr||"–"}</b><span>battito di soglia</span></div>`; box.appendChild(r0);
+    box.appendChild(el("p","note",`Ultimo test: ${dateLong(t.date)} (${days===0? "oggi" : days+" giorni fa"}).`+(days>=42? " È ora di rifarlo." : days>=28? " Puoi rifarlo quando hai una settimana tranquilla." : ""))); }
+  else box.appendChild(el("p","note","Non hai ancora fatto il test."));
+  const b=el("button","btn"+(t&&days<28?" ghost":""),"▶ Fai il test adesso"); b.type="button"; b.style.marginTop="8px";
+  b.onclick=async()=>{ const o=thrPlan(); if(await askWatch(o)) return; openCardio({title:o.title,runType:o.runType,km:0,pace:"",noWatch:true}); }; box.appendChild(b); }
+/* a fine test: dal tratto di 20 minuti ricavo soglia (ritmo e battito) e VDOT */
+function thrPlanInfo(){ const o=thrPlan(); return runPlanInfo({title:o.title,runType:o.runType,segments:o.segs.map(g=>({kind:g.k,label:g.l,minutes:g.min,km:null,pace:""}))}); }
+function thrFromRun(id,D){ const pl=D&&D.plan; if(!pl||pl.title!==THR_TITLE) return; const P=rdTrack(D.tr); if(!P||P.length<20) return;
+  const d=rdPlanDay(pl)||{title:THR_TITLE,segments:thrPlan().segs.map(g=>({kind:g.k,label:g.l,minutes:g.min}))}, {warm,main,cool}=runParts(d), ph=rdPhases(P,[...warm,...main,...cool],0), w=ph.find(f=>f.g.kind==="work"&&!f.miss);
+  if(!w||!(w.km>1.5)||w.sec<900) { toast("Test di soglia: il tratto di 20 minuti è troppo corto per calcolare la soglia"); return; }
+  const pace=w.sec/w.km, v=Math.round(vdotOf(w.km,w.sec)*10)/10, lthr= w.hr? Math.round(w.hr*0.95) : null, thrPace=Math.round(pace*1.03);
+  const p=state.profile||{}; p.thr={date:romeISO(D.t0||Date.now()),pace:thrPace,lthr,vdot:v,km:Math.round(w.km*100)/100,sec:Math.round(w.sec),hr:w.hr||null}; state.profile=p; save("profile",p);
+  toast(`🧪 Test di soglia: ritmo ${paceTxt(thrPace)}/km${lthr? ", battito "+lthr : ""}. Tempi previsti aggiornati.`);
+  try{ const g=race&&race.goal; if(g&&g.vdot&&Math.abs(v-g.vdot)>0.7&&race.plan){ const old=g.vdot, nv=Math.round(Math.max(old-2,Math.min(old+2,v))*10)/10, ratio=racePaces(nv).soglia/racePaces(old).soglia;
+      actionToast(`Dal test il tuo livello è VDOT ${nv} (prima ${old}). Aggiorno i ritmi del piano gara?`,"Aggiorna",()=>{ g.vdot=nv; g.pred=Math.round(predictSec(nv,g.km)); scalePlanPaces(ratio,Math.max(0,raceWeekIdx())); save("race",race); raceFeed(`Test di soglia: ritmi aggiornati (VDOT ${old} → ${nv}).`,"up"); applyRaceWeek(false); toast("Ritmi del piano aggiornati ✓"); },15000); } }catch(e){ console.warn("test soglia gara",e); } }
+function thrText(){ const t=thrGet(); return t? `ULTIMO TEST DI SOGLIA (${t.date}): ritmo di soglia ${paceTxt(t.pace)}/km, battito di soglia ${t.lthr||"?"}, VDOT ${t.vdot}. Usa questi valori per i ritmi (soglia, ripetute, facile) e le zone.` : ""; }
+function renderCorsa(){ try{ renderPred(); }catch(e){ console.warn("previsione",e); } try{ renderThr(); }catch(e){ console.warn("test",e); }
   // --- recupero
   const rc=recoveryNow();
   $("csRecBody").innerHTML=`<div class="cs-rec ${rc.lvl[1]}"><div class="sc"><b>${rc.score}</b><span>/100</span></div><div><b>Recupero ${rc.lvl[0].toLowerCase()}</b><p></p></div></div>
@@ -5826,6 +5871,7 @@ async function saveWatchResult(o){ if(!o||!(+o.seconds>60)) return false;
   try{ if(shoes&&shoes.def) item.shoe=shoes.def; }catch{}
   hist.items=[...hist.items,{...item,date}]; save("workoutHistory",hist);
   if(date===state.date){ state.day.workouts=[...(state.day.workouts||[]),item]; saveDay(); } else { const doc=(await store.getDoc("day-"+date).catch(()=>null))||{meals:{},workouts:[]}; doc.workouts=[...(doc.workouts||[]),item]; save("day-"+date,doc); }
+  if(!plan&&o.title===THR_TITLE) try{ plan=thrPlanInfo(); }catch{}
   await runDetSave(wid,runDetFrom(o,plan));
   setTimeout(()=>{ try{ raceCheckRun({...item,date}); }catch{} },500); return wid; }
 async function watchPending(){ const P=WBR(); if(!P) return; try{ const r0=await P.pending(); let n=0, last=null; for(const o of (r0&&r0.results)||[]){ const id=await saveWatchResult(o); if(id){ n++; last=id; } } if(n){ renderAll(); actionToast(`⌚ ${n===1?"Corsa":"Corse"} dal Galaxy Watch salvat${n===1?"a":"e"} ✓`,"Vedi riepilogo",()=>openRunSummary(last)); } }catch(e){ console.warn("orologio",e); } }
@@ -5912,7 +5958,7 @@ $("cdEnd").onclick=async()=>{ if(!CD||!CD.t0) return;
   if(state.date!==todayISO()){ state.date=todayISO(); try{ await loadDay(); }catch(e){ console.warn("giorno",e); } }
   const wid=uid(), cols=rows=>{ const t={t:[],m:[],h:[],a:[],s:[],la:[],lo:[]}, K=Object.keys(t); rows.forEach(r0=>K.forEach((k,i)=>t[k].push(r0[i]))); return t; };
   const tr= natSt.tr&&Array.isArray(natSt.tr.t)? natSt.tr : (CD.trk&&CD.trk.length>1? cols(CD.trk) : null);
-  const det=runDetFrom({source:"phone",startedAt:+natSt.startedAt||CD.t0,seconds:Math.round(cdElapsed()),totalSec:+natSt.totalSec||Math.round((Date.now()-CD.t0)/1000),km:km||0,avgHr:avg,maxHr:mx,zoneSec:CD.n?CD.z:null,tr,hrSrc:CD.n?"strap":""}, CD.from? runPlanInfo(CD.from.d) : null);
+  const det=runDetFrom({source:"phone",startedAt:+natSt.startedAt||CD.t0,seconds:Math.round(cdElapsed()),totalSec:+natSt.totalSec||Math.round((Date.now()-CD.t0)/1000),km:km||0,avgHr:avg,maxHr:mx,zoneSec:CD.n?CD.z:null,tr,hrSrc:CD.n?"strap":""}, CD.from? runPlanInfo(CD.from.d) : CD.title===THR_TITLE? thrPlanInfo() : null);
   if(CD.from){ const f=CD.from; saveRunResult(f.a,f.pr,f.d,f.di,f.iso,{km,minutes:Math.round(min),avgHr:avg,maxHr:mx,zones:CD.n?zones:null,live:true,wid}); }
   else { const w=(state.profile&&state.profile.weight)||70; addWorkout({id:wid,name:CD.title, minutes:Math.round(min), intensity:"corsa con fascia", kcal: km? km*w : 8*w*min/60, distance:km, pace: km? paceOf(min,km) : null, avgHr:avg, maxHr:mx, zones:CD.n?zones:null}); }
   runDetSave(wid,det);
@@ -6125,6 +6171,7 @@ async function runDetSave(id,D){
   try{ const st=rdStats(D); const {P,alt,...keep}=st; D.st=keep; }catch(e){ console.warn("riepilogo",e); }
   save("run-"+id,D);
   try{ runEvalPut(runEvalOf(id,D)); }catch(e){ console.warn("esito corsa",e); }
+  try{ thrFromRun(id,D); }catch(e){ console.warn("test soglia",e); }
   try{ const idx=(await store.getDoc("runDetIdx").catch(()=>null))||{list:[]}; idx.list=(idx.list||[]).filter(x=>x.id!==id); idx.list.push({id,t:D.t0||Date.now()}); idx.list.sort((a,b)=>a.t-b.t);
     const old=idx.list.length>RD_KEEP? idx.list.slice(0,idx.list.length-RD_KEEP).filter(x=>!x.lite) : [];
     for(const x of old){ const d=await store.getDoc("run-"+x.id).catch(()=>null); if(d&&d.tr){ delete d.tr; save("run-"+x.id,d); } x.lite=true; }
@@ -6141,6 +6188,7 @@ function runEvalOf(id,D){ const pl=D&&D.plan; if(!pl||!(pl.km||pl.min||(pl.segs&
       const cl=ph.filter(f=>f.g.kind==="cooldown"&&!f.miss), wu=ph.filter(f=>f.g.kind==="warmup"&&f.miss);
       if(wu.length) E.nowu=1; if(!cl.length&&cool.length) E.nocd=1; } }catch(e){ console.warn("esito fasi",e); }
   if(D.cap&&D.cap.b) E.cap=[D.cap.b,Math.round((+D.cap.over||0)/60)];
+  try{ const tip=rdFormTip(rdDyn(D),st); if(tip) E.fm=tip.key; if(st.cad) E.cad=st.cad; }catch{}
   return E; }
 function runEvalLine(E){ const f=x=>String(x).replace(".",","), parts=[];
   parts.push(`${E.d} ${E.t}: previsto ${[E.pk? f(E.pk)+" km" : "", E.pm&&!E.pk? E.pm+" min" : "", E.pp? "a "+paceTxt(E.pp)+"/km" : ""].filter(Boolean).join(" ")||"come da piano"}`);
@@ -6148,6 +6196,7 @@ function runEvalLine(E){ const f=x=>String(x).replace(".",","), parts=[];
   if(E.nw) parts.push(`fasi di lavoro nel ritmo ${E.ok}/${E.nw}`+(E.off&&E.off.length? " ("+E.off.map(o=>`fase ${o[0]} ${o[2]} s/km più ${o[1]>0?"lenta":"veloce"}`).join(", ")+")" : ""));
   if(E.nowu) parts.push("riscaldamento non fatto"); if(E.nocd) parts.push("defaticamento non fatto");
   if(E.cap&&E.cap[1]) parts.push(`${E.cap[1]} min sopra il tetto di ${E.cap[0]} bpm`);
+  if(E.fm) parts.push("forma da curare: "+({cad:"cadenza bassa",gct:"contatto a terra lungo",vo:"oscillazione alta",asym:"asimmetria tra le gambe",reg:"falcata irregolare",ft:"poco volo",k:"poca rigidità"}[E.fm]||E.fm)+(E.cad? " (cadenza "+E.cad+")" : ""));
   if(E.sc!=null) parts.push("punteggio "+E.sc+"/100");
   return "- "+parts.join(" · "); }
 function runEvalText(days,from,to){ const L=(runEvals.list||[]).filter(e=> from? e.d>=from&&e.d<=to : e.d>=shiftDate(todayISO(),-(days||21)));
@@ -6451,6 +6500,19 @@ function rdDyn(D){ const y=D&&D.dyn; if(!y||!(+y.gct>0)||!(+y.step>0)) return nu
   add("vo","Oscillazione verticale",fmt(Math.round(vo*10)/10)+" cm", vo<=6? 2 : vo<=9? 1 : 0,"Quanto sale e scende il corpo a ogni passo. Troppa oscillazione vuol dire energia spesa per andare su invece che avanti.","Ottimo fino a 6 cm · buono fino a 9 cm");
   if(k) add("k","Rigidità",fmt(Math.round(k*10)/10)+" kN/m", kn>=450? 2 : kn>=330? 1 : 0,"Quanto le gambe lavorano come una molla: più rigidità vuol dire che restituiscono meglio l'energia dell'appoggio. Migliora con salti, balzi e esercizi di forza.",`Per il tuo peso (${fmt(m)} kg): ottimo da ${Math.round(m*0.45)} kN/m · buono da ${Math.round(m*0.33)} kN/m`);
   return {L,n:+y.n||0}; }
+/* un solo consiglio pratico sulla forma, dal valore peggiore (cadenza compresa) */
+const FORM_TIP={cad:c=>`Cadenza ${c} passi al minuto: prova passi un po' più corti e frequenti, circa ${Math.round(c*1.05)} al minuto (+5%). Riduce l'impatto su ginocchia e tibie.`,
+  gct:()=>"Il piede resta a terra a lungo: appoggialo sotto il bacino e non davanti, come se il terreno scottasse. Aiutano skip e saltelli della tecnica di corsa.",
+  vo:()=>"Rimbalzi molto in alto: spingi avanti e non in su, busto appena inclinato in avanti dalle caviglie, braccia rilassate.",
+  asym:()=>"C'è differenza tra le due gambe: se senti un fastidio da un lato non forzare. In palestra aggiungi esercizi su una gamba sola (affondi, step-up, stacco su una gamba).",
+  reg:()=>"Falcata poco regolare: spesso è stanchezza. Nelle corse facili cerca un ritmo costante e respiro tranquillo.",
+  ft:()=>"Poco tempo in volo: la spinta è debole. Aiutano gli allunghi a fine corsa facile e i balzi della tecnica di corsa.",
+  k:()=>"Le gambe lavorano poco come una molla: 2 volte a settimana saltelli sul posto e balzi (5 minuti) e forza per i polpacci."};
+function rdFormTip(dy,st){ const L=(dy&&dy.L)||[], cad=st&&+st.cad||0; const cands=[];
+  if(cad&&cad<165) cands.push({key:"cad",lv:cad<155?0:1,t:FORM_TIP.cad(cad)});
+  L.forEach(r0=>{ if(r0.lv<2&&FORM_TIP[r0.key]) cands.push({key:r0.key,lv:r0.lv,t:FORM_TIP[r0.key]()}); });
+  const ord=["asym","cad","gct","vo","ft","k","reg"]; cands.sort((a,b)=>a.lv-b.lv||ord.indexOf(a.key)-ord.indexOf(b.key));
+  return cands[0]||null; }
 const rdDynBar=lv=>`<div class="b">${[0,1,2].map(i=>`<i${i===lv?` style="background:${RD_LV[i][1]}"`:""}></i>`).join("")}</div>`;
 async function rdSaveNote(id,txt){ if(!rdCur||rdCur.w.id!==id) return; const v=String(txt||"").trim().slice(0,1000);
   let D=rdCur.D; if(!D){ D=(await store.getDoc("run-"+id).catch(()=>null))||{v:1}; rdCur.D=D; }
@@ -6536,6 +6598,7 @@ function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur)
   { const vo=rdVo2(st,Dx); if(vo){ const L0=rdVo2Lvl(vo), c=rdCard(box,"VO₂max","vo2"); c.insertAdjacentHTML("beforeend",`<div class="rd-vo"><div><b style="color:${L0.col}">${L0.name}</b><span class="num">${fmt(vo)}</span></div><div class="bar"><i style="left:${L0.pos}%;background:${L0.col}"></i></div></div>`); } }
   // metriche di corsa avanzate
   { const dy=rdDyn(D);
+    try{ const tip=rdFormTip(dy,st); if(tip){ const c=rdCard(box,"🦶 Il consiglio sulla tua corsa"); c.appendChild(el("p",null,tip.t)); if(tip.key!=="asym"&&tip.key!=="reg"){ const b=el("button","linkbtn","🏃 Esercizi di tecnica (5 minuti)"); b.type="button"; b.onclick=()=>startStretch("tecnica"); c.appendChild(b); } } }catch(e){ console.warn("consiglio forma",e); }
     if(dy){ const c=rdCard(box,"Metriche di corsa avanzate","dinamica"), list=el("div"); list.innerHTML=dy.L.map(r0=>`<div class="rd-dyn"><span class="k">${r0.name}<small>${r0.val}</small></span>${rdDynBar(r0.lv)}</div>`).join(""); list.onclick=()=>rdOpen("dinamica"); c.appendChild(list); }
     else if(D.src==="watch"){ const c=rdCard(box,"Metriche di corsa avanzate"); c.appendChild(el("p","note","Asimmetria, tempo di contatto e di volo, regolarità, oscillazione verticale e rigidità: le misura l'app HealthFit sul Galaxy Watch dalla prossima corsa (aggiorna l'app dell'orologio).")); } }
   // sudorazione
@@ -6955,6 +7018,7 @@ const STRETCH={
  sci:{t:"Dopo lo sci",ic:"⛷️",ex:[["Quadricipiti in piedi","Tallone al gluteo: sono i muscoli che lavorano di più sugli sci",45,1],["Flessori dell'anca","Affondo basso, bacino in avanti",45,1],["Glutei a figura 4","Sdraiato, caviglia sul ginocchio",45,1],["Polpacci al muro","Tallone a terra, gamba tesa",40,1],["Adduttori larghi","Gambe larghe, spostati piano su un lato",40,1],["Ginocchia al petto","Sdraiato, abbraccia le ginocchia: scarica la schiena",45,0],["Collo","Orecchio verso la spalla, senza forzare",30,1]]},
  riscaldamento:{t:"Riscaldamento prima della palestra",ic:"🔥",warm:true,ex:[["Cardio leggero","Cyclette, tapis roulant, ellittica o corsetta sul posto: devi scaldarti e respirare un po' più forte, senza fatica",120,0],["Cerchi con le braccia","Prima piccoli poi ampi, avanti e indietro",30,0],["Gatto e mucca","A quattro zampe: inarca e arrotonda la schiena",30,0],["Rotazioni del torace","A quattro zampe, mano dietro la testa, apri il gomito",20,1],["Squat a corpo libero","Lenti e profondi, talloni a terra",40,0],["Affondi alternati","Passo lungo, ginocchio dietro vicino a terra",40,0],["Ponte per i glutei","Sdraiato, spingi il bacino in alto e stringi i glutei",30,0],["Piegamenti facili","Sulle ginocchia o con le mani su una panca",30,0]]},
  mattino:{t:"Mobilità del mattino",ic:"🌅",ex:[["Gatto e mucca","A quattro zampe: inarca e arrotonda la schiena, lento",45,0],["Cerchi con le anche","In piedi, mani sui fianchi, cerchi ampi",30,1],["Affondo con rotazione","Affondo, mano a terra, apri l'altro braccio verso l'alto",30,1],["Rotazioni del torace","A quattro zampe, mano dietro la testa, apri il gomito",30,1],["Caviglie","Ginocchio in avanti oltre la punta, tallone a terra",30,1],["Respirazione","Seduto, inspira 4 secondi, espira 6",45,0]]},
+ tecnica:{t:"Tecnica di corsa (a fine corsa facile)",ic:"🦶",voice:true,ex:[["Skip basso","Passi piccoli e veloci, ginocchia poco alte, appoggio sull'avampiede, braccia attive",20,0],["Torna camminando","Respira e rilassa le spalle",25,0],["Skip alto","Ginocchia all'altezza dell'anca, busto dritto",20,0],["Torna camminando","",25,0],["Calciata","Talloni verso i glutei, passi veloci",20,0],["Torna camminando","",25,0],["Corsa a gambe tese","Gambe quasi tese, appoggio sotto il bacino, piedi a martello",20,0],["Torna camminando","",25,0],["Saltelli sulle caviglie","Piccoli saltelli rapidi sul posto, ginocchia quasi tese",20,0],["Recupero","",30,0],["Allungo 1","80-100 metri: parti piano e accelera fino a veloce ma sciolto, non uno sprint",20,0],["Torna camminando","",40,0],["Allungo 2","Come prima: veloce e rilassato",20,0],["Torna camminando","",40,0],["Allungo 3","L'ultimo: bella postura, braccia sciolte",20,0]]},
  riposo:{t:"Giorno di riposo (mobilità completa)",ic:"🧘",ex:[["Gatto e mucca","Lento, segui il respiro",45,0],["Flessori dell'anca","Affondo basso",60,1],["Femorali sdraiato","Gamba tesa in alto con un asciugamano",60,1],["Glutei a figura 4","Sdraiato",60,1],["Piriforme seduto","Gamba incrociata, ruota il busto",45,1],["Rotazioni del torace","A quattro zampe",40,1],["Pettorali allo stipite","Braccio a 90°",45,1],["Dorsali in ginocchio","Fronte a terra, braccia lunghe",60,0],["Polpacci al muro","Tallone a terra",45,1]]}};
 const STRETCH_TIPS=["Prima di allenarti fai mobilità dinamica (movimenti ampi e controllati), non allungamenti fermi: quelli vanno DOPO.","Tieni ogni posizione 30-60 secondi, senza molleggiare.","Deve tirare, non fare male: se senti dolore torna indietro.","Respira lento ed espira mentre ti allunghi: il muscolo si rilassa di più.","Meglio 10 minuti tutti i giorni che un'ora una volta a settimana.","Dopo una corsa lunga o una giornata sugli sci fai la routine con calma: aiuta a sentirti meno rigido il giorno dopo."];
 function stretchMin(k){ const R=STRETCH[k]; return Math.round(R.ex.reduce((a,x)=>a+x[2]*(x[3]?2:1)+5,0)/60); }
@@ -6968,7 +7032,8 @@ let STR=null;
 function startStretch(k,opt){ const R=STRETCH[k]; if(!R) return; const steps=[]; R.ex.forEach(([n,tip,sec,sides])=>{ if(sides){ steps.push({n,tip,sec,side:"lato destro"}); steps.push({n,tip,sec,side:"lato sinistro"}); } else steps.push({n,tip,sec,side:""}); });
   let ov=$("strOv"); if(!ov){ ov=el("div","str-ov"); ov.id="strOv"; document.body.appendChild(ov); }
   STR={k,steps,i:0,left:steps[0].sec,run:true,t0:Date.now(),prep:5,...(opt||{})}; ov.hidden=false; strDraw(); clearInterval(strDraw.t); strDraw.t=setInterval(strTick,1000); try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>STR.wl=l).catch(()=>{}); }catch{} }
-function strTick(){ if(!STR||!STR.run) return; if(STR.prep>0){ STR.prep--; if(!STR.prep) strBeep(); strDraw(); return; }
+function strSay(m){ try{ if(!STRETCH[STR.k].voice||!m) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(m); u.lang="it-IT"; speechSynthesis.speak(u); }catch{} }
+function strTick(){ if(!STR||!STR.run) return; if(STR.prep>0){ if(STR.prep===5||STR.prep===3&&!STR.saidI) { const s0=STR.steps[STR.i]; STR.saidI=true; strSay(s0.n+(s0.tip? ". "+s0.tip : "")); } STR.prep--; if(!STR.prep){ strBeep(); STR.saidI=false; strSay("Via"); } strDraw(); return; }
   STR.left--; if(STR.left<=0){ strBeep(); STR.i++; if(STR.i>=STR.steps.length){ strEnd(true); return; } STR.left=STR.steps[STR.i].sec; STR.prep=5; } strDraw(); }
 function strBeep(){ try{ navigator.vibrate&&navigator.vibrate(120); }catch{} try{ const A=new (window.AudioContext||window.webkitAudioContext)(), o=A.createOscillator(), g=A.createGain(); o.frequency.value=880; o.connect(g); g.connect(A.destination); g.gain.value=0.15; o.start(); o.stop(A.currentTime+0.18); }catch{} }
 function strDraw(){ const ov=$("strOv"); if(!ov||!STR) return; const s=STR.steps[STR.i], R=STRETCH[STR.k], nx=STR.steps[STR.i+1];
@@ -7714,7 +7779,9 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
   if(isEasyRunName(d.runType||d.title)){ const cap=hrCapOf(), hc=el("div","card hr-cap");
     hc.innerHTML=`<h2>❤️ Guidata dal battito</h2><p class="hc-big"><b class="num">${cap}</b>battiti al massimo</p><p class="note" style="margin:0">Oggi conta il battito, non il ritmo: se il ritmo ti esce più lento del previsto va benissimo. Sull'orologio ti dico a voce come farlo scendere e quando è rientrato.</p>
       <ul class="hc-tips">${HR_TIPS.map(t=>`<li>${t}</li>`).join("")}</ul><p class="hc-adv"></p><p class="note">${HR_NOTE}</p>`;
-    hc.querySelector(".hc-adv").textContent=hrAdvice().t; box.appendChild(hc); }
+    hc.querySelector(".hc-adv").textContent=hrAdvice().t; box.appendChild(hc);
+    if(!/lungo/i.test(d.runType||d.title)){ const tc=el("div","card"); tc.innerHTML=`<h2>🦶 Tecnica di corsa</h2><p class="note" style="margin:0">A fine corsa, prima del defaticamento: 5 minuti di skip, calciata, saltelli e 3 allunghi. Te li guido a voce dal telefono.</p>`;
+      const b=el("button","btn ghost","▶ Inizia la tecnica (5 min)"); b.type="button"; b.style.marginTop="8px"; b.onclick=()=>startStretch("tecnica"); tc.appendChild(b); box.appendChild(tc); } }
   if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta${res.on?" "+dayTxt(res.on):""} ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; { const rw=runResWorkout(res,iso); if(rw){ rc.classList.add("tap"); rc.setAttribute("role","button"); rc.setAttribute("aria-label","Vedi il riepilogo della corsa"); rc.onclick=()=>openRunSummary(rw.id,rw); rc.querySelector("b").textContent+=" ›"; } } box.appendChild(rc); }
   // avvio con Galaxy Watch e risultati
   const go=el("div","run-go");
@@ -7767,6 +7834,7 @@ function renderDayPage(){
   hd.querySelector(".gd-t").textContent=names[wd]; hd.querySelector(".gd-pill").textContent=focus; box.appendChild(hd);
   try{ const mx=gymMax(); if(d&&mx&&(d.exercises||[]).length){ const est=gymEst(d); const t=el("p","note gd-time"+(est>mx+5?" warn":""));
     t.textContent= est>mx+5? `⏱ Così dura circa ${est} minuti, più del tuo massimo di ${mx}. ` : `⏱ Circa ${est} minuti tutto compreso (il tuo massimo è ${mx}).`;
+    if(est>mx+5){ const se=ssEst(d); if(se.pairs&&se.min<est-3) t.appendChild(document.createTextNode(` Con le superserie (le attivi in seduta con «⚡ Fai a superserie») scende a circa ${se.min} minuti. `)); }
     if(est>mx+5&&sample){ const fx=el("button","linkbtn",`Accorcia a ${mx} minuti`); fx.type="button"; fx.onclick=()=>regenDay(a,pr,di); t.appendChild(fx); }
     box.appendChild(t); } }catch(e){ console.warn("durata",e); }
   // sposta giorno
@@ -7850,7 +7918,7 @@ function openLogger(a,di){
         const n=Math.max(1,Math.min(10,+x.sets||3)), timed=/\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||""));
         const pg=progFor(x), rr=repRange(x.reps);
         const bw=isBodyweight({name:x.name,equip:x.equip||exEquip(x)}), lv=bw? lastVest(x.name) : 0;
-        return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),timed,repsLabel:timed? String(x.reps).trim() : "",prog:pg,bw,vest:lv,
+        return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),timed,repsLabel:timed? String(x.reps).trim() : "",prog:pg,bw,vest:lv,rr,
           sets:Array.from({length:n},(_,i)=>{ const ls=last&&last.ex.sets[i]; const kg= bw? (lv||"") : pg&&pg.kg!=null&&pg.kind!=="hold"? pg.kg : (ls&&ls.kg!=null? ls.kg:"");
             const reps= timed? String(x.reps).trim() : (pg&&pg.kind==="up"&&rr? rr[0] : (ls&&ls.reps? ls.reps : firstNum(x.reps))); return {kg, reps, done:false}; })};
       })};
@@ -7954,15 +8022,56 @@ function showRecent(row,x,si){ if(row.dataset.picked) return; const host=row.clo
       if(navigator.vibrate) navigator.vibrate(15); b.classList.add("hit"); row.dataset.picked="1"; setTimeout(()=>box.remove(),250); };
     ch.appendChild(b); });
   box.appendChild(ch); host.after(box); }
-function nextSet(){ for(let xi=0;xi<logCtx.exercises.length;xi++){ const x=logCtx.exercises[xi]; for(let si=0;si<x.sets.length;si++) if(!x.sets[si].done) return {xi,si}; } return null; }
+function nextSet(){ if(logCtx.ss){ const E=logCtx.exercises;
+    for(let xi=0;xi<E.length;xi++){ const x=E[xi]; if(x.ssp!=null&&x.ssp<xi) continue; const y= x.ssp!=null? E[x.ssp] : null, n=Math.max(x.sets.length,y? y.sets.length : 0);
+      for(let si=0;si<n;si++){ if(x.sets[si]&&!x.sets[si].done) return {xi,si}; if(y&&y.sets[si]&&!y.sets[si].done) return {xi:x.ssp,si}; } } return null; }
+  for(let xi=0;xi<logCtx.exercises.length;xi++){ const x=logCtx.exercises[xi]; for(let si=0;si<x.sets.length;si++) if(!x.sets[si].done) return {xi,si}; } return null; }
+/* serie per serie: se hai fatto molte più ripetizioni del previsto la prossima serie sale di peso, se ne hai fatte troppo poche scende */
+function adaptNextSet(x,si){ if(x.cardio||x.timed||x.bw||!x.rr) return; const st=x.sets[si], kg=+String(st.kg).replace(",","."), reps=+st.reps; if(!(kg>0)||!(reps>0)) return;
+  const nx=x.sets.find((z,i)=>i>si&&!z.done); if(!nx||(nx.kg!==""&&+nx.kg!==kg)) return; const [lo,hi]=x.rr, step=kgStep(x.name);
+  if(reps>=hi+2){ nx.kg=r25(kg+step); toast(`💪 ${reps} ripetizioni: prossima serie ${fmt(nx.kg)} kg`); }
+  else if(reps<lo-1&&kg-step>0){ nx.kg=r25(kg-step); toast(`Solo ${reps} ripetizioni: prossima serie ${fmt(nx.kg)} kg`); } }
+function maxRest(a,b){ return restSecs(a.rest)>=restSecs(b&&b.rest)? a.rest : b.rest; }
+/* superserie: due esercizi di muscoli diversi alternati, 15 s per cambiare, poi il recupero */
+function ssHeavy(x){ const rr=repRange(x.reps)||x.rr; return rr&&rr[1]<=5; }
+function ssPairs(exs){ const used=new Set(), pairs=[];
+  exs.forEach((x,i)=>{ if(used.has(i)||x.cardio||x.detail&&!x.sets||ssHeavy(x)) return; const mi=new Set(exMuscles(x));
+    for(let j=i+1;j<Math.min(exs.length,i+4);j++){ const y=exs[j]; if(used.has(j)||y.cardio||y.detail&&!y.sets||ssHeavy(y)) continue;
+      if(exMuscles(y).some(m=>mi.has(m))) continue; used.add(i); used.add(j); pairs.push([i,j]); break; } });
+  return pairs; }
+function ssEst(d){ const exs=d.exercises||[], pairs=ssPairs(exs), inP=new Set(pairs.flat()); let sec=0;
+  pairs.forEach(([i,j])=>{ const a=exs[i], b=exs[j], n=Math.max(+a.sets||3,+b.sets||3); sec+= n*(80+15)+(n-1)*Math.max(restSecs(restFor(a)),restSecs(restFor(b)))+120; });
+  exs.forEach((x,i)=>{ if(inP.has(i)) return; const n=Math.max(1,+x.sets||3); sec+= n*40+(n-1)*restSecs(restFor(x))+60; });
+  return {min:Math.round(7+sec/60+6), pairs:pairs.length}; }
+/* gambe "amiche della corsa": nelle settimane con tanti km o il giorno prima di una corsa dura, una serie in meno sugli esercizi di gambe e niente cedimento */
+function rfReason(){ const iso=(logCtx&&logCtx.date)||state.date, nx=shiftDate(iso,1); let why="";
+  try{ const p=dayPlanFor(new Date(nx+"T12:00:00").getDay(),nx); if(p&&p.key) why="domani c'è "+p.label.replace(/^Corsa – /,""); }catch{}
+  if(!why) try{ const a=activeProg(), pr=a&&a.pr; let km=0; if(pr&&pr.weekMap) [0,1,2,3,4,5,6].forEach(wd=>{ const d=pr.days[(pr.weekMap||{})[wd]]; if(d&&d.kind==="run") km+=runPlan(d).km||0; });
+    if(km>=30) why=`questa settimana corri circa ${Math.round(km)} km`; }catch{}
+  return why; }
+const isLegEx=x=>!x.cardio&&exMuscles(x).some(m=>LEG_M.includes(m));
+function rfApply(on){ logCtx.rf=!!on; logCtx.exercises.forEach(x=>{ if(!isLegEx(x)) return;
+    if(on&&x.rfCut==null){ const und=x.sets.filter(z=>!z.done).length; if(x.sets.length>2&&und>0){ x.rfCut=x.sets.pop(); } else x.rfCut=false; }
+    if(!on&&x.rfCut!=null){ if(x.rfCut) x.sets.push(x.rfCut); delete x.rfCut; } }); saveLive(); }
+function ssApply(on){ logCtx.ss=!!on; logCtx.exercises.forEach(x=>{ delete x.ssp; delete x.ssl; });
+  if(on){ ssPairs(logCtx.exercises).forEach(([i,j],k)=>{ const L="ABCDEFGH"[k]; const a=logCtx.exercises[i], b=logCtx.exercises[j]; a.ssp=j; b.ssp=i; a.ssl=L+"1"; b.ssl=L+"2"; }); }
+  saveLive(); }
 function markSet(xi,si,val){ try{ const ae=document.activeElement; if(ae&&ae.closest&&ae.closest("#logBody")) ae.blur(); }catch{}
   const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
-  if(st.done){ const last=x.sets.every(z=>z.done); restEnd= last&&xi===logCtx.exercises.length-1? 0 : Date.now()+restSecs(x.rest)*1000; if(navigator.vibrate) navigator.vibrate(30); restNative(); }
+  if(st.done){ try{ adaptNextSet(x,si); }catch(e){ console.warn("serie successiva",e); }
+    const nx=nextSet(), pair= logCtx.ss&&nx&&x.ssp!=null&&nx.xi===x.ssp, endAll=!nx;
+    restEnd= endAll? 0 : Date.now()+(pair? 15 : restSecs(x.ssp!=null&&logCtx.ss? maxRest(x,logCtx.exercises[x.ssp]) : x.rest))*1000; if(navigator.vibrate) navigator.vibrate(30); restNative(); }
   saveLive(); renderLogger(); }
 function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
   if(logCtx&&logCtx.circuit){ renderCircuitSession(); return; }
   $("sesAll").hidden=false; $("logAddEx").hidden=false;
   const box=$("logBody"); box.innerHTML=""; const nx=nextSet();
+  try{ const real=logCtx.exercises.filter(x=>!x.cardio&&!x.custom); if(real.length>=2){ const np=ssPairs(logCtx.exercises).length;
+    if(np){ const sb=el("button","btn ghost ss-tog"+(logCtx.ss?" on":""), logCtx.ss? `⚡ Superserie attive (${np} ${np===1?"coppia":"coppie"}) · tocca per toglierle` : `⚡ Fai a superserie: ${np} ${np===1?"coppia":"coppie"} di esercizi alternati, finisci prima`); sb.type="button"; sb.style.marginBottom="10px";
+      sb.onclick=()=>{ ssApply(!logCtx.ss); renderLogger(); toast(logCtx.ss? "Superserie: fai una serie del primo, 15 secondi, una del secondo, poi recupero" : "Superserie tolte"); }; box.appendChild(sb); } } }catch(e){ console.warn("superserie",e); }
+  try{ const legs=logCtx.exercises.filter(isLegEx); const why= legs.length? rfReason() : "";
+    if(why||logCtx.rf){ const rb=el("button","btn ghost ss-tog"+(logCtx.rf?" on":""), logCtx.rf? "🏃 Gambe amiche della corsa: attive · tocca per tornare alla scheda" : `🏃 ${why.charAt(0).toUpperCase()+why.slice(1)}: fai le gambe in versione amica della corsa (una serie in meno, niente cedimento)`); rb.type="button"; rb.style.marginBottom="10px";
+      rb.onclick=()=>{ rfApply(!logCtx.rf); renderLogger(); toast(logCtx.rf? "Gambe: una serie in meno e lascia 2-3 ripetizioni di margine" : "Scheda normale"); }; box.appendChild(rb); } }catch(e){ console.warn("gambe corsa",e); }
   logCtx.exercises.forEach((x,xi)=>{
     const done=x.sets.filter(z=>z.done).length, all=done===x.sets.length&&x.sets.length>0;
     const card=el("div","sx"+(x.closed?" closed":"")), h=el("div","sx-h");
@@ -7970,7 +8079,7 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
     const tt=el("div","sx-tt");
     if(x.custom){ const i=el("input"); i.placeholder="Nome esercizio"; i.value=x.name; i.oninput=()=>{ x.name=i.value; x.muscles=exMuscles(x); saveLive(); }; i.onclick=e=>e.stopPropagation(); tt.appendChild(i); }
     else { const bb=el("b"); bb.textContent=x.name+(x.equip&&!x.name.toLowerCase().includes(x.equip.toLowerCase().replace(/i$/,""))?" · "+x.equip:""); tt.appendChild(bb); }
-    const cl=el("div","c"+(all?" ok":""), all? `✓ ${done}/${x.sets.length} completati` : `${done}/${x.sets.length} completati`); tt.appendChild(cl);
+    const cl=el("div","c"+(all?" ok":""), (logCtx.ss&&x.ssl? `⚡ Superserie ${x.ssl} con ${logCtx.exercises[x.ssp].name} · ` : "")+(all? `✓ ${done}/${x.sets.length} completati` : `${done}/${x.sets.length} completati`)); tt.appendChild(cl);
     if(!x.cardio){ const rb=el("button","restchip",`⏱ riposo ${restLabel(restSecs(x.rest||"90 s"))} ✎`); rb.type="button"; rb.setAttribute("aria-label","Cambia il tempo di riposo");
       rb.onclick=e=>{ e.stopPropagation(); const sec=askRest(x.rest); if(sec==null) return; x.rest=restLabel(sec); saveLive(); renderLogger(); toast(`Riposo di ${x.name}: ${restLabel(sec)}`);
         if(confirm("Salvare questo riposo anche nella scheda, per le prossime volte?")) saveRestToProgram(x.name,restLabel(sec)); };
@@ -7980,6 +8089,7 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
     const tutB=el("button","sx-more tut","▶"); tutB.type="button"; tutB.setAttribute("aria-label","Tutorial di "+(x.name||"esercizio")); tutB.onclick=e=>{ e.stopPropagation(); if(x.name) openTutorial(x.name,x); };
     h.append(el("span","chev","⌃"),fig,tt,tutB,more); h.onclick=()=>{ x.closed=!x.closed; renderLogger(); }; card.appendChild(h);
     const body=el("div","sx-body");
+    if(logCtx.rf&&isLegEx(x)) body.appendChild(el("div","note","🏃 Versione amica della corsa: lascia 2-3 ripetizioni di margine in ogni serie, niente cedimento, scendi controllato."));
     if(!x.custom&&!x.cardio) body.appendChild(memBox(x)); else { const lt=lastText(x.name); if(lt&&!x.custom) body.appendChild(el("div","sx-last",lt)); }
     if(x.bw||x.custom){ const v=el("div","vestrow"+(+x.vest>0?" on":""));
       v.innerHTML=`<span>🦺 Gilet zavorrato</span><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" aria-label="Kg del gilet"><span class="u">kg</span>`;
@@ -8002,6 +8112,9 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
         actionToast(`Serie ${si+1} eliminata`,"Annulla",()=>{ x.sets.splice(Math.min(si,x.sets.length),0,rm); saveLive(); renderLogger(); }); },"serie "+(si+1)));
       body.appendChild(rw);
     });
+    if(all&&!x.cardio&&!x.timed){ const ef=el("div","chips sx-eff"); ef.appendChild(el("span","note","Com'è andata? ")); ef.style.margin="8px 0";
+      [["e","😌 Facile"],["g","👍 Giusto"],["h","🥵 Al limite"]].forEach(([k,l])=>{ const b=el("button","chip"+(x.eff===k?" on":""),l); b.type="button"; b.onclick=()=>{ x.eff= x.eff===k? "" : k; saveLive(); renderLogger(); }; ef.appendChild(b); });
+      body.appendChild(ef); }
     if(!x.cardio){ const add=el("button","sx-add","+ Aggiungi una serie"); add.type="button"; add.onclick=()=>{ const l=x.sets[x.sets.length-1]||{}; x.sets.push({kg:l.kg||"",reps:l.reps||"",done:false}); saveLive(); renderLogger(); }; body.appendChild(add); }
     card.appendChild(body); box.appendChild(card);
   });
@@ -8036,7 +8149,7 @@ $("logSave").onclick=async()=>{
   const exs=logCtx.exercises.map(x=>{
     let sets=x.sets.filter(st=>st.done); if(!sets.length) sets=x.sets.filter(st=> x.cardio? st.text : (st.reps||st.kg));
     sets=sets.map(st=> x.cardio? {text:String(st.text).slice(0,120)} : {kg:st.kg===""?null:+st.kg, reps:+st.reps||null, ...(x.bw&&+st.kg>0?{vest:true}:{})});
-    return {name:String(x.name).trim(),sets};
+    return {name:String(x.name).trim(),sets,...(x.eff?{eff:x.eff}:{})};
   }).filter(x=>x.name&&x.sets.length);
   if(!exs.length){ toast(logCtx.circuit? "Completa almeno un giro" : "Segna almeno una serie"); return; }
   const elapsed=Math.round(sesElapsed()/60), min= elapsed>=5&&elapsed<=300? elapsed : logCtx.plannedMin;
@@ -8244,7 +8357,7 @@ function dateCtx(){
     if(i<=0){ const done=dayDoneText(iso); bits.push("allenamenti registrati: "+(done||"nessuno")); const ea=dayEatenText(iso); if(ea) bits.push(ea); }
     rows.push(`- ${NAMES[i]? NAMES[i]+" = " : ""}${dateLong(iso)} (${iso}): ${bits.join(" · ")}`); }
   const viewed= state.date&&state.date!==today? `\nATTENZIONE: nell'app la persona sta guardando la pagina del ${dateLong(state.date)} (${state.date}), non quella di oggi. I dati "della giornata" qui sotto si riferiscono a quel giorno; se chiede di "oggi" usa comunque la data reale di oggi.` : "";
-  const fz=fatigueText(); const ev=runEvalText(21), evT=(fz? "\n"+fz : "")+(ev? `\nESITO DELLE ULTIME CORSE DEL PIANO (previsto → fatto, ultime 3 settimane; usalo per giudicare la forma e per consigliare ritmi e volumi dei prossimi giorni: se le fasi sono spesso più lente con FC alta segnala fatica e alleggerisci, se le corse facili sono troppo veloci dillo, se va tutto bene conferma o proponi un piccolo aumento):\n${ev}` : "");
+  const fz=fatigueText(), th=thrText(); const ev=runEvalText(21), evT=(fz? "\n"+fz : "")+(th? "\n"+th : "")+(ev? `\nESITO DELLE ULTIME CORSE DEL PIANO (previsto → fatto, ultime 3 settimane; usalo per giudicare la forma e per consigliare ritmi e volumi dei prossimi giorni: se le fasi sono spesso più lente con FC alta segnala fatica e alleggerisci, se le corse facili sono troppo veloci dillo, se va tutto bene conferma o proponi un piccolo aumento):\n${ev}` : "");
   return `DATA E ORA ATTUALI (ora italiana, Europe/Rome): ${now.text}, ore ${now.time}. Oggi è ${now.text.split(" ")[0]} ${today}.
 CALENDARIO (fonte unica per i giorni; il piano si ripete uguale ogni settimana in base al giorno della settimana):
 ${rows.join("\n")}${viewed}${evT}
