@@ -871,6 +871,22 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .cs-sp button:active .ci{transform:scale(.94)}
 .cs-sp button.more .ci{filter:none;opacity:1;background:#a3a3ab;border-color:#a3a3ab;color:#fff;font-size:26px}
 .cs-sp .cl{max-width:74px;text-align:center;line-height:1.15}
+#view-allenamento .seg.many{overflow-x:auto;scrollbar-width:none;justify-content:flex-start}
+#view-allenamento .seg.many::-webkit-scrollbar{display:none}
+#view-allenamento .seg.many button{flex:0 0 auto;padding-left:12px!important;padding-right:12px!important;overflow:visible}
+.ski-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 12px}
+.ski-st{background:var(--surface2);border-radius:14px;padding:10px 4px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.ski-st b{font-size:1.15rem}.ski-st span{font-size:.75rem;color:var(--muted)}
+.ski-list{margin-top:12px}.ski-ul{margin:6px 0 10px;padding-left:20px;font-size:.9rem;line-height:1.5}
+.str-ov{position:fixed;inset:0;z-index:60;background:var(--surface-solid,var(--surface));display:flex;align-items:center;justify-content:center;padding:20px}
+.str-ov[hidden]{display:none}
+.str-in{width:100%;max-width:440px;text-align:center;display:flex;flex-direction:column;gap:8px}
+.str-top{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--muted)}
+.str-x{border:0;background:none;font-size:1.3rem;color:var(--muted)}
+.str-c{color:var(--muted);margin:10px 0 0}.str-n{font-size:1.7rem;margin:4px 0}.str-s{font-weight:700;color:var(--c1);margin:0;min-height:1.2em}
+.str-t{font-size:5rem;font-weight:800;margin:14px 0;font-variant-numeric:tabular-nums}.str-t.prep{font-size:2rem;color:var(--muted)}
+.str-tip{font-size:1rem;line-height:1.45;margin:0 0 6px}.str-nx{color:var(--muted);font-size:.9rem}
+.str-b{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px}
 .cs-days .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
 .cs-acc{padding:0;overflow:hidden}
 .cs-hd{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;background:none;border:0;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
@@ -1637,6 +1653,10 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button role="tab" data-w="programma" aria-selected="false">Programma</button>
     <button role="tab" data-w="chat" aria-selected="false">Coach</button>
     <button role="tab" data-w="corsa" aria-selected="false">Corsa</button>
+    <button role="tab" data-w="sci" aria-selected="false" hidden>Sci</button>
+    <button role="tab" data-w="sp-bici" aria-selected="false" hidden>Bici</button>
+    <button role="tab" data-w="sp-nuoto" aria-selected="false" hidden>Nuoto</button>
+    <button role="tab" data-w="sp-altro" aria-selected="false" hidden>Altro</button>
     <button role="tab" data-w="coach" aria-selected="false">Tecnica</button>
   </div>
 
@@ -1755,7 +1775,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <section class="card cs-acc" id="csGoalCard">
       <button class="cs-hd" type="button" data-k="goal"><span class="mi">🎯</span><span class="mt"><b>Il tuo obiettivo</b><span class="ms" id="csGoalSub"></span></span><span class="chev">›</span></button>
       <div class="cs-bd form">
-        <label>Obiettivo del fisico<select class="field" id="csGoal"></select></label>
+        <p class="note" id="csGoalTxt" style="margin:0"></p>
+        <button class="btn ghost" type="button" id="csGoalEdit">Scegli o cambia l'obiettivo (anche con le foto) ›</button>
         <label>Obiettivo specifico (facoltativo)<input class="field" id="csSpec" placeholder="Es. 5 kg in meno, prime trazioni, 10 km sotto i 50 minuti"></label>
       </div>
     </section>
@@ -1792,7 +1813,11 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     </section>
   </div>
 
+  <div id="w-sci" hidden><div id="sciBox"></div></div>
+  <div id="w-sport" hidden><div id="sportBox"></div></div>
+
   <div id="w-coach" hidden>
+    <div id="stretchBox"></div>
     <section class="card">
       <h2>Correggi un esercizio</h2>
       <p class="sub">Carica una o più foto, oppure un video breve: ne estraggo alcuni fotogrammi e ti dico cosa migliorare.</p>
@@ -2309,7 +2334,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.32 (camminate non avviate contate nella dieta, palestra e corsa nello stesso giorno, bilancio della settimana)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.33 (pagina Sci con neve a Claviere, stretching guidato, memoria del coach tra le chat)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3067,7 +3092,8 @@ function dayPlanFor1(wd,ex){
   if(d){ const min=+d.minutes||sesMin||60, rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*w/60;
     return {kind:"strength", label:`Forza – ${String(d.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"")} (${min} min)`, minutes:min, kcal:kpm*min, when, leg:legLoad(d)}; }
   if(pr&&pr.weekMap&&di==null&&!ses.length) return {kind:"rest",label:"riposo",minutes:0,kcal:0,when:""};
-  if(sesMin){ const rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*w/60, spn=[...new Set(ses.map(x=>x.sport).filter(Boolean))]; return {kind: spn.length===1&&spn[0]==="corsa"? "run" : "strength",label:`${spn.length? spn.map(x=>CS_NAME[x]||x).join(" + ") : "Allenamento"} (${sesMin} min)`,minutes:sesMin,kcal:kpm*sesMin,when}; }
+  if(sesMin){ const rb=realBurnRate(), kpm= rb.n>=3? rb.kpm : 5*w/60, spn=[...new Set(ses.map(x=>x.sport).filter(Boolean))]; const skiOnly=spn.length===1&&spn[0]==="sci", kc= skiOnly? 5.5*w*sesMin/60*0.8 : kpm*sesMin;
+    return {kind: spn.length===1&&spn[0]==="corsa"? "run" : "strength",label:`${spn.length? spn.map(x=>CS_NAME[x]||x).join(" + ") : "Allenamento"} (${sesMin} min)`,minutes:sesMin,kcal:kc,when}; }
   return {kind:"rest",label:"riposo",minutes:0,kcal:0,when:""};
 }
 function workoutKcal(){ return (state.day.workouts||[]).reduce((a,w)=>a+(+w.kcal||0),0) + (+state.day.burned||0); }
@@ -4624,7 +4650,10 @@ $("dietAsk").addEventListener("keydown",e=>{ if(e.key==="Enter") $("dietSend").c
 function setW(w){
   document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-selected",b.dataset.w===w));
   if(w==="oggi"){ go("attivita"); return; }
-  ["oggi","programma","chat","corsa","coach"].forEach(x=>$("w-"+x).hidden=x!==w);
+  ["oggi","programma","chat","corsa","sci","coach"].forEach(x=>$("w-"+x).hidden=x!==w); $("w-sport").hidden=!/^sp-/.test(w);
+  if(/^sp-/.test(w)) try{ renderSport(w.slice(3)); }catch(e){ console.warn("sport",e); }
+  if(w==="sci") try{ renderSci(); }catch(e){ console.warn("sci",e); }
+  if(w==="coach") try{ renderStretchCard(); }catch(e){ console.warn("stretching",e); }
   if(w==="corsa") try{ renderProgram(); }catch(e){ console.warn("corsa",e); }
   if(w==="chat"){ try{ renderCoachSetup(); }catch(e){ console.warn("coach",e); } renderChat(); }
 }
@@ -5216,7 +5245,7 @@ function renderSesHr(){ const box=$("sesHr"); if(!box) return; box.innerHTML="";
 HR.fns.add(()=>{ if(view==="sessione") renderSesHr(); if(view==="corsa") $("csStrap").textContent=hrStatus()+(hrFresh()?` · ${HR.bpm} bpm`:""); });
 /* ----- APK: Health Connect (Samsung Health, bilance, altre app) ----- */
 const HCP=()=>{ const C=NAT(); return C? (C.Plugins&&C.Plugins.Health)||(C.registerPlugin&&C.registerPlugin("Health")) : null; };
-const HC_TYPES={running:"Corsa",walking:"Camminata",hiking:"Escursione",cycling:"Bici",swimming:"Nuoto",swimmingPool:"Nuoto in piscina",swimmingOpenWater:"Nuoto in acque libere",strengthTraining:"Pesi / palestra",traditionalStrengthTraining:"Pesi / palestra",functionalStrengthTraining:"Circuito / funzionale",weightlifting:"Pesi / palestra",crossTraining:"Circuito / funzionale",highIntensityIntervalTraining:"HIIT",coreTraining:"Core",yoga:"Yoga",pilates:"Pilates",elliptical:"Ellittica",rowing:"Vogatore",stairClimbing:"Scale",soccer:"Calcio",tennis:"Tennis",padel:"Padel",basketball:"Basket",dance:"Ballo",mixedCardio:"Cardio",trackAndField:"Atletica"};
+const HC_TYPES={running:"Corsa",walking:"Camminata",hiking:"Escursione",cycling:"Bici",swimming:"Nuoto",swimmingPool:"Nuoto in piscina",swimmingOpenWater:"Nuoto in acque libere",strengthTraining:"Pesi / palestra",traditionalStrengthTraining:"Pesi / palestra",functionalStrengthTraining:"Circuito / funzionale",weightlifting:"Pesi / palestra",crossTraining:"Circuito / funzionale",highIntensityIntervalTraining:"HIIT",coreTraining:"Core",yoga:"Yoga",pilates:"Pilates",elliptical:"Ellittica",rowing:"Vogatore",stairClimbing:"Scale",soccer:"Calcio",tennis:"Tennis",padel:"Padel",basketball:"Basket",dance:"Ballo",mixedCardio:"Cardio",trackAndField:"Atletica",skiing:"Sci",downhillSkiing:"Sci alpino",skiingDownhill:"Sci alpino",crossCountrySkiing:"Sci di fondo",skiingCrossCountry:"Sci di fondo",snowboarding:"Snowboard",backcountrySkiing:"Scialpinismo",snowSports:"Sport sulla neve",skating:"Pattinaggio",iceSkating:"Pattinaggio"};
 const hcOpt=k=>localStorage.getItem("hf:hc"+k)!=="0";
 function hcReadTypes(){ const t=[]; if(hcOpt("W")) t.push("workouts","heartRate","distance","calories"); if(hcOpt("A")) t.push("steps","calories","distance"); if(hcOpt("S")) t.push("sleep"); if(hcOpt("B")) t.push("weight","bodyFat"); t.push("restingHeartRate"); return [...new Set(t)]; }
 async function hcConnect(){ const H=HCP(); if(!H) return;
@@ -5627,7 +5656,8 @@ function pfSubtitle(k){ const p=state.profile||{}, d=typeof draft!=="undefined"&
 function renderPfList(){ const box=$("pfList"); if(!box) return; box.innerHTML="";
   const p=state.profile||{}; try{ fillAvatar($("pfAv"),p); }catch{} $("pfName").textContent=displayName(p)||"Il tuo profilo"; $("pfSub").textContent=(typeof SY!=="undefined"&&SY.user&&SY.user.email)? SY.user.email : "Tocca per completare i tuoi dati";
   PF_GROUPS.forEach(([gt,items])=>{ box.appendChild(el("p","pf-gh",gt)); const g=el("div","pf-group");
-    items.forEach(([title,ic,k])=>{ const b=el("button","pf-row"); b.type="button";
+    items.forEach(([title,ic,k])=>{ if(k==="goal") return;   // l'obiettivo ora sta solo nel Coach
+      const b=el("button","pf-row"); b.type="button";
       const label= k==="goal"? "Obiettivo" : k==="eq"? "Attrezzatura" : k==="ai"? "AI e sincronizzazione" : title.replace(/^[^A-Za-zÀ-ÿ]+/,"");
       b.innerHTML=`<span class="ic">${pfSvg(k)}</span><span class="t"><b></b><span></span></span><span class="chev">›</span>`; b.querySelector("b").textContent=label; b.querySelector(".t span").textContent=pfSubtitle(k);
       b.onclick=()=>{ if(k==="eq"){ $("eqOpen").click(); return; } openPset(title,label,k); }; g.appendChild(b); });
@@ -6583,7 +6613,10 @@ function raceFixDays(weeks,g){ if(!g||!Array.isArray(g.days)||!g.days.length||!A
       if(d!=null&&byWd[d]==null){ r.wd=d; byWd[d]=r; } });                           // le corse in più si tolgono
     w.runs=WD_ORDER.filter(x=>byWd[x]).map(x=>byWd[x]); w.km=Math.round(w.runs.reduce((a,r)=>a+(+r.km||0),0)*10)/10; });
   return weeks; }
-function csTabs(){ try{ const c=cs, hideRun= c&&c.sports.length&&!c.sports.includes("corsa");
+function csTabs(){ try{ const c=cs, hideRun= c&&c.sports.length&&!c.sports.includes("corsa"), showSki=!!(c&&c.sports.includes("sci"));
+  document.querySelectorAll('.seg button[data-w="sci"]').forEach(b=>b.hidden=!showSki); if(!showSki&&!$("w-sci").hidden) setW("programma");
+  ["bici","nuoto","altro"].forEach(k=>{ const on=!!(c&&c.sports.includes(k)); document.querySelectorAll('.seg button[data-w="sp-'+k+'"]').forEach(b=>{ b.hidden=!on; if(!on&&b.getAttribute("aria-selected")==="true") setW("programma"); }); });
+  document.querySelectorAll("#view-allenamento .seg").forEach(sg=>sg.classList.toggle("many",[...sg.children].filter(b=>!b.hidden).length>4));
   document.querySelectorAll('.seg button[data-w="corsa"]').forEach(b=>b.hidden=!!hideRun);
   if(hideRun&&!$("w-corsa").hidden) setW("programma"); }catch{} }
 function openRaceCoach(){ go("allenamento"); setW("chat"); const d=$("csRaceDet"); if(d){ d.open=true; try{ renderRace(); }catch{} setTimeout(()=>d.scrollIntoView({behavior:"smooth",block:"start"}),120); } }
@@ -6635,10 +6668,10 @@ function csPanel(k,l){ const o=cs.sp[k]=cs.sp[k]||{days:[],start:"",end:"",fed:"
     const sum=rb.querySelector("summary"); if(sum) sum.textContent= g&&wl>0? `🏁 Allenatore gara · ${g.name||raceLabel(g.km)} tra ${wl} settimane ›` : "🏁 Hai una gara? Allenatore gara ›"; }
   return c; }
 function renderCoachSetup(){ if(!$("csSports")) return; csGet();
-  const p=state.profile||{}, sel=$("csGoal");
-  if(!sel.options.length){ sel.appendChild(new Option("Scegli…","")); GOALS.forEach(g=>sel.appendChild(new Option(g.t,g.id))); }
-  sel.value=p.goal||""; if(document.activeElement!==$("csSpec")) $("csSpec").value=cs.spec||"";
-  { const g=goalOf(p); $("csGoalSub").textContent= g? g.t+(cs.spec? " · "+cs.spec : "") : "Tocca per sceglierlo"; $("csGoalCard").classList.toggle("open",csOpen.has("goal")||!g); }
+  const p=state.profile||{};
+  { const g=goalOf(p), cg=p.customGoal&&p.customGoal.active? p.customGoal : null; $("csGoalTxt").textContent= cg? "✨ "+cg.title+(cg.summary? ": "+cg.summary.slice(0,160) : "") : g? g.t+": "+g.d : "Non hai ancora scelto l'obiettivo."; }
+  if(document.activeElement!==$("csSpec")) $("csSpec").value=cs.spec||"";
+  { const g=goalOf(p); $("csGoalSub").textContent= (p.customGoal&&p.customGoal.active? "✨ "+p.customGoal.title : g? g.t : "Tocca per sceglierlo")+(cs.spec? " · "+cs.spec : ""); $("csGoalCard").classList.toggle("open",csOpen.has("goal")||!g); }
   const sb=$("csSports"); sb.innerHTML="";
   // come Samsung Health: cerchi colorati con il nome sotto; «Altro» si apre e mostra le altre attività
   CS_SPORTS.filter(([k])=>CS_MAIN.includes(k)||csMore||cs.sports.includes(k)).forEach(([k,l])=>{ const b=el("button",null); b.type="button"; const on=cs.sports.includes(k); b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
@@ -6655,7 +6688,7 @@ function renderCoachSetup(){ if(!$("csSports")) return; csGet();
   $("csGenNote").textContent= parts.length? `Il coach prepara una scheda unica: ${parts.join(" · ")}. Rispetta questi giorni e il tuo obiettivo.` : "Scegli cosa fai e in quali giorni: poi il coach prepara la scheda.";
   $("csGen").disabled=!sample; renderCsMem(); csTabs(); try{ csSyncProfile(); }catch{} }
 document.querySelector('#csGoalCard .cs-hd').onclick=()=>{ const c=$("csGoalCard"), op=!c.classList.contains("open"); c.classList.toggle("open",op); if(op) csOpen.add("goal"); else csOpen.delete("goal"); };
-$("csGoal").onchange=()=>{ if(!state.profile) return; state.profile.goal=$("csGoal").value||state.profile.goal; save("profile",state.profile); try{ renderAll(); }catch{} };
+$("csGoalEdit").onclick=()=>{ try{ fillProfile(); }catch(e){ console.warn("profilo",e); } openPset("obiettivo","Il tuo obiettivo","goal"); };
 $("csSpec").onchange=()=>{ csGet().spec=$("csSpec").value.trim(); csSave(); };
 function renderCsMem(){ const m=(chat&&chat.mem)||[], box=$("csMem"); $("csMemCard").hidden=!m.length; box.innerHTML="";
   m.forEach((x,i)=>{ const r0=el("div","cs-mem"); r0.appendChild(el("span",null,x.t)); const b=el("button",null,"✕"); b.type="button"; b.setAttribute("aria-label","Dimentica");
@@ -6695,6 +6728,8 @@ GIORNI SCELTI DALLA PERSONA (rispettali ESATTAMENTE: non aggiungere, non toglier
 ${gym? `- PALESTRA: ${csDaysTxt(gym)} (${gym.days.length} sedute${gym.start?", alle "+gym.start:""}, circa ${gym.minutes||60} minuti${gym.fed?", "+FED[gym.fed]:""}). Dove: ${gym.place||"palestra"}. Livello: ${gym.level||"intermedio"}. Note: ${gym.notes||"nessuna"}.` : "- Palestra: non la fa."}
 ${run? `- CORSA: ${csDaysTxt(run)} (${run.days.length} corse${run.start?", alle "+run.start:""}${run.fed?", "+FED[run.fed]:""}), lungo il ${WD[+run.longWd||0].toLowerCase()}.${run.goal? " Obiettivo di corsa: "+run.goal+"." : ""}` : "- Corsa: non la fa."}
 ${others.length? "- ALTRE ATTIVITÀ (non vanno nella scheda ma pesano sul recupero, soprattutto delle gambe): "+others.join("; ")+"." : ""}
+${(()=>{ const sk=cs.sports.includes("sci")&&cs.sp.sci; if(!sk) return ""; const wk=sk.season? Math.ceil((new Date(sk.season+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5)) : null;
+  return "SCI (va a sciare a "+((sk.place&&sk.place.name)||"Claviere")+", 1.760-2.800 m)"+(sk.season? ", prima uscita prevista il "+sk.season+(wk>0? " (tra "+wk+" settimane)" : " (stagione iniziata)") : "")+". "+(wk==null||wk>8? "Inserisci comunque nelle sedute di gambe un po' di lavoro utile allo sci (eccentrica, equilibrio su una gamba)." : wk>0? "È il periodo di PREPARAZIONE SCI: in ogni seduta con le gambe metti lavoro specifico: squat lento in discesa (eccentrica), sedia al muro (isometria 30-60 s), affondi laterali, equilibrio su una gamba, salti laterali leggeri, gluteo medio con elastico, core anti-rotazione; aumenta piano il volume settimana dopo settimana." : "Stagione in corso: palestra di mantenimento (volume più basso), niente gambe pesanti il giorno prima di una giornata di sci, e dopo lo sci recupero.")+" Aggiungi alla fine di ogni seduta 5-8 minuti di stretching nel campo detail di un ultimo esercizio \"Stretching\"."; })()}
 ${useRace? raceWeekText()+" Le corse le prepara il piano gara nei giorni di corsa: tu NON creare giorni di corsa, crea SOLO le sedute di palestra pensate per non rovinare le corse." : ""}
 ${[doneWeekText(),COMBO_RULES].join("\n")}
 Crea ${gym? "esattamente "+gym.days.length+" giorni di palestra, uno per ogni giorno indicato" : "nessun giorno di palestra"}${runInProg? " ed esattamente "+run.days.length+" giorni di corsa, uno per ogni giorno di corsa (il lungo il "+WD[+run.longWd||0].toLowerCase()+")" : ""}. Ogni giorno ha il campo "wd" (0=domenica…6=sabato) e il titolo inizia con il nome del giorno (es. "Lunedì – Petto e dorso").
@@ -6702,6 +6737,150 @@ Rendi le sedute adatte all'obiettivo del fisico (più forte: fondamentali pesant
 Rispondi SOLO con JSON valido, in italiano:
 {"name":"string","summary":"2 frasi su come palestra e corsa lavorano insieme","progression":"come progredire nelle prossime settimane","days":[{"wd":number,"title":"Lunedì – focus","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"es. 90 s","tip":"consiglio breve","equip":"attrezzo o corpo libero","muscles":["tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}]}]}
 ${runInProg? `Giorni di CORSA: stessi campi più "kind":"run","runType":"Jogging|Corsa lenta|Lungo|Fartlek|Ripetute|Corsa in soglia|Progressivo|Recupero attivo","distanceKm":number|null,"minutes":number,"pace":"m:ss o null","intensity":1-5,"description":"1-2 frasi","segments":[{"kind":"warmup|work|recovery|cooldown","label":"es. Jogging leggero di 5 minuti","km":number|null,"minutes":number|null,"pace":"m:ss o null","hr":"es. sotto ${hrCapOf()} bpm o vuoto"}],"exercises":[]. Corsa lenta, Jogging, Lungo e Recupero attivo sono guidati dal battito (sotto ${hrCapOf()} bpm). Progressione realistica rispetto alle corse recenti.` : ""} Circuiti a giri: "kind":"circuit","circuit":{"exercises":["nome 1","nome 2"],"rounds":[[ripetizioni giro 1],[giro 2]],"rest":"90 s"},"exercises":[]. Sedute di forza con 3-7 esercizi.`; }
+/* ===================== SCI: giornate, stagione, neve a Claviere, preparazione e consigli ===================== */
+const SKI_RE=/\bsci\b|sciat|ski|snowboard|fondo|scialp/i;
+const isSki=w=>w&&SKI_RE.test((w.name||"")+" "+(w.type||""));
+function skiCfg(){ csGet(); cs.sp.sci=cs.sp.sci||{days:[],start:"",end:"",fed:""}; const o=cs.sp.sci; o.place=o.place||{name:"Claviere",la:44.938,lo:6.751}; return o; }
+function skiSeasonFrom(){ const t=todayISO(), y=+t.slice(0,4), m=+t.slice(5,7); return (m>=9? y : y-1)+"-09-01"; }
+function skiStats(){ const from=skiSeasonFrom(), its=((hist&&hist.items)||[]).filter(w=>w.date>=from&&isSki(w)).sort((a,b)=>a.date<b.date?1:-1);
+  const days=new Set(its.map(w=>w.date)); return {its, days:days.size, min:its.reduce((a,w)=>a+(+w.minutes||0),0), km:Math.round(its.reduce((a,w)=>a+(+w.distance||0),0)*10)/10, dn:its.reduce((a,w)=>a+(+w.elevDown||0),0), kcal:its.reduce((a,w)=>a+(+w.kcal||0),0)}; }
+const SKI_MET={leggera:4.3,normale:5.5,intensa:7};
+function skiKcal(min,int){ const w=+(state.profile&&state.profile.weight)||75; return Math.round((SKI_MET[int]||5.5)*w*min/60*0.8/10)*10; }   // 0,8: le risalite in seggiovia
+async function addWorkoutOn(iso,w){ if(iso===state.date){ addWorkout(w); return; }
+  const item={id:uid(),...w}, doc=(await store.getDoc("day-"+iso).catch(()=>null))||{meals:{},workouts:[]}; doc.workouts=[...(doc.workouts||[]),item]; save("day-"+iso,doc);
+  hist.items=[...hist.items,{...item,date:iso}]; save("workoutHistory",hist); renderAll(); queueProgress(); toast("Giornata sugli sci registrata ✓"); }
+const SKI_TIPS=[
+ ["🥣","Colazione","Abbondante e con carboidrati lenti: pane o fiocchi d'avena, uova o yogurt, frutta. Una giornata sugli sci consuma 1.500-2.500 kcal in più: l'app le aggiunge alla dieta quando registri la giornata."],
+ ["🍫","Snack","Ogni 2 ore qualcosa di piccolo: barretta, frutta secca, banana, panino. Il freddo fa consumare di più e la fame arriva tardi."],
+ ["💧","Acqua","Bevi anche se non hai sete: in quota e al freddo ci si disidrata senza accorgersene. Mezzo litro ogni 2 ore; il vin brulé non conta."],
+ ["🏔️","Quota","Claviere è a 1.760 m e le piste salgono oltre 2.500 m: il primo giorno il battito è più alto e ci si stanca prima. Parti con calma."],
+ ["🔥","Riscaldamento","5 minuti prima della prima discesa: circonduzioni di anche e caviglie, 10 squat lenti, slanci delle gambe. Le prime 2 piste facili."],
+ ["🦵","Gambe","Quando le gambe bruciano e perdi precisione fermati 10 minuti: la maggior parte degli infortuni capita nell'ultima ora, da stanchi."],
+ ["🧴","Sole e freddo","Crema solare e occhiali anche se è nuvoloso (la neve riflette). Strati: maglia tecnica, pile, giacca; niente cotone sulla pelle."],
+ ["🧘","Dopo","10 minuti di stretching (c'è la routine «Dopo lo sci») e una cena con proteine e carboidrati per recuperare per il giorno dopo."]];
+const SKI_PREP=["Squat lento in discesa (3-4 s) per i quadricipiti","Sedia al muro (isometria) 30-60 s","Affondi laterali e affondi indietro","Equilibrio su una gamba, anche a occhi chiusi o su cuscino","Salti laterali a destra e sinistra (pliometria leggera)","Ponte glutei e lavoro per il gluteo medio con elastico","Plank e anti-rotazione (Pallof press) per il tronco","Corsa o bici per il fiato"];
+let skiAddOpen=false;
+function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; const o=skiCfg(), S=skiStats();
+  // stagione
+  const c1=el("section","card"); c1.appendChild(el("h2",null,"⛷️ La tua stagione"));
+  const g=el("div","ski-grid"); [["Giornate",S.days],["Ore",fmt(Math.round(S.min/6)/10)],["Km",fmt(S.km)],["Dislivello",S.dn? S.dn.toLocaleString("it-IT")+" m" : "–"]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,String(v)),el("span",null,l)); g.appendChild(d); });
+  c1.appendChild(g);
+  if(S.kcal) c1.appendChild(el("p","note",`Calorie consumate sugli sci da settembre: circa ${S.kcal.toLocaleString("it-IT")} kcal.`));
+  const ab=el("button","btn",skiAddOpen? "Chiudi" : "＋ Registra una giornata sugli sci"); ab.type="button"; ab.onclick=()=>{ skiAddOpen=!skiAddOpen; renderSci(); }; c1.appendChild(ab);
+  if(skiAddOpen){ const f=el("div","form"); f.style.marginTop="10px";
+    f.innerHTML=`<div class="two"><label>Giorno<input type="date" id="skD"></label><label>Tipo<select id="skT"><option>Sci alpino</option><option>Snowboard</option><option>Sci di fondo</option><option>Scialpinismo</option></select></label></div>
+      <div class="two"><label>Inizio<input type="time" id="skS" value="09:00"></label><label>Fine<input type="time" id="skE" value="16:00"></label></div>
+      <div class="two"><label>Km di discesa (facoltativo)<input type="number" inputmode="decimal" id="skK" min="0" step="0.1"></label><label>Dislivello in discesa (m)<input type="number" inputmode="numeric" id="skH" min="0" step="50"></label></div>
+      <div class="two"><label>Intensità<select id="skI"><option value="leggera">Tranquilla</option><option value="normale" selected>Normale</option><option value="intensa">Tirata</option></select></label><label>Pause lunghe (min)<input type="number" inputmode="numeric" id="skP" min="0" step="15" value="60"></label></div>
+      <label>Note<input class="field" id="skN" placeholder="Es. neve fresca, piste rosse, Monti della Luna"></label>
+      <p class="note" id="skCalc"></p><button class="btn" type="button" id="skGo">Registra</button>`;
+    c1.appendChild(f); f.querySelector("#skD").value=todayISO();
+    const calc=()=>{ const m=Math.max(0,minsBetweenAny(f.querySelector("#skS").value,f.querySelector("#skE").value)-(+f.querySelector("#skP").value||0)); f.querySelector("#skCalc").textContent= m? `${Math.floor(m/60)} h ${m%60} min sugli sci · circa ${skiKcal(m,f.querySelector("#skI").value).toLocaleString("it-IT")} kcal in più nella dieta di quel giorno.` : "Indica inizio e fine."; return m; };
+    f.querySelectorAll("input,select").forEach(i=>i.addEventListener("input",calc)); calc();
+    f.querySelector("#skGo").onclick=async()=>{ const m=calc(); if(!m){ toast("Indica inizio e fine"); return; } const iso=f.querySelector("#skD").value||todayISO(), int=f.querySelector("#skI").value;
+      await addWorkoutOn(iso,{name:f.querySelector("#skT").value,minutes:m,intensity:int,kcal:skiKcal(m,int),start:f.querySelector("#skS").value,end:f.querySelector("#skE").value,distance:+String(f.querySelector("#skK").value).replace(",",".")||null,elevDown:+f.querySelector("#skH").value||null,details:f.querySelector("#skN").value.trim()||"",place:o.place.name});
+      skiAddOpen=false; renderSci(); }; }
+  if(S.its.length){ const lst=el("div","ski-list"); S.its.slice(0,12).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic","⛷️"), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.elevDown? ` · ↓${(+w.elevDown).toLocaleString("it-IT")} m` : "")+(w.details? ` · ${w.details}` : ""))); lst.appendChild(r0); }); c1.appendChild(lst); }
+  else c1.appendChild(el("p","note","Nessuna giornata ancora. Se registri lo sci con il Galaxy Watch arriva da solo da Samsung Health; altrimenti aggiungila qui."));
+  box.appendChild(c1);
+  // neve e meteo
+  const c2=el("section","card"); c2.appendChild(el("h2",null,`❄️ Neve e meteo a ${o.place.name}`)); const wx=el("div","ski-wx"); wx.textContent="Carico le previsioni…"; c2.appendChild(wx); box.appendChild(c2); skiWeather(o.place,wx);
+  // preparazione
+  const c3=el("section","card"); c3.appendChild(el("h2",null,"🏔️ Preparazione per la stagione"));
+  const sl=el("label",null,"Prima uscita sugli sci (anche indicativa)"); const si=el("input"); si.type="date"; si.value=o.season||""; si.onchange=()=>{ o.season=si.value; csSave(); renderSci(); }; sl.appendChild(si); c3.appendChild(sl);
+  const wk= o.season? Math.ceil((new Date(o.season+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5)) : null;
+  c3.appendChild(el("p","note", wk==null? "Indica quando pensi di iniziare: il coach mette nella palestra la preparazione specifica nelle 6-8 settimane prima." : wk>8? `Mancano ${wk} settimane: per ora forza generale, la preparazione specifica parte 8 settimane prima.` : wk>0? `Mancano ${wk} settimane: è il momento della preparazione specifica. Rifai la scheda e il coach la mette nelle sedute di palestra.` : "Stagione iniziata: in palestra mantenimento leggero e niente gambe pesanti il giorno prima di sciare."));
+  const ul=el("ul","ski-ul"); SKI_PREP.forEach(t=>ul.appendChild(el("li",null,t))); c3.appendChild(ul);
+  const gb=el("button","btn ghost","Rifai la scheda con la preparazione sci"); gb.type="button"; gb.onclick=()=>{ setW("chat"); window.scrollTo({top:0}); setTimeout(()=>$("csGen").click(),200); }; c3.appendChild(gb);
+  box.appendChild(c3);
+  // consigli
+  const c4=el("section","card"); c4.appendChild(el("h2",null,"💡 Consigli per la giornata sugli sci"));
+  SKI_TIPS.forEach(([ic,t,d])=>{ const r0=el("div","pline"); const sp=el("span"); sp.append(el("b",null,t+". "),document.createTextNode(d)); r0.append(el("span","ic",ic),sp); c4.appendChild(r0); });
+  const st=el("button","btn ghost","🧘 Stretching dopo lo sci (10 min)"); st.type="button"; st.style.marginTop="8px"; st.onclick=()=>startStretch("sci"); c4.appendChild(st);
+  box.appendChild(c4); }
+function minsBetweenAny(a,b){ if(!a||!b) return 0; const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number); let d=(h2*60+m2)-(h1*60+m1); if(d<0) d+=1440; return d; }
+const WX_TXT={0:"☀️ sereno",1:"🌤️ poco nuvoloso",2:"⛅ nuvoloso",3:"☁️ coperto",45:"🌫️ nebbia",48:"🌫️ nebbia",51:"🌦️ pioviggine",53:"🌦️ pioviggine",55:"🌦️ pioviggine",61:"🌧️ pioggia",63:"🌧️ pioggia",65:"🌧️ pioggia forte",71:"🌨️ neve debole",73:"🌨️ neve",75:"❄️ neve forte",77:"🌨️ nevischio",80:"🌦️ rovesci",81:"🌧️ rovesci",82:"🌧️ rovesci forti",85:"🌨️ rovesci di neve",86:"❄️ rovesci di neve forti",95:"⛈️ temporale"};
+async function skiWeather(pl,box){ const key="hf:skiWx:"+pl.la+","+pl.lo; let d=null;
+  try{ const c0=JSON.parse(localStorage.getItem(key)||"null"); if(c0&&Date.now()-c0.at<3*3600e3) d=c0.d; }catch{}
+  if(!d){ try{ const r0=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pl.la}&longitude=${pl.lo}&elevation=2000&daily=weather_code,temperature_2m_max,temperature_2m_min,snowfall_sum,wind_speed_10m_max&hourly=snow_depth&forecast_days=5&timezone=Europe%2FRome`); d=await r0.json(); try{ localStorage.setItem(key,JSON.stringify({at:Date.now(),d})); }catch{} }
+    catch(e){ box.textContent="Previsioni non disponibili adesso (serve internet)."; return; } }
+  const D=d&&d.daily; if(!D||!D.time){ box.textContent="Previsioni non disponibili adesso."; return; }
+  box.innerHTML=""; const sd=d.hourly&&d.hourly.snow_depth? d.hourly.snow_depth.find(v=>v!=null) : null;
+  if(sd!=null) box.appendChild(el("p","note",`Neve al suolo a 2.000 m (stima del modello meteo): circa ${Math.round(sd*100)} cm.`));
+  D.time.forEach((t,i)=>{ const r0=el("div","pline"); const sn=+D.snowfall_sum[i]||0;
+    r0.append(el("span","ic",(WX_TXT[D.weather_code[i]]||"·").split(" ")[0]), el("span",null,`${i===0?"Oggi":new Date(t+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric"})}: ${(WX_TXT[D.weather_code[i]]||"").split(" ").slice(1).join(" ")}, ${Math.round(D.temperature_2m_min[i])}°/${Math.round(D.temperature_2m_max[i])}°`+(sn>=0.5? `, ❄️ ${Math.round(sn)} cm di neve fresca` : "")+(+D.wind_speed_10m_max[i]>=40? `, vento forte ${Math.round(D.wind_speed_10m_max[i])} km/h` : "")));
+    box.appendChild(r0); });
+  box.appendChild(el("p","note","Previsioni Open-Meteo a 2.000 m di quota. Per gli impianti aperti guarda il sito della Via Lattea.")); }
+
+/* ===================== STRETCHING: routine guidate con timer ===================== */
+const STRETCH={
+ corsa:{t:"Dopo la corsa",ic:"🏃",ex:[["Polpacci al muro","Gamba dietro tesa, tallone a terra, spingi il muro",45,1],["Flessori dell'anca","Affondo basso, bacino in avanti, busto dritto",45,1],["Quadricipiti in piedi","Tallone al gluteo, ginocchia vicine",40,1],["Femorali seduto","Gamba tesa, schiena dritta, piegati dall'anca",45,1],["Glutei a figura 4","Sdraiato, caviglia sul ginocchio, tira la coscia verso il petto",45,1],["Adduttori a farfalla","Piante dei piedi unite, ginocchia verso terra",40,0]]},
+ palestra:{t:"Dopo la palestra",ic:"🏋️",ex:[["Pettorali allo stipite","Avambraccio sullo stipite, ruota il busto dall'altra parte",40,1],["Dorsali in ginocchio","Seduto sui talloni, braccia avanti, fronte a terra",45,0],["Spalle a braccio incrociato","Tira il braccio teso verso il petto",30,1],["Tricipiti dietro la testa","Gomito in alto, spingi piano con l'altra mano",30,1],["Quadricipiti in piedi","Tallone al gluteo, ginocchia vicine",40,1],["Femorali seduto","Gamba tesa, schiena dritta",45,1]]},
+ sci:{t:"Dopo lo sci",ic:"⛷️",ex:[["Quadricipiti in piedi","Tallone al gluteo: sono i muscoli che lavorano di più sugli sci",45,1],["Flessori dell'anca","Affondo basso, bacino in avanti",45,1],["Glutei a figura 4","Sdraiato, caviglia sul ginocchio",45,1],["Polpacci al muro","Tallone a terra, gamba tesa",40,1],["Adduttori larghi","Gambe larghe, spostati piano su un lato",40,1],["Ginocchia al petto","Sdraiato, abbraccia le ginocchia: scarica la schiena",45,0],["Collo","Orecchio verso la spalla, senza forzare",30,1]]},
+ mattino:{t:"Mobilità del mattino",ic:"🌅",ex:[["Gatto e mucca","A quattro zampe: inarca e arrotonda la schiena, lento",45,0],["Cerchi con le anche","In piedi, mani sui fianchi, cerchi ampi",30,1],["Affondo con rotazione","Affondo, mano a terra, apri l'altro braccio verso l'alto",30,1],["Rotazioni del torace","A quattro zampe, mano dietro la testa, apri il gomito",30,1],["Caviglie","Ginocchio in avanti oltre la punta, tallone a terra",30,1],["Respirazione","Seduto, inspira 4 secondi, espira 6",45,0]]},
+ riposo:{t:"Giorno di riposo (mobilità completa)",ic:"🧘",ex:[["Gatto e mucca","Lento, segui il respiro",45,0],["Flessori dell'anca","Affondo basso",60,1],["Femorali sdraiato","Gamba tesa in alto con un asciugamano",60,1],["Glutei a figura 4","Sdraiato",60,1],["Piriforme seduto","Gamba incrociata, ruota il busto",45,1],["Rotazioni del torace","A quattro zampe",40,1],["Pettorali allo stipite","Braccio a 90°",45,1],["Dorsali in ginocchio","Fronte a terra, braccia lunghe",60,0],["Polpacci al muro","Tallone a terra",45,1]]}};
+const STRETCH_TIPS=["Prima di allenarti fai mobilità dinamica (movimenti ampi e controllati), non allungamenti fermi: quelli vanno DOPO.","Tieni ogni posizione 30-60 secondi, senza molleggiare.","Deve tirare, non fare male: se senti dolore torna indietro.","Respira lento ed espira mentre ti allunghi: il muscolo si rilassa di più.","Meglio 10 minuti tutti i giorni che un'ora una volta a settimana.","Dopo una corsa lunga o una giornata sugli sci fai la routine con calma: aiuta a sentirti meno rigido il giorno dopo."];
+function stretchMin(k){ const R=STRETCH[k]; return Math.round(R.ex.reduce((a,x)=>a+x[2]*(x[3]?2:1)+5,0)/60); }
+function renderStretchCard(){ const host=$("stretchBox"); if(!host) return; host.innerHTML="";
+  const c=el("section","card"); c.appendChild(el("h2",null,"🧘 Stretching e mobilità")); c.appendChild(el("p","sub","Routine guidate con il timer: tocca e segui. Alla fine la puoi registrare."));
+  Object.entries(STRETCH).forEach(([k,R])=>{ const b=el("button","card raceRow"); b.type="button"; b.innerHTML=`<span class="mi"></span><span class="mt"><b></b><span class="ms"></span></span><span class="chev">›</span>`;
+    b.querySelector(".mi").textContent=R.ic; b.querySelector("b").textContent=R.t; b.querySelector(".ms").textContent=`${stretchMin(k)} min · ${R.ex.length} esercizi`; b.style.background="var(--surface2)"; b.onclick=()=>startStretch(k); c.appendChild(b); });
+  const d=el("details","cs-race"); d.appendChild(el("summary",null,"💡 Consigli sullo stretching ›")); STRETCH_TIPS.forEach(t=>{ const r0=el("div","pline"); r0.append(el("span","ic","•"),el("span",null,t)); d.appendChild(r0); }); c.appendChild(d);
+  host.appendChild(c); }
+let STR=null;
+function startStretch(k){ const R=STRETCH[k]; if(!R) return; const steps=[]; R.ex.forEach(([n,tip,sec,sides])=>{ if(sides){ steps.push({n,tip,sec,side:"lato destro"}); steps.push({n,tip,sec,side:"lato sinistro"}); } else steps.push({n,tip,sec,side:""}); });
+  let ov=$("strOv"); if(!ov){ ov=el("div","str-ov"); ov.id="strOv"; document.body.appendChild(ov); }
+  STR={k,steps,i:0,left:steps[0].sec,run:true,t0:Date.now(),prep:5}; ov.hidden=false; strDraw(); clearInterval(strDraw.t); strDraw.t=setInterval(strTick,1000); try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>STR.wl=l).catch(()=>{}); }catch{} }
+function strTick(){ if(!STR||!STR.run) return; if(STR.prep>0){ STR.prep--; if(!STR.prep) strBeep(); strDraw(); return; }
+  STR.left--; if(STR.left<=0){ strBeep(); STR.i++; if(STR.i>=STR.steps.length){ strEnd(true); return; } STR.left=STR.steps[STR.i].sec; STR.prep=5; } strDraw(); }
+function strBeep(){ try{ navigator.vibrate&&navigator.vibrate(120); }catch{} try{ const A=new (window.AudioContext||window.webkitAudioContext)(), o=A.createOscillator(), g=A.createGain(); o.frequency.value=880; o.connect(g); g.connect(A.destination); g.gain.value=0.15; o.start(); o.stop(A.currentTime+0.18); }catch{} }
+function strDraw(){ const ov=$("strOv"); if(!ov||!STR) return; const s=STR.steps[STR.i], R=STRETCH[STR.k], nx=STR.steps[STR.i+1];
+  ov.innerHTML=`<div class="str-in"><div class="str-top"><span></span><button type="button" class="str-x" aria-label="Chiudi">✕</button></div>
+   <p class="str-c"></p><h2 class="str-n"></h2><p class="str-s"></p><div class="str-t"></div><p class="str-tip"></p><p class="str-nx"></p>
+   <div class="str-b"><button type="button" class="btn ghost" data-a="prev">‹ Indietro</button><button type="button" class="btn" data-a="pause"></button><button type="button" class="btn ghost" data-a="next">Avanti ›</button></div></div>`;
+  ov.querySelector(".str-top span").textContent=R.t; ov.querySelector(".str-c").textContent=`${STR.i+1} di ${STR.steps.length}`;
+  ov.querySelector(".str-n").textContent=s.n; ov.querySelector(".str-s").textContent=s.side; ov.querySelector(".str-tip").textContent=s.tip;
+  ov.querySelector(".str-t").textContent= STR.prep>0? `Pronto… ${STR.prep}` : `${STR.left}`; ov.querySelector(".str-t").classList.toggle("prep",STR.prep>0);
+  ov.querySelector(".str-nx").textContent= nx? "Dopo: "+nx.n+(nx.side? " ("+nx.side+")" : "") : "Ultimo esercizio";
+  ov.querySelector('[data-a="pause"]').textContent= STR.run? "Pausa" : "Riprendi";
+  ov.querySelector(".str-x").onclick=()=>strEnd(false);
+  ov.querySelector('[data-a="pause"]').onclick=()=>{ STR.run=!STR.run; strDraw(); };
+  ov.querySelector('[data-a="next"]').onclick=()=>{ STR.i++; if(STR.i>=STR.steps.length){ strEnd(true); return; } STR.left=STR.steps[STR.i].sec; STR.prep=3; strDraw(); };
+  ov.querySelector('[data-a="prev"]').onclick=()=>{ if(STR.i>0) STR.i--; STR.left=STR.steps[STR.i].sec; STR.prep=3; strDraw(); }; }
+function strEnd(done){ clearInterval(strDraw.t); const ov=$("strOv"); const S0=STR; STR=null; try{ S0&&S0.wl&&S0.wl.release(); }catch{}
+  if(!ov) return; if(!done||!S0){ ov.hidden=true; return; }
+  const min=Math.max(1,Math.round((Date.now()-S0.t0)/60000)), R=STRETCH[S0.k], w=+(state.profile&&state.profile.weight)||75;
+  ov.innerHTML=`<div class="str-in"><h2 class="str-n">Fatto! 🧘</h2><p class="str-tip">${R.t}: ${min} minuti. Vuoi registrarla negli allenamenti di oggi?</p><div class="str-b"><button type="button" class="btn ghost" data-a="no">No</button><button type="button" class="btn" data-a="si">Registra</button></div></div>`;
+  ov.querySelector('[data-a="no"]').onclick=()=>{ ov.hidden=true; };
+  ov.querySelector('[data-a="si"]').onclick=()=>{ ov.hidden=true; const sv=state.date; if(state.date!==todayISO()){ toast("Registro su oggi"); } addWorkoutOn(todayISO(),{name:"Stretching – "+R.t.toLowerCase(),minutes:min,intensity:"leggera",kcal:Math.round(2.3*w*min/60)}); }; }
+/* pagine degli altri sport scelti nel Coach (bici, nuoto, altro): giornate, totali e registrazione */
+const SP_DEF={bici:{re:/bici|cicl|bike|spinning|mtb|gravel/i,met:7,ic:"🚴",names:["Bici da strada","Mountain bike","Bici elettrica","Spinning"],km:true},
+  nuoto:{re:/nuot|swim|piscina/i,met:7,ic:"🏊",names:["Nuoto in piscina","Nuoto in acque libere"],km:true},
+  altro:{re:/calc|tennis|padel|basket|pallavol|arrampic|boxe|yoga|pilates|ballo|altro sport|escurs|trekking/i,met:6,ic:"⚡",names:["Altro sport","Padel","Tennis","Calcio","Escursione","Arrampicata","Yoga"],km:false}};
+let spAddOpen=null;
+function renderSport(k){ const box=$("sportBox"), D=SP_DEF[k]; if(!box||!D) return; box.innerHTML=""; const o=(cs&&cs.sp[k])||{};
+  const from=todayISO().slice(0,4)+"-01-01", its=((hist&&hist.items)||[]).filter(w=>w.date>=from&&D.re.test((w.name||"")+" "+(w.sport||""))&&!isRun(w)&&!isSki(w)).sort((a,b)=>a.date<b.date?1:-1);
+  const c=el("section","card"); c.appendChild(el("h2",null,`${D.ic} ${CS_NAME[k]} da gennaio`));
+  const g=el("div","ski-grid"); const min=its.reduce((a,w)=>a+(+w.minutes||0),0), km=Math.round(its.reduce((a,w)=>a+(+w.distance||0),0)*10)/10, kc=its.reduce((a,w)=>a+(+w.kcal||0),0);
+  [["Uscite",its.length],["Ore",fmt(Math.round(min/6)/10)],[D.km?"Km":"Kcal",D.km? fmt(km) : kc.toLocaleString("it-IT")],["Giorni",o.days&&o.days.length? o.days.map(x=>WD[x].slice(0,3)).join(" ") : "–"]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,String(v)),el("span",null,l)); g.appendChild(d); });
+  c.appendChild(g);
+  const ab=el("button","btn",spAddOpen===k? "Chiudi" : "＋ Registra un'uscita"); ab.type="button"; ab.onclick=()=>{ spAddOpen= spAddOpen===k? null : k; renderSport(k); }; c.appendChild(ab);
+  if(spAddOpen===k){ const f=el("div","form"); f.style.marginTop="10px";
+    f.innerHTML=`<div class="two"><label>Giorno<input type="date" data-i="d"></label><label>Tipo<select data-i="t">${D.names.map(n=>`<option>${n}</option>`).join("")}</select></label></div>
+     <div class="two"><label>Inizio<input type="time" data-i="s"></label><label>Fine<input type="time" data-i="e"></label></div>
+     <div class="two">${D.km? `<label>Km<input type="number" inputmode="decimal" min="0" step="0.1" data-i="k"></label>` : ""}<label>Intensità<select data-i="i"><option value="0.75">Tranquilla</option><option value="1" selected>Normale</option><option value="1.3">Tirata</option></select></label></div>
+     <p class="note" data-i="c"></p><button class="btn" type="button" data-i="go">Registra</button>`;
+    c.appendChild(f); const q=x=>f.querySelector(`[data-i="${x}"]`); q("d").value=todayISO(); q("s").value=o.start||""; q("e").value=o.end||"";
+    const w=+(state.profile&&state.profile.weight)||75, calc=()=>{ const m=minsBetweenAny(q("s").value,q("e").value); q("c").textContent= m? `${Math.floor(m/60)} h ${m%60} min · circa ${Math.round(D.met*(+q("i").value)*w*m/60/10)*10} kcal in più nella dieta di quel giorno.` : "Indica inizio e fine."; return m; };
+    f.querySelectorAll("input,select").forEach(i=>i.addEventListener("input",calc)); calc();
+    q("go").onclick=async()=>{ const m=calc(); if(!m){ toast("Indica inizio e fine"); return; }
+      await addWorkoutOn(q("d").value||todayISO(),{name:q("t").value,sport:k,minutes:m,intensity:"moderata",kcal:Math.round(D.met*(+q("i").value)*w*m/60/10)*10,start:q("s").value,end:q("e").value,distance: q("k")? (+String(q("k").value).replace(",",".")||null) : null});
+      spAddOpen=null; renderSport(k); }; }
+  if(its.length){ its.slice(0,15).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic",D.ic), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.round(+w.minutes||0)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.kcal? ` · ${Math.round(w.kcal)} kcal` : ""))); c.appendChild(r0); }); }
+  else c.appendChild(el("p","note","Nessuna uscita ancora. Se la registri con il Galaxy Watch arriva da sola da Samsung Health; altrimenti aggiungila qui."));
+  box.appendChild(c);
+  const t=el("section","card"); t.appendChild(el("h2",null,"💡 Il coach ne tiene conto")); t.appendChild(el("p","note",`I giorni di ${CS_NAME[k].toLowerCase()} che hai scelto nel Coach pesano sul recupero: il coach evita gambe pesanti vicino alle uscite lunghe e la dieta aggiunge le calorie quando le registri.`));
+  const st=el("button","btn ghost","🧘 Stretching dopo"); st.type="button"; st.onclick=()=>startStretch(k==="nuoto"?"palestra":"corsa"); t.appendChild(st); box.appendChild(t); }
 const WD_RE=/^(luned[iì]|marted[iì]|mercoled[iì]|gioved[iì]|venerd[iì]|sabato|domenica)(?=[\s–:,-]|$)/i;
 function csApplyProgram(res,gym,run){
   const days=res.days.filter(d=>d&&(Array.isArray(d.exercises)||d.kind==="run"||d.kind==="circuit")).map(d=>({...d,exercises:Array.isArray(d.exercises)? d.exercises.filter(x=>x&&x.name).slice(0,15) : []}));
@@ -6722,7 +6901,7 @@ function csApplyProgram(res,gym,run){
 $("csGen").onclick=async()=>{ csGet();
   if(!sample){ setStatus("csStatus","Il coach non è disponibile: serve l'AI attiva (Profilo → Impostazioni AI e dati).",true); return; }
   const p=state.profile, g=goalOf(p); if(!p){ toast("Completa prima il profilo"); return; }
-  if(!g){ toast("Scegli l'obiettivo del fisico"); $("csGoal").focus(); return; }
+  if(!g){ toast("Scegli l'obiettivo del fisico"); $("csGoalEdit").click(); return; }
   const gym=cs.sports.includes("palestra")? cs.sp.palestra : null, run=cs.sports.includes("corsa")? cs.sp.corsa : null;
   if(!gym&&!run){ toast("Scegli almeno palestra o corsa"); return; }
   if(gym&&!gym.days.length){ toast("Scegli i giorni della palestra"); return; }
@@ -7958,7 +8137,19 @@ $("chatFile").onchange=async e=>{
   chatFiles.forEach(b=>{ const im=el("img"); im.src=URL.createObjectURL(b); im.alt="Foto allegata"; $("chatThumbs").appendChild(im); });
   $("chatFile").value="";
 };
-$("chatNew").onclick=()=>{ chat={turns:[],mem:(chat&&chat.mem)||[]}; save("coach",chat); renderChat(); };
+$("chatNew").onclick=async()=>{ const old=(chat&&chat.turns)||[], mem=(chat&&chat.mem)||[];
+  chat={turns:[],mem}; save("coach",chat); renderChat();
+  // prima di ripartire: il coach rilegge la chat vecchia e tiene in memoria le cose importanti su di te e sullo sport
+  if(sample&&old.filter(t=>t.role==="user").length){ setStatus("chatStatus","Il coach salva in memoria le cose importanti della chat precedente…");
+    try{ const res=await sample.json(`Questa è una conversazione tra una persona e il suo coach (allenamento e nutrizione). Estrai SOLO le informazioni che valgono anche in futuro su di lei e sul suo sport: obiettivi, gare, infortuni o fastidi, preferenze su esercizi, giorni e orari, cibi, cose che non vuole, decisioni prese insieme. Niente cose del giorno o già passate. Frasi brevi in terza persona, in italiano.
+Già in memoria (non ripeterle): ${mem.map(m=>m.t).join(" | ")||"niente"}.
+Conversazione:
+${old.slice(-30).map(t=>(t.role==="user"?"PERSONA: ":"COACH: ")+String(t.content||"").slice(0,600)).join("\n")}
+Rispondi SOLO con JSON: {"ricorda":["frase",...]} (massimo 8, lista vuota se non c'è niente di nuovo).`,{modelTier:"default",cache:false});
+      const add=(res&&Array.isArray(res.ricorda)? res.ricorda : []).map(x=>String(x||"").trim().slice(0,240)).filter(Boolean);
+      add.forEach(t=>{ if(!chat.mem.some(m=>m.t.toLowerCase()===t.toLowerCase())) chat.mem.push({t,d:todayISO()}); }); chat.mem=chat.mem.slice(-40); save("coach",chat);
+      setStatus("chatStatus", add.length? `📌 Il coach ha tenuto a mente ${add.length} ${add.length===1?"cosa":"cose"} della chat precedente.` : ""); renderCsMem(); }
+    catch(e){ setStatus("chatStatus",""); console.warn("memoria",e); } } };
 $("chatSend").onclick=async()=>{
   const text=$("chatIn").value.trim(); if(!text&&!chatFiles.length) return; renderChat.scrollNext=true; clearTimeout(renderChat.sT); renderChat.sT=setTimeout(()=>{ renderChat.scrollNext=false; },90000);
   const imgs=chatFiles; chatFiles=[]; $("chatThumbs").innerHTML=""; $("chatIn").value="";
@@ -9802,7 +9993,7 @@ $("mpBack").onclick=()=>{ if(history.state&&history.state.v==="pasto") history.b
 $("ciboBack").onclick=()=>{ if(history.state&&history.state.v==="cibo") history.back(); else go("diario"); };
 $("cPrev").onclick=()=>$("prev").click(); $("cNext").onclick=()=>$("next").click(); $("cDayPick").onclick=()=>$("dayPick").click();
 $("dBody").onclick=()=>go("corpo");
-function renderAll(){ document.body.classList.toggle("home",view==="diario"); if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
+function renderAll(){ document.body.classList.toggle("home",view==="diario"); try{ csTabs(); }catch{} try{ if(view==="allenamento"&&!$("w-chat").hidden&&document.activeElement&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) renderCoachSetup(); }catch{} if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
  if(view==="profilo"){ try{ if(psCur) closePset(); else renderPfList(); }catch(e){ console.warn("profilo lista",e); } }
  if(view==="profilo"&&HCP()){ try{ hcRenderState(); }catch{} }
  if(view==="attivita"){ try{ renderSleep(); const r0=recoveryNow(); $("csRowSub").textContent=`Recupero ${r0.lvl[0].toLowerCase()} (${r0.score}/100) · record, forma, zone, scarpe`; }catch(e){ console.warn("sonno",e); } }
