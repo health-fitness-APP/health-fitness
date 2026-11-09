@@ -2252,11 +2252,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </section>
   <section class="card" id="settingsCard">
     <h2>Impostazioni AI e dati</h2>
-    <p class="sub">L'app usa Google Gemini (piano gratuito). La chiave resta su questo dispositivo e, se attivi la sincronizzazione, nel tuo database privato.</p>
+    <p class="sub">L'app usa Google Gemini (piano gratuito o a pagamento). La chiave resta su questo dispositivo e, se attivi la sincronizzazione, nel tuo database privato.</p>
     <div class="form">
       <label>Chiave API Gemini<input class="field" id="apiKey" type="password" autocomplete="off" placeholder="Incolla qui la chiave (inizia con AIza…)"></label>
       <button class="btn" id="apiSave">Salva e verifica</button>
       <div class="status" id="apiStatus" aria-live="polite"></div>
+      <button class="btn ghost" id="apiTest" type="button">🔍 Prova chiave (gratuita o a pagamento?)</button>
+      <div class="status" id="apiTestOut" aria-live="polite"></div>
       <details>
         <summary class="note" style="cursor:pointer">Come ottenere la chiave gratuita</summary>
         <div class="pline"><span class="ic">1</span><span>Apri <b>aistudio.google.com</b> e accedi con il tuo account Google.</span></div>
@@ -2336,7 +2338,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.42 (sincronizzazione con Samsung Health senza avvisi)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.43 (pulsante «Prova chiave» Gemini: gratuita o a pagamento)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9399,6 +9401,41 @@ $("apiSave").onclick=async()=>{
     markDirty("aiSettings"); schedulePush(); setStatus("apiStatus",""); showAiOk(); renderKeyBanner(); toast("✓ AI collegata");
   }catch(e){ setStatus("apiStatus",errCopy(e)+(e&&e.message?" ("+e.message.slice(0,120)+")":""),true); }
   finally{ $("apiSave").disabled=false; }
+};
+/* Prova chiave: dice se la chiave risponde, con quale modello e se è sul piano a pagamento */
+async function geminiProbe(model,key){ const t0=Date.now();
+  try{ const res=await fetch(`${G.API}/models/${model}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts:[{text:"Rispondi solo: ok"}]}],generationConfig:{maxOutputTokens:20}})});
+    const d=await res.json().catch(()=>null); const msg=(d&&d.error&&d.error.message)||"";
+    const det=JSON.stringify((d&&d.error&&d.error.details)||[]);
+    return {ok:res.ok,status:res.status,ms:Date.now()-t0,msg,free:/free_tier|FreeTier/i.test(msg+det),zero:/limit: ?0\b/.test(msg)}; }
+  catch(e){ return {ok:false,status:0,ms:Date.now()-t0,msg:String(e&&e.message||e)}; } }
+$("apiTest").onclick=async()=>{
+  const out=$("apiTestOut"), key=G.LS("apiKey"); out.innerHTML=""; out.classList.remove("err","ok");
+  const line=(t,c)=>{ const d=el("div",null,t); if(c) d.style.color=c; out.appendChild(d); };
+  if(!key){ line("Nessuna chiave salvata: incollala qui sopra e tocca «Salva e verifica».","#c0392b"); return; }
+  $("apiTest").disabled=true; line("Provo la chiave…");
+  try{
+    const res=await fetch(`${G.API}/models?pageSize=200`,{headers:{"x-goog-api-key":key}}); const data=await res.json().catch(()=>null);
+    out.innerHTML="";
+    if(!res.ok){ line("❌ Chiave non accettata da Google (errore "+res.status+").","#c0392b"); if(data&&data.error&&data.error.message) line("Messaggio di Google: "+data.error.message.slice(0,200)); return; }
+    const names=(data.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")).map(m=>m.name.replace(/^models\//,"")).filter(n=>/^gemini/.test(n));
+    line("✓ Chiave valida · finisce con …"+key.slice(-4)+" · "+names.length+" modelli Gemini disponibili","#1e8449");
+    const main=G.LS("mMain")||"gemini-2.5-flash", r=await geminiProbe(main,key);
+    if(r.ok) line("✓ Il modello principale ("+main+") risponde in "+(r.ms/1000).toFixed(1)+" s","#1e8449");
+    else line("❌ Il modello principale ("+main+") non risponde: errore "+r.status+(r.msg?" · "+r.msg.slice(0,160):""),"#c0392b");
+    // modello Pro stabile più recente: con il piano gratuito non è disponibile, con quello a pagamento sì
+    const pro=names.filter(n=>/pro/.test(n)&&!/preview|exp|image|tts|audio|live|vision|computer/.test(n)).sort((a,b)=>verNum(b)-verNum(a))[0]
+      || names.filter(n=>/pro/.test(n)&&!/image|tts|audio|live|computer/.test(n)).sort((a,b)=>verNum(b)-verNum(a))[0];
+    let paid=null;
+    if(r.free||r.zero) paid=false;
+    else if(pro){ const p=await geminiProbe(pro,key); if(p.ok) paid=true; else if(p.status===429&&(p.free||p.zero)) paid=false; else if(p.status===429) paid=null;
+      if(!p.ok&&paid!==false) line("Prova con "+pro+": errore "+p.status+(p.msg?" · "+p.msg.slice(0,160):"")); }
+    if(paid===true) line("💳 Piano A PAGAMENTO attivo: anche "+pro+" risponde (con il piano gratuito non sarebbe possibile). Limiti molto più alti e i dati non vengono usati da Google per addestrare i modelli.","#1e8449");
+    else if(paid===false) line("🆓 Questa chiave è ancora sul PIANO GRATUITO: la fatturazione non è collegata al progetto Google di questa chiave. In aistudio.google.com → API keys controlla che accanto alla chiave ci sia «Paid» / il piano a pagamento; se c'è scritto «Free», tocca «Set up billing» per quel progetto, oppure crea la chiave nel progetto dove hai attivato il pagamento e incollala qui.","#b9770e");
+    else line("Non riesco a capire con certezza se il piano è a pagamento: guarda in aistudio.google.com → API keys la colonna del piano accanto alla chiave che finisce con …"+key.slice(-4)+".");
+    localStorage.setItem("hf:keyTier",paid===true?"paid":paid===false?"free":"");
+  }catch(e){ out.innerHTML=""; line("❌ Non riesco a raggiungere Google: controlla la connessione. ("+String(e&&e.message||e).slice(0,100)+")","#c0392b"); }
+  finally{ $("apiTest").disabled=false; }
 };
 $("orKey").value=localStorage.getItem("hf:orKey")||"";
 $("orSave").onclick=async()=>{ const k=$("orKey").value.trim(); if(!k){ setStatus("orStatus","Incolla prima la chiave OpenRouter.",true); return; }
