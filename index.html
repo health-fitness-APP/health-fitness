@@ -2338,7 +2338,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.45 (piano Gemini a pagamento: più ragionamento su diete, schede e piani)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.46 (dieta, scheda e piano gara col modello Pro di Gemini)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2697,7 +2697,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   const noThink=new Set((LS("noThink")||"").split(",").filter(Boolean));
   const paid=()=>LS("keyTier")==="paid";
   function thinkCfg(model,deep){
-    if(deep){ if(/2\.5-flash/.test(model)) return {thinkingBudget:4096}; if(/gemini-[3-9]/.test(model)) return {thinkingLevel:"medium"}; if(/2\.5-pro/.test(model)) return {thinkingBudget:4096}; }
+    if(deep){ if(/pro/.test(model)) return /gemini-[3-9]/.test(model)? {thinkingLevel:"high"} : {thinkingBudget:8192};
+      if(/2\.5-flash/.test(model)) return {thinkingBudget:4096}; if(/gemini-[3-9]/.test(model)) return {thinkingLevel:"medium"}; if(/2\.5-pro/.test(model)) return {thinkingBudget:4096}; }
     if(noThink.has(model)) return null;
     if(/2\.5-flash/.test(model)) return {thinkingBudget:0};          // risposta immediata, senza "ragionamento"
     if(/gemini-[3-9]/.test(model)){ const lv=(LS("thinkLv:"+model)||"minimal"); return {thinkingLevel:lv}; }   // il "ragionamento" più corto possibile: risposte rapide
@@ -2824,6 +2825,15 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     }
     throw lastErr;
   }
+  async function proModel(key){
+    const c=LS("proModel"), at=+LS("proModelAt")||0; if(c&&Date.now()-at<7*864e5) return c;
+    try{ const res=await fetch(`${API}/models?pageSize=200`,{headers:{"x-goog-api-key":key}}); if(!res.ok) return c||"";
+      const d=await res.json(); const vn=n=>{ const m=n.match(/(\d+(?:\.\d+)?)/); return m? parseFloat(m[1]) : 0; };
+      const names=(d.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")).map(m=>m.name.replace(/^models\//,""))
+        .filter(n=>/^gemini/.test(n)&&/pro/.test(n)&&!/image|tts|audio|live|vision|computer|embedding|customtools/.test(n))
+        .sort((a,b)=>(vn(b)-vn(a))||(/preview|exp/.test(a)-/preview|exp/.test(b)));
+      const pm=names[0]||""; try{ localStorage.setItem("hf:proModel",pm); localStorage.setItem("hf:proModelAt",String(Date.now())); }catch{} return pm; }
+    catch{ return c||""; } }
   async function call(input,opts={},json=false){
     const key=LS("apiKey"); if(!key) throw {code:"no_key"};
     const main=LS("mMain")||"gemini-2.5-flash", quick=LS("mQuick")||main;
@@ -2837,6 +2847,12 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     once.maxTokens=opts.maxTokens||0;
     // lavori importanti (diete, schede, piani, analisi: JSON senza foto, modello principale) → più ragionamento se la chiave è a pagamento
     const deepCall= paid() && json && opts.modelTier!=="quick" && !(opts.images&&opts.images.length) && !opts.fast; once.deep=deepCall;
+    // piani importanti (dieta, scheda palestra, piano gara) col modello Pro, solo con la chiave a pagamento; se non va, si prosegue con Flash
+    if(opts.pro&&deepCall){ const pm=await proModel(key);
+      if(pm){ try{ status("Il coach esperto sta preparando il piano (può volerci un minuto)…"); once.maxTokens=opts.maxTokens||0; once.deep=true;
+          const text=await once(pm,key,contents,json,opts.signal,180000); if(opts.onText) opts.onText({text,done:true}); return text; }
+        catch(e){ if(e&&e.code==="cancelled") throw e; if(e&&/404/.test(String(e.code))) try{ localStorage.removeItem("hf:proModel"); }catch{}
+          status("Il modello esperto non risponde: uso quello veloce…"); once.maxTokens=opts.maxTokens||0; once.deep=deepCall; } } }
     if(opts.fast&&chain.length>1){   // foto: se il primo modello tarda, parte anche l'altro e vince il più veloce
       const t0=Date.now();
       const text=await new Promise((resolve,reject)=>{
@@ -4629,7 +4645,7 @@ async function weeklyDietRefresh(){
   const last=`Settimana scorsa (${from} → ${to}), dati REALI: ${its.length} allenamenti (${its.map(w=>w.date.slice(5)+" "+w.name+" "+r(w.minutes)+" min"+(w.distance?" "+w.distance+" km":"")+" "+r(w.kcal)+" kcal").join("; ")||"nessuno"}); media mangiata ${eatenDays? r(eatenK/eatenDays)+" kcal su "+eatenDays+" giorni registrati" : "non registrata"}; peso ${progress&&progress.weight? fmt(progress.weight.perWeek)+" kg a settimana" : "andamento non disponibile"}. Tieni conto di come è andata (allenamenti fatti davvero, aderenza, andamento del peso) per la settimana nuova.`;
   toast("Preparo la dieta della nuova settimana in base a com'è andata la scorsa…");
   try{
-    const res=await sample.json(dietPrompt(state.diet.prefs||"",null,null,last),{modelTier:"default"});
+    const res=await sample.json(dietPrompt(state.diet.prefs||"",null,null,last),{modelTier:"default",pro:true});
     let days=res&&Array.isArray(res.days)? res.days.filter(d=>d&&Array.isArray(d.meals)) : [];
     if(!days.length) throw {code:"bad_output"};
     days=days.map((d,i)=>{ const wd= d.weekday!=null&&d.weekday>=0&&d.weekday<=6? +d.weekday : WD_ORDER[i%7]; return {weekday:wd,label:WD_NAME[wd],meals:d.meals}; }).sort((a,b)=>WD_ORDER.indexOf(a.weekday)-WD_ORDER.indexOf(b.weekday));
@@ -4666,7 +4682,7 @@ async function runDiet(request){
   if(request){ state.diet.history=[...(state.diet.history||[]),{me:true,text:request}]; renderDiet(); $("dietChat").appendChild(el("div","bubble","Sto modificando il piano…")); }
   try{
     const prev= request? {days:planDays(state.diet.plan).map(d=>({weekday:d.weekday,label:d.label,meals:d.meals}))} : null;
-    const res=await sample.json(dietPrompt(prefs,request,prev),{modelTier:"default"});
+    const res=await sample.json(dietPrompt(prefs,request,prev),{modelTier:"default",pro:true});
     let days=res&&Array.isArray(res.days)? res.days.filter(d=>d&&Array.isArray(d.meals)) : [];
     if(!days.length&&res&&Array.isArray(res.meals)) days=WD_ORDER.map(wd=>({weekday:wd,label:WD_NAME[wd],meals:res.meals}));
     if(!days.length) throw {code:"bad_output"};
@@ -6579,7 +6595,7 @@ Corre ESATTAMENTE ${g.days.length} volte a settimana, SOLO nei giorni: ${g.days.
 ${(()=>{ const c=weekCombo(); if(!c) return ""; const gy=c.rows.filter(x=>/: (forza|circuito)/.test(x)); return gy.length? "Palestra della settimana: "+gy.join(" | ")+". Scegli i giorni dei lavori chiave (ripetute, soglia, ritmo gara) in modo che NON cadano il giorno dopo un giorno con gambe pesanti; se non è possibile mettili lo stesso giorno della forza (prima la corsa) e scrivilo nella desc." : ""; })()}
 Fasi: base, costruzione, picco, scarico (taper di 2-3 settimane per maratona, 1-2 per mezza, 1 per 10 km); aumento del volume non oltre il 10% a settimana con una settimana di scarico ogni 3-4; lungo massimo 30-32 km per la maratona, 18-21 per la mezza. L'ultima settimana termina con la gara (runType "Gara").
 Le corse Facile e Lungo sono guidate dal battito: tetto ${hrCapOf()} bpm (anche rallentando o camminando 30-60 s); scrivilo nella desc (es. "sotto ${hrCapOf()} bpm"). ${hrAdvice().lvl===2? "Nelle ultime corse facili il battito è stato troppo alto: nelle prime 2-3 settimane metti corsa-cammino nelle corse facili (es. 4' corsa + 1' cammino) e poi corsa continua. " : ""}Soglia, ripetute e ritmo gara restano a ritmo.
-Rispondi SOLO con JSON compatto: {"summary":"logica del piano in 2 frasi","weeks":[{"week":1,"phase":"Base|Costruzione|Picco|Scarico","km":number,"note":"focus della settimana, 1 frase","runs":[{"wd":number,"runType":"Facile|Lungo|Soglia|Ripetute|Fartlek|Progressivo|Ritmo gara|Gara","km":number,"pace":"m:ss","intensity":1-5,"desc":"cosa fare, breve (es. 6×1000 m a 4:55 rec 2')"}]}]}`,{modelTier:"default",maxTokens:16000});
+Rispondi SOLO con JSON compatto: {"summary":"logica del piano in 2 frasi","weeks":[{"week":1,"phase":"Base|Costruzione|Picco|Scarico","km":number,"note":"focus della settimana, 1 frase","runs":[{"wd":number,"runType":"Facile|Lungo|Soglia|Ripetute|Fartlek|Progressivo|Ritmo gara|Gara","km":number,"pace":"m:ss","intensity":1-5,"desc":"cosa fare, breve (es. 6×1000 m a 4:55 rec 2')"}]}]}`,{modelTier:"default",maxTokens:16000,pro:true});
     if(!res||!Array.isArray(res.weeks)||!res.weeks.length) throw {code:"bad_output"};
     race.plan={summary:res.summary||"",start:mondayOf(todayISO()),weeks:raceFixDays(res.weeks.slice(0,26),g),createdAt:todayISO(),days:JSON.stringify(g.days)}; race.applied=null; save("race",race);
     clearInterval(tick); setStatus("rcStatus",""); renderRacePlan(); applyRaceWeek(true);
@@ -6969,7 +6985,7 @@ $("csGen").onclick=async()=>{ csGet();
     const useRace= !!(run&&race&&race.goal&&race.goal.vdot&&race.goal.date>todayISO());
     if(useRace&&(!race.plan||race.plan.days!==JSON.stringify(race.goal.days))){ step="Preparo il piano di corsa fino alla gara"; await raceMakePlan(true); }
     const runInProg= !!(run&&!useRace);
-    if(gym||runInProg){ step="Il coach prepara la scheda"; const res=await sample.json(csPrompt(gym,run,runInProg,useRace),{modelTier:"default",maxTokens:12000});
+    if(gym||runInProg){ step="Il coach prepara la scheda"; const res=await sample.json(csPrompt(gym,run,runInProg,useRace),{modelTier:"default",maxTokens:12000,pro:true});
       if(!res||!Array.isArray(res.days)||!res.days.length) throw {code:"bad_output"};
       csApplyProgram(res,gym,runInProg? run : null); }
     else { state.program={name:"Il mio programma",summary:"",days:[],weekMap:{0:null,1:null,2:null,3:null,4:null,5:null,6:null},startDate:mondayOf(todayISO()),fromCoach:true}; save("program",state.program); }
@@ -8011,7 +8027,7 @@ Rendi il programma adatto agli obiettivi (più forte: fondamentali pesanti a bas
 Rispondi SOLO con JSON valido, in italiano:
 {"name":"string","summary":"2 frasi sulla logica del programma","progression":"come progredire nelle prossime settimane","weeks":[{"week":1,"focus":"es. base / carico / scarico","note":"cosa cambia rispetto alla settimana prima (carichi, ripetizioni, km), una frase"},{"week":2,...},{"week":3,...},{"week":4,...}],"days":[{"title":"Giorno A – focus","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"recupero tra le serie, es. 90 s o 2-3 min","tip":"consiglio breve","equip":"attrezzo principale o corpo libero","muscles":["muscoli principali tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}]}]}
 Se l'obiettivo specifico o il profilo riguardano la corsa (gara, 10 km, mezza, maratona, trail) o la persona corre regolarmente, includi le sedute di corsa necessarie con una progressione realistica rispetto alle corse recenti: ${runsRecent()}. Le sedute di CORSA vanno come giorni a sé con questi campi in più: "kind":"run","runType":"Jogging|Corsa lenta|Lungo|Fartlek|Ripetute|Corsa in soglia|Progressivo|Recupero attivo","distanceKm":number|null,"minutes":number,"pace":"m:ss ritmo medio al km o null","intensity":1-5,"description":"1-2 frasi sull'obiettivo della seduta","segments":[{"kind":"warmup|work|recovery|cooldown","label":"es. Jogging leggero di 5 minuti","km":number|null,"minutes":number|null,"pace":"m:ss o null","hr":"es. fino a 115 bpm o vuoto"}] ed "exercises":[]. Per fartlek e ripetute alterna segmenti work e recovery. Corsa lenta, Jogging, Lungo e Recupero attivo sono guidati dal battito: nei segmenti metti "hr":"sotto ${hrCapOf()} bpm" e scrivilo nella description${hrAdvice().lvl===2? "; nelle prime 2-3 settimane fai corsa-cammino (es. 4 minuti di corsa e 1 di cammino) perché il battito nelle corse facili recenti è stato troppo alto" : ""}. I CIRCUITI (esercizi fatti uno dopo l'altro a giri, es. piramidi 1-2-3…10…3-2-1) vanno come giorno a sé: "kind":"circuit","circuit":{"exercises":["nome esercizio 1","nome 2",...],"rounds":[[ripetizioni di ciascun esercizio nel giro 1],[giro 2],...],"rest":"riposo tra un giro e l'altro, es. 90 s"},"exercises":[]. Scrivi TUTTI i giri in ordine (andata e ritorno). Per brevi parti di cardio dentro una seduta di forza usa invece il campo "detail" (es. "15 minuti di tapis roulant"). Esattamente ${days} giorni; le sedute di forza con 3-7 esercizi.
-${(()=>{ const rw=raceWeekText(); if(!rw) return COMBO_RULES; const w=race.plan.weeks[raceWeekIdx()]||{}; return rw+" Le corse le mette il piano gara in questi giorni: "+(w.runs||[]).map(r0=>WD_IT[r0.wd]+" "+(r0.runType||"corsa")+(r0.km?" "+fmt(r0.km)+" km":"")).join(", ")+". Quindi NON creare giorni di corsa: crea solo sedute di forza o circuiti e scrivi nel titolo giorni diversi da quelli delle corse.\n"+COMBO_RULES; })()}`,{modelTier:"default"});
+${(()=>{ const rw=raceWeekText(); if(!rw) return COMBO_RULES; const w=race.plan.weeks[raceWeekIdx()]||{}; return rw+" Le corse le mette il piano gara in questi giorni: "+(w.runs||[]).map(r0=>WD_IT[r0.wd]+" "+(r0.runType||"corsa")+(r0.km?" "+fmt(r0.km)+" km":"")).join(", ")+". Quindi NON creare giorni di corsa: crea solo sedute di forza o circuiti e scrivi nel titolo giorni diversi da quelli delle corse.\n"+COMBO_RULES; })()}`,{modelTier:"default",pro:true});
     if(!res||!Array.isArray(res.days)) throw {code:"bad_output"};
     state.program={...res,startDate:mondayOf(todayISO()),settings:{days,place,level,notes,spec}}; save("program",state.program);
     if(imported&&imported.active){ imported.active=false; save("programImported",imported); }
@@ -9442,7 +9458,7 @@ $("apiTest").onclick=async()=>{
     let paid=null, pro="", lastP=null;
     if(r.free||r.zero) paid=false;
     else for(const m of pros.slice(0,4)){ const p=await geminiProbe(m,key); lastP={m,p};
-      if(p.ok){ paid=true; pro=m; break; }
+      if(p.ok){ paid=true; pro=m; try{ localStorage.setItem("hf:proModel",m); localStorage.setItem("hf:proModelAt",String(Date.now())); }catch{} break; }
       if(p.status===429&&(p.free||p.zero)){ paid=false; break; }
       if(p.status===404||p.status===400) continue;
       break; }
