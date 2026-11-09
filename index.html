@@ -2338,7 +2338,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.48 (foto dei pasti e chat del coach più precise col piano a pagamento)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.49 (il coach confronta ogni corsa con il piano)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6094,10 +6094,39 @@ function runDetFrom(o,plan){ const D={v:1,src:o.source||"phone",t0:+o.startedAt|
 async function runDetSave(id,D){
   try{ const st=rdStats(D); const {P,alt,...keep}=st; D.st=keep; }catch(e){ console.warn("riepilogo",e); }
   save("run-"+id,D);
+  try{ runEvalPut(runEvalOf(id,D)); }catch(e){ console.warn("esito corsa",e); }
   try{ const idx=(await store.getDoc("runDetIdx").catch(()=>null))||{list:[]}; idx.list=(idx.list||[]).filter(x=>x.id!==id); idx.list.push({id,t:D.t0||Date.now()}); idx.list.sort((a,b)=>a.t-b.t);
     const old=idx.list.length>RD_KEEP? idx.list.slice(0,idx.list.length-RD_KEEP).filter(x=>!x.lite) : [];
     for(const x of old){ const d=await store.getDoc("run-"+x.id).catch(()=>null); if(d&&d.tr){ delete d.tr; save("run-"+x.id,d); } x.lite=true; }
     save("runDetIdx",idx); }catch(e){ console.warn("indice corse",e); } }
+/* esito delle corse del piano (previsto vs fatto): il coach lo legge in ogni risposta e quando ritocca le settimane del piano gara */
+let runEvals={list:[]};
+const romeISO=t=>{ try{ return new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(t)); }catch{ return new Date(t).toISOString().slice(0,10); } };
+function runEvalOf(id,D){ const pl=D&&D.plan; if(!pl||!(pl.km||pl.min||(pl.segs&&pl.segs.length))) return null;
+  const st=rdStats(D), P=st.P, m=st.main, km=m? m.km : st.km, sec=m? m.sec : st.sec, pace= km>0.05? sec/km : null;
+  const E={id, d:romeISO(D.t0||Date.now()), t:pl.title||pl.runType||"Corsa", pk:+pl.km||null, pm:+pl.min||null, pp:+pl.ps||null, k:Math.round(km*100)/100, s:Math.round(sec), p:pace? Math.round(pace) : null, hr:(m&&m.hr)||D.avgHr||null, tk:Math.round((+D.km||0)*100)/100, sc:rdScore(pl,km,sec)};
+  try{ const d=rdPlanDay(pl); if(d&&P&&P.length>=6){ const pp=runPlan(d), {warm,main,cool}=runParts(d), ph=rdPhases(P,[...warm,...main,...cool],pp.ps);
+      let n=0; const wk=[]; ph.forEach(f=>{ if(f.g.kind!=="work") return; n++; if(f.st) wk.push({n,st:f.st,dl:Math.round(Math.abs(f.pace-f.tp)),hr:f.hr}); });
+      if(wk.length){ E.ok=wk.filter(x=>x.st==="ok").length; E.nw=wk.length; E.off=wk.filter(x=>x.st!=="ok").slice(0,6).map(x=>[x.n,x.st==="slow"?1:-1,x.dl]); }
+      const cl=ph.filter(f=>f.g.kind==="cooldown"&&!f.miss), wu=ph.filter(f=>f.g.kind==="warmup"&&f.miss);
+      if(wu.length) E.nowu=1; if(!cl.length&&cool.length) E.nocd=1; } }catch(e){ console.warn("esito fasi",e); }
+  if(D.cap&&D.cap.b) E.cap=[D.cap.b,Math.round((+D.cap.over||0)/60)];
+  return E; }
+function runEvalLine(E){ const f=x=>String(x).replace(".",","), parts=[];
+  parts.push(`${E.d} ${E.t}: previsto ${[E.pk? f(E.pk)+" km" : "", E.pm&&!E.pk? E.pm+" min" : "", E.pp? "a "+paceTxt(E.pp)+"/km" : ""].filter(Boolean).join(" ")||"come da piano"}`);
+  parts.push(`fatto ${f(E.k)} km in ${hms2(E.s)}${E.p? " a "+paceTxt(E.p)+"/km" : ""}${E.hr? ", FC media "+E.hr : ""}${E.tk&&Math.abs(E.tk-E.k)>0.3? " (totale con riscaldamento e defaticamento "+f(E.tk)+" km)" : ""}`);
+  if(E.nw) parts.push(`fasi di lavoro nel ritmo ${E.ok}/${E.nw}`+(E.off&&E.off.length? " ("+E.off.map(o=>`fase ${o[0]} ${o[2]} s/km più ${o[1]>0?"lenta":"veloce"}`).join(", ")+")" : ""));
+  if(E.nowu) parts.push("riscaldamento non fatto"); if(E.nocd) parts.push("defaticamento non fatto");
+  if(E.cap&&E.cap[1]) parts.push(`${E.cap[1]} min sopra il tetto di ${E.cap[0]} bpm`);
+  if(E.sc!=null) parts.push("punteggio "+E.sc+"/100");
+  return "- "+parts.join(" · "); }
+function runEvalText(days,from,to){ const L=(runEvals.list||[]).filter(e=> from? e.d>=from&&e.d<=to : e.d>=shiftDate(todayISO(),-(days||21)));
+  return L.length? L.map(runEvalLine).join("\n") : ""; }
+function runEvalPut(E){ if(!E) return; const L=(runEvals.list||[]).filter(x=>x.id!==E.id); L.push(E); L.sort((a,b)=>a.d<b.d?-1:1); runEvals={list:L.slice(-30)}; save("runEvals",runEvals); }
+async function runEvalBackfill(){ if((runEvals.list||[]).length||localStorage.getItem("hf:runEvalBf")) return;
+  try{ const idx=await store.getDoc("runDetIdx").catch(()=>null), ids=((idx&&idx.list)||[]).filter(x=>x.t>Date.now()-60*864e5).map(x=>x.id);
+    for(const id of ids){ const D=await store.getDoc("run-"+id).catch(()=>null); if(!D||!D.plan) continue; try{ const E=runEvalOf(id,D); if(E){ const L=runEvals.list.filter(x=>x.id!==id); L.push(E); runEvals.list=L; } }catch{} }
+    runEvals.list.sort((a,b)=>a.d<b.d?-1:1); runEvals.list=runEvals.list.slice(-30); if(runEvals.list.length) save("runEvals",runEvals); localStorage.setItem("hf:runEvalBf","1"); }catch(e){ console.warn("esiti corse",e); } }
 function rdTrack(raw){ if(!raw||!Array.isArray(raw.t)||raw.t.length<2) return null; const g=(k,i)=>Array.isArray(raw[k])? raw[k][i] : undefined, P=[];
   for(let i=0;i<raw.t.length;i++){ const a=g("a",i), s=g("s",i), la=+g("la",i)||0, lo=+g("lo",i)||0;
     P.push({t:+raw.t[i]||0, m:+g("m",i)||0, h:+g("h",i)||0, a: a==null||a<=-9000? null : +a, s: s==null||s<0? null : +s, la: la&&lo? la/1e5 : null, lo: la&&lo? lo/1e5 : null}); }
@@ -7052,6 +7081,7 @@ async function raceWeeklyAdapt(manual){
     let newWeeks=null;
     if(sample){ try{ const res=await sample.json(`Sei l'allenatore di corsa di questa persona. Obiettivo: ${raceLabel(race.goal.km)} il ${race.goal.date}, tempo ${race.goal.target||"finire"}, VDOT attuale ${race.goal.vdot}.
 Settimana appena finita (prevista): ${JSON.stringify(lw.runs)}. Fatto davvero: ${done.map(w=>`${w.date} ${w.name} ${fmt(+w.distance)} km in ${r(+w.minutes)} min${w.avgHr?", FC media "+w.avgHr:""}`).join("; ")||"nessuna corsa"}. ${summary}
+${(()=>{ const t=runEvalText(0,from,to); return t? "Dettaglio previsto → fatto di ogni corsa (ritmi delle fasi, FC):\n"+t : ""; })()}
 Recupero e sonno: ${recoveryText()} (se il sonno è scarso o la fatica alta, alleggerisci).
 Allenamenti di forza e altri sport recenti: ${((hist&&hist.items)||[]).filter(w=>w.date>=from&&!isRun(w)).map(w=>w.name).join(", ")||"nessuno"}. Profilo: ${profileSummary()}.
 ${comboText()}
@@ -8184,9 +8214,10 @@ function dateCtx(){
     if(i<=0){ const done=dayDoneText(iso); bits.push("allenamenti registrati: "+(done||"nessuno")); const ea=dayEatenText(iso); if(ea) bits.push(ea); }
     rows.push(`- ${NAMES[i]? NAMES[i]+" = " : ""}${dateLong(iso)} (${iso}): ${bits.join(" · ")}`); }
   const viewed= state.date&&state.date!==today? `\nATTENZIONE: nell'app la persona sta guardando la pagina del ${dateLong(state.date)} (${state.date}), non quella di oggi. I dati "della giornata" qui sotto si riferiscono a quel giorno; se chiede di "oggi" usa comunque la data reale di oggi.` : "";
+  const ev=runEvalText(21), evT= ev? `\nESITO DELLE ULTIME CORSE DEL PIANO (previsto → fatto, ultime 3 settimane; usalo per giudicare la forma e per consigliare ritmi e volumi dei prossimi giorni: se le fasi sono spesso più lente con FC alta segnala fatica e alleggerisci, se le corse facili sono troppo veloci dillo, se va tutto bene conferma o proponi un piccolo aumento):\n${ev}` : "";
   return `DATA E ORA ATTUALI (ora italiana, Europe/Rome): ${now.text}, ore ${now.time}. Oggi è ${now.text.split(" ")[0]} ${today}.
 CALENDARIO (fonte unica per i giorni; il piano si ripete uguale ogni settimana in base al giorno della settimana):
-${rows.join("\n")}${viewed}
+${rows.join("\n")}${viewed}${evT}
 REGOLE SULLE DATE: "oggi" = ${dateLong(today)}; "domani" = ${dateLong(shiftDate(today,1))}; "ieri" = ${dateLong(shiftDate(today,-1))}; "stasera", "stamattina" = oggi. Un giorno della settimana senza altre indicazioni (es. "lunedì", "venerdì") è il PROSSIMO con quel nome da oggi in avanti (se è oggi stesso, è oggi); "lunedì scorso" è quello passato; "questa settimana" va da lunedì a domenica della settimana in corso, "settimana prossima" quella dopo. Prima di rispondere su allenamenti o pasti di un giorno, trova quel giorno nel CALENDARIO e usa quei dati: non inventare e non confondere i giorni. Quando parli di un giorno diverso da oggi scrivi il nome e la data (es. "domani, giovedì 5"). Considera l'ora attuale: se un allenamento o un pasto di oggi è già passato, dillo o chiedi se l'ha fatto.`; }
 function coachContext(){
   const p=state.profile||{}, g=goalOf(p), pr=(activeProg()||{}).pr;
@@ -10157,6 +10188,7 @@ async function loadAll(){
   try{ const sh=await store.getDoc("shoes"); if(sh&&Array.isArray(sh.list)) shoes=sh; }catch{}
   try{ const gd=await store.getDoc("gels"); if(gd&&Array.isArray(gd.list)) gels=gd; }catch{}
   try{ const wr=await store.getDoc("weekReview"); if(wr&&wr.from) weekRev=wr; }catch{}
+  try{ const re=await store.getDoc("runEvals"); if(re&&Array.isArray(re.list)) runEvals=re; setTimeout(()=>{ runEvalBackfill(); },4000); }catch{}
   try{ const c0=await store.getDoc("coachSetup"); if(c0&&Array.isArray(c0.sports)) cs=c0; }catch{}
   try{ const ov=await store.getDoc("dayOvr"); if(ov&&typeof ov==="object") dayOvr=ov; if(ovrClean()) save("dayOvr",dayOvr); }catch{}
   try{ race=await store.getDoc("race"); if(raceRepair()&&race.plan&&race.applied===mondayOf(todayISO())) setTimeout(()=>{ try{ applyRaceWeek(false); }catch(e){ console.warn("gara",e); } },1500); if(race&&race.plan&&race.applied!==mondayOf(todayISO())) setTimeout(async()=>{ try{ if((race.adapt||"auto")!=="off") await raceWeeklyAdapt(false); applyRaceWeek(false); }catch{} },2500); }catch{}
