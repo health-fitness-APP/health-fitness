@@ -2376,12 +2376,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkExport">Esporta backup</button>
       <button class="btn ghost" id="pdfGo" type="button" style="grid-column:1/-1">📄 Resoconto PDF per medico o nutrizionista</button>
       <div style="grid-column:1/-1" id="notifBox"></div>
+      <div style="grid-column:1/-1" id="hiddenBox"></div>
       <p class="note" id="bkAutoStatus" style="grid-column:1/-1;margin:4px 0 0"></p>
       <button class="btn ghost" id="bkAutoShare" type="button" hidden style="grid-column:1/-1">☁️ Salva una copia su Google Drive</button>
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.55 (meno avvisi: niente messaggi «il coach esperto sta preparando…»)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.56 (Profilo → Riquadri nascosti: rimetti quelli che hai nascosto)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9049,6 +9050,18 @@ async function notifSchedule(){ const L=LN(); if(!L||localStorage.getItem("hf:no
   if(P.photo){ try{ const L0=(bphotos.list||[]).slice().sort((a,b)=>a.date<b.date?-1:1), last=L0[L0.length-1]; if(last&&last.date<=shiftDate(todayISO(),-27)) push(shiftDate(todayISO(),1),"09:30","📸 Foto del fisico","Sono passate 4 settimane: stessa luce e stessa posa dell'ultima volta."); }catch{}
     try{ const t=thrGet(); if(t&&t.date<=shiftDate(todayISO(),-42)){ const sat=(()=>{ for(let i=1;i<=7;i++){ const d=shiftDate(todayISO(),i); if(new Date(d+"T12:00:00").getDay()===6) return d; } })(); push(sat,"09:00","🧪 Test di soglia","Sono passate 6 settimane dall'ultimo test: se oggi sei riposato, fallo (Statistiche corsa)."); } }catch{} }
   if(out.length) try{ await L.schedule({notifications:out}); }catch(e){ console.warn("notifiche",e); } }
+/* riquadri nascosti: dal Profilo si rimettono */
+const HIDE_KEYS=[["hf:waterOff","💧 Acqua","1"],["hf:chalOff","🎯 Sfide del mese","1"]];
+const SEEN_KEYS=["hf:fatSeen","hf:fuelSeen","hf:nightSeen","hf:painSeen","hf:deloadSeen","hf:weekSeen","hf:monthSeen"];
+function renderHiddenBox(){ const box=$("hiddenBox"); if(!box) return; box.innerHTML=""; const g=k=>{ try{ return localStorage.getItem(k); }catch{ return null; } };
+  const h=el("h3",null,"👁 Riquadri nascosti"); h.style.cssText="margin:14px 0 4px;font-size:1rem"; box.appendChild(h);
+  const off=HIDE_KEYS.filter(([k,,v])=>g(k)===v), closed=SEEN_KEYS.filter(k=>g(k));
+  if(!off.length&&!closed.length){ box.appendChild(el("p","note","Nessun riquadro nascosto: nella pagina Oggi vedi tutto.")); return; }
+  off.forEach(([k,name])=>{ const r0=el("div","pline"); r0.style.cssText="display:flex;align-items:center;gap:8px"; r0.appendChild(el("span",null,name)); const b=el("button","btn ghost","Rimetti"); b.type="button"; b.style.cssText="width:auto;margin-left:auto;padding:6px 14px";
+    b.onclick=()=>{ try{ localStorage.removeItem(k); }catch{} renderAll(); renderHiddenBox(); try{ notifSchedule(); }catch{} toast(name+" di nuovo nella pagina Oggi ✓"); }; r0.appendChild(b); box.appendChild(r0); });
+  if(closed.length){ const b=el("button","btn ghost","Rimetti anche i riquadri chiusi per oggi"); b.type="button"; b.style.marginTop="8px";
+    b.onclick=()=>{ closed.forEach(k=>{ try{ localStorage.removeItem(k); }catch{} }); renderAll(); renderHiddenBox(); toast("Riquadri rimessi ✓"); }; box.appendChild(b);
+    box.appendChild(el("p","note","Quelli chiusi con «Chiudi» (settimana, stanchezza, stasera, corsa, fastidio, scarico, mese) tornano comunque da soli quando c'è qualcosa di nuovo.")); } }
 function renderNotifBox(){ const box=$("notifBox"); if(!box) return; box.innerHTML=""; const L=LN(); box.appendChild(el("h3",null,"🔔 Notifiche")); box.lastChild.style.cssText="margin:14px 0 4px;font-size:1rem";
   if(!L){ box.appendChild(el("p","note",NAT()? "Per le notifiche aggiorna l'app del telefono (HealthFit.apk, dalla versione apk-48)." : "Le notifiche funzionano nell'app del telefono.")); return; }
   const on=localStorage.getItem("hf:notifOn")==="1", P=notifPrefs();
@@ -10097,7 +10110,7 @@ $("bkExport").onclick=()=>{
   a.href=URL.createObjectURL(blob); a.download=`health-fitness-backup-${todayISO()}.json`; document.body.appendChild(a); a.click(); a.remove();
   toast("Backup scaricato");
 };
-function renderSync(){ try{ renderBkAuto(); renderNotifBox(); }catch{}
+function renderSync(){ try{ renderBkAuto(); renderNotifBox(); renderHiddenBox(); }catch{}
   const on=!!SY.user; $("syncOn").hidden=!on; $("syncOff").hidden=on;
   const c=syncCfg(); if(!on){ if(c.url&&!$("sbUrl").value) $("sbUrl").value=c.url; if(c.key&&!$("sbKey").value) $("sbKey").value=c.key; }
   if(on){ const pend=jget("dirty",[]).length;
