@@ -2334,7 +2334,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.37 (stretching proposto alla fine della seduta)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.38 (mobilità facoltativa nei giorni di riposo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7664,7 +7664,9 @@ function renderDayPage(){
   pr.days.forEach((x,i)=>{ const o=el("option",null,x.title||("Allenamento "+(i+1))); o.value=String(i); sel.appendChild(o); });
   sel.value= di!=null? String(di) : ""; sel.onchange=()=>{ pr[MK][wd]= sel.value===""? null : +sel.value; saveActive(a); renderProgram(); renderDayPage(); };
   lab.appendChild(sel);
-  if(!d){ box.appendChild(lab); box.appendChild(el("p","note","Giorno di recupero: una passeggiata, mobilità o stretching leggero vanno benissimo. Se vuoi allenarti, scegli un allenamento dal menu.")); return; }
+  if(!d){ box.appendChild(lab); box.appendChild(el("p","note","Giorno di recupero: una passeggiata, mobilità o stretching leggero vanno benissimo. Se vuoi allenarti, scegli un allenamento dal menu."));
+    try{ const R=STRETCH.riposo, mn=Math.round(R.ex.reduce((s0,x)=>s0+x[2]*(x[3]?2:1),0)/60), sb=el("button","btn ghost",`🧘 Hai tempo? Mobilità completa (${mn} min, facoltativa)`); sb.type="button"; sb.onclick=()=>startStretch("riposo"); box.appendChild(sb); }catch{}
+    return; }
   if(editDay===di){ box.appendChild(lab); renderDayInto(d,di,box); return; }
   const n=(d.exercises||[]).length, done=doneOn(isoOf(wd),d.title);
   const sub=el("div","gd-sub"); const origin= d.editedByMe? "Modificato da me" : d.regenAt? "Rigenerato dal coach il "+new Date(d.regenAt+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"}) : (a.kind==="imported"? "Scheda del trainer" : "Creato dal coach AI");
