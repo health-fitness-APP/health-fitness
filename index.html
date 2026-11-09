@@ -2381,7 +2381,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.54 (promemoria, zone dal test, carico settimana, gara, percorsi, anno scorso, fuori casa, sfide, PDF)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.55 (meno avvisi: niente messaggi «il coach esperto sta preparando…»)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3778,7 +3778,8 @@ Suggerisci 1 o 2 pasti o spuntini concreti con grammature per avvicinarsi ai tar
   finally{ $("askCoach").disabled=false; }
 };
 
-window.addEventListener("hf-ai-status",e=>toast(e.detail));
+// messaggi tecnici dell'intelligenza artificiale (modello esperto, riprovo, cambio modello…): non li mostro più, Daniele li trova fastidiosi
+window.addEventListener("hf-ai-status",e=>console.info("AI:",e.detail));
 /* trascina giù per aggiornare: ricarica i dati (e la sincronizzazione) restando sulla stessa pagina */
 (function pullToRefresh(){
   let y0=null, dy=0, busy=false; const P=()=>$("ptr");
@@ -4710,7 +4711,6 @@ async function weeklyDietRefresh(){
   const its=((hist&&hist.items)||[]).filter(w=>w.date>=from&&w.date<=to);
   let eatenDays=0, eatenK=0; for(let d=from; d<=to; d=shiftDate(d,1)){ const doc=dayDoc(d); const k=doc&&doc.meals? Object.values(doc.meals).flat().reduce((a,b)=>a+(+b.kcal||0),0) : 0; if(k>600){ eatenDays++; eatenK+=k; } }
   const last=`Settimana scorsa (${from} → ${to}), dati REALI: ${its.length} allenamenti (${its.map(w=>w.date.slice(5)+" "+w.name+" "+r(w.minutes)+" min"+(w.distance?" "+w.distance+" km":"")+" "+r(w.kcal)+" kcal").join("; ")||"nessuno"}); media mangiata ${eatenDays? r(eatenK/eatenDays)+" kcal su "+eatenDays+" giorni registrati" : "non registrata"}; peso ${progress&&progress.weight? fmt(progress.weight.perWeek)+" kg a settimana" : "andamento non disponibile"}. Tieni conto di come è andata (allenamenti fatti davvero, aderenza, andamento del peso) per la settimana nuova.`;
-  toast("Preparo la dieta della nuova settimana in base a com'è andata la scorsa…");
   try{
     const res=await sample.json(dietPrompt(state.diet.prefs||"",null,null,last),{modelTier:"default",pro:true});
     let days=res&&Array.isArray(res.days)? res.days.filter(d=>d&&Array.isArray(d.meals)) : [];
@@ -10041,7 +10041,7 @@ async function proRefresh(){
   if(!G.paid()||!sample) return; try{ if(upActive()||aiPaused()) return; }catch{}
   const LSg=k=>localStorage.getItem("hf:"+k), LSs=(k,v)=>{ try{ localStorage.setItem("hf:"+k,v); }catch{} };
   const tries=+(LSg("proRefreshN")||0); if(tries>=2||(LSg("proRefreshD")&&LSg("proRefreshP"))) return; LSs("proRefreshN",String(tries+1));
-  toast("Rifaccio dieta e scheda col modello esperto: ci vuole qualche minuto, intanto puoi usare l'app.");
+  
   try{ await window.__wdr; }catch{}   // se l'aggiornamento del lunedì sta già rifacendo la dieta (col Pro), non la rifaccio due volte
   if(!LSg("proRefreshD")&&G.paid()&&state.diet&&state.diet.plan&&window.__dietBefore&&state.diet.plan!==window.__dietBefore) LSs("proRefreshD",todayISO());
   if(!LSg("proRefreshD")){ if(state.diet&&state.diet.plan){ const before=state.diet.plan; await runDiet(null); if(state.diet&&state.diet.plan!==before) LSs("proRefreshD",todayISO()); } else LSs("proRefreshD","nessuna"); }
