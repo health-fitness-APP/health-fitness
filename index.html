@@ -2257,6 +2257,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <label>Chiave API Gemini<input class="field" id="apiKey" type="password" autocomplete="off" placeholder="Incolla qui la chiave (inizia con AIza…)"></label>
       <button class="btn" id="apiSave">Salva e verifica</button>
       <div class="status" id="apiStatus" aria-live="polite"></div>
+      <div class="note" id="aiSpend" style="margin:2px 0 6px"></div>
       <button class="btn ghost" id="apiTest" type="button">🔍 Prova chiavi (Gemini e riserve)</button>
       <div class="status" id="apiTestOut" aria-live="polite"></div>
       <details>
@@ -2338,7 +2339,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.49 (il coach confronta ogni corsa con il piano)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.50 (diete, schede e bilanci col modello Pro · spesa stimata del mese)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2696,6 +2697,16 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     return {code:"api_"+status,message:msg.slice(0,160)}; }
   const noThink=new Set((LS("noThink")||"").split(",").filter(Boolean));
   const paid=()=>LS("keyTier")==="paid";
+  // spesa stimata: prezzi indicativi di Google in dollari per milione di token (ingresso, uscita+ragionamento)
+  function priceOf(m){ if(/lite/.test(m)) return [0.10,0.40]; if(/pro/.test(m)) return /gemini-[3-9]/.test(m)? [2,12] : [1.25,10];
+    if(/gemini-[3-9]/.test(m)) return [0.50,3]; if(/2\.5-flash/.test(m)) return [0.30,2.5]; return [0.10,0.40]; }
+  function addSpend(model,u){ if(!u) return; const [pi,po]=priceOf(model);
+    const usd=((+u.promptTokenCount||0)*pi+((+u.candidatesTokenCount||0)+(+u.thoughtsTokenCount||0))*po)/1e6;
+    const mk=new Date().toISOString().slice(0,7); let a={}; try{ a=JSON.parse(localStorage.getItem("hf:aiSpend")||"{}")||{}; }catch{}
+    const r=a[mk]||{usd:0,n:0,pro:0}; r.usd+=usd; r.n++; if(/pro/.test(model)) r.pro++; a[mk]=r;
+    const keys=Object.keys(a).sort(); while(keys.length>6) delete a[keys.shift()];
+    try{ localStorage.setItem("hf:aiSpend",JSON.stringify(a)); }catch{}
+    try{ window.dispatchEvent(new Event("hf-spend")); }catch{} }
   function thinkCfg(model,deep,light){
     if(light&&!deep){ if(/2\.5-flash/.test(model)) return {thinkingBudget:1024}; if(/gemini-[3-9]/.test(model)&&!noThink.has(model)) return {thinkingLevel:"low"}; }
     if(deep){ if(/pro/.test(model)) return /gemini-[3-9]/.test(model)? {thinkingLevel:"high"} : {thinkingBudget:8192};
@@ -2728,6 +2739,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       if(res.status===400&&tc&&/think/i.test(msg)){ noThink.add(model); try{ localStorage.setItem("hf:noThink",[...noThink].join(",")); }catch{} return once0(model,key,contents,json,signal,tmo); }
       const e=err(res.status,data); if([500,502,503,504].includes(res.status)||e.code==="rate_limited") e.retry=true; throw e;
     }
+    try{ addSpend(model,data&&data.usageMetadata); }catch{}
     const cand=data&&data.candidates&&data.candidates[0];
     if(!cand||!cand.content){ throw {code:"blocked",message:(data&&data.promptFeedback&&data.promptFeedback.blockReason)||(cand&&cand.finishReason)||""}; }
     return (cand.content.parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
@@ -2853,7 +2865,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     const deepCall= paid() && json && opts.modelTier!=="quick" && !(opts.images&&opts.images.length) && !opts.fast; once.deep=deepCall;
     const lightCall= paid() && !deepCall && (hasImgs || !json); once.light=lightCall;
     // piani importanti (dieta, scheda palestra, piano gara) col modello Pro, solo con la chiave a pagamento; se non va, si prosegue con Flash
-    if(opts.pro&&deepCall&&USE_PRO){ const pm=await proModel(key);
+    if(opts.pro&&paid()&&!hasImgs&&!opts.fast&&USE_PRO){ const pm=await proModel(key);
       if(pm){ try{ status("Il coach esperto sta preparando il piano (può volerci un minuto)…"); once.maxTokens=opts.maxTokens||0; once.deep=true; once.light=false;
           const text=await once(pm,key,contents,json,opts.signal,180000); if(opts.onText) opts.onText({text,done:true}); return text; }
         catch(e){ if(e&&e.code==="cancelled") throw e; if(e&&/404/.test(String(e.code))) try{ localStorage.removeItem("hf:proModel"); }catch{}
@@ -7017,7 +7029,7 @@ $("csGen").onclick=async()=>{ csGet();
   if(!gym&&!run){ toast("Scegli almeno palestra o corsa"); return; }
   if(gym&&!gym.days.length){ toast("Scegli i giorni della palestra"); return; }
   if(run&&!run.days.length){ toast("Scegli i giorni della corsa"); return; }
-  if(activeProg()&&!confirm("Il coach prepara una scheda nuova al posto di quella attuale. Continuo?")) return;
+  if(activeProg()&&!window.__csNoConfirm&&!confirm("Il coach prepara una scheda nuova al posto di quella attuale. Continuo?")) return;
   $("csGen").disabled=true; const t0=Date.now(); let step="Il coach prepara la scheda"; const tick=setInterval(()=>setStatus("csStatus",`${step}… ${Math.round((Date.now()-t0)/1000)} s`),1000);
   try{ csSyncRace();
     const useRace= !!(run&&race&&race.goal&&race.goal.vdot&&race.goal.date>todayISO());
@@ -7087,7 +7099,7 @@ Allenamenti di forza e altri sport recenti: ${((hist&&hist.items)||[]).filter(w=
 ${comboText()}
 Prossime settimane del piano: ${JSON.stringify(next)}.
 Adatta SOLO queste ${next.length} settimane: se ha fatto meno del previsto o ha saltato corse, non recuperare tutto (niente salti di volume oltre il 10%, al massimo riprogramma il lavoro chiave più importante); se è andato bene e i ritmi erano facili, puoi aumentare leggermente; se ci sono segni di fatica (ritmi lenti con FC alta), alleggerisci. Mantieni giorni, fasi e struttura.
-Rispondi SOLO con JSON: {"note":"cosa hai cambiato e perché, 1-2 frasi","weeks":[stesso formato delle settimane in input]}`,{modelTier:"default",maxTokens:6000});
+Rispondi SOLO con JSON: {"note":"cosa hai cambiato e perché, 1-2 frasi","weeks":[stesso formato delle settimane in input]}`,{modelTier:"default",maxTokens:6000,pro:true});
       if(res&&Array.isArray(res.weeks)&&res.weeks.length===next.length) newWeeks={weeks:res.weeks,note:res.note||""}; }catch(e){ console.warn("adatta piano",e); } }
     if(!newWeeks){ // senza AI: regole semplici
       const f= comp<0.6? 0.85 : comp<0.8? 0.92 : comp>1.15? 0.97 : 1; const capLong=longDone? longDone+3 : null;
@@ -8844,7 +8856,7 @@ ${csText()}
 ${memText()}
 Dati della settimana: ${weekLines(D).map(x=>x[1]).join(" ")}
 ${raceWeekText()}
-Recupero: ${recoveryText()}.`}],{cache:false});
+Recupero: ${recoveryText()}.`}],{cache:false,pro:true});
     weekRev={from:D.from,text:String((res&&res.text)||"").trim(),at:todayISO()}; save("weekReview",weekRev); }
   catch(e){ if(box) box.textContent="Il commento del coach non è arrivato: "+errCopy(e); return; }
   renderWeekCard(); }
@@ -8930,7 +8942,7 @@ Ritmo di variazione del peso atteso per l'obiettivo: tra ${(RANGE[state.profile.
 Regole: non cambiare le calorie se ci sono meno di 2 settimane di pesate o se l'aderenza alla dieta è scarsa (prima va migliorata l'aderenza); variazioni calorie tra -300 e +300 a passi di 50; considera la ritenzione idrica e il rumore delle pesate; per obiettivi di forza o prestazioni guarda anche carichi e allenamenti. ${upActive()?"Segue una dieta del nutrizionista: non proporre modifiche dirette alla dieta né alle calorie, suggerisci invece di parlarne con il nutrizionista (azione habit).":""} ${imported&&imported.active?"Segue la scheda del personal trainer: non proporre di cambiarla, suggerisci di parlarne con il trainer (azione habit).":""}
 Rispondi SOLO con JSON valido, in italiano:
 {"verdict":"in_linea|attenzione|fuori_strada","title":"frase breve","summary":"2-3 frasi chiare","findings":["max 4 osservazioni concrete con numeri"],"actions":[{"type":"kcal|program|diet|habit","delta":numero solo per kcal,"label":"cosa fare","why":"perché","notes":"per program o diet: cosa cambiare esattamente"}]}
-Massimo 3 azioni; se tutto va bene, una sola azione di tipo habit per continuare così.`,{modelTier:"default",cache:false});
+Massimo 3 azioni; se tutto va bene, una sola azione di tipo habit per continuare così.`,{modelTier:"default",cache:false,pro:true});
     if(!res||!res.summary) throw {code:"bad_output"};
     res.actions=(Array.isArray(res.actions)?res.actions:[]).slice(0,3);
     lastCheck={date:todayISO(),result:res}; save("progressCheck",lastCheck); setStatus("pgStatus",""); renderCheck();
@@ -9516,6 +9528,25 @@ $("apiTest").onclick=async()=>{
   }catch(e){ out.innerHTML=""; line("❌ Non riesco a raggiungere Google: controlla la connessione. ("+String(e&&e.message||e).slice(0,100)+")","#c0392b"); }
   finally{ $("apiTest").disabled=false; }
 };
+function renderSpend(){ const b=$("aiSpend"); if(!b) return; let a={}; try{ a=JSON.parse(localStorage.getItem("hf:aiSpend")||"{}")||{}; }catch{}
+  const d=new Date(), mk=d.toISOString().slice(0,7), pk=new Date(d.getFullYear(),d.getMonth()-1,15).toISOString().slice(0,7);
+  const eur=u=>"€ "+(u*0.93).toFixed(2).replace(".",","), c=a[mk], p=a[pk];
+  if(!c&&!p){ b.textContent= G.paid()? "💶 Spesa stimata di questo mese: ancora nessuna richiesta." : ""; return; }
+  b.textContent=`💶 Spesa stimata di questo mese: circa ${eur(c?c.usd:0)} (${c?c.n:0} richieste${c&&c.pro?`, di cui ${c.pro} col modello Pro`:""})`+(p?` · mese scorso ${eur(p.usd)}`:"")+". Il conto preciso è su aistudio.google.com.";
+}
+/* una volta sola, appena la chiave risulta a pagamento: rifaccio dieta e scheda col modello Pro (richiesta di Daniele, 2026-11-09) */
+async function proRefresh(){
+  if(!G.paid()||!sample) return; try{ if(upActive()||aiPaused()) return; }catch{}
+  const LSg=k=>localStorage.getItem("hf:"+k), LSs=(k,v)=>{ try{ localStorage.setItem("hf:"+k,v); }catch{} };
+  const tries=+(LSg("proRefreshN")||0); if(tries>=2||(LSg("proRefreshD")&&LSg("proRefreshP"))) return; LSs("proRefreshN",String(tries+1));
+  toast("Rifaccio dieta e scheda col modello esperto: ci vuole qualche minuto, intanto puoi usare l'app.");
+  try{ await window.__wdr; }catch{}   // se l'aggiornamento del lunedì sta già rifacendo la dieta (col Pro), non la rifaccio due volte
+  if(!LSg("proRefreshD")&&G.paid()&&state.diet&&state.diet.plan&&window.__dietBefore&&state.diet.plan!==window.__dietBefore) LSs("proRefreshD",todayISO());
+  if(!LSg("proRefreshD")){ if(state.diet&&state.diet.plan){ const before=state.diet.plan; await runDiet(null); if(state.diet&&state.diet.plan!==before) LSs("proRefreshD",todayISO()); } else LSs("proRefreshD","nessuna"); }
+  if(!LSg("proRefreshP")){ if(activeProg()){ const before=state.program; window.__csNoConfirm=true; try{ await $("csGen").onclick(); }catch{} finally{ window.__csNoConfirm=false; } if(state.program!==before) LSs("proRefreshP",todayISO()); } else LSs("proRefreshP","nessuna"); }
+  if(LSg("proRefreshD")&&LSg("proRefreshP")) actionToast("Dieta e scheda rifatte col modello esperto ✓","Vedi",()=>{ go("allenamento"); setW("programma"); window.scrollTo({top:0}); },10000);
+}
+renderSpend(); window.addEventListener("hf-spend",()=>{ try{ renderSpend(); }catch{} });
 $("orKey").value=localStorage.getItem("hf:orKey")||"";
 $("orSave").onclick=async()=>{ const k=$("orKey").value.trim(); if(!k){ setStatus("orStatus","Incolla prima la chiave OpenRouter.",true); return; }
   $("orSave").disabled=true; setStatus("orStatus","Verifico la chiave e cerco i modelli gratuiti…");
@@ -10223,7 +10254,8 @@ async function loadAll(){
       if(w.v==="riepilogo"){ const id=sessionStorage.getItem("hf:rd"); if(id){ history.pushState({v:"attivita"},""); go("attivita",true); openRunSummary(id); } throw 0; }
       if(SUB_VIEWS.includes(w.v)){ history.pushState({v:w.v},""); go(w.v,true); } else go(w.v);
       renderAll(); if(w.v==="giorno") renderDayPage(); if(w.v==="pasto") renderMealPage(); } }catch(e){ console.warn("ripristino vista",e); }
-  setTimeout(()=>{ try{ weeklyDietRefresh(); }catch{} },4000);
+  setTimeout(()=>{ try{ window.__dietBefore=state.diet&&state.diet.plan; window.__wdr=weeklyDietRefresh(); }catch{} },4000);
+  setTimeout(()=>{ proRefresh().catch(e=>console.warn("proRefresh",e)); },12000);
   setTimeout(()=>{ try{ spiderPresetOffer(); }catch{} },1500);
   if(NAT()){ document.body.classList.add("native"); $("hcCard").hidden=false; $("devHcWeb").hidden=true; renderDevices();
     [["W","hcW"],["A","hcA"],["S","hcS"],["B","hcB"]].forEach(([k,id])=>{ $(id).checked=hcOpt(k); $(id).onchange=()=>{ localStorage.setItem("hf:hc"+k,$(id).checked?"1":"0"); }; });
