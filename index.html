@@ -2257,7 +2257,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <label>Chiave API Gemini<input class="field" id="apiKey" type="password" autocomplete="off" placeholder="Incolla qui la chiave (inizia con AIza…)"></label>
       <button class="btn" id="apiSave">Salva e verifica</button>
       <div class="status" id="apiStatus" aria-live="polite"></div>
-      <button class="btn ghost" id="apiTest" type="button">🔍 Prova chiave (gratuita o a pagamento?)</button>
+      <button class="btn ghost" id="apiTest" type="button">🔍 Prova chiavi (Gemini e riserve)</button>
       <div class="status" id="apiTestOut" aria-live="polite"></div>
       <details>
         <summary class="note" style="cursor:pointer">Come ottenere la chiave</summary>
@@ -2338,7 +2338,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.46 (dieta, scheda e piano gara col modello Pro di Gemini)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.46 («Prova chiavi» controlla anche OpenRouter e Groq)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2825,6 +2825,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     }
     throw lastErr;
   }
+  const USE_PRO=false;   // si accende quando Daniele dà l'ok al modello Pro
   async function proModel(key){
     const c=LS("proModel"), at=+LS("proModelAt")||0; if(c&&Date.now()-at<7*864e5) return c;
     try{ const res=await fetch(`${API}/models?pageSize=200`,{headers:{"x-goog-api-key":key}}); if(!res.ok) return c||"";
@@ -2848,7 +2849,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     // lavori importanti (diete, schede, piani, analisi: JSON senza foto, modello principale) → più ragionamento se la chiave è a pagamento
     const deepCall= paid() && json && opts.modelTier!=="quick" && !(opts.images&&opts.images.length) && !opts.fast; once.deep=deepCall;
     // piani importanti (dieta, scheda palestra, piano gara) col modello Pro, solo con la chiave a pagamento; se non va, si prosegue con Flash
-    if(opts.pro&&deepCall){ const pm=await proModel(key);
+    if(opts.pro&&deepCall&&USE_PRO){ const pm=await proModel(key);
       if(pm){ try{ status("Il coach esperto sta preparando il piano (può volerci un minuto)…"); once.maxTokens=opts.maxTokens||0; once.deep=true;
           const text=await once(pm,key,contents,json,opts.signal,180000); if(opts.onText) opts.onText({text,done:true}); return text; }
         catch(e){ if(e&&e.code==="cancelled") throw e; if(e&&/404/.test(String(e.code))) try{ localStorage.removeItem("hf:proModel"); }catch{}
@@ -2899,6 +2900,10 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   sample.limits=async()=>({images:{maxCount:8},maxPromptBytes:900000});
   window.claude={use:async name=> name==="sample"? sample : null};
   window.HF_GEMINI={API,LS,paid};
+  // prova vera delle riserve (OpenRouter, Groq) con una domanda brevissima
+  window.HF_RESERVE_TEST=async w=>{ const c=[{role:"user",parts:[{text:"Rispondi solo: ok"}]}], t0=Date.now();
+    const t=await (w==="or"? orOnce : groqOnce)(c,false,{maxTokens:20}); const last=window.HF_TRACE[window.HF_TRACE.length-1]||{};
+    return {ms:Date.now()-t0, model:String(last.m||"").replace(/^(or|groq) /,""), text:t}; };
 })();
 </script>
 <script>
@@ -9467,6 +9472,12 @@ $("apiTest").onclick=async()=>{
     else if(paid===false) line("🆓 Questa chiave è ancora sul PIANO GRATUITO: la fatturazione non è collegata al progetto Google di questa chiave. In aistudio.google.com → API keys controlla che accanto alla chiave ci sia «Paid» / il piano a pagamento; se c'è scritto «Free», tocca «Set up billing» per quel progetto, oppure crea la chiave nel progetto dove hai attivato il pagamento e incollala qui.","#b9770e");
     else line("Non riesco a capire con certezza se il piano è a pagamento: guarda in aistudio.google.com → API keys la colonna del piano accanto alla chiave che finisce con …"+key.slice(-4)+".");
     localStorage.setItem("hf:keyTier",paid===true?"paid":paid===false?"free":"");
+    // riserve
+    for(const [w,nm,lk] of [["or","OpenRouter","orKey"],["groq","Groq","groqKey"]]){
+      if(!localStorage.getItem("hf:"+lk)){ line("– "+nm+": nessuna chiave inserita (riserva facoltativa)."); continue; }
+      try{ const t=await window.HF_RESERVE_TEST(w); line("✓ Riserva "+nm+" funziona: risponde in "+(t.ms/1000).toFixed(1)+" s"+(t.model?" ("+t.model+")":""),"#1e8449"); }
+      catch(e){ const c=e&&e.code; line("❌ Riserva "+nm+": "+(c==="bad_key"||/40[13]/.test(String(c))? "chiave non valida, ricopiala e tocca «Salva e verifica»." : c==="rate_limited"? "limite di richieste gratuite raggiunto per ora (la chiave è giusta)." : /no_.*model/.test(String(c))? "al momento non ci sono modelli gratuiti disponibili." : "non risponde ("+(c||"errore")+(e&&e.message?" · "+String(e.message).slice(0,100):"")+")."),"#c0392b"); }
+    }
   }catch(e){ out.innerHTML=""; line("❌ Non riesco a raggiungere Google: controlla la connessione. ("+String(e&&e.message||e).slice(0,100)+")","#c0392b"); }
   finally{ $("apiTest").disabled=false; }
 };
