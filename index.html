@@ -1210,6 +1210,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .scan video{width:100%;border-radius:14px;background:#000;aspect-ratio:4/3;object-fit:cover}
 .meal-tools{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
 .linkbtn{border:0;background:none;color:var(--basil);font-weight:600;padding:4px 0;font-size:.88rem;cursor:pointer}
+.gd-time{margin:0 0 10px}.gd-time.warn{color:var(--tomato,#c0392b);font-weight:600}
 .found li .star{grid-row:1;grid-column:2;justify-self:end}
 .found li{grid-template-columns:1fr auto auto}
 .found{list-style:none;padding:0;margin:0 0 12px}
@@ -2335,7 +2336,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.39 (riscaldamento guidato prima della palestra)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.40 (tempo massimo della seduta in palestra)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3074,7 +3075,13 @@ const COMBO_RULES=`REGOLE PALESTRA + CORSA (forza e corsa sono UN unico piano: r
 4) settimana di scarico e ultime 2 settimane prima della gara: forza ridotta del 30-50%; negli ultimi 7-10 giorni niente gambe pesanti;
 5) almeno 1 giorno di riposo completo a settimana; se recupero o sonno sono scarsi togli prima il volume di forza alle gambe, poi i km facili, e proteggi il lavoro chiave della corsa;
 6) per i progressi guarda insieme carichi in palestra, ritmi e battito nelle corse e km settimanali: se i carichi calano mentre i km salgono è normale, se calano anche i ritmi è fatica.`;
-function comboText(){ const c=weekCombo(); if(!c) return ""; const rw=raceWeekText(), dw=doneWeekText();
+/* tempo massimo della seduta in palestra (Coach → Palestra → Minuti, o Inizio–Fine): vale per tutto, riscaldamento compreso */
+function gymMax(){ try{ const o=(cs&&cs.sp&&cs.sp.palestra)||null; if(!o) return 0; const se=minsBetween(o.start,o.end)||0, m=+o.minutes||0; return se&&m? Math.min(se,m) : se||m; }catch{ return 0; } }
+function gymMaxText(){ const m=gymMax(); if(!m) return ""; return ` TEMPO MASSIMO PALESTRA: ogni seduta di palestra deve stare in ${m} minuti TUTTO COMPRESO (riscaldamento circa 7 min, serie di avvicinamento, serie, recuperi, cambi di attrezzo ~1 min per esercizio, stretching finale ~6 min). Conta: per ogni esercizio serie × (30-45 s di lavoro + recupero). Se non ci sta, togli esercizi o serie, usa superserie o recuperi più corti sugli esercizi piccoli, non superarlo mai. Il campo "minutes" del giorno = durata totale stimata.`; }
+function comboText(){ return comboText0()+gymMaxText(); }
+// durata stimata di una seduta: riscaldamento 7 min + per esercizio serie × (40 s + recupero) + 1 min di cambio + stretching 6 min
+function gymEst(d){ let sec=0; (d.exercises||[]).forEach(x=>{ const n=Math.max(1,+x.sets||3); sec+= n*40+(n-1)*restSecs(restFor(x))+60; }); return Math.round(7+sec/60+6); }
+function comboText0(){ const c=weekCombo(); if(!c) return ""; const rw=raceWeekText(), dw=doneWeekText();
   return `PALESTRA E CORSA INSIEME. Settimana tipo: ${c.rows.join(" | ")}. Carico previsto: ${c.runN} corse per ${fmt(c.runKm)} km, ${c.gymN} sedute di forza (${c.legHeavy} con gambe pesanti), ${c.rest} giorni di riposo. ${rw} ${dw}
 ${c.conflicts.length? "CONFLITTI DA SISTEMARE: "+c.conflicts.map(x=>x.text).join("; ")+"." : "Nessun conflitto tra gambe pesanti e corse dure."}
 ${COMBO_RULES}`; }
@@ -6690,7 +6697,7 @@ function csPanel(k,l){ const o=cs.sp[k]=cs.sp[k]||{days:[],start:"",end:"",fed:"
   const f=el("div","form");
   let h=`<div class="two"><label>Inizio<input type="time" data-f="start"></label><label>Fine<input type="time" data-f="end"></label></div>
    <label>Pasto prima<select data-f="fed"><option value="">Non specificato</option><option value="digiuno">Digiuno</option><option value="leggero">Pasto leggero</option><option value="abbondante">Pasto abbondante</option></select></label>`;
-  if(k==="palestra") h+=`<div class="three"><label>Dove<select data-f="place"><option value="palestra">Palestra</option><option value="casa">Casa</option><option value="casa con manubri">Casa + manubri</option><option value="corsa e all'aperto">All'aperto</option></select></label><label>Livello<select data-f="level"><option>principiante</option><option>intermedio</option><option>avanzato</option></select></label><label>Minuti<input type="number" inputmode="numeric" min="20" max="180" step="5" data-f="minutes"></label></div>
+  if(k==="palestra") h+=`<div class="three"><label>Dove<select data-f="place"><option value="palestra">Palestra</option><option value="casa">Casa</option><option value="casa con manubri">Casa + manubri</option><option value="corsa e all'aperto">All'aperto</option></select></label><label>Livello<select data-f="level"><option>principiante</option><option>intermedio</option><option>avanzato</option></select></label><label>Minuti max<input type="number" inputmode="numeric" min="20" max="180" step="5" data-f="minutes"></label></div>
    <label>Note (infortuni, preferenze)<textarea data-f="notes" placeholder="Es. fastidio alla spalla destra, mi piace allenare le gambe"></textarea></label>`;
   else if(k==="corsa") h+=(o.days.length? `<label>Giorno del lungo<select data-f="longWd">${o.days.map(wd=>`<option value="${wd}">${WD[wd]}</option>`).join("")}</select></label>` : "")+
    `<label>Obiettivo di corsa senza gara (facoltativo)<input class="field" data-f="goal" placeholder="Es. correre 10 km sotto i 50 minuti"></label>`;
@@ -6731,7 +6738,7 @@ function renderCsMem(){ const m=(chat&&chat.mem)||[], box=$("csMem"); $("csMemCa
     b.onclick=()=>{ chat.mem.splice(i,1); save("coach",chat); renderCsMem(); }; r0.appendChild(b); box.appendChild(r0); }); }
 function memText(){ const m=(chat&&chat.mem)||[]; return m.length? "COSE CHE LA PERSONA TI HA DETTO E CHE DEVI SEMPRE RISPETTARE (memoria del coach):\n"+m.map(x=>"- "+x.t).join("\n") : ""; }
 function csText(){ const c=cs; if(!c||!c.sports.length) return "";
-  return "ATTIVITÀ E GIORNI SCELTI DALLA PERSONA NEL COACH (sono la regola: la scheda li rispetta sempre): "+c.sports.map(k=>{ const o=c.sp[k]||{}; return `${CS_NAME[k]}: ${csDaysTxt(o)}${o.start?" alle "+o.start:""}${k==="corsa"&&o.days&&o.days.length?", lungo il "+WD[+o.longWd||0].toLowerCase():""}${o.goal?", obiettivo "+o.goal:""}${o.notes?" ("+o.notes+")":""}`; }).join("; ")+"."+(c.spec? " Obiettivo specifico: "+c.spec+"." : ""); }
+  return "ATTIVITÀ E GIORNI SCELTI DALLA PERSONA NEL COACH (sono la regola: la scheda li rispetta sempre): "+c.sports.map(k=>{ const o=c.sp[k]||{}; return `${CS_NAME[k]}: ${csDaysTxt(o)}${o.start?" alle "+o.start:""}${k==="palestra"&&gymMax()?", massimo "+gymMax()+" minuti a seduta":""}${k==="corsa"&&o.days&&o.days.length?", lungo il "+WD[+o.longWd||0].toLowerCase():""}${o.goal?", obiettivo "+o.goal:""}${o.notes?" ("+o.notes+")":""}`; }).join("; ")+"."+(c.spec? " Obiettivo specifico: "+c.spec+"." : ""); }
 function csApplyGiorni(gi){ csGet(); let ch=false;
   ["palestra","corsa"].forEach(k=>{ if(Array.isArray(gi[k])){ const d=csSort(gi[k]); cs.sp[k]=cs.sp[k]||{days:[],start:"",end:"",fed:""}; cs.sp[k].days=d; if(d.length&&!cs.sports.includes(k)) cs.sports.push(k); ch=true; } });
   if(gi.lungo!=null&&cs.sp.corsa&&cs.sp.corsa.days.includes(+gi.lungo)){ cs.sp.corsa.longWd=+gi.lungo; ch=true; }
@@ -6761,7 +6768,7 @@ Storico recente dei carichi (per calibrare i pesi): ${tlog.sessions.slice(-4).ma
 Corse recenti: ${runsRecent()}.
 ${memText()}
 GIORNI SCELTI DALLA PERSONA (rispettali ESATTAMENTE: non aggiungere, non togliere e non spostare giorni):
-${gym? `- PALESTRA: ${csDaysTxt(gym)} (${gym.days.length} sedute${gym.start?", alle "+gym.start:""}, circa ${gym.minutes||60} minuti${gym.fed?", "+FED[gym.fed]:""}). Dove: ${gym.place||"palestra"}. Livello: ${gym.level||"intermedio"}. Note: ${gym.notes||"nessuna"}.` : "- Palestra: non la fa."}
+${gym? `- PALESTRA: ${csDaysTxt(gym)} (${gym.days.length} sedute${gym.start?", alle "+gym.start:""}, al massimo ${gymMax()||60} minuti tutto compreso${gym.fed?", "+FED[gym.fed]:""}). Dove: ${gym.place||"palestra"}. Livello: ${gym.level||"intermedio"}. Note: ${gym.notes||"nessuna"}.` : "- Palestra: non la fa."}
 ${run? `- CORSA: ${csDaysTxt(run)} (${run.days.length} corse${run.start?", alle "+run.start:""}${run.fed?", "+FED[run.fed]:""}), lungo il ${WD[+run.longWd||0].toLowerCase()}.${run.goal? " Obiettivo di corsa: "+run.goal+"." : ""}` : "- Corsa: non la fa."}
 ${others.length? "- ALTRE ATTIVITÀ (non vanno nella scheda ma pesano sul recupero, soprattutto delle gambe): "+others.join("; ")+"." : ""}
 ${(()=>{ const sk=cs.sports.includes("sci")&&cs.sp.sci; if(!sk) return ""; const wk=sk.season? Math.ceil((new Date(sk.season+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/(7*864e5)) : null;
@@ -7664,6 +7671,10 @@ function renderDayPage(){
   const all=new Set(); (d&&d.exercises||[]).forEach(x=>exMuscles(x).forEach(m=>all.add(m)));
   const hd=el("div","gd-head"); hd.innerHTML=`<div><h1 class="gd-t"></h1><span class="gd-pill"></span></div><div class="gd-fig">${muscleSVG([...all],120)}</div>`;
   hd.querySelector(".gd-t").textContent=names[wd]; hd.querySelector(".gd-pill").textContent=focus; box.appendChild(hd);
+  try{ const mx=gymMax(); if(d&&mx&&(d.exercises||[]).length){ const est=gymEst(d); const t=el("p","note gd-time"+(est>mx+5?" warn":""));
+    t.textContent= est>mx+5? `⏱ Così dura circa ${est} minuti, più del tuo massimo di ${mx}. ` : `⏱ Circa ${est} minuti tutto compreso (il tuo massimo è ${mx}).`;
+    if(est>mx+5&&sample){ const fx=el("button","linkbtn",`Accorcia a ${mx} minuti`); fx.type="button"; fx.onclick=()=>regenDay(a,pr,di); t.appendChild(fx); }
+    box.appendChild(t); } }catch(e){ console.warn("durata",e); }
   // sposta giorno
   const lab=el("label","lab gd-move","Allenamento di "+names[wd].toLowerCase()), sel=el("select","field");
   const o0=el("option",null,"Riposo"); o0.value=""; sel.appendChild(o0);
