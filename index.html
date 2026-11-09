@@ -2334,7 +2334,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.35 (il coach distingue domande, cambi di un giorno e cambi fissi)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.36 (foto giusta per Pectoral machine e altre macchine)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7184,16 +7184,16 @@ const EXRULES=[
  [/trazion|pull.?up|sbarra/,{_:"Pullups"}],
  [/braccia tese|straight.?arm/,{_:"Straight-Arm_Pulldown"}],
  [/lat.?machine|lat pull|pulldown|pull.?down/,{_close:"Close-Grip_Front_Lat_Pulldown",_rev:"Underhand_Cable_Pulldowns",_:"Wide-Grip_Lat_Pulldown"}],
- [/pulley|seated (cable )?row|rematore (ai|al) cav/,{_:"Seated_Cable_Rows"}],
+ [/pulley|seated (cable )?row|low row|rematore (ai|al) cav/,{_:"Seated_Cable_Rows"}],
  [/t.?bar/,{_:"T-Bar_Row_with_Handle"}],
  [/rematore invers|inverted row|australian/,{_:"Inverted_Row"}],
  [/tirate|upright row|rematore (in piedi|verticale)/,{d:"Standing_Dumbbell_Upright_Row",c:"Upright_Cable_Row",_:"Upright_Barbell_Row"}],
  [/face pull/,{_:"Face_Pull"}],
  [/rematore|\brow/,{_one:"One-Arm_Dumbbell_Row",d:"Bent_Over_Two-Dumbbell_Row",m:"Leverage_High_Row",c:"Seated_Cable_Rows",k:"One-Arm_Kettlebell_Row",w:"Inverted_Row",_:"Bent_Over_Barbell_Row"}],
- [/pullover/,{c:"Rope_Straight-Arm_Pulldown",b:"Bent-Arm_Barbell_Pullover",_:"Bent-Arm_Dumbbell_Pullover"}],
+ [/pull.?over/,{c:"Rope_Straight-Arm_Pulldown",b:"Bent-Arm_Barbell_Pullover",_:"Bent-Arm_Dumbbell_Pullover"}],
  [/scrollat|shrug/,{b:"Barbell_Shrug",s:"Smith_Machine_Behind_the_Back_Shrug",c:"Cable_Shrugs",_:"Dumbbell_Shrug"}],
  [/arnold/,{k:"Kettlebell_Arnold_Press",_:"Arnold_Dumbbell_Press"}],
- [/posterior|rear delt|reverse fly|croci invers|oiseau|aperture invers/,{m:"Reverse_Machine_Flyes",c:"Cable_Rear_Delt_Fly",n:"Back_Flyes_-_With_Bands",_:"Seated_Bent-Over_Rear_Delt_Raise"}],
+ [/posterior|rear delt|reverse fly|reverse pec|croc[ei] invers|oiseau|aperture invers|(pec.?deck|peck.?deck|pector\w*|pettoral\w*|butterfly)( macchina| machine)? invers/,{m:"Reverse_Machine_Flyes",c:"Cable_Rear_Delt_Fly",n:"Back_Flyes_-_With_Bands",_:"Seated_Bent-Over_Rear_Delt_Raise"}],
  [/frontal|front raise/,{c:"Front_Cable_Raise",b:"Standing_Front_Barbell_Raise_Over_Head",_plate:"Front_Plate_Raise",_:"Front_Dumbbell_Raise"}],
  [/lateral|alzate/,{c:"Standing_Low-Pulley_Deltoid_Raise",n:"Lateral_Raise_-_With_Bands",_:"Side_Lateral_Raise"}],
  [/push press/,{_:"Push_Press"}],
@@ -7213,7 +7213,7 @@ const EXRULES=[
  [/push.?down|tricip\w* (ai|al) cav|spint[ea] in basso/,{_rope:"Triceps_Pushdown_-_Rope_Attachment",_rev:"Reverse_Grip_Triceps_Pushdown",_:"Triceps_Pushdown"}],
  [/overhead tricep|tricip.*(sopra|testa|overhead)|estension[ei].*(sopra|testa)/,{c:"Cable_Rope_Overhead_Triceps_Extension",_rope:"Cable_Rope_Overhead_Triceps_Extension",_:"Standing_Dumbbell_Triceps_Extension"}],
  [/tricip/,{c:"Triceps_Pushdown",_:"Standing_Dumbbell_Triceps_Extension"}],
- [/croci|fly|flye|aperture|pec.?deck|butterfly|crossover/,{_cable:"Cable_Crossover",c:"Cable_Crossover",m:"Butterfly",_inc:"Incline_Dumbbell_Flyes",_:"Dumbbell_Flyes"}],
+ [/croc[ei]|fly|flye|aperture|pec.?deck|peck.?deck|pector|pettoral|butterfly|crossover/,{_cable:"Cable_Crossover",c:"Cable_Crossover",m:"Butterfly",_inc:"Incline_Dumbbell_Flyes",_:"Dumbbell_Flyes"}],
  [/chest press|spinte (al|alla) macchina/,{c:"Cable_Chest_Press",_inc:"Leverage_Incline_Chest_Press",_:"Leverage_Chest_Press"}],
  [/inclinat|incline/,{_curl:"Incline_Dumbbell_Curl",d:"Incline_Dumbbell_Press",m:"Leverage_Incline_Chest_Press",s:"Smith_Machine_Incline_Bench_Press",_:"Barbell_Incline_Bench_Press_-_Medium_Grip"}],
  [/declinat|decline/,{d:"Decline_Dumbbell_Bench_Press",s:"Smith_Machine_Decline_Press",_:"Decline_Barbell_Bench_Press"}],
@@ -7246,7 +7246,7 @@ const EXRULES=[
 ];
 /* sottovarianti riconosciute dal nome (quelle con "z" valgono solo se l'attrezzo non decide già) */
 const EXRULE_FLAGS=[["_seat",/sedut|seated/],["_lp",/leg press|pressa/],["_stand",/in piedi|standing/],["_ball",/fitball|palla|ball/],["_air",/air|libero|senza pesi|bodyweight|a corpo/],["_close",/stretta|close|triangolo|neutra/],["_rev",/invers|supin|underhand|reverse/],["_one",/un braccio|singol|one.?arm|manubrio\b|unilateral/],["_hang",/sbarra|appes|hanging/],["_par",/parallele|captain|sedia romana/],["_plate",/disco|plate/],["zmil",/military|lento/],["_cable",/cavi|cavo|crossover/],["_inc",/inclinat|incline/],["_bench",/panca|panche|bench|sedia/],["_chest",/petto|chest/],["_curl",/curl/],["_rope",/corda|rope/]];
-const EQ_RULE=[[/smith|multipower/,"s"],[/manubr|dumbbell/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere|barbell/,"b"],[/kettlebell/,"k"],[/cav[io]\b|cable|pulley|corda/,"c"],[/macchina|machine|pec deck|chest press/,"m"],[/elastic|band/,"n"],[/corpo libero|bodyweight|a corpo/,"w"]];
+const EQ_RULE=[[/smith|multipower/,"s"],[/manubr|dumbbell/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere|barbell/,"b"],[/kettlebell/,"k"],[/cav[io]\b|cable|pulley|corda/,"c"],[/macchina|machine|pec.?deck|peck.?deck|pector|pettoral|chest press/,"m"],[/elastic|band/,"n"],[/corpo libero|bodyweight|a corpo/,"w"]];
 function exdbRule(name,x){ const n=String(name||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""), nx=(n+" "+String((x&&x.equip)||"").toLowerCase()).replace(/[_]/g," ");
   const r=EXRULES.find(([re])=>re.test(n)); if(!r) return undefined; const m=r[1];
   const fl=late=>{ for(const [k,re] of EXRULE_FLAGS) if((k[0]==="z")===late&&k in m&&re.test(nx)) return k; };
