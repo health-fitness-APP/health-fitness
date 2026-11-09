@@ -864,6 +864,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .raceRow .mi{flex:none;width:44px;height:44px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.4rem}
 .grBox{padding:14px 16px;margin:-4px 0 10px}.grBox .two{margin-top:6px}.grBox .grOut{font-size:.95rem;margin:10px 0 4px}.grBox .grOut b{font-size:1.2rem}
 .ico{width:1.15em;height:1.15em;vertical-align:-.2em;color:inherit;flex:none;display:inline-block}.mi .ico{width:1.05em;height:1.05em;vertical-align:middle;color:var(--basil)}
+.fold-hd{cursor:pointer;-webkit-tap-highlight-color:transparent}h2.fold-hd,.meal-head.fold-hd{display:flex;align-items:center;gap:8px}h2.fold-hd::after,.meal-head.fold-hd::after{content:"";flex:none;width:8px;height:8px;margin:0 4px 4px 10px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s}h2.fold-hd::after{margin-left:auto}.folded>.fold-hd::after{transform:rotate(-45deg);margin-bottom:0}.meal-head.fold-hd>h2{margin-right:auto}.card.folded>:not(.fold-hd){display:none!important}.card.folded>.fold-hd{margin-bottom:0}
 .fold-x{display:block;width:100%;margin-top:12px;padding:10px;border:0;border-top:1px solid var(--line,rgba(0,0,0,.08));background:none;color:var(--muted);font:inherit;font-size:.9rem;cursor:pointer}
 #progCard{padding:12px 14px}.pg-row{background:none;border:0;padding:0;margin:0;box-shadow:none}.pg-row .pill{display:inline-block;font-size:.72rem;padding:2px 8px;margin:3px 4px 0 0;vertical-align:middle}.pg-row .chev{transition:transform .2s}.pg-row[aria-expanded="true"] .chev{transform:rotate(90deg)}#pgBody{margin-top:10px}
 .raceRow .mt{flex:1;min-width:0;display:flex;flex-direction:column}.raceRow b{font-size:1.05rem}.raceRow .ms{font-size:.82rem;color:var(--muted)}.raceRow .chev{color:var(--muted);font-size:1.4rem}
@@ -2391,7 +2392,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.64 (simboli stilizzati in tutta l'app)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.65 (tutti i riquadri si aprono e chiudono toccando il titolo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9394,6 +9395,19 @@ let icoOff=false; try{ icoOff=localStorage.getItem("hf:icoOff")==="1"; }catch{}
 if(!icoOff){ iconize(document.body); let pend=new Set(), raf=0;
   new MutationObserver(ms=>{ ms.forEach(m=>{ if(m.type==="characterData") pend.add(m.target); else m.addedNodes.forEach(x=>pend.add(x)); }); if(!raf) raf=requestAnimationFrame(()=>{ raf=0; const s=[...pend]; pend=new Set(); s.forEach(x=>{ if(x.isConnected) iconize(x); }); }); })
     .observe(document.body,{childList:true,subtree:true,characterData:true}); }
+/* ===== ogni riquadro con un titolo si apre e si chiude toccando il titolo (scelta di Daniele) ===== */
+function foldKey(c,h){ return "hf:fold:"+(c.id||(h.textContent||"").replace(/\s+/g," ").trim().slice(0,40)); }
+function foldHead(c){ const f=c.firstElementChild; if(!f) return null; if(f.tagName==="H2") return f; if(f.classList.contains("meal-head")&&f.querySelector("h2")) return f; return null; }
+function foldSet(c,on){ c.classList.toggle("folded",on); const h=c._fh; if(h) h.setAttribute("aria-expanded",String(!on)); try{ if(h) localStorage.setItem(foldKey(c,h),on?"1":"0"); }catch{} }
+function foldScan(){ document.querySelectorAll(".card").forEach(c=>{ if(c.tagName==="BUTTON"||c.closest(".sheet")) return; const h=foldHead(c); if(!h) return;
+    if(c._fh!==h){ c._fh=h; h.classList.add("fold-hd"); h.setAttribute("role","button"); h.tabIndex=0; let on=false; try{ on=localStorage.getItem(foldKey(c,h))==="1"; }catch{} c.classList.toggle("folded",on); h.setAttribute("aria-expanded",String(!on)); }
+    let b=[...c.children].find(n=>n.classList.contains("fold-x")&&n.dataset.auto);
+    if(!c.classList.contains("folded")&&c.offsetHeight>420){ if(!b){ b=document.createElement("button"); b.type="button"; b.className="fold-x"; b.dataset.auto="1"; b.textContent="▲ Chiudi"; } if(c.lastElementChild!==b) c.appendChild(b); }
+    else if(b) b.remove(); }); }
+document.addEventListener("click",e=>{ const x=e.target.closest(".fold-x[data-auto]"); if(x){ const c=x.parentElement; foldSet(c,true); (c._fh||c).scrollIntoView({block:"nearest",behavior:"smooth"}); return; }
+  const h=e.target.closest(".fold-hd"); if(!h||e.target.closest("button,a,input,select,textarea,label,.pill.tap")) return; const c=h.parentElement; if(!c||c._fh!==h) return; foldSet(c,!c.classList.contains("folded")); foldScan(); });
+{ let fr=0; const sched=()=>{ if(!fr) fr=requestAnimationFrame(()=>{ fr=0; try{ foldScan(); }catch(e){ console.warn("riquadri",e); } }); };
+  new MutationObserver(sched).observe(document.body,{childList:true,subtree:true}); sched(); }
 /* «▲ Chiudi» in fondo a ogni riquadro che si apre al tocco */
 $("pgClose").onclick=()=>{ const rw=$("pgRow"); $("pgBody").hidden=true; rw.setAttribute("aria-expanded","false"); try{ localStorage.setItem("hf:pgOpen","0"); }catch{} rw.scrollIntoView({block:"nearest",behavior:"smooth"}); };
 $("csMemClose").onclick=()=>{ csMemOpen=false; renderCsMem(); const rw=$("csMemRow"); if(rw) rw.scrollIntoView({block:"nearest",behavior:"smooth"}); };
