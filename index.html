@@ -2383,7 +2383,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.58 (frase del peso corretta in «Verso il tuo obiettivo»)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.59 («Cosa fare» in «Verso il tuo obiettivo»)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9362,21 +9362,36 @@ function renderWeekCard(){ const card=$("weekCard"); if(!card) return; const tod
   card.appendChild(cb);
   if(sample){ const ask=el("button","btn ghost","Parlane con il coach"); ask.type="button"; ask.style.marginTop="8px";
     ask.onclick=()=>{ go("allenamento"); setW("chat"); $("chatIn").value="Guardiamo insieme la settimana scorsa: "+weekLines(D).map(x0=>x0[1]).join(" ")+" Cosa cambio questa settimana?"; }; card.appendChild(ask); } }
+/* consigli pratici che uniscono peso, calorie, proteine e allenamenti */
+function progTips(wSt,kSt,pLow,tLow,pg,rg){ const T=[], gain=rg[0]>0, loss=rg[1]<0, kt=r(pg.avgT||0), runHeavy=!!(race&&race.plan);
+  if(wSt>0&&kSt<=0){ T.push("Il peso sale anche se mangi meno dell'obiettivo: di solito non è grasso. Spesso è acqua e carboidrati nei muscoli (succede quando aumenti i km o mangi più carboidrati) oppure cibi non registrati: condimenti, olio, bevande, assaggi. Registra proprio tutto per una settimana.");
+    T.push("Pesati sempre la mattina, appena sveglio, dopo il bagno e prima di bere, e guarda la media dei 7 giorni, non la singola pesata.");
+    T.push(runHeavy? "Non tagliare le calorie adesso che prepari la gara: rischi di recuperare male. Se tra una settimana la media sale ancora, togliamo 150-200 kcal dai grassi (olio, formaggi, snack)." : "Se tra una settimana la media sale ancora, togli 150-200 kcal dai grassi (olio, formaggi, snack), non dai carboidrati attorno agli allenamenti."); }
+  else if(wSt>0&&kSt>0) T.push(`Mangi più dell'obiettivo e il peso sale: resta vicino a ${kt} kcal. Il modo più facile è togliere 150-250 kcal da snack, dolci, condimenti e alcol, lasciando uguali i carboidrati prima e dopo gli allenamenti.`);
+  else if(wSt<0&&kSt<0) T.push(gain? `Il peso non sale perché mangi meno dell'obiettivo: aggiungi uno spuntino da 250-300 kcal (yogurt greco con frutta secca o pane e affettato) per arrivare a ${kt} kcal.` : `Stai calando troppo in fretta e mangi meno dell'obiettivo: aggiungi 200-300 kcal al giorno, soprattutto carboidrati attorno agli allenamenti (pane, riso, frutta), per non perdere muscolo e recuperare bene.`);
+  else if(wSt<0) T.push(gain? "Il peso sale troppo piano: aggiungi 150-200 kcal al giorno, per esempio una porzione in più di carboidrati a pranzo." : "Stai calando più in fretta del previsto: aggiungi 150-200 kcal al giorno, soprattutto carboidrati prima e dopo gli allenamenti.");
+  else if(kSt<0) T.push(`Mangi meno dell'obiettivo (${kt} kcal): con tanti allenamenti rischi di recuperare male. Aggiungi uno spuntino da 200-300 kcal, meglio dopo l'allenamento.`);
+  else if(kSt>0&&loss) T.push(`Mangi più dell'obiettivo: resta vicino a ${kt} kcal togliendo soprattutto snack, condimenti e alcol.`);
+  if(pLow) T.push(`Ti mancano circa ${pLow} g di proteine al giorno: aggiungi uno yogurt greco (15 g), una scatoletta di tonno (25 g) o 2 uova (13 g).`);
+  if(tLow) T.push("Hai fatto meno allenamenti del previsto: se la settimana è piena, chiedi al coach di accorciare le sedute invece di saltarle.");
+  if(T.length) T.push("Per un piano preciso tocca «Analisi completa del coach».");
+  return T; }
 function renderProgress(){ try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); renderHidCard(); }catch(e){ console.warn("schede diario",e); }
   const card=$("progCard"); if(!card) return; card.hidden=!state.profile||!goalOf(state.profile);
   const pg=progress, box=$("pgLines"); box.innerHTML=""; $("pgGo").disabled=!sample||progBusy;
   if(!pg){ $("pgPill").className="pill na"; $("pgPill").textContent="calcolo…"; return; }
-  const g=state.profile.goal, rg=RANGE[g]||[-0.3,0.3]; let warn=0, known=0;
+  const g=state.profile.goal, rg=RANGE[g]||[-0.3,0.3]; let warn=0, known=0, wSt=0, kSt=0, pLow=0, tLow=0;
   const line=(ic,t)=>{ const d=el("div","pline"); d.append(el("span","ic",ic), el("span",null,t)); box.appendChild(d); };
-  if(pg.weight){ known++; const pct=pg.weight.perWeek/pg.weight.last*100, ok=pct>=rg[0]&&pct<=rg[1]; if(!ok) warn++;
+  if(pg.weight){ known++; const pct=pg.weight.perWeek/pg.weight.last*100, ok=pct>=rg[0]&&pct<=rg[1]; if(!ok) warn++; wSt= ok? 0 : pct>rg[1]? 1 : -1;
     line(ok?"✅":"⚠️",`Peso: ${pg.weight.perWeek>0?"+":""}${fmt(pg.weight.perWeek)} kg a settimana (${fmt(pct)}%). `+(ok?"Ritmo giusto per il tuo obiettivo.": pct<rg[0]? (rg[0]<0? "Stai calando più in fretta del previsto." : pct<0? "Il peso scende invece di salire." : "Stai salendo più piano del previsto.") : (rg[1]>0? "Stai salendo più in fretta del previsto." : pct>0? "Il peso sale invece di scendere." : "Stai calando più piano del previsto."))); }
   else line("📏","Peso: servono almeno due pesate a distanza di una settimana per vedere l'andamento.");
-  if(pg.last7>=3&&pg.avgT){ known++; const d=(pg.avgK-pg.avgT)/pg.avgT*100, ok=Math.abs(d)<=10; if(!ok) warn++;
+  if(pg.last7>=3&&pg.avgT){ known++; const d=(pg.avgK-pg.avgT)/pg.avgT*100, ok=Math.abs(d)<=10; if(!ok) warn++; kSt= ok? 0 : d>0? 1 : -1;
     line(ok?"✅":"⚠️",`Calorie: media ${r(pg.avgK)} kcal contro ${r(pg.avgT)} di obiettivo negli ultimi ${pg.last7} giorni registrati (${d>0?"+":""}${r(d)}%).`);
-    if(pg.protT){ const pp=pg.avgP/pg.protT*100; if(pp<80){ warn++; line("⚠️",`Proteine: in media ${r(pg.avgP)} g su ${r(pg.protT)} g (${r(pp)}%).`); } } }
+    if(pg.protT){ const pp=pg.avgP/pg.protT*100; if(pp<80){ warn++; pLow=Math.round(pg.protT-pg.avgP); line("⚠️",`Proteine: in media ${r(pg.avgP)} g su ${r(pg.protT)} g (${r(pp)}%).`); } } }
   else line("🍽️",`Alimentazione: registrati ${pg.last7} giorni completi su 7. Ne servono almeno 3 per valutarla.`);
-  if(pg.planned){ known++; const ok=pg.done>=pg.planned*0.75; if(!ok) warn++; line(ok?"✅":"⚠️",`Allenamenti: ${pg.done} negli ultimi 7 giorni su ${pg.planned} previsti.`); }
+  if(pg.planned){ known++; const ok=pg.done>=pg.planned*0.75; if(!ok){ warn++; tLow=1; } line(ok?"✅":"⚠️",`Allenamenti: ${pg.done} negli ultimi 7 giorni su ${pg.planned} previsti.`); }
   else line("🏋️",`Allenamenti: ${pg.done} negli ultimi 7 giorni.`);
+  try{ const T=progTips(wSt,kSt,pLow,tLow,pg,rg); if(T.length){ const h=el("div","pline"); h.style.marginTop="8px"; h.append(el("span","ic","👉"), el("b",null,"Cosa fare")); box.appendChild(h); T.forEach(t=>line("•",t)); } }catch(e){ console.warn("consigli",e); }
   if(pg.waist) line("📐",`Vita: ${pg.waist.perWeek>0?"+":""}${fmt(pg.waist.last-pg.waist.first)} cm in ${pg.waist.span} giorni.`);
   const pill=$("pgPill");
   if(known<2){ pill.className="pill na"; pill.textContent="Servono più dati"; }
