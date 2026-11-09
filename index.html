@@ -2336,7 +2336,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.40 (tempo massimo della seduta in palestra)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.41 (passi, sonno e peso si aggiornano senza avvisi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5414,7 +5414,7 @@ async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getIte
     let runLine=""; if(manual){ if(!HCW()) runLine=" · Per tempo e distanza esatti delle corse aggiorna l’APK all’ultima versione.";
       else { try{ const d=JSON.parse(localStorage.getItem("hf:hcRunDiag")||"[]").pop(); if(d) runLine=` · Ultima corsa letta: ${d.tempo} (da ${d.tempoDa}), ${String(d.km).replace(".",",")} km (da ${d.fonte}), ${d.kcal} kcal (da ${d.kcalDa}).`; }catch{} } }
     setStatus("hcStatus",`Ultima sincronizzazione alle ${t}`+(msgs.length? ": "+msgs.join(", ") : ": niente di nuovo")+runLine);
-    if(msgs.length&&!manual) toast("Da Samsung Health: "+msgs.join(", "));
+    { const wm=msgs.filter(m=>/allenament/.test(m)&&!/corrett/.test(m)); if(wm.length&&!manual) toast("Da Samsung Health: "+wm.join(", ")); }   // passi, sonno e pesate si aggiornano in silenzio
     if(msgs.length) renderAll();
   }catch(e){ setStatus("hcStatus","Errore nella sincronizzazione: "+((e&&e.message)||e),true); }
   finally{ hcBusy=false; } }
