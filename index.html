@@ -2216,14 +2216,15 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div id="mealRows"></div>
     <button class="add soft" id="addMealRow">+ Aggiungi pasto</button>
   </section>
-  <section class="card" id="suppCard">
-    <h2>💊 Integratori</h2>
+  <section class="card" id="suppEdit" hidden>
+    <h2>💊 I miei integratori</h2>
     <p class="sub">Segna cosa prendi e in che dose: il coach ne tiene conto nei consigli e può dirti se vanno bene per il tuo obiettivo.</p>
     <div id="suppRows"></div>
     <button class="add soft" id="suppAdd" type="button">+ Aggiungi integratore</button>
-    <button class="btn ghost" id="suppAsk" type="button" style="margin-top:10px">🤖 Chiedi al coach se vanno bene</button>
+    <button class="btn ghost" id="suppAsk" type="button" style="margin-top:10px">🤖 Chiedi al coach</button>
     <div class="status" id="suppStatus" aria-live="polite"></div>
     <div id="suppOut"></div>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" id="suppSave" type="button" style="flex:1">Salva</button><button class="btn ghost" id="suppCancel" type="button" style="flex:1">Annulla</button></div>
   </section>
   <button class="card eqrow" id="eqOpen" type="button">
     <span><span class="l">Attrezzature disponibili</span><b id="eqCount">Nessuna selezionata</b></span><span class="chev">›</span>
@@ -2392,7 +2393,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.73 (corsa facile: l’orologio propone la tecnica di corsa)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.74 (integratori si modificano nella pagina Cibo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5826,7 +5827,7 @@ async function nativeShareGemini(file,txt){ const C=NAT(); if(!C) return false;
 /* ===== profilo in stile impostazioni: elenco a gruppi, ogni voce apre la sua pagina ===== */
 const PF_GROUPS=[
   ["Il tuo profilo",[["Chi sei","👤","chi",true],["obiettivo","🎯","goal",true],["I tuoi dati","📏","dati",true]]],
-  ["Alimentazione",[["I tuoi pasti","🍽️","pasti",true],["Integratori","💊","supp",true]]],
+  ["Alimentazione",[["I tuoi pasti","🍽️","pasti",true]]],
   ["Allenamento",[["__eq","🏋️","eq",false]]],
   ["Dispositivi",[["Dispositivi collegati","🔌","dev",false]]],
   ["App",[["Aspetto","🎨","look",false],["Impostazioni AI e dati","⚙️","ai",false]]]];
@@ -9305,9 +9306,13 @@ function renderPainWarn(){ const card=$("painWarnCard"); if(!card) return; const
 function suppToday(){ const p=state.profile||{}, L=(p.supplements||[]).filter(x=>x&&x.name); if(!L.length) return [];
   let pl=null; try{ pl=dayPlanFor(new Date(state.date+"T12:00:00").getDay(),state.date); }catch{} const train= pl&&pl.kind!=="rest";
   return L.filter(x=>!["allenamento","pre","post"].includes(x.when)||train); }
-function renderSuppCard(){ const card=$("suppCard"); if(!card) return; const L=suppToday(); card.hidden= view!=="cibo"||!L.length; if(card.hidden) return; card.innerHTML="";
+function renderSuppCard(){ const card=$("suppCard"); if(!card) return; const L=suppToday(), all=((state.profile||{}).supplements||[]).filter(x=>x&&x.name);
+  if(typeof sdraft!=="undefined"&&sdraft&&view==="cibo"){ card.hidden=true; return; }
+  card.hidden= view!=="cibo"; if(card.hidden) return; card.innerHTML="";
   const done=state.day.supp||{}; const n=L.filter(x=>done[x.name]).length;
-  const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"💊 Integratori di oggi")); hd.appendChild(el("span","note",`${n}/${L.length}`)); card.appendChild(hd);
+  const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"💊 Integratori di oggi")); if(L.length) hd.appendChild(el("span","note",`${n}/${L.length}`));
+  const ed=el("button","link",all.length? "✏ Modifica" : "+ Aggiungi"); ed.type="button"; ed.onclick=e=>{ e.stopPropagation(); suppOpen(); }; hd.appendChild(ed); card.appendChild(hd);
+  if(!L.length) card.appendChild(el("p","note", all.length? "Oggi nessun integratore da prendere." : "Segna cosa prendi (creatina, proteine, vitamine…): ogni giorno li spunti qui e il coach ne tiene conto."));
   const W=Object.fromEntries(SUPP_WHEN);
   L.forEach(x=>{ const lab=el("label","chk"); lab.style.cssText="display:flex;gap:10px;align-items:center;margin:6px 0"; const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!done[x.name];
     cb.onchange=()=>{ state.day.supp={...(state.day.supp||{})}; if(cb.checked) state.day.supp[x.name]=1; else delete state.day.supp[x.name]; saveDay(); renderSuppCard(); };
@@ -10440,37 +10445,52 @@ Rispondi SOLO con JSON in italiano:
 /* ----- integratori ----- */
 const SUPPS=["Creatina monoidrato","Proteine in polvere (whey)","Proteine vegetali","Omega-3","Vitamina D","Magnesio","Caffeina","Elettroliti / sali minerali","Multivitaminico","Ferro","Beta-alanina","Altro"];
 const SUPP_WHEN=[["giorno","Ogni giorno"],["allenamento","Solo giorni di allenamento"],["pre","Prima dell'allenamento"],["post","Dopo l'allenamento"],["mattina","Al mattino"],["sera","La sera"]];
+let sdraft=null;
+/* integratori: si modificano nella pagina Cibo (non più nel Profilo) */
+function suppOpen(){ sdraft={supplements:JSON.parse(JSON.stringify((state.profile&&state.profile.supplements)||[]))}; $("suppOut").innerHTML=""; setStatus("suppStatus","");
+  $("suppEdit").hidden=false; $("suppCard").hidden=true; renderSupps(); $("suppEdit").scrollIntoView({behavior:"smooth",block:"start"}); }
+function suppClose(){ sdraft=null; $("suppEdit").hidden=true; renderSuppCard(); }
 function renderSupps(){
-  const box=$("suppRows"); if(!box||!draft) return; box.innerHTML=""; draft.supplements=draft.supplements||[];
-  if(!draft.supplements.length) box.appendChild(el("p","note","Nessun integratore segnato."));
-  draft.supplements.forEach((x,i)=>{ const row=el("div","supprow");
+  const box=$("suppRows"); if(!box||!sdraft) return; box.innerHTML=""; sdraft.supplements=sdraft.supplements||[];
+  if(!sdraft.supplements.length) box.appendChild(el("p","note","Nessun integratore segnato."));
+  sdraft.supplements.forEach((x,i)=>{ const row=el("div","supprow");
     const nm=el("input","field"); nm.setAttribute("list","suppList"); nm.value=x.name||""; nm.placeholder="Integratore"; nm.setAttribute("aria-label","Nome integratore "+(i+1)); nm.oninput=()=>{ x.name=nm.value; };
     const ds=el("input","field"); ds.value=x.dose||""; ds.placeholder="Dose, es. 5 g"; ds.setAttribute("aria-label","Dose"); ds.oninput=()=>{ x.dose=ds.value; };
     const wh=el("select","field"); SUPP_WHEN.forEach(([v,l])=>{ const o=el("option",null,l); o.value=v; wh.appendChild(o); }); wh.value=x.when||"giorno"; wh.setAttribute("aria-label","Quando"); wh.onchange=()=>{ x.when=wh.value; };
-    const del=el("button","del","×"); del.type="button"; del.setAttribute("aria-label","Togli integratore"); del.onclick=()=>{ draft.supplements.splice(i,1); renderSupps(); };
+    const del=el("button","del","×"); del.type="button"; del.setAttribute("aria-label","Togli integratore"); del.onclick=()=>{ sdraft.supplements.splice(i,1); renderSupps(); };
     row.append(nm,ds,wh,del); box.appendChild(row); });
   if(!$("suppList")){ const dl=document.createElement("datalist"); dl.id="suppList"; SUPPS.forEach(n=>{ const o=document.createElement("option"); o.value=n; dl.appendChild(o); }); document.body.appendChild(dl); }
-  $("suppAsk").disabled=!sample||!draft.supplements.some(x=>String(x.name||"").trim());
+  $("suppAsk").disabled=!sample; $("suppAsk").textContent=sdraft.supplements.some(x=>String(x.name||"").trim())? "🤖 Chiedi al coach se vanno bene e cosa aggiungere" : "🤖 Fatti consigliare dal coach";
 }
-$("suppAdd").onclick=()=>{ draft.supplements=draft.supplements||[]; draft.supplements.push({name:"",dose:"",when:"giorno"}); renderSupps(); const ins=$("suppRows").querySelectorAll(".supprow input"); if(ins.length) ins[ins.length-2].focus(); };
+$("suppAdd").onclick=()=>{ if(!sdraft) suppOpen(); sdraft.supplements=sdraft.supplements||[]; sdraft.supplements.push({name:"",dose:"",when:"giorno"}); renderSupps(); const ins=$("suppRows").querySelectorAll(".supprow input"); if(ins.length) ins[ins.length-2].focus(); };
 $("suppAsk").onclick=async()=>{
-  const list=(draft.supplements||[]).filter(x=>String(x.name||"").trim()); if(!list.length||!sample) return;
+  const list=(sdraft.supplements||[]).filter(x=>String(x.name||"").trim()); if(!sample) return;
   $("suppAsk").disabled=true; setStatus("suppStatus","Il coach valuta i tuoi integratori…"); $("suppOut").innerHTML="";
   try{
-    const res=await sample.json(`Sei un nutrizionista sportivo. Valuta gli integratori che prende questa persona: ${list.map(x=>`${x.name}${x.dose?" "+x.dose:""} (${(SUPP_WHEN.find(w=>w[0]===x.when)||[,""])[1]})`).join("; ")}.
+    const res=await sample.json(`Sei un nutrizionista sportivo. ${list.length? `Valuta gli integratori che prende questa persona: ${list.map(x=>`${x.name}${x.dose?" "+x.dose:""} (${(SUPP_WHEN.find(w=>w[0]===x.when)||[,""])[1]})`).join("; ")}.` : "Questa persona non prende integratori: consiglia SOLO quelli davvero utili per il suo obiettivo e i suoi allenamenti (palestra e corsa), con prove solide (es. creatina, proteine in polvere solo se fatica ad arrivare alle proteine, vitamina D in inverno, caffeina prima delle corse dure, elettroliti nei lunghi). Massimo 4. Se nessuno serve davvero, dillo."}
 Profilo: ${profileSummary()}.
 Per ciascuno: è utile per il suo obiettivo? la dose è corretta (indica quella consigliata per il suo peso)? il momento è giusto? Segnala interazioni o eccessi e cosa eventualmente aggiungere o togliere. Ricorda che non sostituisci il medico.
-Rispondi SOLO con JSON in italiano: {"items":[{"name":"string","verdict":"ok"|"rivedi"|"inutile","dose":"dose consigliata","when":"momento consigliato","note":"una frase"}],"summary":"giudizio complessivo in 1-2 frasi","suggest":["eventuale integratore da valutare, con motivo, breve"]}`,{modelTier:"default"});
-    if(!res||!Array.isArray(res.items)) throw {code:"bad_output"};
+Rispondi SOLO con JSON in italiano: {"items":[{"name":"string","verdict":"ok"|"rivedi"|"inutile","dose":"dose consigliata","when":"momento consigliato","note":"una frase"}],"summary":"giudizio complessivo in 1-2 frasi","suggest":[{"name":"nome breve dell'integratore","dose":"dose per il suo peso, es. 5 g","when":"${SUPP_WHEN.map(w=>w[0]).join('"|"')}","why":"perché, una frase"}]}. "items" valuta solo quelli che prende già (vuoto se non ne prende); "suggest" sono quelli da aggiungere.`,{modelTier:"default"});
+    if(!res||!(Array.isArray(res.items)||Array.isArray(res.suggest))) throw {code:"bad_output"}; res.items=res.items||[];
     setStatus("suppStatus",""); const box=$("suppOut"), V={ok:["✅","Va bene"],rivedi:["⚠️","Da rivedere"],inutile:["❌","Poco utile"]};
     if(res.summary) box.appendChild(el("p",null,res.summary));
     res.items.forEach(it=>{ const v=V[it.verdict]||V.rivedi, c=el("div","suppres "+(it.verdict||"rivedi")); c.innerHTML=`<b></b><span class="vb">${v[0]} ${v[1]}</span><div class="d"></div><div class="nt"></div>`;
       c.querySelector("b").textContent=it.name; c.querySelector(".d").textContent=[it.dose?"Dose: "+it.dose:"", it.when?"Quando: "+it.when:""].filter(Boolean).join(" · "); c.querySelector(".nt").textContent=it.note||""; box.appendChild(c); });
-    if(res.suggest&&res.suggest.length){ box.appendChild(el("h4",null,"💡 Da valutare")); const u=el("ul"); res.suggest.forEach(x=>u.appendChild(el("li",null,x))); box.appendChild(u); }
-    box.appendChild(el("p","note","Consigli indicativi: per dosi elevate o problemi di salute senti il medico. Ricordati di salvare il profilo se hai cambiato qualcosa."));
+    if(res.suggest&&res.suggest.length){ box.appendChild(el("h4",null,"💡 Il coach ti consiglia"));
+      res.suggest.forEach(x=>{ if(typeof x==="string") x={name:x}; if(!x||!x.name) return; const c=el("div","suppres ok"), W=Object.fromEntries(SUPP_WHEN), wh=W[x.when]? x.when : "giorno";
+        c.innerHTML=`<b></b><div class="d"></div><div class="nt"></div>`; c.querySelector("b").textContent=x.name; c.querySelector(".d").textContent=[x.dose?"Dose: "+x.dose:"", "Quando: "+W[wh].toLowerCase()].filter(Boolean).join(" · "); c.querySelector(".nt").textContent=x.why||"";
+        const has=()=>(sdraft&&sdraft.supplements||[]).some(y=>String(y.name||"").toLowerCase()===String(x.name).toLowerCase());
+        const ad=el("button","btn ghost",has()? "✓ Aggiunto" : "+ Aggiungi"); ad.type="button"; ad.style.marginTop="8px"; ad.disabled=has();
+        ad.onclick=()=>{ if(!sdraft) return; sdraft.supplements.push({name:x.name,dose:x.dose||"",when:wh}); renderSupps(); ad.textContent="✓ Aggiunto"; ad.disabled=true; toast("Aggiunto: tocca Salva per tenerlo"); };
+        c.appendChild(ad); box.appendChild(c); }); }
+    box.appendChild(el("p","note","Consigli indicativi: per dosi elevate o problemi di salute senti il medico. Se hai cambiato qualcosa ricordati di toccare Salva."));
   }catch(e){ setStatus("suppStatus",errCopy(e),true); }
   finally{ $("suppAsk").disabled=false; }
 };
+$("suppSave").onclick=()=>{ const L=(sdraft&&sdraft.supplements||[]).map(x=>({...x,name:String(x.name||"").trim(),dose:String(x.dose||"").trim()})).filter(x=>x.name);
+  state.profile={...(state.profile||{}),supplements:L}; save("profile",state.profile); if(draft) draft.supplements=JSON.parse(JSON.stringify(L));
+  toast("Integratori salvati"); try{ notifSchedule(); }catch{} suppClose(); };
+$("suppCancel").onclick=suppClose;
 function renderMealRows(){
   const pres=$("presets"); pres.innerHTML="";
   Object.entries(PRESETS).forEach(([k,list])=>{
@@ -10663,7 +10683,7 @@ function renderDash(){
 }
 /* ---------- ordine dei riquadri della home (tieni premuto e trascina) ---------- */
 const TILES=[["hero","dHero"],["food","dFood"],["act","dAct"],["body","dBody"],["progress","progCard"],["event","eventCard"]];
-["summary","nutriCard","meals","suppCard","coach"].forEach(id=>{ const n=$(id); n.style.marginTop="0"; $("ciboBody").appendChild(n); });
+["summary","nutriCard","meals","suppCard","suppEdit","coach"].forEach(id=>{ const n=$(id); n.style.marginTop="0"; $("ciboBody").appendChild(n); });
 const HALF=["food","act"], DEF_ORDER=TILES.map(t=>t[0]);
 let homeOrder=[...DEF_ORDER]; var editMode=false;
 (function initHomeGrid(){
