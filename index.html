@@ -2392,7 +2392,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.68 (mangiare per la corsa con gli orari veri)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.69 (orario della corsa modificabile in «Mangiare per la corsa»)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9360,14 +9360,19 @@ function renderFuelCard(){ const card=$("fuelCard"); if(!card) return; const iso
   const isRunDay= pl&&(pl.kind==="run"||/Corsa/.test(pl.label||""));
   let seen=""; try{ seen=localStorage.getItem("hf:fuelSeen")||""; }catch{}
   const show= view==="diario"&&isRunDay&&(pl.minutes>=40||pl.key)&&seen!==iso; card.hidden=!show; if(!show) return;
-  const w=+(state.profile&&state.profile.weight)||75, hm=String(pl.when||"").match(/(\d{1,2})[:.](\d{2})/), H= hm? +hm[1]+(+hm[2])/60 : null;
+  let ovr=""; try{ ovr=localStorage.getItem("hf:runAt:"+iso)||""; }catch{}
+  const w=+(state.profile&&state.profile.weight)||75, hm=String(ovr||pl.when||"").match(/(\d{1,2})[:.](\d{2})/), H= hm? +hm[1]+(+hm[2])/60 : null;
   const long=(pl.minutes||0)>=75||/lungo/i.test(pl.label), hard=!!pl.key;
   const meals=mealList().map(m=>({...m,h:MEAL_H[m.id]??(/colaz/i.test(m.name)?7.5:/pranz/i.test(m.name)?13:/cena/i.test(m.name)?20:16.5)})).sort((a,b)=>a.h-b.h);
   const before= H!=null? meals.filter(m=>m.h<=H-1).pop() : null, after= H!=null? meals.find(m=>m.h>=H+(pl.minutes||45)/60) : null;
   const carbPre=Math.round(w*(long||hard? 1 : 0.6)/5)*5, protPost=Math.round(Math.min(40,Math.max(20,w*0.3))/5)*5, carbPost=Math.round(w*(long? 1 : 0.7)/5)*5;
   card.innerHTML=""; const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"⛽ Mangiare per la corsa")); const x=el("button","link","Chiudi"); x.type="button";
   x.onclick=()=>{ try{ localStorage.setItem("hf:fuelSeen",iso); }catch{} card.hidden=true; }; hd.appendChild(x); card.appendChild(hd);
-  card.appendChild(el("p","sub",pl.label+(H!=null? " · alle "+hm[1]+":"+hm[2] : "")));
+  card.appendChild(el("p","sub",pl.label));
+  { const row=el("label","note"); row.style.cssText="display:flex;gap:8px;align-items:center;margin:0 0 6px"; row.appendChild(document.createTextNode(ovr? "Corro alle (cambiato oggi)" : "Corro alle")); const i=document.createElement("input"); i.type="time"; i.className="field"; i.style.width="110px"; i.value= hm? hm[1].padStart(2,"0")+":"+hm[2] : "";
+    i.onchange=()=>{ try{ if(i.value) localStorage.setItem("hf:runAt:"+iso,i.value); else localStorage.removeItem("hf:runAt:"+iso); }catch{} renderFuelCard(); toast("Orario della corsa aggiornato: consigli ricalcolati ✓"); }; row.appendChild(i);
+    if(ovr){ const b=el("button","link","Rimetti "+(String(pl.when||"").match(/\d{1,2}[:.]\d{2}/)||["quello del piano"])[0]); b.type="button"; b.onclick=e=>{ e.preventDefault(); try{ localStorage.removeItem("hf:runAt:"+iso); }catch{} renderFuelCard(); }; row.appendChild(b); }
+    card.appendChild(row); }
   const L=[];
   // quanto manca alla corsa adesso (solo oggi): consigli con orari veri invece di «2 ore prima»
   let mLeft=null; if(H!=null&&iso===todayISO()){ const tn=romeNow().time.split(":"); mLeft=Math.round((H-(+tn[0]+(+tn[1])/60))*60); }
