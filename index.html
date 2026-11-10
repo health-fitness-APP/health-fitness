@@ -2392,7 +2392,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.69 (orario della corsa modificabile in «Mangiare per la corsa»)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.70 (i pasti restano aperti fino alla loro ora: colazione 11, pranzo 16…)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -4351,7 +4351,7 @@ function mealDetails(name,foods,alt,onAdd){
   const mt=sumFoods(foods), d=el("details","pm"), sm=el("summary"), nm=el("div","nm");
   nm.append(el("h3",null,name), el("div","mm",`${(foods||[]).length} alimenti · P ${r(mt.p)} · C ${r(mt.c)} · G ${r(mt.f)}`));
   sm.append(nm, el("span","kc",r(mt.kcal)+" kcal"), el("span","chev","›")); d.appendChild(sm);
-  const body=el("div","body"), ul=el("ul"); (foods||[]).forEach(f=>ul.appendChild(el("li",null,`${f.name} – ${r(+f.grams||0)} g${portionHint(f)} · ${r(+f.kcal||0)} kcal`))); body.appendChild(ul);
+  const body=el("div","body"), ul=el("ul"); (foods||[]).forEach(f=>ul.appendChild(el("li",null,`${f.done?"✓ ":""}${f.name} – ${r(+f.grams||0)} g${portionHint(f)} · ${r(+f.kcal||0)} kcal${f.done?" (mangiato)":""}`))); body.appendChild(ul);
   if(alt) body.appendChild(el("div","alt","In alternativa: "+alt));
   if(onAdd){ const b=el("button","btn ghost","Aggiungi "+name.toLowerCase()+" al diario"); b.type="button"; b.onclick=onAdd; body.appendChild(b); }
   d.appendChild(body); return d;
@@ -4584,9 +4584,18 @@ function planDays(plan){
 }
 const sumMeals=meals=>(meals||[]).reduce((a,m)=>{ const t=sumFoods(m.foods); return {kcal:a.kcal+t.kcal,p:a.p+t.p,c:a.c+t.c,f:a.f+t.f}; },{kcal:0,p:0,c:0,f:0});
 /* oggi: i pasti già registrati nel diario prendono il posto di quelli del piano, così il totale torna con l'obiettivo */
+/* un pasto resta «aperto» fino alla sua ora di fine (Daniele): colazione fino alle 11, pranzo fino alle 16…
+   finché è aperto, quello che segni si aggiunge e il resto del pasto previsto rimane da mangiare */
+const MEAL_END={colazione:11,spuntino1:12.5,pranzo:16,spuntini:19,spuntino2:19,cena:24};
+function mealEndH(id,name){ if(MEAL_END[id]!=null) return MEAL_END[id]; const n=String(name||id); return /colaz/i.test(n)? 11 : /pranz/i.test(n)? 16 : /cena/i.test(n)? 24 : /spunt|merend/i.test(n)? (/1|mattin/i.test(id+" "+n)? 12.5 : 19) : 19; }
+function mealOpen(id,name){ if(state.date!==todayISO()) return false; const t=romeNow().time.split(":"); return (+t[0]+(+t[1])/60) < mealEndH(id,name); }
+function foodKey(n){ return String(n||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\(.*?\)/g," ").split(/[^a-z]+/).filter(w=>w.length>2&&!["con","del","della","delle","dei","di","al","alla","allo","agli","per","senza"].includes(w))[0]||""; }
+function planRemain(planned,eaten){ const ek=new Set((eaten||[]).map(x=>foodKey(x.name)).filter(Boolean)); return (planned||[]).filter(f=>!ek.has(foodKey(f.name))); }
 function mealsWithEaten(d){
   if(d.weekday!==new Date(todayISO()+"T12:00:00").getDay()||state.date!==todayISO()) return d.meals||[];
-  const ml=mealList(), out=(d.meals||[]).map(m=>{ const it=state.day.meals[m.id]||[]; return it.length? {...m, eaten:true, planned:m.foods, foods:it.map(x=>({name:x.name,grams:x.grams,kcal:x.kcal,p:x.p,c:x.c,f:x.f}))} : m; });
+  const ml=mealList(), out=(d.meals||[]).map(m=>{ const it=state.day.meals[m.id]||[]; if(!it.length) return m; const ef=it.map(x=>({name:x.name,grams:x.grams,kcal:x.kcal,p:x.p,c:x.c,f:x.f}));
+    if(mealOpen(m.id,m.name)) return {...m, partial:true, planned:m.foods, foods:[...ef.map(x=>({...x,done:true})), ...planRemain(m.foods,ef)]};
+    return {...m, eaten:true, planned:m.foods, foods:ef}; });
   Object.keys(state.day.meals||{}).forEach(k=>{ if(!out.find(m=>m.id===k)&&(state.day.meals[k]||[]).length){ const m=ml.find(x=>x.id===k)||{id:k,name:k}; out.push({id:k,name:m.name,eaten:true,foods:state.day.meals[k].map(x=>({name:x.name,grams:x.grams,kcal:x.kcal,p:x.p,c:x.c,f:x.f}))}); } });
   return out;
 }
@@ -4618,17 +4627,18 @@ function renderDietAI(){
   // oggi: il piano segue sempre l'obiettivo di Cibo (allenamento reale di oggi + quello di domani)
   if(liveT){ const iT=days.findIndex(x=>x.weekday===curWd);
     // il totale da confrontare è quello che vedi: pasti già mangiati (dal diario) + pasti ancora da fare; si riallinea anche ogni volta che registri qualcosa
-    if(iT>=0){ const td=days[iT], tot=sumMeals(mealsWithEaten(td)).kcal, eatenIds=Object.keys(state.day.meals||{}).filter(k=>(state.day.meals[k]||[]).length), tE=totals();
+    if(iT>=0){ const td=days[iT], tot=sumMeals(mealsWithEaten(td)).kcal, eatenIds=Object.keys(state.day.meals||{}).filter(k=>(state.day.meals[k]||[]).length&&!mealOpen(k,(mealList().find(x=>x.id===k)||{}).name)), tE=totals();
       const key=todayISO()+"|"+liveT.kcal+"|"+eatenIds.sort().join(",")+"|"+Math.round(tE.kcal/10);
       if(Math.abs(tot-liveT.kcal)/liveT.kcal>0.02&&td.syncedFor!==key){
-        const rest=td.meals.filter(m=>!eatenIds.includes(m.id));
+        // pasti aperti con qualcosa già segnato: si ricalibra solo la parte che manca, quella segnata resta com'è
+        const part={}, rest=td.meals.filter(m=>!eatenIds.includes(m.id)).map(m=>{ const it=state.day.meals[m.id]||[]; if(!it.length) return m; const rem=planRemain(m.foods,it); part[m.id]=(m.foods||[]).filter(f=>!rem.includes(f)); return {...m,foods:rem}; }).filter(m=>(m.foods||[]).length);
         const tgtRest={kcal:Math.max(0,liveT.kcal-tE.kcal), p:Math.max(0,liveT.p-tE.p)};
         const cal=rest.length? calibrateMeals(rest,tgtRest) : [];
-        days[iT]={...td, meals:td.meals.map(m=>cal.find(x=>x.id===m.id)||m), syncedFor:key};
+        days[iT]={...td, meals:td.meals.map(m=>{ const c=cal.find(x=>x.id===m.id); return c? (part[m.id]? {...c,foods:[...part[m.id],...(c.foods||[])]} : c) : m; }), syncedFor:key};
         state.diet.plan={...state.diet.plan, days}; save("diet",state.diet);
       } } }
   const d=days[dietDayIdx], vm=mealsWithEaten(d), t=sumMeals(vm), tt=tgtOf(d), name=d.label||WD_NAME[d.weekday]||"Giorno";
-  const eatenK=vm.filter(m=>m.eaten).reduce((a,m)=>a+sumFoods(m.foods).kcal,0);
+  const eatenK=vm.reduce((a,m)=>a+sumFoods(m.eaten? m.foods : (m.foods||[]).filter(f=>f.done)).kcal,0);
   const bar=(v,tv,col)=>`<div class="bar"><i style="width:${tv?Math.min(100,v/tv*100):0}%;background:${col}"></i></div>`;
   const ds=$("dietDay"); ds.innerHTML=`<div class="dsum">
     <div class="top"><span class="day"></span><span class="kind">${tt&&tt.train? (tt.kind==="run"?"🏃 ":"🏋️ ")+(tt.label||"giorno di allenamento")+(tt.when?" · "+tt.when:"") : "giorno di riposo"}</span></div>
@@ -4653,6 +4663,7 @@ function renderDietAI(){
   vm.forEach(m=>{
     const foods=m.foods||[], mname=(mealList().find(x=>x.id===m.id)||{}).name||m.name||"Pasto";
     if(m.eaten){ box.appendChild(mealDetails("✓ "+mname+" (già mangiato)", foods, null, null)); return; }
+    if(m.partial){ const left=foods.filter(f=>!f.done); box.appendChild(mealDetails(mname+" (in corso fino alle "+String(Math.floor(mealEndH(m.id,mname))).padStart(2,"0")+":"+(mealEndH(m.id,mname)%1? "30" : "00")+")", foods, null, left.length? ()=>{ const target=mealList().find(x=>x.id===m.id)? m.id : mealList()[0].id; addItems(left.map(normItem), target, true); toast("Il resto di "+mname.toLowerCase()+" aggiunto al diario"); } : null)); return; }
     box.appendChild(mealDetails(mname, foods, m.alternatives, ()=>{ const target=mealList().find(x=>x.id===m.id)? m.id : mealList()[0].id;
       addItems(foods.map(normItem), target, true); toast(mname+" aggiunto al diario di "+($("dayLabel").textContent.toLowerCase())); }));
   });
