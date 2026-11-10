@@ -2392,7 +2392,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.66 (integratori di oggi nella pagina Cibo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.67 (percorso consigliato in base ai km del giorno)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7835,9 +7835,7 @@ function renderRunPage(box,a,pr,d,di,wd,names,isoOf){
     hc.querySelector(".hc-adv").textContent=hrAdvice().t; box.appendChild(hc);
     if(!/lungo/i.test(d.runType||d.title)){ const tc=el("div","card"); tc.innerHTML=`<h2>🦶 Tecnica di corsa</h2><p class="note" style="margin:0">A fine corsa, prima del defaticamento: 5 minuti di skip, calciata, saltelli e 3 allunghi. Te li guido a voce dal telefono.</p>`;
       const b=el("button","btn ghost","▶ Inizia la tecnica (5 min)"); b.type="button"; b.style.marginTop="8px"; b.onclick=()=>startStretch("tecnica"); tc.appendChild(b); box.appendChild(tc); } }
-  try{ const rp=runPlan(d), rr=routesFor(rp.km); if(rr.length){ const pc=el("div","card"); pc.appendChild(el("h2",null,"🗺 Percorsi adatti"));
-      rr.forEach(r0=>{ const ln=el("div","pline"); ln.append(el("span","ic","📍"), el("span",null,`${r0.name}: ${fmt(r0.km)} km${r0.gain? ", "+Math.round(r0.gain)+" m di salita" : ""}`)); pc.appendChild(ln); });
-      pc.appendChild(el("p","note","Sono i tuoi percorsi salvati con la distanza più vicina a quella di oggi.")); box.appendChild(pc); } }catch(e){ console.warn("percorsi",e); }
+  try{ const pc=routeCard(d); if(pc) box.appendChild(pc); }catch(e){ console.warn("percorsi",e); }
   if(res){ const rc=el("div","card run-res"); rc.innerHTML=`<div><b>Fatta${res.on?" "+dayTxt(res.on):""} ✓</b><div class="sub">${[res.km?fmt(res.km)+" km":"", res.minutes?hms(res.minutes):"", res.pace?paceTxt(paceSec(res.pace))+"/km":"", res.avgHr?"FC media "+res.avgHr:""].filter(Boolean).join(" · ")}</div></div>${res.score!=null?`<span class="score">${res.score}</span>`:""}`; { const rw=runResWorkout(res,iso); if(rw){ rc.classList.add("tap"); rc.setAttribute("role","button"); rc.setAttribute("aria-label","Vedi il riepilogo della corsa"); rc.onclick=()=>openRunSummary(rw.id,rw); rc.querySelector("b").textContent+=" ›"; } } box.appendChild(rc); }
   // avvio con Galaxy Watch e risultati
   const go=el("div","run-go");
@@ -9135,6 +9133,21 @@ function renderRoutes(target){ const box=$("csRoutes"); if(!box) return; box.inn
     const del=el("button","linkbtn","Elimina"); del.type="button"; del.onclick=()=>{ if(!confirm("Eliminare il percorso «"+r0.name+"»?")) return; routes.list=routes.list.filter(y=>y.id!==r0.id); save("routes",routes); renderRoutes(target); };
     a.append(sh,del); row.append(a,mp); box.appendChild(row); }); }
 function routesFor(km){ return (routes.list||[]).filter(r0=>km&&Math.abs(r0.km-km)<=Math.max(1,km*0.15)).sort((a,b)=>Math.abs(a.km-km)-Math.abs(b.km-km)).slice(0,3); }
+/* percorso migliore per la corsa del giorno: distanza (anche facendo più giri), salita adatta al tipo di corsa */
+function runDayKm(d){ const rp=runPlan(d), sk=(d.segments||[]).reduce((a,g)=>a+(+g.km||0),0); return Math.round(Math.max(rp.km||0,sk)*10)/10; }
+function routeBest(d){ const km=runDayKm(d), L=routes.list||[]; if(!km||!L.length) return [];
+  const t=String((d.runType||"")+" "+(d.title||"")), quality=/soglia|ripetut|interval|ritmo gara|tempo run|progressiv|fartlek|test/i.test(t), long=/lungo/i.test(t);
+  const C=[]; L.forEach(r0=>{ if(!(r0.km>0.3)) return; for(let n=1;n<=6;n++){ const tot=r0.km*n, diff=tot-km; if(diff>km*0.15+0.3) break; if(diff<-km*0.35) continue;
+      const g=(r0.gain||0)*n/Math.max(1,tot); let sc=Math.abs(diff)/km*100 + (diff<0? Math.abs(diff)/km*40 : 0) + (n-1)*3 + g*(quality? 2.5 : long? 0.6 : 0.9);
+      C.push({r0,n,tot:Math.round(tot*10)/10,diff:Math.round(diff*10)/10,sc}); } });
+  C.sort((a,b)=>a.sc-b.sc); const seen=new Set(), out=[]; C.forEach(c=>{ if(!seen.has(c.r0.id)&&out.length<3){ seen.add(c.r0.id); out.push(c); } }); return out; }
+function routeTxt(c,km){ return `${c.n>1? c.n+" giri: " : ""}${fmt(c.tot)} km`+(c.diff<=-0.3? ` · aggiungi ${fmt(Math.round(-c.diff*10)/10)} km (vai e torna ${fmt(Math.round(-c.diff*5)/10)} km)` : c.diff>=0.3? ` · ${fmt(c.diff)} km in più` : " · distanza giusta")+(c.r0.gain? ` · ↗ ${Math.round(c.r0.gain*c.n)} m` : ""); }
+function routeCard(d){ const km=runDayKm(d); if(!km) return null; const B=routeBest(d), pc=el("div","card"); pc.appendChild(el("h2",null,"🗺 Percorso consigliato"));
+  if(!B.length){ pc.appendChild(el("p","note",(routes.list||[]).length? `Nessun tuo percorso va bene per ${fmt(km)} km. Dopo la corsa salvalo dal riepilogo con «⭐ Salva il percorso».` : "Salva i tuoi giri dal riepilogo di una corsa con il GPS («⭐ Salva il percorso»): poi qui ti dico qual è il migliore per i km del giorno.")); return pc; }
+  B.forEach((c,i)=>{ const row=el("div","cs-shoe"), h=el("div","h"); h.append(el("b",null,(i===0?"⭐ ":"")+c.r0.name), el("span",null,routeTxt(c,km))); row.appendChild(h);
+    const a=el("div","a"), mp=el("div"), sh=el("button","linkbtn","Mappa"); sh.type="button"; sh.onclick=()=>{ if(mp.innerHTML){ mp.innerHTML=""; return; } try{ rdMapBox(mp,routeP(c.r0)); }catch(e){ console.warn("mappa",e); } }; a.appendChild(sh); row.append(a,mp); pc.appendChild(row); });
+  const t=String((d.runType||"")+" "+(d.title||"")); pc.appendChild(el("p","note",`Per ${fmt(km)} km. `+(/soglia|ripetut|interval|ritmo gara|progressiv|fartlek/i.test(t)? "Oggi ci sono tratti veloci: ho preferito i percorsi più piatti." : "Ho scelto la distanza più vicina, con pochi giri e poca salita.")));
+  return pc; }
 /* ===== confronto con l'anno scorso ===== */
 function yearAgo(from,to){ const f=shiftDate(from,-364), t=shiftDate(to,-364), H=(hist&&hist.items)||[], inR=d=>d>=f&&d<=t;
   const runs=H.filter(w=>inR(w.date)&&isRun(w)), km=runs.reduce((a,w)=>a+(+w.distance||0),0), gym=tlog.sessions.filter(x=>inR(x.date)).length, ws=sortedEntries().filter(x=>x.weight&&inR(x.date)).map(x=>+x.weight);
