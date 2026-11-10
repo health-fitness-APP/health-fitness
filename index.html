@@ -2393,7 +2393,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.74 (integratori si modificano nella pagina Cibo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.75 (domande al coach sugli integratori)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -10484,6 +10484,12 @@ Rispondi SOLO con JSON in italiano: {"items":[{"name":"string","verdict":"ok"|"r
         ad.onclick=()=>{ if(!sdraft) return; sdraft.supplements.push({name:x.name,dose:x.dose||"",when:wh}); renderSupps(); ad.textContent="✓ Aggiunto"; ad.disabled=true; toast("Aggiunto: tocca Salva per tenerlo"); };
         c.appendChild(ad); box.appendChild(c); }); }
     box.appendChild(el("p","note","Consigli indicativi: per dosi elevate o problemi di salute senti il medico. Se hai cambiato qualcosa ricordati di toccare Salva."));
+    // domande sugli integratori: si continua nella chat del coach, con i consigli già scritti
+    const q=el("button","btn ghost","💬 Fai una domanda al coach"); q.type="button"; q.style.marginTop="8px";
+    q.onclick=()=>{ const sug=(res.suggest||[]).map(x=>typeof x==="string"? x : x&&x.name? x.name+(x.dose?" "+x.dose:"") : "").filter(Boolean);
+      const ctx=[list.length? "Prendo: "+list.map(x=>x.name+(x.dose?" "+x.dose:"")).join(", ")+"." : "", sug.length? "Mi hai consigliato: "+sug.join(", ")+"." : ""].filter(Boolean).join(" ");
+      go("allenamento"); setW("chat"); const ci=$("chatIn"); ci.value="Integratori. "+ctx+" Domanda: "; setTimeout(()=>{ try{ ci.focus(); ci.setSelectionRange(ci.value.length,ci.value.length); }catch{} },300); };
+    box.appendChild(q);
   }catch(e){ setStatus("suppStatus",errCopy(e),true); }
   finally{ $("suppAsk").disabled=false; }
 };
