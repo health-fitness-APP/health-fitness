@@ -2392,7 +2392,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.67 (percorso consigliato in base ai km del giorno)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.68 (mangiare per la corsa con gli orari veri)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9369,14 +9369,29 @@ function renderFuelCard(){ const card=$("fuelCard"); if(!card) return; const iso
   x.onclick=()=>{ try{ localStorage.setItem("hf:fuelSeen",iso); }catch{} card.hidden=true; }; hd.appendChild(x); card.appendChild(hd);
   card.appendChild(el("p","sub",pl.label+(H!=null? " · alle "+hm[1]+":"+hm[2] : "")));
   const L=[];
-  if(H!=null&&H<9.5) L.push(["🌅","Prima: corri presto. "+(long||hard? `Mangia 30-60 minuti prima qualcosa di facile, circa ${Math.round(carbPre/2/5)*5} g di carboidrati (una banana o 2-3 fette biscottate con miele), poco grasso e poche fibre.` : "Una corsa così si può fare anche a digiuno; se hai fame basta una banana.")]);
-  else L.push(["⏱",`Prima: ${before? "nel pasto «"+before.name+"» ("+(H-before.h<2? "circa un'ora e mezza" : "2-3 ore")+" prima) " : "2-3 ore prima "}circa ${carbPre} g di carboidrati facili (pane, riso, pasta, frutta), poche fibre e pochi grassi. Se hai fame 30-60 minuti prima, una banana.`]);
-  if(long){ const g=Math.round(w*1.3/10)*10; L.push(["🍳",`Idee veloci prima del lungo: pasta al pomodoro (${g} g) con un filo d'olio e parmigiano · riso in bianco (${g} g) con un po' di pollo · 2 fette di pane con miele e una banana (se mancano meno di 2 ore) · porridge con ${Math.round(w*0.8/10)*10} g di avena, latte e miele.`]);
+  // quanto manca alla corsa adesso (solo oggi): consigli con orari veri invece di «2 ore prima»
+  let mLeft=null; if(H!=null&&iso===todayISO()){ const tn=romeNow().time.split(":"); mLeft=Math.round((H-(+tn[0]+(+tn[1])/60))*60); }
+  const hhmm=m=>{ const tn=romeNow().time.split(":"), t=(+tn[0])*60+(+tn[1])+m; return String(Math.floor(t/60)%24).padStart(2,"0")+":"+String(Math.max(0,t%60)).padStart(2,"0"); };
+  const lft=m=> m>=60? `${Math.floor(m/60)} ${Math.floor(m/60)===1?"ora":"ore"}${m%60? " e "+(m%60)+" minuti" : ""}` : m+" minuti";
+  const durM=pl.minutes||45, nowMode= mLeft!=null&&mLeft<150&&mLeft>-(durM+15), afterMode= mLeft!=null&&mLeft<=-(durM+15);
+  if(nowMode){
+    if(mLeft<=0) L.push(["🏃","La corsa è adesso: buona corsa! Se hai sete, qualche sorso d'acqua."]);
+    else if(mLeft>=90) L.push(["⏰",`Mancano ${lft(mLeft)}. Mangia adesso o comunque entro le ${hhmm(mLeft-90)}: circa ${Math.round(carbPre/5)*5} g di carboidrati facili (pane o fette biscottate con miele, una banana), pochi grassi e poche fibre. Dopo le ${hhmm(mLeft-90)} solo una banana, entro le ${hhmm(mLeft-30)}.`]);
+    else if(mLeft>=30) L.push(["⏰",`Mancano ${lft(mLeft)}. ${long||hard? `Mangia entro le ${hhmm(mLeft-30)} qualcosa di leggero, circa ${Math.round(carbPre/2/5)*5} g di carboidrati: una banana o 2 fette biscottate con miele` : `Se hai fame mangia una banana entro le ${hhmm(mLeft-30)}`}, poi niente altro fino alla corsa.`]);
+    else L.push(["⏰",`Mancano ${lft(mLeft)}: ormai niente cibo, rischi di sentirlo sullo stomaco. Se hai proprio fame, mezza banana subito. ${long||hard? "Per i lunghi e le corse dure porta un gel e prendilo al 30° minuto." : "Per una corsa così va benissimo anche a digiuno."}`]);
+    if(mLeft>15) L.push(["💧",`Acqua: bevi ${mLeft>=60? "400-500" : mLeft>=30? "300-400" : "150-250"} ml adesso a piccoli sorsi, poi smetti verso le ${hhmm(mLeft-15)}. Dopo la corsa 500-750 ml (di più se hai sudato molto).`]);
+  } else if(afterMode) L.push(["✅","La corsa di oggi è passata: ora conta il recupero."]);
+  else if(H!=null&&H<9.5) L.push(["🌅","Prima: corri presto. "+(long||hard? `Mangia 30-60 minuti prima qualcosa di facile, circa ${Math.round(carbPre/2/5)*5} g di carboidrati (una banana o 2-3 fette biscottate con miele), poco grasso e poche fibre.` : "Una corsa così si può fare anche a digiuno; se hai fame basta una banana.")]);
+  else if(!nowMode&&!afterMode) L.push(["⏱",`Prima: ${before? "nel pasto «"+before.name+"» ("+(H-before.h<2? "circa un'ora e mezza" : "2-3 ore")+" prima) " : "2-3 ore prima "}circa ${carbPre} g di carboidrati facili (pane, riso, pasta, frutta), poche fibre e pochi grassi. Se hai fame 30-60 minuti prima, una banana.`]);
+  if(long&&!afterMode){ const g=Math.round(w*1.3/10)*10; if(!nowMode||mLeft>=120) L.push(["🍳",`Idee veloci prima del lungo: pasta al pomodoro (${g} g) con un filo d'olio e parmigiano · riso in bianco (${g} g) con un po' di pollo · 2 fette di pane con miele e una banana (se mancano meno di 2 ore) · porridge con ${Math.round(w*0.8/10)*10} g di avena, latte e miele.`]);
+  }
+  if(long){ const g=Math.round(w*1.3/10)*10;
     L.push(["🥗",`Dopo il lungo: piatto unico di riso o pasta (${g} g) con tonno, pollo o uova e verdure, oppure yogurt greco, banana e un panino al prosciutto se hai poco tempo.`]); }
-  if(long) L.push(["🍝","Il giorno prima: cena con un buon piatto di carboidrati (l'app li ha già aggiunti nel giorno prima del lungo). Durante: i gel come da scheda della corsa."]);
-  L.push(["💧","Bevi 400-500 ml d'acqua nelle 2 ore prima, e dopo la corsa 500-750 ml (di più se hai sudato molto)."]);
+  if(long&&!nowMode&&!afterMode) L.push(["🍝","Il giorno prima: cena con un buon piatto di carboidrati (l'app li ha già aggiunti nel giorno prima del lungo). Durante: i gel come da scheda della corsa."]);
+  if(!nowMode) L.push(["💧", afterMode? "Bevi 500-750 ml d'acqua nelle prossime ore (di più se hai sudato molto)." : "Bevi 400-500 ml d'acqua nelle 2 ore prima, e dopo la corsa 500-750 ml (di più se hai sudato molto)."]);
   L.push(["🥛",`Dopo: entro un'ora ${protPost} g di proteine e circa ${carbPost} g di carboidrati${after&&after.h-(H+(pl.minutes||45)/60)<=1.5? " (va bene il pasto «"+after.name+"»)" : ": per esempio uno yogurt greco con una banana e un po' di miele, o un panino con prosciutto"}.`]);
   L.forEach(([ic,t])=>{ const d=el("div","pline"); d.append(el("span","ic",ic), el("span",null,t)); card.appendChild(d); }); }
+setInterval(()=>{ try{ if(view==="diario"&&document.visibilityState==="visible") renderFuelCard(); }catch{} },120000);   // i minuti che mancano alla corsa si aggiornano da soli
 function renderWeekCard(){ const card=$("weekCard"); if(!card) return; const today=todayISO(), wd=new Date(today+"T12:00:00").getDay();
   const sun= wd===0&&+romeNow().time.slice(0,2)>=18;   // domenica sera: il bilancio della settimana che sta finendo
   const from= sun? mondayOf(today) : shiftDate(mondayOf(today),-7); let seen=""; try{ seen=localStorage.getItem("hf:weekSeen")||""; }catch{}
