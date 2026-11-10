@@ -2393,7 +2393,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.75 (domande al coach sugli integratori)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.76 (integratori: il coach dà gli stessi consigli in chat)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6968,6 +6968,9 @@ function renderCsMem(){ const m=(chat&&chat.mem)||[], box=$("csMem"), row=$("csM
   $("csMemCard").hidden=!m.length||!csMemOpen; box.innerHTML="";
   m.forEach((x,i)=>{ const r0=el("div","cs-mem"); r0.appendChild(el("span",null,x.t)); const b=el("button",null,"✕"); b.type="button"; b.setAttribute("aria-label","Dimentica");
     b.onclick=()=>{ chat.mem.splice(i,1); save("coach",chat); renderCsMem(); }; r0.appendChild(b); box.appendChild(r0); }); }
+/* ultimi consigli sugli integratori dati dal coach (pagina Cibo): in chat deve restare coerente */
+function suppAdvText(){ let a=null; try{ a=JSON.parse(localStorage.getItem("hf:suppAdv")||"null"); }catch{} if(!a) return "";
+  return `CONSIGLI SUGLI INTEGRATORI CHE GLI HAI GIÀ DATO il ${dateLong(a.d)} (pagina Cibo): ${a.summary||""}${a.items&&a.items.length? " Valutazione di quelli che prende: "+a.items.join("; ")+"." : ""}${a.suggest&&a.suggest.length? " Da aggiungere: "+a.suggest.join("; ")+"." : ""} Sono consigli tuoi: restaci coerente. Cambiali solo se la persona ti dà informazioni nuove, e in quel caso spiega chiaramente cosa è cambiato e perché.`; }
 function memText(){ const m=(chat&&chat.mem)||[]; return m.length? "COSE CHE LA PERSONA TI HA DETTO E CHE DEVI SEMPRE RISPETTARE (memoria del coach):\n"+m.map(x=>"- "+x.t).join("\n") : ""; }
 function csText(){ const c=cs; if(!c||!c.sports.length) return "";
   return "ATTIVITÀ E GIORNI SCELTI DALLA PERSONA NEL COACH (sono la regola: la scheda li rispetta sempre): "+c.sports.map(k=>{ const o=c.sp[k]||{}; return `${CS_NAME[k]}: ${csDaysTxt(o)}${o.start?" alle "+o.start:""}${k==="palestra"&&gymMax()?", massimo "+gymMax()+" minuti a seduta":""}${k==="corsa"&&o.days&&o.days.length?", lungo il "+WD[+o.longWd||0].toLowerCase():""}${o.goal?", obiettivo "+o.goal:""}${o.notes?" ("+o.notes+")":""}`; }).join("; ")+"."+(c.spec? " Obiettivo specifico: "+c.spec+"." : ""); }
@@ -8455,6 +8458,7 @@ ${upActive()? "Segue una dieta del nutrizionista caricata nell'app (circa "+r(up
 Programma attuale${activeProg()&&activeProg().kind==="imported"?" (scheda del suo personal trainer: non contraddirla, al massimo suggerisci di parlarne con il trainer)":""}: ${pr? (pr.name+" – "+(pr.summary||"")+" – giorni: "+pr.days.map(d=>d.title+": "+(d.exercises||[]).map(x=>x.name+" "+exTarget(x)).join(", ")).join(" | ")) : "nessuno"}.
 ${csText()}
 ${memText()}
+${suppAdvText()}
 ${comboText()}
 ${ovrText()}
 Ultimi allenamenti registrati con la scheda: ${tlog.sessions.slice(-3).map(s=>s.date+" "+s.title+": "+s.exercises.map(x=>x.name+" "+x.sets.map(z=>z.text? z.text : (z.kg!=null? z.kg+"kg×":"")+(z.reps||"")).join("/")).join("; ")+(s.notes?" (note: "+s.notes+")":"")).join(" || ")||"nessuno"}. Allenamenti registrati ${state.date===todayISO()?"oggi":"il "+state.date}: ${recent}. Evento ${state.date===todayISO()?"di oggi":"del "+state.date}: ${eventText()}.
@@ -10467,11 +10471,13 @@ $("suppAsk").onclick=async()=>{
   const list=(sdraft.supplements||[]).filter(x=>String(x.name||"").trim()); if(!sample) return;
   $("suppAsk").disabled=true; setStatus("suppStatus","Il coach valuta i tuoi integratori…"); $("suppOut").innerHTML="";
   try{
-    const res=await sample.json(`Sei un nutrizionista sportivo. ${list.length? `Valuta gli integratori che prende questa persona: ${list.map(x=>`${x.name}${x.dose?" "+x.dose:""} (${(SUPP_WHEN.find(w=>w[0]===x.when)||[,""])[1]})`).join("; ")}.` : "Questa persona non prende integratori: consiglia SOLO quelli davvero utili per il suo obiettivo e i suoi allenamenti (palestra e corsa), con prove solide (es. creatina, proteine in polvere solo se fatica ad arrivare alle proteine, vitamina D in inverno, caffeina prima delle corse dure, elettroliti nei lunghi). Massimo 4. Se nessuno serve davvero, dillo."}
-Profilo: ${profileSummary()}.
+    const res=await sample.json(`${coachContext()}
+
+COMPITO ADESSO (ignora le istruzioni sulle righe SCHEDA, GIORNO, GIORNI, PROFILO e RICORDA): come nutrizionista sportivo, consiglia gli integratori usando TUTTI i dati qui sopra (dieta e proteine che mangia davvero, allenamenti di palestra e corsa, gara, obiettivo, memoria del coach). ${list.length? `Valuta gli integratori che prende questa persona: ${list.map(x=>`${x.name}${x.dose?" "+x.dose:""} (${(SUPP_WHEN.find(w=>w[0]===x.when)||[,""])[1]})`).join("; ")}.` : "Questa persona non prende integratori: consiglia SOLO quelli davvero utili per il suo obiettivo e i suoi allenamenti (palestra e corsa), con prove solide (es. creatina, proteine in polvere solo se fatica ad arrivare alle proteine, vitamina D in inverno, caffeina prima delle corse dure, elettroliti nei lunghi). Massimo 4. Se nessuno serve davvero, dillo."}
 Per ciascuno: è utile per il suo obiettivo? la dose è corretta (indica quella consigliata per il suo peso)? il momento è giusto? Segnala interazioni o eccessi e cosa eventualmente aggiungere o togliere. Ricorda che non sostituisci il medico.
 Rispondi SOLO con JSON in italiano: {"items":[{"name":"string","verdict":"ok"|"rivedi"|"inutile","dose":"dose consigliata","when":"momento consigliato","note":"una frase"}],"summary":"giudizio complessivo in 1-2 frasi","suggest":[{"name":"nome breve dell'integratore","dose":"dose per il suo peso, es. 5 g","when":"${SUPP_WHEN.map(w=>w[0]).join('"|"')}","why":"perché, una frase"}]}. "items" valuta solo quelli che prende già (vuoto se non ne prende); "suggest" sono quelli da aggiungere.`,{modelTier:"default"});
     if(!res||!(Array.isArray(res.items)||Array.isArray(res.suggest))) throw {code:"bad_output"}; res.items=res.items||[];
+    try{ localStorage.setItem("hf:suppAdv",JSON.stringify({d:todayISO(),summary:String(res.summary||"").slice(0,400),items:(res.items||[]).map(x=>[x.name,x.verdict,x.dose,x.when].filter(Boolean).join(" ")).slice(0,8),suggest:(res.suggest||[]).map(x=>typeof x==="string"? x : [x.name,x.dose,x.when,x.why].filter(Boolean).join(" ")).slice(0,6)})); }catch{}
     setStatus("suppStatus",""); const box=$("suppOut"), V={ok:["✅","Va bene"],rivedi:["⚠️","Da rivedere"],inutile:["❌","Poco utile"]};
     if(res.summary) box.appendChild(el("p",null,res.summary));
     res.items.forEach(it=>{ const v=V[it.verdict]||V.rivedi, c=el("div","suppres "+(it.verdict||"rivedi")); c.innerHTML=`<b></b><span class="vb">${v[0]} ${v[1]}</span><div class="d"></div><div class="nt"></div>`;
