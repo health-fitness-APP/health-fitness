@@ -2392,7 +2392,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.70 (i pasti restano aperti fino alla loro ora: colazione 11, pranzo 16…)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.71 (modificare la dieta ora richiede pochi secondi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2915,8 +2915,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     let lastErr=null;
     once.maxTokens=opts.maxTokens||0;
     // lavori importanti (diete, schede, piani, analisi: JSON senza foto, modello principale) → più ragionamento se la chiave è a pagamento
-    const deepCall= paid() && json && opts.modelTier!=="quick" && !(opts.images&&opts.images.length) && !opts.fast; once.deep=deepCall;
-    const lightCall= paid() && !deepCall && (hasImgs || !json); once.light=lightCall;
+    const deepCall= opts.think!=="low" && paid() && json && opts.modelTier!=="quick" && !(opts.images&&opts.images.length) && !opts.fast; once.deep=deepCall;
+    const lightCall= paid() && !deepCall && (hasImgs || !json || opts.think==="low"); once.light=lightCall;
     // piani importanti (dieta, scheda palestra, piano gara) col modello Pro, solo con la chiave a pagamento; se non va, si prosegue con Flash
     if(opts.pro&&paid()&&!hasImgs&&!opts.fast&&USE_PRO){ const pm=await proModel(key);
       if(pm){ try{ status("Il coach esperto sta preparando il piano (può volerci un minuto)…"); once.maxTokens=opts.maxTokens||0; once.deep=true; once.light=false;
@@ -4760,7 +4760,7 @@ Preferenze: ${prefs||"nessuna"}.
 ${outToday().length? `OGGI (${WD_NAME[new Date(todayISO()+"T12:00:00").getDay()]}) non ha: ${outToday().join(", ")} — non usarli nei pasti di oggi.
 ` : ""}${recipes.list.length? `Ricette che prepara spesso (usale nei pasti quando sono adatte, con il loro nome esatto e i valori indicati): ${recipes.list.slice(0,15).map(rc=>{ const p=rcpPortion(rc); return `"${rc.name}" 1 porzione ${p.g} g = ${r(p.kcal)} kcal, P ${r(p.p)}, C ${r(p.c)}, G ${r(p.f)}`; }).join("; ")}.\n` : ""}${pantry.items.length? `Ha in casa in questo momento anche (scontrino/frigo): ${pantry.items.filter(i=>!stapleItems().some(z=>sameFood(z.name,i.name))).map(i=>i.name+(i.qty?" ("+i.qty+")":"")).join(", ")} — usali, soprattutto i freschi.\n` : ""}${stapleItems().length? `Alimenti che tiene SEMPRE in casa: ${stapleNames().join(", ")}. Costruisci la dieta usando SOPRATTUTTO questi, se vanno bene per il suo obiettivo. Se mancano alimenti importanti (verdure, frutta, fonti proteiche varie, carboidrati per gli allenamenti…) o alcuni dei suoi non sono adatti, scegli tu cosa aggiungere o sostituire e mettilo nel campo "added" con il motivo.` : ""}
 Nei giorni di allenamento organizza i pasti intorno all'orario (pre e post allenamento, più carboidrati); se si allena al mattino a digiuno, prevedi una colazione di recupero ricca di proteine e carboidrati.
-${prevPlan? "Piano attuale: "+JSON.stringify(prevPlan)+"\nModifica richiesta: "+request+"\nApplica la modifica (ai giorni interessati, o a tutti se la richiesta è generale) mantenendo gli obiettivi e restituisci il piano COMPLETO di 7 giorni." : "Usa cibi comuni in Italia, pasti realistici e semplici da preparare."}${extra? "\n"+extra : ""}
+${prevPlan? "Piano attuale: "+JSON.stringify(prevPlan)+"\nModifica richiesta: "+request+"\nOggi è "+WD_NAME[new Date(todayISO()+"T12:00:00").getDay()]+" (weekday "+new Date(todayISO()+"T12:00:00").getDay()+"). Applica la modifica SOLO dove serve: se parla di oggi, stasera, domani o di un giorno preciso cambia solo quel giorno; se è generale (es. «non mi piace il tonno») cambia i giorni in cui compare. Mantieni gli obiettivi di quei giorni. In \"days\" restituisci SOLO i giorni che hai cambiato (con tutti i loro pasti), non quelli rimasti uguali; non serve \"tips\"." : "Usa cibi comuni in Italia, pasti realistici e semplici da preparare."}${extra? "\n"+extra : ""}
 Spalmabili (marmellata, confettura, miele, burro d'arachidi o di frutta secca, creme spalmabili, burro, formaggio spalmabile): mettili SEMPRE nello stesso pasto insieme a un supporto su cui spalmarli (pane, fette biscottate, gallette, toast, crackers) o dentro yogurt/porridge, e conta anche le calorie del supporto. Mai uno spalmabile da solo, e in proporzione al pane: circa 10 g di marmellata, miele o crema per fetta di pane o pancarré (25-30 g), 8 g per fetta biscottata o galletta. Porzioni realistiche e mangiabili: cereali, muesli o granola (30-60 g; soffiati 20-30 g perché sono voluminosi, con almeno 200 ml di latte) sempre con almeno 150-250 ml di latte o bevanda vegetale, oppure 125-200 g di yogurt; porridge con 40-60 g di fiocchi d'avena e 200-250 ml di latte o acqua; niente grammature impossibili (es. 30 ml di latte con 50 g di cereali, 5 g di un alimento): per stare nelle calorie riduci gli altri alimenti, non il liquido. REGOLA GENERALE: ogni dose deve essere una porzione vera che si può pesare o contare, mai numeri inventati: uova intere (1 uovo = 50 g), yogurt a vasetti (125 g) o greco 150-170 g, frutta a frutti interi (1 banana 120 g, 1 mela 150 g, 1 kiwi 70 g), fette biscottate 8 g l'una, gallette 8 g l'una, tonno a scatolette, proteine in polvere a misurini (30 g); pasta o riso 60-120 g, pane 30-120 g, carne o pesce 100-250 g, affettati 40-100 g, legumi cotti 100-250 g, olio 5-15 g (a cucchiaini da 5 g), parmigiano 5-30 g, frutta secca 10-30 g; tutte le altre grammature arrotondate a 5 o 10 g. Abbinamenti logici: ogni pasto deve essere un piatto che una persona mangerebbe davvero.
 Valori per la porzione indicata, tabelle CREA. Rispondi SOLO con JSON valido e compatto:
 {"days":[{"weekday":1,"label":"Lunedì","meals":[{"id":"string","name":"string","foods":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}]}],"tips":"2-3 consigli brevi per organizzarsi nella settimana (spesa, preparazioni in anticipo)","added":[{"food":"alimento che hai aggiunto oltre ai suoi","why":"perché, breve"}],"reply":"una frase che spiega cosa hai fatto"}`;
@@ -4768,19 +4768,21 @@ Valori per la porzione indicata, tabelle CREA. Rispondi SOLO con JSON valido e c
 async function runDiet(request){
   const prefs=$("dietPrefs").value.trim();
   const btn=request?$("dietSend"):$("makeDiet"); btn.disabled=true;
-  const t0=Date.now(); const tick=setInterval(()=>setStatus("dietStatus",`${request?"Modifico":"Preparo"} la tua settimana… ${Math.round((Date.now()-t0)/1000)} s (di solito meno di un minuto)`),1000);
+  const t0=Date.now(); const tick=setInterval(()=>setStatus("dietStatus",`${request?"Modifico":"Preparo"} la tua settimana… ${Math.round((Date.now()-t0)/1000)} s ${request?"(di solito pochi secondi)":"(di solito un paio di minuti)"}`),1000);
   setStatus("dietStatus", `${request?"Modifico":"Preparo"} la tua settimana…`);
   if(request){ state.diet.history=[...(state.diet.history||[]),{me:true,text:request}]; renderDiet(); $("dietChat").appendChild(el("div","bubble","Sto modificando il piano…")); }
   try{
     const prev= request? {days:planDays(state.diet.plan).map(d=>({weekday:d.weekday,label:d.label,meals:d.meals}))} : null;
-    const res=await sample.json(dietPrompt(prefs,request,prev),{modelTier:"default",pro:true});
+    // creare la dieta: modello Pro; modificarla: modello veloce con ragionamento leggero e solo i giorni cambiati (prima ci voleva fino a 5 minuti)
+    const res=await sample.json(dietPrompt(prefs,request,prev),request? {modelTier:"default",think:"low"} : {modelTier:"default",pro:true});
     let days=res&&Array.isArray(res.days)? res.days.filter(d=>d&&Array.isArray(d.meals)) : [];
+    if(request&&days.length&&days.length<7){ const chg=new Map(days.map(d=>[+d.weekday,d])); days=prev.days.map(d=>chg.get(+d.weekday)||d); }
     if(!days.length&&res&&Array.isArray(res.meals)) days=WD_ORDER.map(wd=>({weekday:wd,label:WD_NAME[wd],meals:res.meals}));
     if(!days.length) throw {code:"bad_output"};
     days=days.map((d,i)=>{ const wd= d.weekday!=null&&d.weekday>=0&&d.weekday<=6? +d.weekday : WD_ORDER[i%7]; return {weekday:wd,label:WD_NAME[wd],meals:d.meals}; })
       .sort((a,b)=>WD_ORDER.indexOf(a.weekday)-WD_ORDER.indexOf(b.weekday));
     const history = request? [...(state.diet.history||[]),{me:false,text:res.reply||"Fatto."}] : [];
-    state.diet={plan:calibratePlan({days,tips:res.tips||"",added:Array.isArray(res.added)?res.added.filter(x=>x&&x.food).slice(0,8):(request&&state.diet&&state.diet.plan&&state.diet.plan.added)||[],createdAt:todayISO()}),prefs,history};
+    state.diet={plan:calibratePlan({days,tips:res.tips||(request&&state.diet.plan&&state.diet.plan.tips)||"",added:Array.isArray(res.added)?res.added.filter(x=>x&&x.food).slice(0,8):(request&&state.diet&&state.diet.plan&&state.diet.plan.added)||[],createdAt:todayISO()}),prefs,history};
     save("diet",state.diet); clearInterval(tick); setStatus("dietStatus","");
     if(state.profile&&prefs!==state.profile.foodPrefs){ state.profile.foodPrefs=prefs; save("profile",state.profile); }
     dietDayIdx=null; renderDiet(); if(!request) $("dietPlanCard").scrollIntoView({behavior:"smooth",block:"start"});
