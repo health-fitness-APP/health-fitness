@@ -2392,7 +2392,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.71 (modificare la dieta ora richiede pochi secondi)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.72 (a fine corsa: stretching e recupero nel riepilogo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5934,7 +5934,7 @@ async function saveWatchResult(o){ if(o&&o.kind==="pain"){ try{ painFromWatch(o)
   if(!plan&&o.title===THR_TITLE) try{ plan=thrPlanInfo(); }catch{}
   await runDetSave(wid,runDetFrom(o,plan));
   setTimeout(()=>{ try{ raceCheckRun({...item,date}); }catch{} },500); return wid; }
-async function watchPending(){ const P=WBR(); if(!P) return; try{ const r0=await P.pending(); let n=0, last=null; for(const o of (r0&&r0.results)||[]){ const id=await saveWatchResult(o); if(id){ n++; last=id; } } if(n){ renderAll(); actionToast(`⌚ ${n===1?"Corsa":"Corse"} dal Galaxy Watch salvat${n===1?"a":"e"} ✓`,"Vedi riepilogo",()=>openRunSummary(last)); } }catch(e){ console.warn("orologio",e); } }
+async function watchPending(){ const P=WBR(); if(!P) return; try{ const r0=await P.pending(); let n=0, last=null; for(const o of (r0&&r0.results)||[]){ const id=await saveWatchResult(o); if(id){ n++; last=id; } } if(n){ renderAll(); actionToast(`⌚ ${n===1?"Corsa":"Corse"} dal Galaxy Watch salvat${n===1?"a":"e"} ✓ · stretching e recupero nel riepilogo`,"Apri",()=>openRunSummary(last)); } }catch(e){ console.warn("orologio",e); } }
 /* ----- APK: motore nativo (fascia e GPS a schermo spento) ----- */
 const NAT=()=>{ const C=window.Capacitor; return C&&C.isNativePlatform&&C.isNativePlatform()? C : null; };
 const HRN=()=>{ const C=NAT(); return C&&C.Plugins? C.Plugins.HrRecorder : null; };
@@ -6634,6 +6634,13 @@ function renderRunSummary(){ const box=$("rdBody"); box.innerHTML=""; if(!rdCur)
   hero.querySelector(".rd-hn").textContent=(pl&&pl.type? pl.type : w.name||"Corsa");
   hero.querySelector(".rd-hd").textContent=t0.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+" "+t0.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
   box.appendChild(hero);
+  // corsa appena finita (oggi, entro 4 ore): cosa fare adesso, come dopo la palestra
+  try{ const endT=(+Dx.t0||t0.getTime())+sec*1000, fresh= (w.date||state.date)===todayISO()&&Date.now()-endT<4*3600e3; let seen=""; try{ seen=localStorage.getItem("hf:postRun")||""; }catch{}
+    if(fresh&&seen!==w.id){ const c=el("section","card"), wt=+(state.profile&&state.profile.weight)||75, longR=sec>=75*60, stMin=Math.round(STRETCH.corsa.ex.reduce((a,q)=>a+q[2]*(q[3]?2:1),0)/60);
+      const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"🧘 Adesso: recupero")); const x0=el("button","link","Fatto"); x0.type="button"; x0.onclick=()=>{ try{ localStorage.setItem("hf:postRun",w.id); }catch{} c.remove(); }; hd.appendChild(x0); c.appendChild(hd);
+      const b=el("button","btn",`🧘 Stretching dopo la corsa (${stMin} min)`); b.type="button"; b.style.margin="8px 0 6px"; b.onclick=()=>{ try{ startStretch("corsa"); }catch(e){ console.warn("stretching",e); } }; c.appendChild(b);
+      [["💧",`Bevi 500-750 ml d'acqua nella prossima ora${sec>=60*60? ", un po' di più se hai sudato tanto" : ""}.`],["🥛",`Entro un'ora: circa ${Math.round(Math.min(40,Math.max(20,wt*0.3))/5)*5} g di proteine e ${Math.round(wt*(longR?1:0.7)/5)*5} g di carboidrati (yogurt greco con banana e miele, o un panino al prosciutto).`],["🚶","5 minuti di camminata lenta prima di sederti aiutano le gambe."]].concat(longR? [["😴","Dopo un lungo: stasera vai a letto un po' prima, domani corsa facile o riposo."]] : []).forEach(([ic,t])=>{ const d=el("div","pline"); d.append(el("span","ic",ic), el("span",null,t)); c.appendChild(d); });
+      box.appendChild(c); } }catch(e){ console.warn("dopo corsa",e); }
   if(pl){ const c=el("button","card rd-sec rd-plan"); c.type="button"; c.onclick=()=>rdOpen("punteggio"); c.innerHTML=`<span><b>Allenamento del piano</b><span class="t"></span><span class="sub"></span></span><span class="chev" aria-hidden="true">›</span>`; c.querySelector(".t").textContent=pl.title;
     c.querySelector(".sub").textContent=[pl.type, pl.min? hms(pl.min) : "", pl.km? rdKm(pl.km)+" km" : "", pl.ps? paceTxt(pl.ps)+"/km" : ""].filter(Boolean).join(" | "); box.appendChild(c); }
   // dettagli
@@ -10923,7 +10930,7 @@ async function loadAll(){
     $("hcConnect").onclick=hcConnect; $("hcPermsLink").onclick=hcConnect; $("hcSyncNow").onclick=()=>hcSync(true); $("hcSettings").onclick=()=>{ const H=HCP(); if(H&&H.openHealthConnectSettings) H.openHealthConnectSettings().catch(()=>{}); };
     if(localStorage.getItem("hf:hcLast")) setStatus("hcStatus","Ultima sincronizzazione: "+new Date(localStorage.getItem("hf:hcLast")).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}));
     setTimeout(()=>{ hcAutoFix().finally(()=>hcSync(false)); },3500);
-    try{ const W=WBR(); if(W){ W.addListener("watchResult",async o=>{ const id=await saveWatchResult(o); if(id){ renderAll(); actionToast("⌚ Corsa dal Galaxy Watch salvata ✓","Vedi riepilogo",()=>openRunSummary(id)); } }); setTimeout(watchPending,2500); NAT().Plugins.App.addListener("resume",()=>watchPending()); } }catch(e){ console.warn("orologio",e); }
+    try{ const W=WBR(); if(W){ W.addListener("watchResult",async o=>{ const id=await saveWatchResult(o); if(id){ renderAll(); actionToast("⌚ Corsa salvata ✓ · stretching e recupero nel riepilogo","Apri",()=>openRunSummary(id)); } }); setTimeout(watchPending,2500); NAT().Plugins.App.addListener("resume",()=>watchPending()); } }catch(e){ console.warn("orologio",e); }
     try{ NAT().Plugins.App.addListener("resume",()=>{ const l=+new Date(localStorage.getItem("hf:hcLast")||0); if(Date.now()-l>10*60000) hcSync(false); }); }catch{}
     setTimeout(()=>{ hrnRestore(); },900); setTimeout(()=>{ rdFix0711(); },3000);
     try{ NAT().Plugins.App.addListener("backButton",()=>{ if(view==="diario"&&!sheetStack.length) NAT().Plugins.App.minimizeApp(); else history.back(); }); }catch{}
