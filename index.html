@@ -2399,7 +2399,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.80 (promemoria delle misure del corpo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.81 (promemoria misure alle 6)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -8762,7 +8762,7 @@ function renderRatios(w,h){ const box=$("bRatios"), p=state.profile||{}, f=p.sex
   <p class="note" style="margin:10px 2px 0">Stime di rischio cardiometabolico (OMS): non sono una diagnosi.</p>`; }
 /* parere sulle misure (senza AI): simmetria, andamento rispetto a 3-8 settimane fa, spalle/vita; + domanda al coach */
 const MZ_CIRC=["neck","shoulders","chest","waist","abdomen","hips","armL","armR","arm","forearm","thighL","thighR","thigh","calfL","calfR","calf"];
-const MZ_EVERY=14;
+const MZ_EVERY=14, MZ_AT="06:00"; // orario del promemoria scelto da Daniele
 function mzLastDate(es){ es=es||sortedEntries(); let d=null; es.forEach(x=>{ if(MZ_CIRC.some(k=>x[k]!=null)&&(!d||x.date>d)) d=x.date; }); return d; }
 function mzNext(es){ const d=mzLastDate(es); return d? shiftDate(d,MZ_EVERY) : null; }
 function mzLabel(k){ const m=METRICS.find(x=>x[0]===k); return m? m[1] : k; }
@@ -8792,7 +8792,7 @@ function mzAdvice(es){ const tips=[], last={}; MZ_CIRC.forEach(k=>{ const r=mzLa
     tips.push(["📐",`Rapporto spalle/vita ${r.toFixed(2).replace(".",",")}: ${r>=1.55?"fisico a V molto marcato.":r>=1.4?"buona forma a V. Per aumentarla lavora su spalle e dorsali e tieni la vita stretta.":"spalle poco più larghe della vita: spalle (alzate laterali, lento) e dorsali (trazioni, rematore) sono le priorità, insieme a ridurre la pancia."}`]); }
   // promemoria
   const nx=mzNext(es), fdN=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), late=Math.round((new Date(todayISO())-new Date(nx))/864e5);
-  let notif=""; try{ notif= localStorage.getItem("hf:notifOn")==="1"&&notifPrefs().body? " Te lo ricordo con una notifica alle 7:15." : LN()? " Per il promemoria sul telefono attiva Profilo → 🔔 Notifiche." : ""; }catch{}
+  let notif=""; try{ notif= localStorage.getItem("hf:notifOn")==="1"&&notifPrefs().body? " Te lo ricordo con una notifica alle 6." : LN()? " Per il promemoria sul telefono attiva Profilo → 🔔 Notifiche." : ""; }catch{}
   if(late>0) tips.push(["📅",`Le misure andavano rifatte ${late===1?"ieri":late+" giorni fa"}: prendile domattina, prima di colazione.${notif}`]);
   else if(late===0) tips.push(["📅",`Oggi è il giorno delle misure: la mattina, prima di colazione.${notif}`]);
   else tips.push(["📅",`Prossime misure: ${fdN(nx)} (ogni 2 settimane, la mattina a digiuno).${notif}`]);
@@ -9183,9 +9183,9 @@ async function notifSchedule(){ const L=LN(); if(!L||localStorage.getItem("hf:no
     if(P.race){ try{ const g=race&&race.goal; if(g&&g.date){ const dd=Math.round((new Date(g.date+"T12:00:00")-new Date(iso+"T12:00:00"))/864e5); if(dd>=1&&dd<=3) push(iso,"09:00",`🏁 Gara tra ${dd} ${dd===1?"giorno":"giorni"}`, dd===1? "Oggi: carboidrati, poca fibra, prepara la borsa. Apri HealthFit per la lista." : "Apri HealthFit: c'è il programma dei giorni prima della gara."); } }catch{} } }
   if(P.photo){ try{ const L0=(bphotos.list||[]).slice().sort((a,b)=>a.date<b.date?-1:1), last=L0[L0.length-1]; if(last&&last.date<=shiftDate(todayISO(),-27)) push(shiftDate(todayISO(),1),"09:30","📸 Foto del fisico","Sono passate 4 settimane: stessa luce e stessa posa dell'ultima volta."); }catch{}
     try{ const t=thrGet(); if(t&&t.date<=shiftDate(todayISO(),-42)){ const sat=(()=>{ for(let i=1;i<=7;i++){ const d=shiftDate(todayISO(),i); if(new Date(d+"T12:00:00").getDay()===6) return d; } })(); push(sat,"09:00","🧪 Test di soglia","Sono passate 6 settimane dall'ultimo test: se oggi sei riposato, fallo (Statistiche corsa)."); } }catch{} }
-  if(P.body){ try{ const nx=mzNext(); if(nx){ const nowM=new Date().getHours()*60+new Date().getMinutes(); let d=nx<todayISO()? todayISO() : nx; if(d===todayISO()&&nowM>=7*60+15) d=shiftDate(todayISO(),1);
-      push(d,"07:15","📏 Oggi misure del corpo","Prima di colazione, dopo il bagno: Corpo → tocca ogni parte e «Prendi la misura con il metro». Poi pesati.");
-      push(shiftDate(d,2),"07:15","📏 Misure del corpo","Non le hai ancora prese: bastano 5 minuti, la mattina a digiuno."); } }catch{} }
+  if(P.body){ try{ const nx=mzNext(); if(nx){ const nowM=new Date().getHours()*60+new Date().getMinutes(); let d=nx<todayISO()? todayISO() : nx; if(d===todayISO()&&nowM>=hm2min(MZ_AT)) d=shiftDate(todayISO(),1);
+      push(d,MZ_AT,"📏 Oggi misure del corpo","Prima di colazione, dopo il bagno: Corpo → tocca ogni parte e «Prendi la misura con il metro». Poi pesati.");
+      push(shiftDate(d,2),MZ_AT,"📏 Misure del corpo","Non le hai ancora prese: bastano 5 minuti, la mattina a digiuno."); } }catch{} }
   if(out.length) try{ await L.schedule({notifications:out}); }catch(e){ console.warn("notifiche",e); } }
 /* riquadri nascosti: dal Profilo si rimettono */
 const HIDE_KEYS=[["hf:waterOff","💧 Acqua","1"],["hf:chalOff","🎯 Sfide del mese","1"]];
