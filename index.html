@@ -892,7 +892,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .str-c{color:var(--muted);margin:10px 0 0}.str-n{font-size:1.7rem;margin:4px 0}.str-s{font-weight:700;color:var(--c1);margin:0;min-height:1.2em}
 .str-t{font-size:5rem;font-weight:800;margin:14px 0;font-variant-numeric:tabular-nums}.str-t.prep{font-size:2rem;color:var(--muted)}
 .str-tip{font-size:1rem;line-height:1.45;margin:0 0 6px}
-.str-ov{overflow-y:auto;align-items:safe center}.str-img{width:100%;max-height:34vh;margin:4px 0 0}.str-t.sm{font-size:3.6rem;margin:4px 0}.str-t.sm.prep{font-size:1.7rem}.str-nx{color:var(--muted);font-size:.9rem}
+.str-ov{overflow-y:auto;align-items:safe center}.str-img{width:100%;max-height:34vh;margin:4px 0 0}.str-t.sm{font-size:3.6rem;margin:4px 0}.str-img .str-fig{width:100%;height:100%;display:block}.str-t.sm.prep{font-size:1.7rem}.str-nx{color:var(--muted);font-size:.9rem}
 .str-b{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px}
 .cs-days .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
 .cs-acc{padding:0;overflow:hidden}
@@ -2401,7 +2401,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.87 (stretching: schermo sempre acceso e suono a fine esercizio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.88 (stretching e riscaldamento con figure animate)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7129,6 +7129,103 @@ function strTick(){ if(!STR||!STR.run) return; if(STR.prep>0){ if(STR.prep===5||
 const strMuted=()=>{ try{ return localStorage.getItem("hf:strMute")==="1"; }catch{ return false; } };
 function strBeep(){ try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch{} if(strMuted()) return; try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); const t0=audioCtx.currentTime;
   [0,0.28,0.56].forEach((dt,k)=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type="square"; o.frequency.value= k<2? 880 : 1175; g.gain.setValueAtTime(0.0001,t0+dt); g.gain.exponentialRampToValueAtTime(0.35,t0+dt+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+(k<2? 0.18 : 0.4)); o.connect(g); g.connect(audioCtx.destination); o.start(t0+dt); o.stop(t0+dt+0.45); }); }catch{} }
+/* v3.88: figure animate (disegnate dall'app) per gli esercizi di stretching/riscaldamento/andature senza foto */
+const FIG_SIDE={H:[100,26],N:[100,40],P:[100,86],E1:[100,62],W1:[100,82],E2:[100,62],W2:[100,82],K1:[100,112],A1:[100,138],T1:[110,139],K2:[100,112],A2:[100,138],T2:[110,139]};
+const FIG_FRONT={H:[100,26],N:[100,40],S1:[88,44],S2:[112,44],E1:[86,64],W1:[85,84],E2:[114,64],W2:[115,84],P:[100,86],Q1:[94,88],Q2:[106,88],K1:[93,113],A1:[92,138],T1:[87,139],K2:[107,113],A2:[108,138],T2:[113,139]};
+const figRun=(sw,lift,up)=>{ // passo di corsa: gamba 1 avanti, gamba 2 dietro; sw = ampiezza
+  return {H:[103,26-up],N:[101,40-up],P:[100,86-up],E1:[96,62-up],W1:[106,72-up],E2:[106,60-up],W2:[118,54-up],K1:[100+sw,108-lift-up],A1:[104+sw*0.8,132-lift-up],T1:[112+sw*0.8,134-lift-up],K2:[96-sw*0.3,112-up],A2:[90-sw*0.9,132-up],T2:[96-sw*0.9,138-up]}; };
+const figSwap=p=>{ const q={...p}; ["E","W","K","A","T"].forEach(j=>{ q[j+"1"]=p[j+"2"]; q[j+"2"]=p[j+"1"]; }); return q; };
+const FIG_GROUND='<line x1="20" y1="141" x2="180" y2="141" stroke="#d9d4cf" stroke-width="3" stroke-linecap="round"/>';
+const STR_FIG={
+ "Pettorali allo stipite":{front:1,props:'<rect x="52" y="8" width="9" height="133" rx="2" fill="#d9d4cf"/>'+FIG_GROUND,
+   poses:[{S1:[88,44],E1:[66,44],W1:[64,20]},{H:[108,26],N:[106,40],S1:[96,45],S2:[116,43],E1:[66,44],W1:[64,20],E2:[120,64],W2:[121,84],P:[106,86],Q1:[100,88],Q2:[112,88],K1:[101,113],K2:[113,113],A2:[114,138],T2:[119,139]}],hold:1},
+ "Quadricipiti in piedi":{props:FIG_GROUND,poses:[{},{K1:[100,112],A1:[84,88],T1:[78,82],E1:[92,64],W1:[84,86],E2:[114,52],W2:[132,46]}],hold:1},
+ "Adduttori larghi":{front:1,props:FIG_GROUND,
+   poses:[{H:[100,30],N:[100,44],S1:[88,48],S2:[112,48],E1:[86,68],W1:[98,80],E2:[114,68],W2:[102,80],P:[100,90],Q1:[94,92],Q2:[106,92],K1:[80,116],A1:[66,140],T1:[60,141],K2:[120,116],A2:[134,140],T2:[140,141]},
+          {H:[114,44],N:[114,58],S1:[102,62],S2:[126,62],E1:[100,82],W1:[112,94],E2:[128,82],W2:[116,94],P:[114,104],Q1:[108,106],Q2:[120,106],K1:[88,124],A1:[66,140],T1:[60,141],K2:[134,112],A2:[134,140],T2:[140,141]}],hold:1},
+ "Rotazioni del torace":{props:FIG_GROUND,
+   poses:[{H:[146,84],N:[132,92],P:[84,94],E2:[132,116],W2:[132,140],E1:[124,108],W1:[142,82],K1:[84,140],A1:[56,140],T1:[50,137],K2:[88,140],A2:[60,140],T2:[54,137]},
+          {H:[146,80],N:[132,92],P:[84,94],E2:[132,116],W2:[132,140],E1:[124,66],W1:[142,80],K1:[84,140],A1:[56,140],T1:[50,137],K2:[88,140],A2:[60,140],T2:[54,137]}],hold:1},
+ "Cerchi con le anche":{front:1,props:FIG_GROUND,dur:3,
+   poses:[[0,0],[8,2],[0,5],[-8,2],[0,0]].map(([dx,dy])=>({H:[100-dx*.3,26+dy*.4],N:[100-dx*.3,40+dy*.4],S1:[88-dx*.3,44+dy*.4],S2:[112-dx*.3,44+dy*.4],E1:[78+dx*.3,64+dy*.6],W1:[93+dx,86+dy],E2:[122+dx*.3,64+dy*.6],W2:[107+dx,86+dy],P:[100+dx,86+dy],Q1:[94+dx,88+dy],Q2:[106+dx,88+dy],K1:[93+dx*.5,113+dy*.5],K2:[107+dx*.5,113+dy*.5]}))},
+ "Skip basso":{props:FIG_GROUND,dur:.6,poses:(()=>{ const a={H:[102,24],N:[101,38],P:[100,84],E1:[94,60],W1:[100,74],E2:[108,58],W2:[116,66],K1:[112,106],A1:[108,128],T1:[116,130],K2:[100,110],A2:[101,134],T2:[108,140]}; return [a,figSwap(a),a]; })()},
+ "Skip alto":{props:FIG_GROUND,dur:.8,poses:(()=>{ const a={H:[102,24],N:[101,38],P:[100,84],E1:[88,56],W1:[84,72],E2:[112,58],W2:[122,48],K1:[124,80],A1:[122,106],T1:[130,108],K2:[100,110],A2:[101,134],T2:[108,140]}; return [a,figSwap(a),a]; })()},
+ "Calciata":{props:FIG_GROUND,dur:.7,poses:(()=>{ const a={H:[103,24],N:[101,38],P:[100,84],E1:[94,60],W1:[102,72],E2:[106,58],W2:[114,68],K1:[98,110],A1:[82,92],T1:[78,98],K2:[100,110],A2:[101,134],T2:[108,140]}; return [a,figSwap(a),a]; })()},
+ "Corsa a gambe tese":{props:FIG_GROUND,dur:.7,poses:(()=>{ const a={H:[102,24],N:[101,38],P:[100,84],E1:[92,60],W1:[94,78],E2:[110,58],W2:[120,64],K1:[112,108],A1:[124,130],T1:[132,126],K2:[98,110],A2:[96,136],T2:[104,139]}; return [a,figSwap(a),a]; })()},
+ "Saltelli sulle caviglie":{props:FIG_GROUND,dur:.5,poses:[{A1:[100,136],T1:[108,140],A2:[100,136],T2:[108,140]},{H:[100,18],N:[100,32],P:[100,78],E1:[100,54],W1:[100,74],E2:[100,54],W2:[100,74],K1:[100,104],A1:[101,129],T1:[107,135],K2:[100,104],A2:[101,129],T2:[107,135]},{A1:[100,136],T1:[108,140],A2:[100,136],T2:[108,140]}]},
+ "Cardio leggero":{props:FIG_GROUND,dur:.8,poses:(()=>{ const a=figRun(12,4,0); return [a,figSwap(a),a]; })()},
+ "Torna camminando":{props:FIG_GROUND,dur:1.3,poses:(()=>{ const a={E1:[96,62],W1:[94,82],E2:[104,62],W2:[110,80],K1:[106,112],A1:[112,138],T1:[120,138],K2:[96,112],A2:[90,136],T2:[96,140]}; return [a,figSwap(a),a]; })()}
+};
+["Allungo 1","Allungo 2","Allungo 3"].forEach(n=>{ STR_FIG[n]={props:FIG_GROUND,dur:.5,poses:(()=>{ const a=figRun(18,8,0); return [a,figSwap(a),a]; })()}; });
+
+const FIG_LIE={H:[38,126],N:[52,132],P:[98,132],E1:[70,136],W1:[88,136],E2:[70,136],W2:[88,136]};
+Object.assign(STR_FIG,{
+ "Polpacci al muro":{props:'<rect x="150" y="8" width="9" height="133" rx="2" fill="#d9d4cf"/>'+FIG_GROUND,hold:1,
+   poses:[{H:[122,30],N:[120,44],P:[110,88],E1:[134,50],W1:[148,44],E2:[134,50],W2:[148,44],K1:[108,114],A1:[106,138],T1:[116,139],K2:[110,114],A2:[108,138],T2:[118,139]},
+          {H:[132,34],N:[128,48],P:[112,90],E1:[138,58],W1:[148,46],E2:[138,58],W2:[148,46],K1:[98,114],A1:[84,138],T1:[94,139],K2:[124,112],A2:[116,138],T2:[126,139]}]},
+ "Flessori dell'anca":{props:FIG_GROUND,hold:1,
+   poses:[{H:[100,36],N:[100,50],P:[98,98],E1:[110,72],W1:[122,98],E2:[110,72],W2:[122,98],K1:[124,104],A1:[126,138],T1:[136,139],K2:[86,138],A2:[60,138],T2:[56,134]},
+          {H:[106,44],N:[106,58],P:[108,106],E1:[114,82],W1:[110,102],E2:[114,82],W2:[110,102],K1:[130,108],A1:[126,138],T1:[136,139],K2:[86,138],A2:[60,138],T2:[56,134]}]},
+ "Femorali seduto":{props:FIG_GROUND,hold:1,
+   poses:[{H:[96,74],N:[92,88],P:[80,132],E1:[102,106],W1:[116,118],E2:[102,106],W2:[116,118],K1:[106,134],A1:[132,134],T1:[136,126],K2:[106,134],A2:[132,134],T2:[136,126]},
+          {H:[124,98],N:[112,104],P:[80,132],E1:[124,118],W1:[136,128],E2:[124,118],W2:[136,128],K1:[106,134],A1:[132,134],T1:[136,126],K2:[106,134],A2:[132,134],T2:[136,126]}]},
+ "Glutei a figura 4":{props:FIG_GROUND,hold:1,
+   poses:[{...FIG_LIE,K2:[120,106],A2:[140,134],T2:[150,134],K1:[112,98],A1:[122,106],T1:[128,102],E1:[80,116],W1:[104,108]},
+          {...FIG_LIE,K2:[104,96],A2:[126,94],T2:[132,88],K1:[100,90],A1:[108,98],T1:[114,94],E1:[72,112],W1:[98,100]}]},
+ "Adduttori a farfalla":{front:1,props:FIG_GROUND,hold:1,
+   poses:[{H:[100,70],N:[100,84],S1:[88,88],S2:[112,88],E1:[86,110],W1:[97,134],E2:[114,110],W2:[103,134],P:[100,128],Q1:[94,130],Q2:[106,130],K1:[70,118],A1:[97,138],T1:[99,141],K2:[130,118],A2:[103,138],T2:[101,141]},
+          {H:[100,78],N:[100,90],S1:[88,94],S2:[112,94],E1:[86,114],W1:[97,134],E2:[114,114],W2:[103,134],P:[100,128],Q1:[94,130],Q2:[106,130],K1:[68,132],A1:[97,138],T1:[99,141],K2:[132,132],A2:[103,138],T2:[101,141]}]},
+ "Dorsali in ginocchio":{props:FIG_GROUND,hold:1,
+   poses:[{H:[94,64],N:[92,78],P:[88,124],E1:[104,60],W1:[116,46],E2:[104,60],W2:[116,46],K1:[112,138],A1:[84,138],T1:[78,134],K2:[112,138],A2:[84,138],T2:[78,134]},
+          {H:[138,128],N:[124,122],P:[90,124],E1:[146,132],W1:[168,136],E2:[146,132],W2:[168,136],K1:[112,138],A1:[84,138],T1:[78,134],K2:[112,138],A2:[84,138],T2:[78,134]}]},
+ "Spalle a braccio incrociato":{front:1,props:FIG_GROUND,hold:1,poses:[{},{E1:[106,50],W1:[128,52],E2:[118,62],W2:[106,52],S1:[89,45]}]},
+ "Tricipiti dietro la testa":{front:1,props:FIG_GROUND,hold:1,poses:[{},{E1:[94,10],W1:[106,30],E2:[110,20],W2:[96,12]}]},
+ "Ginocchia al petto":{props:FIG_GROUND,hold:1,
+   poses:[{...FIG_LIE,K1:[118,106],A1:[138,134],T1:[148,134],K2:[118,106],A2:[138,134],T2:[148,134]},
+          {...FIG_LIE,K1:[84,100],A1:[106,96],T1:[112,90],K2:[84,100],A2:[106,96],T2:[112,90],E1:[66,112],W1:[88,104],E2:[66,112],W2:[88,104]}]},
+ "Collo":{front:1,props:FIG_GROUND,hold:1,poses:[{},{H:[112,30],E1:[84,64],W1:[83,84]}]},
+ "Cerchi con le braccia":{front:1,props:FIG_GROUND,dur:1.4,poses:[0,1,2,3,4].map(i=>{ const a=i*Math.PI/2, c=Math.cos(a)*7, d=Math.sin(a)*7; return {E1:[66+c*.5,44+d*.5],W1:[46+c,44+d],E2:[134-c*.5,44+d*.5],W2:[154-c,44+d]}; })},
+ "Gatto e mucca":{props:FIG_GROUND,hold:1,
+   poses:[{H:[146,108],N:[132,96],M:[108,80],P:[84,96],E1:[132,118],W1:[132,140],E2:[132,118],W2:[132,140],K1:[84,140],A1:[56,140],T1:[50,137],K2:[88,140],A2:[60,140],T2:[54,137]},
+          {H:[148,84],N:[132,96],M:[108,108],P:[84,96],E1:[132,118],W1:[132,140],E2:[132,118],W2:[132,140],K1:[84,140],A1:[56,140],T1:[50,137],K2:[88,140],A2:[60,140],T2:[54,137]}]},
+ "Squat a corpo libero":{props:FIG_GROUND,dur:2.4,poses:[{E1:[112,52],W1:[130,52],E2:[112,52],W2:[130,52]},{H:[106,58],N:[100,72],P:[82,110],E1:[114,78],W1:[132,76],E2:[114,78],W2:[132,76],K1:[110,112],A1:[100,138],K2:[110,112],A2:[100,138]},{E1:[112,52],W1:[130,52],E2:[112,52],W2:[130,52]}]},
+ "Affondi alternati":{props:FIG_GROUND,dur:2.6,poses:[{},{H:[100,46],N:[100,60],P:[100,106],E1:[100,82],W1:[100,102],E2:[100,82],W2:[100,102],K1:[124,112],A1:[126,138],T1:[136,139],K2:[88,134],A2:[66,138],T2:[62,134]},{}]},
+ "Ponte per i glutei":{props:FIG_GROUND,hold:1,
+   poses:[{...FIG_LIE,K1:[118,106],A1:[130,134],T1:[140,134],K2:[118,106],A2:[130,134],T2:[140,134]},
+          {...FIG_LIE,N:[52,130],P:[98,104],K1:[124,100],A1:[130,134],T1:[140,134],K2:[124,100],A2:[130,134],T2:[140,134]}]},
+ "Piegamenti facili":{props:FIG_GROUND,dur:2.2,
+   poses:[{H:[146,88],N:[134,96],P:[90,114],E1:[134,118],W1:[134,140],E2:[134,118],W2:[134,140],K1:[74,138],A1:[50,138],T1:[46,134],K2:[74,138],A2:[50,138],T2:[46,134]},
+          {H:[146,116],N:[132,122],P:[88,128],E1:[118,126],W1:[134,140],E2:[118,126],W2:[134,140],K1:[74,138],A1:[50,138],T1:[46,134],K2:[74,138],A2:[50,138],T2:[46,134]},
+          {H:[146,88],N:[134,96],P:[90,114],E1:[134,118],W1:[134,140],E2:[134,118],W2:[134,140],K1:[74,138],A1:[50,138],T1:[46,134],K2:[74,138],A2:[50,138],T2:[46,134]}]},
+ "Affondo con rotazione":{props:FIG_GROUND,hold:1,
+   poses:[{H:[138,76],N:[124,84],P:[98,112],E1:[124,110],W1:[120,138],E2:[126,110],W2:[122,138],K1:[124,110],A1:[128,138],T1:[138,139],K2:[78,124],A2:[56,138],T2:[52,134]},
+          {H:[132,68],N:[122,82],P:[98,112],E1:[124,60],W1:[126,38],E2:[126,110],W2:[122,138],K1:[124,110],A1:[128,138],T1:[138,139],K2:[78,124],A2:[56,138],T2:[52,134]}]},
+ "Caviglie":{props:FIG_GROUND,hold:1,
+   poses:[{E1:[96,62],W1:[100,82],E2:[96,62],W2:[100,82],K1:[112,112],A1:[112,138],T1:[122,139],K2:[92,112],A2:[86,138],T2:[96,139]},
+          {H:[112,36],N:[110,50],P:[106,94],E1:[104,70],W1:[110,90],E2:[104,70],W2:[110,90],K1:[128,114],A1:[112,138],T1:[122,139],K2:[96,116],A2:[86,138],T2:[96,139]}]},
+ "Femorali sdraiato":{props:FIG_GROUND,hold:1,
+   poses:[{...FIG_LIE,K1:[124,132],A1:[150,132],T1:[152,124],K2:[118,106],A2:[138,134],T2:[148,134]},
+          {...FIG_LIE,K1:[100,106],A1:[104,80],T1:[112,78],K2:[118,106],A2:[138,134],T2:[148,134],E1:[66,110],W1:[96,90],E2:[66,110],W2:[96,90]}]},
+ "Piriforme seduto":{props:FIG_GROUND,hold:1,
+   poses:[{H:[92,72],N:[90,86],P:[84,132],E1:[100,104],W1:[110,104],E2:[72,112],W2:[66,136],K1:[110,104],A1:[124,134],T1:[132,134],K2:[112,134],A2:[140,134],T2:[144,126]},
+          {H:[86,72],N:[88,86],P:[84,132],E1:[104,96],W1:[112,102],E2:[66,108],W2:[58,136],K1:[110,104],A1:[124,134],T1:[132,134],K2:[112,134],A2:[140,134],T2:[144,126]}]},
+ "Respirazione":{front:1,props:FIG_GROUND,dur:10,hold:1,
+   poses:[{H:[100,72],N:[100,86],S1:[88,90],S2:[112,90],E1:[80,110],W1:[74,128],E2:[120,110],W2:[126,128],P:[100,128],Q1:[94,130],Q2:[106,130],K1:[70,134],A1:[108,138],T1:[112,140],K2:[130,134],A2:[92,138],T2:[88,140]},
+          {H:[100,66],N:[100,80],S1:[86,84],S2:[114,84],E1:[79,106],W1:[74,128],E2:[121,106],W2:[126,128],P:[100,128],Q1:[94,130],Q2:[106,130],K1:[70,134],A1:[108,138],T1:[112,140],K2:[130,134],A2:[92,138],T2:[88,140]}]}
+});
+STR_FIG["Recupero"]=STR_FIG["Torna camminando"];
+function figSVG(name){ const F=STR_FIG[name]; if(!F) return ""; const base=F.front? FIG_FRONT : FIG_SIDE;
+  let P=F.poses.map(p=>({...base,...p})); let kt;
+  if(F.hold){ P=[P[0],P[1],P[1],P[0]]; kt="0;0.3;0.75;1"; } else kt=P.map((_,i)=>(i/(P.length-1)).toFixed(3)).join(";");
+  const dur=(F.dur||(F.hold? 4.5 : 1))+"s", n=P.length-1, ks=Array(n).fill(".45 0 .55 1").join(";");
+  const an=(attr,vals)=> vals.every(v=>v===vals[0])? "" : `<animate attributeName="${attr}" values="${vals.join(";")}" keyTimes="${kt}" dur="${dur}" repeatCount="indefinite" calcMode="spline" keySplines="${ks}"/>`;
+  const ln=(a,b,w,op)=>{ if(!P[0][a]||!P[0][b]) return ""; const v=(j,i)=>P.map(p=>p[j][i]);
+    return `<line x1="${P[0][a][0]}" y1="${P[0][a][1]}" x2="${P[0][b][0]}" y2="${P[0][b][1]}" stroke="#2b2622" stroke-width="${w}" stroke-linecap="round"${op? ` opacity="${op}"` : ""}>${an("x1",v(a,0))}${an("y1",v(a,1))}${an("x2",v(b,0))}${an("y2",v(b,1))}</line>`; };
+  const far=F.front? "" : ".38", fr=F.front;
+  const limb=(s)=>{ const r=fr? (s==="1"? "S1" : "S2") : "N", q=fr? (s==="1"? "Q1" : "Q2") : "P", op= s==="2"? far : "";
+    return ln(q,"K"+s,7,op)+ln("K"+s,"A"+s,6,op)+ln("A"+s,"T"+s,5,op)+ln(r,"E"+s,6,op)+ln("E"+s,"W"+s,5,op); };
+  const head=`<circle cx="${P[0].H[0]}" cy="${P[0].H[1]}" r="9.5" fill="#2b2622">${an("cx",P.map(p=>p.H[0]))}${an("cy",P.map(p=>p.H[1]))}</circle>`;
+  return `<svg class="str-fig" viewBox="0 0 200 150" role="img" aria-label="Figura animata: ${name.replace(/"/g,"")}">${F.props||""}${limb("2")}${P[0].M? ln("N","M",8)+ln("M","P",8) : ln("N","P",8)}${fr? ln("S1","S2",7)+ln("Q1","Q2",7) : ""}${limb("1")}${head}</svg>`; }
 /* v3.86: foto degli esercizi di stretching e riscaldamento (Free Exercise DB, ospitate in ex/) + pulsante video per tutti */
 const STR_IMG={"Polpacci al muro":"Calf_Stretch_Hands_Against_Wall","Flessori dell'anca":"Kneeling_Hip_Flexor","Femorali seduto":"Seated_Floor_Hamstring_Stretch","Glutei a figura 4":"Ankle_On_The_Knee","Adduttori a farfalla":"Groin_and_Back_Stretch","Dorsali in ginocchio":"Childs_Pose","Spalle a braccio incrociato":"Shoulder_Stretch","Tricipiti dietro la testa":"Triceps_Stretch","Ginocchia al petto":"Hug_Knees_To_Chest","Collo":"Side_Neck_Stretch","Cerchi con le braccia":"Arm_Circles","Gatto e mucca":"Cat_Stretch","Squat a corpo libero":"Bodyweight_Squat","Affondi alternati":"Bodyweight_Walking_Lunge","Ponte per i glutei":"Butt_Lift_Bridge","Piegamenti facili":"Incline_Push-Up","Affondo con rotazione":"Worlds_Greatest_Stretch","Caviglie":"Standing_Soleus_And_Achilles_Stretch","Femorali sdraiato":"Hamstring_Stretch","Piriforme seduto":"Dancers_Stretch"};
 const STR_NOVID=/^(recupero|respirazione|torna camminando|cardio leggero|allungo \d)$/i;
@@ -7136,9 +7233,9 @@ function strVidQ(n){ return "https://www.youtube.com/results?search_query="+enco
 function strDraw(){ const ov=$("strOv"); if(!ov||!STR) return; const s=STR.steps[STR.i], R=STRETCH[STR.k], nx=STR.steps[STR.i+1];
   const upd=()=>{ const t=ov.querySelector(".str-t"); t.textContent= STR.prep>0? `Pronto… ${STR.prep}` : `${STR.left}`; t.classList.toggle("prep",STR.prep>0); ov.querySelector('[data-a="pause"]').textContent= STR.run? "Pausa" : "Riprendi"; };
   if(ov.dataset.sk===STR.k+":"+STR.i&&ov.querySelector(".str-in.strun")){ upd(); return; }
-  ov.dataset.sk=STR.k+":"+STR.i; const id=STR_IMG[s.n];
+  ov.dataset.sk=STR.k+":"+STR.i; const id=STR_FIG[s.n]? null : STR_IMG[s.n];
   ov.innerHTML=`<div class="str-in strun"><div class="str-top"><span></span><span style="display:flex;gap:6px;align-items:center"><button type="button" class="str-x str-mute" aria-label="Suono di fine esercizio"></button><button type="button" class="str-x" data-x="1" aria-label="Chiudi">✕</button></span></div>
-   <p class="str-c"></p>${id? `<div class="demo-img str-img"><img class="f0" alt="Posizione iniziale" decoding="async" src="${exImg(id,0)}"><img class="f1" alt="Posizione finale" decoding="async" src="${exImg(id,1)}"></div>` : ""}<h2 class="str-n"></h2><p class="str-s"></p><div class="str-t${id? " sm" : ""}"></div><p class="str-tip"></p>${STR_NOVID.test(s.n)? "" : '<p style="margin:0"><button type="button" class="linkbtn" data-a="vid">▶ Non sai come si fa? Guarda il video</button></p>'}<p class="str-nx"></p>
+   <p class="str-c"></p>${STR_FIG[s.n]? `<div class="demo-img str-img">${figSVG(s.n)}</div>` : id? `<div class="demo-img str-img"><img class="f0" alt="Posizione iniziale" decoding="async" src="${exImg(id,0)}"><img class="f1" alt="Posizione finale" decoding="async" src="${exImg(id,1)}"></div>` : ""}<h2 class="str-n"></h2><p class="str-s"></p><div class="str-t${id||STR_FIG[s.n]? " sm" : ""}"></div><p class="str-tip"></p>${STR_NOVID.test(s.n)? "" : '<p style="margin:0"><button type="button" class="linkbtn" data-a="vid">▶ Non sai come si fa? Guarda il video</button></p>'}<p class="str-nx"></p>
    <div class="str-b"><button type="button" class="btn ghost" data-a="prev">‹ Indietro</button><button type="button" class="btn" data-a="pause"></button><button type="button" class="btn ghost" data-a="next">Avanti ›</button></div></div>`;
   if(id) ov.querySelectorAll(".str-img img").forEach((im,f)=>im.onerror=()=>{ if(!im.dataset.r){ im.dataset.r="1"; im.src=exImg(id,f,true); return; } const b=im.closest(".str-img"); if(b) b.remove(); });
   ov.querySelector(".str-top span").textContent=R.t; ov.querySelector(".str-c").textContent=`${STR.i+1} di ${STR.steps.length}`;
