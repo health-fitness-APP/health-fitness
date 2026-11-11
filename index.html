@@ -2399,7 +2399,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.81 (promemoria misure alle 6)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.82 (in Corpo lo schermo resta acceso per la bilancia)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3362,7 +3362,7 @@ function go(v,fromHistory){ if(v==="gara"){ setTimeout(()=>{ try{ openRaceCoach(
   }
   if(v!=="diario"&&typeof editMode!=="undefined"&&editMode) setEdit(false);
   if(v!=="pset"&&v!=="profilo"&&typeof psCur!=="undefined"&&psCur){ try{ psRestore(); }catch{} }
-  view=v;
+  view=v; try{ corpoAwake(); }catch{}
   ["diario","cibo","pasto","casa","valuta","ricetta","pset","gara","corsa","cardio","riepilogo","attivita","attrezzatura","giorno","sessione","dieta","allenamento","corpo","profilo"].forEach(x=>$("view-"+x).hidden = x!==v);
   document.querySelectorAll("nav.tabbar button").forEach(b=> b.dataset.v===((v==="cibo"||v==="attivita"||v==="pasto")?"diario":v==="attrezzatura"?"profilo":(v==="giorno"||v==="sessione"||v==="gara")?"allenamento":(v==="corsa"||v==="cardio"||v==="riepilogo")?"attivita":v==="pset"?"profilo":(v==="casa"||v==="valuta"||v==="ricetta")?"dieta":v) ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
   window.scrollTo(0,0);
@@ -7643,6 +7643,19 @@ function openCircuit(a,di){
 }
 /* sveglia di fine riposo (si può silenziare) e schermo sempre acceso durante l'allenamento */
 let audioCtx=null, wakeLock=null;
+/* schermo acceso: nell'APK con il plugin nativo (la WebView non ha il Wake Lock), altrimenti Wake Lock del browser.
+   Più motivi insieme (palestra, Corpo): resta acceso finché ce n'è almeno uno. */
+const SCR_ON=new Set();
+function screenNative(tag,on){ try{ const P=HRN(); if(!P||typeof P.keepScreen!=="function") return false; on? SCR_ON.add(tag) : SCR_ON.delete(tag); const r=P.keepScreen({on:SCR_ON.size>0}); if(r&&r.catch) r.catch(()=>{}); return true; }catch{ return false; } }
+/* pagina Corpo con la bilancia collegata: lo schermo resta acceso (max 20 minuti), così la pesata arriva senza riattivare l'app */
+let corpoLock=null, corpoLockT=null, corpoNat=false;
+async function corpoAwake(){ const want= view==="corpo"&&document.visibilityState==="visible"&&!!localStorage.getItem("hf:scaleAddr")&&localStorage.getItem("hf:corpoAwakeOff")!=="1";
+  try{ if(want&&!corpoLock&&!corpoNat){
+      if(screenNative("corpo",true)) corpoNat=true;
+      else if("wakeLock" in navigator){ corpoLock=await navigator.wakeLock.request("screen"); corpoLock.addEventListener("release",()=>{ corpoLock=null; }); }
+      clearTimeout(corpoLockT); corpoLockT=setTimeout(()=>{ if(corpoNat){ screenNative("corpo",false); corpoNat=false; } if(corpoLock){ corpoLock.release().catch(()=>{}); corpoLock=null; } },20*60000); }
+    if(!want){ clearTimeout(corpoLockT); if(corpoNat){ screenNative("corpo",false); corpoNat=false; } if(corpoLock){ const l=corpoLock; corpoLock=null; await l.release(); } } }catch(e){ console.warn("schermo acceso",e); } }
+document.addEventListener("visibilitychange",()=>{ try{ corpoAwake(); }catch{} });
 const alarmMuted=()=>{ try{ return localStorage.getItem("hf:alarmMute")==="1"; }catch{ return false; } };
 function beep(){ if(alarmMuted()) return; try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); const t0=audioCtx.currentTime;
   [0,0.35,0.7,1.2,1.55,1.9].forEach(dt=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type="square"; o.frequency.value= dt<1? 880 : 1175; g.gain.setValueAtTime(0.0001,t0+dt); g.gain.exponentialRampToValueAtTime(0.35,t0+dt+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+0.25); o.connect(g).connect(audioCtx.destination); o.start(t0+dt); o.stop(t0+dt+0.27); }); }catch{} }
@@ -7657,7 +7670,7 @@ function restNativeAsk(){ const P=RTN(); if(!P) return; try{ if(localStorage.get
 function bellIcons(){ const m=alarmMuted(); ["sesBell","rbBell"].forEach(id=>{ const b=$(id); if(b){ b.textContent=m?"🔕":"🔔"; b.classList.toggle("off",m); b.setAttribute("aria-label",m?"Suoneria di fine riposo spenta: tocca per accenderla":"Suoneria di fine riposo accesa: tocca per spegnerla"); } }); }
 function toggleAlarm(){ try{ localStorage.setItem("hf:alarmMute",alarmMuted()?"0":"1"); }catch{} unlockAudio(); bellIcons(); restNative(true); try{ if(logCtx&&logCtx.circuit) renderCircuitSession(); }catch{} toast(alarmMuted()?"Suoneria del riposo spenta 🔕 (resta la vibrazione)":"Suoneria del riposo accesa 🔔"); }
 function unlockAudio(){ try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); }catch{} }
-async function keepAwake(on){ try{ if(on&&"wakeLock" in navigator&&!wakeLock){ wakeLock=await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release",()=>{ wakeLock=null; }); } if(!on&&wakeLock){ await wakeLock.release(); wakeLock=null; } }catch{} }
+async function keepAwake(on){ try{ screenNative("ses",!!on); }catch{} try{ if(on&&"wakeLock" in navigator&&!wakeLock){ wakeLock=await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release",()=>{ wakeLock=null; }); } if(!on&&wakeLock){ await wakeLock.release(); wakeLock=null; } }catch{} }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&view==="sessione"&&logCtx&&logCtx.live) keepAwake(true); });
 function renderCircuitSession(){
   const c=logCtx.circuit, box=$("logBody"); box.innerHTML="";
