@@ -1265,6 +1265,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .mzhow{display:flex;gap:12px;align-items:center;background:var(--basil-soft);border-radius:16px;padding:10px 12px;margin:4px 0 2px}
 .mzhow .fig{flex:0 0 116px}.mzhow .fig svg{width:116px;height:auto;display:block}
 .mzhow .tx{flex:1;font-size:14px;line-height:1.4}.mzhow .tx p{margin:0}.mzhow .tx .h{font-weight:700;margin-bottom:4px}
+.mzadv{margin-top:12px;background:var(--surface2);border:1px solid var(--line);border-radius:16px;padding:12px}
+.mzadv .h{font-weight:700;margin:0 0 6px}.mzadv .r{display:flex;gap:8px;font-size:14px;line-height:1.4;margin:6px 0}.mzadv .r .i{flex:0 0 auto}.mzadv .note{margin:8px 2px 0}
 </style>
 </head>
 <body>
@@ -1931,6 +1933,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <p class="sub" id="bMapSub" style="margin:2px 0 0">Tocca una misura per vederne l'andamento.</p>
     <div class="bodymap" id="bMap"></div>
     <div class="bcust" id="bCust"></div>
+    <div class="mzadv" id="bMzAdv" hidden></div>
     <button class="btn ghost" id="bTapeBtn" type="button" hidden style="margin-top:8px">📏 Misura con il metro</button>
     <button class="btn ghost" id="bTapeSetup" type="button" hidden style="margin-top:8px">📏 Collega il metro (una volta sola)</button>
     <div class="tape-box" id="bTapeBox" hidden>
@@ -2396,7 +2399,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.78 (metro: la misura si prende dalla scheda con la sagoma)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.79 (parere sulle misure del corpo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3316,7 +3319,7 @@ function profileSummary(){
   return [
     displayName(p)? "nome: "+displayName(p) : "",
     `${p.sex==="f"?"donna":"uomo"}, ${p.age||"?"} anni, ${p.height||"?"} cm, ${p.weight||"?"} kg`,
-    lb.fat? "grasso corporeo "+lb.fat.v+"%" : "", lb.waist? "vita "+lb.waist.v+" cm" : "",
+    lb.fat? "grasso corporeo "+lb.fat.v+"%" : "", lb.waist? "vita "+lb.waist.v+" cm" : "", (()=>{ try{ return circText(); }catch{ return ""; } })(),
     "attività quotidiana "+act,
     "obiettivo: "+(p.customGoal&&p.customGoal.active? "PERSONALIZZATO – "+p.customGoal.title+": "+(p.customGoal.text||"")+". Valutazione: "+p.customGoal.summary+(p.customGoal.phases&&p.customGoal.phases.length?" Fasi: "+p.customGoal.phases.join("; "):"")+(p.customGoal.extra&&p.customGoal.extra.length?" Altri obiettivi da incrociare: "+p.customGoal.extra.join("; ")+(p.customGoal.weekly?" Organizzazione settimanale: "+p.customGoal.weekly:"")+(p.customGoal.conflicts?" Come conciliarli: "+p.customGoal.conflicts:""):"")+" (impostazione calorie di base: "+(g?g.t:"")+")" : g? g.t+" ("+g.d+")" : "non indicato"),
     spec? "obiettivo specifico: "+spec : "",
@@ -8757,6 +8760,45 @@ function renderRatios(w,h){ const box=$("bRatios"), p=state.profile||{}, f=p.sex
   box.innerHTML=`<div class="ratio"><h3>Rapporto vita-fianchi</h3><div class="rv num${whr==null?" none":""}">${whr==null?"––":fx(whr)}</div><p class="rk">${k1}</p>${ratioBar(whr,f?0.65:0.75,f?1.0:1.15,ths,["Basso","Moderato","Alto"],[G,O,R])}</div>
   <div class="ratio"><h3>Rapporto vita-altezza</h3><div class="rv num${wht==null?" none":""}">${wht==null?"––":fx(wht)}</div><p class="rk">${k2}</p>${ratioBar(wht,0.35,0.7,[0.4,0.5,0.6],["Magro","Norma","Attenzione","Alto"],[B,G,O,R])}</div>
   <p class="note" style="margin:10px 2px 0">Stime di rischio cardiometabolico (OMS): non sono una diagnosi.</p>`; }
+/* parere sulle misure (senza AI): simmetria, andamento rispetto a 3-8 settimane fa, spalle/vita; + domanda al coach */
+const MZ_CIRC=["neck","shoulders","chest","waist","abdomen","hips","armL","armR","arm","forearm","thighL","thighR","thigh","calfL","calfR","calf"];
+function mzLabel(k){ const m=METRICS.find(x=>x[0]===k); return m? m[1] : k; }
+function mzLastPrev(es,k){ const v=es.filter(x=>x[k]!=null); if(!v.length) return null; const L=v[v.length-1];
+  // confronto con la misura più recente fatta almeno 14 giorni prima (al massimo ~10 settimane)
+  let P=null; for(let i=v.length-2;i>=0;i--){ const d=(new Date(L.date)-new Date(v[i].date))/864e5; if(d>=14){ if(d<=75) P=v[i]; break; } }
+  return {v:L[k],date:L.date,pv:P?P[k]:null,pdate:P?P.date:null}; }
+function circText(es){ es=es||sortedEntries(); const out=[];
+  MZ_CIRC.concat(CKEYS).forEach(k=>{ const r=mzLastPrev(es,k); if(!r) return; const lab=CKEYS.includes(k)? cLabel(k) : mzLabel(k);
+    out.push(`${lab} ${fmt(r.v)} cm${r.pv!=null? ` (${r.v-r.pv>=0?"+":"−"}${fmt(Math.abs(Math.round((r.v-r.pv)*10)/10))} dal ${r.pdate})` : ""}`); });
+  return out.length? "circonferenze (metro): "+out.join(", ") : ""; }
+function mzAdvice(es){ const tips=[], last={}; MZ_CIRC.forEach(k=>{ const r=mzLastPrev(es,k); if(r) last[k]=r; });
+  if(!Object.keys(last).length) return tips;
+  const V=k=>last[k]&&last[k].v, D=k=>last[k]&&last[k].pv!=null? Math.round((last[k].v-last[k].pv)*10)/10 : null, f1=x=>fmt(Math.abs(x));
+  // simmetria destra/sinistra
+  [["armL","armR",["Il braccio destro","Il braccio sinistro"],"Braccia equilibrate",1.5,1],["thighL","thighR",["La coscia destra","La coscia sinistra"],"Cosce equilibrate",2,1.5],["calfL","calfR",["Il polpaccio destro","Il polpaccio sinistro"],"Polpacci equilibrati",1.5,1]].forEach(([a,b,nn,eq,lim,ok])=>{ if(V(a)==null||V(b)==null) return; const d=Math.round((V(b)-V(a))*10)/10;
+    if(Math.abs(d)>=lim) tips.push(["⚖️",`${nn[d>0?0:1]} misura ${f1(d)} cm più dell'altro lato. Fino a circa ${fmt(ok)} cm è normale (il lato che usi di più). Se resta così, negli esercizi a un braccio o a una gamba parti dal lato più debole e fai le stesse ripetizioni con l'altro.`]);
+    else tips.push(["✅",`${eq}: destra e sinistra differiscono di ${f1(d)} cm.`]); });
+  // andamento
+  const dw=D("waist")??D("abdomen"), mus=["chest","shoulders","armL","armR","arm","thighL","thighR","thigh"].map(D).filter(x=>x!=null), musUp=mus.length? mus.reduce((a,b)=>a+b,0)/mus.length : null;
+  if(dw!=null){ if(dw<=-1&&musUp!=null&&musUp>=-0.3) tips.push(["💪",`La vita è scesa di ${f1(dw)} cm mentre braccia, petto e cosce restano uguali o crescono: stai perdendo grasso senza perdere muscolo. Ottimo, continua così.`]);
+    else if(dw<=-1) tips.push(["📉",`La vita è scesa di ${f1(dw)} cm: stai perdendo grasso sulla pancia.${musUp!=null&&musUp<-0.5?" Anche braccia e cosce calano un po': tieni alte le proteine e non saltare la palestra, per non perdere muscolo.":""}`]);
+    else if(dw>=1) tips.push(["⚠️",`La vita è salita di ${f1(dw)} cm.${musUp!=null&&musUp>=0.5?" Crescono anche braccia e cosce: se stai mettendo massa è normale, ma tieni d'occhio che la vita non salga più dei muscoli.":" Controlla le calorie e gli spuntini: se il peso sale insieme alla vita è grasso."}`]);
+    else if(musUp!=null&&musUp>=0.5) tips.push(["💪",`Braccia, petto e cosce crescono e la vita resta stabile: stai mettendo muscolo senza grasso.`]); }
+  // spalle / vita (fisico a V, solo uomo)
+  const p=state.profile||{}; if(p.sex!=="f"&&V("shoulders")&&V("waist")){ const r=V("shoulders")/V("waist");
+    tips.push(["📐",`Rapporto spalle/vita ${r.toFixed(2).replace(".",",")}: ${r>=1.55?"fisico a V molto marcato.":r>=1.4?"buona forma a V. Per aumentarla lavora su spalle e dorsali e tieni la vita stretta.":"spalle poco più larghe della vita: spalle (alzate laterali, lento) e dorsali (trazioni, rematore) sono le priorità, insieme a ridurre la pancia."}`]); }
+  // promemoria
+  const ld=Object.values(last).map(x=>x.date).sort().pop(), age=Math.round((new Date(todayISO())-new Date(ld))/864e5);
+  if(age>=28) tips.push(["📅",`L'ultima misura è di ${age} giorni fa: rifalle (ogni 2-4 settimane, la mattina a digiuno) per vedere come cambi.`]);
+  else if(!Object.values(last).some(x=>x.pv!=null)) tips.push(["📅","Sono le prime misure: rifalle tra 2-4 settimane, sempre la mattina a digiuno, e ti dirò come stai cambiando."]);
+  return tips; }
+function renderMzAdv(es){ const box=$("bMzAdv"), tips=mzAdvice(es); box.hidden=!tips.length; box.innerHTML=""; if(!tips.length) return;
+  box.appendChild(el("p","h","📋 Il parere sulle tue misure"));
+  tips.forEach(([i,t])=>{ const r=el("div","r"); r.append(el("span","i",i),el("span","",t)); box.appendChild(r); });
+  const q=el("button","btn ghost","🤖 Chiedi un parere al coach"); q.type="button"; q.style.marginTop="8px";
+  q.onclick=()=>{ go("allenamento"); setW("chat"); const ci=$("chatIn"); ci.value="Ho preso le misure del corpo con il metro: "+circText(es).replace(/^circonferenze \(metro\): /,"")+". Che ne pensi rispetto al mio obiettivo? Cosa devo migliorare nella dieta e negli allenamenti?"; setTimeout(()=>{ try{ ci.focus(); ci.setSelectionRange(ci.value.length,ci.value.length); }catch{} },300); };
+  box.appendChild(q);
+  box.appendChild(el("p","note","Valori indicativi: le misure cambiano di qualche millimetro anche solo per come tieni il metro.")); }
 /* dove misurare: linea evidenziata sulla sagoma (stesse coordinate di bodySVG, viewBox 120x262) + istruzione */
 const MZ_HOW={
   neck:{b:[[54,66,38]],t:"Subito sotto il pomo d'Adamo, nel punto più stretto del collo. Metro dritto, un po' inclinato in avanti verso il basso. Guarda dritto davanti a te, spalle rilassate."},
@@ -8873,6 +8915,7 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
     map.append(L,C,R);
     const cu=$("bCust"); cu.innerHTML=""; CKEYS.forEach(k=>cu.appendChild(tile(cLabel(k),k)));
     renderRatios(lastOf("waist"),lastOf("hips"));
+    try{ renderMzAdv(es); }catch(e){ console.warn("parere misure",e); }
   }
   // grafici
   const keys=["weight","fatKg","muscleTot","muscle","fat","waterKg","bmi","visceral",...METRICS.filter(m=>m[2]==="cm").map(m=>m[0])];
