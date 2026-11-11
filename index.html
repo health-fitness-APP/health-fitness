@@ -2396,7 +2396,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.77 (misure del corpo: dove mettere il metro)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.78 (metro: la misura si prende dalla scheda con la sagoma)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2462,6 +2462,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="form">
       <label id="mzNameL" hidden>Nome della parte<input class="field" id="mzName" maxlength="30" placeholder="Es. Avambraccio sinistro"></label>
       <div class="two"><label>Misura (cm)<input class="field" id="mzVal" type="number" inputmode="decimal" step="0.1" min="0"></label><label>Data<input class="field" id="mzDate" type="date"></label></div>
+      <button class="btn ghost" id="mzTape" type="button" hidden>📏 Prendi la misura con il metro</button>
+      <div class="status" id="mzTapeSt" aria-live="polite"></div>
       <button class="btn" id="mzSave" type="button">Salva</button>
       <button class="btn ghost" id="mzTrend" type="button" hidden>📈 Vedi l'andamento</button>
       <p class="note" id="mzHistT" style="margin:10px 2px 0" hidden>Storico</p>
@@ -5634,12 +5636,12 @@ function accToggle(id,row){ const p=$(id); const open=p.hidden||(row&&p.previous
   p.hidden=!open; if(!p.hidden) setTimeout(()=>p.scrollIntoView({behavior:"smooth",block:"nearest"}),60); }
 function renderAccReg(){ const box=$("accReg"); if(!box) return; box.innerHTML=""; const rows=[];
   const nm=localStorage.getItem("hf:hrName"); if(nm||HR.ch) rows.push(["strap",nm||HR.name||"Fascia cardio", HR.ch||(typeof NATHR!=="undefined"&&NATHR.on)? "Collegata" : "Pronta · parte da sola negli allenamenti","hr"]);
-  if(localStorage.getItem("hf:tapeAddr")) rows.push(["tape",(localStorage.getItem("hf:tapeName")||"Metro")+" · Renpho","Pronto · usalo da Corpo → Misura con il metro","tape"]);
+  if(localStorage.getItem("hf:tapeAddr")) rows.push(["tape",(localStorage.getItem("hf:tapeName")||"Metro")+" · Renpho","Pronto · in Corpo tocca la parte da misurare e poi «Prendi la misura con il metro»","tape"]);
   if(localStorage.getItem("hf:scaleAddr")) rows.push(["scale",(localStorage.getItem("hf:scaleName")||"Bilancia")+" · Lepulse","Pronta · tocca per pesarti","scale"]);
   if(localStorage.getItem("hf:hcOn")==="1"){ const src=JSON.parse(localStorage.getItem("hf:hcSrc")||"{}"); rows.push(["watch","Samsung Health",(Object.keys(src).length? "Collegato · dati ricevuti" : "Collegato a Health Connect"),"watch"]); }
   if(!rows.length){ box.appendChild(el("p","note acc-empty","Nessun accessorio registrato: scegli il tuo qui sotto.")); return; }
   rows.forEach(([ic,t,sub,k])=>{ const b=el("button","acc-row"); b.type="button"; b.innerHTML=`<span class="acc-ic">${acSvg(ic)}</span><span class="t"><b></b><span></span></span><span class="chev">›</span>`; b.querySelector("b").textContent=t; b.querySelector(".t span").textContent=sub;
-    b.onclick=()=>{ if(k==="tape"){ go("corpo"); setTimeout(()=>{ $("bTapeBox").hidden=false; renderTapeParts(); $("bTapeBox").scrollIntoView({behavior:"smooth",block:"center"}); },300); return; } accToggle(k==="hr"?"accHr":k==="scale"?"accScale":"accWatch",b); }; box.appendChild(b); }); }
+    b.onclick=()=>{ if(k==="tape"){ go("corpo"); setTimeout(()=>{ $("bMap").scrollIntoView({behavior:"smooth",block:"center"}); toast("Tocca la parte del corpo da misurare: nella scheda c'è «Prendi la misura con il metro»"); },300); return; } accToggle(k==="hr"?"accHr":k==="scale"?"accScale":"accWatch",b); }; box.appendChild(b); }); }
 document.querySelectorAll("#devCard .acc-ic[data-i]").forEach(x=>x.innerHTML=acSvg(x.dataset.i));
 document.querySelectorAll("#devCard .acc-row[data-acc]").forEach(b=>b.onclick=()=>accToggle({watch:"accWatch",watchapp:"accWatchApp",hr:"accHr",scale:"accScale",scalehc:"accScaleHc",tape:"accTape"}[b.dataset.acc],b));
 $("accSearch").onclick=async()=>{ $("accHr").hidden=false; await (HRN()? hrnConnect() : hrConnectUI()); try{ if(HR.name) localStorage.setItem("hf:hrName",HR.name); }catch{} renderDevices(); };
@@ -5686,7 +5688,7 @@ function parseTapeLog(lines){ const vals=[];
   return {cm:Math.round((stable??best)*10)/10, stable:stable!=null}; }
 let tapePart="waist", tapeDone={};
 function renderTapeParts(){ const box=$("bTapeParts"); box.innerHTML=""; METRICS.filter(m=>m[2]==="cm"&&!m[3]).forEach(([k,l])=>{ const b=el("button","chip"+(k===tapePart?" on":""),l+(tapeDone[k]!=null? " · "+String(tapeDone[k]).replace(".",",") : "")); b.type="button"; b.onclick=()=>{ tapePart=k; renderTapeParts(); }; box.appendChild(b); }); }
-$("bTapeBtn").onclick=()=>{ $("bTapeBox").hidden=!$("bTapeBox").hidden; if(!$("bTapeBox").hidden){ tapeDone={}; renderTapeParts(); } };
+$("bTapeBtn").onclick=()=>{ $("bMap").scrollIntoView({behavior:"smooth",block:"center"}); toast("Tocca la parte del corpo da misurare: nella scheda c'è «Prendi la misura con il metro»"); };
 $("bTapeDone").onclick=()=>{ $("bTapeBox").hidden=true; setStatus("bTapeStatus",""); };
 $("bTapeGo").onclick=async()=>{ const P=HRN(), addr=localStorage.getItem("hf:tapeAddr"); if(!P||!P.inspect||!addr){ toast("Prima fai la prova del metro in Dispositivi collegati"); return; }
   const lab=(METRICS.find(m=>m[0]===tapePart)||[,"Misura"])[1]; $("bTapeGo").disabled=true; setStatus("bTapeStatus",`📏 ${lab}: premi il tasto del metro, avvolgi il nastro e tienilo fermo…`);
@@ -8787,7 +8789,7 @@ let mzKey=null;
 function openMz(k,label){ mzKey=k; const cust=CKEYS.includes(k);
   $("mzTitle").textContent= cust? cLabel(k) : label; $("mzNameL").hidden=!cust; $("mzName").value= cust&&body.cnames&&body.cnames[k]? body.cnames[k] : "";
   const ds=bodyDates(), bd=bodyDay(); $("mzDate").value= (bodyDate&&ds.length&&bd<ds[ds.length-1])? bd : todayISO(); $("mzVal").value="";
-  renderMzHow(k); renderMzHist(); openSheet("mzSheet"); if(!cust&&!MZ_HOW[k]) setTimeout(()=>$("mzVal").focus(),250); }
+  renderMzHow(k); $("mzTape").hidden=!(localStorage.getItem("hf:tapeAddr")&&HRN()&&HRN().inspect); $("mzTape").disabled=false; setStatus("mzTapeSt",""); renderMzHist(); openSheet("mzSheet"); if(!cust&&!MZ_HOW[k]) setTimeout(()=>$("mzVal").focus(),250); }
 function renderMzHist(){ const k=mzKey, ul=$("mzHist"); ul.innerHTML=""; const es=sortedEntries().filter(x=>x[k]!=null);
   $("mzHistT").hidden=!es.length; $("mzTrend").hidden=es.length<2;
   [...es].reverse().slice(0,20).forEach((x,i,a)=>{ const li=el("li"), t=el("div","t"), nx=a[i+1], dd= nx? Math.round((x[k]-nx[k])*10)/10 : null;
@@ -8807,6 +8809,16 @@ $("mzSave").onclick=()=>{ const k=mzKey; if(!k) return; let ch=false;
     bodySetVal(k,v,d); ch=true; }
   if(!ch){ toast("Scrivi la misura in cm"); return; }
   save("body",body); bodyDate=null; renderAll(); closeTopSheet(); toast(raw!==""? "Misura salvata ✓" : "Nome salvato ✓"); };
+/* metro Renpho direttamente dalla scheda della misura: legge 15 s, mette il valore nel campo, poi Salva */
+$("mzTape").onclick=async()=>{ const P=HRN(), addr=localStorage.getItem("hf:tapeAddr"), k=mzKey; if(!P||!P.inspect||!addr){ toast("Prima collega il metro in Dispositivi collegati"); return; }
+  const b=$("mzTape"); b.disabled=true; let left=15; const tick=()=>setStatus("mzTapeSt",`📏 Premi il tasto del metro, mettilo nel punto indicato sopra e tienilo fermo… (${left} s)`); tick();
+  const iv=setInterval(()=>{ left=Math.max(0,left-1); tick(); },1000);
+  try{ const r0=await P.inspect({address:addr,seconds:15}); if(mzKey!==k) return; const res=parseTapeLog((r0&&r0.log)||[]);
+    if(!res){ setStatus("mzTapeSt","Non ho ricevuto la misura: accendi il metro con il tasto e riprova.",true); return; }
+    $("mzVal").value=res.cm; try{ navigator.vibrate&&navigator.vibrate(60); }catch{}
+    setStatus("mzTapeSt",`✓ Letto ${String(res.cm).replace(".",",")} cm${res.stable?"":" (il nastro si muoveva: controlla il numero)"}. Tocca Salva, oppure rifai la misura.`); }
+  catch(e){ setStatus("mzTapeSt","Metro: "+((e&&e.message)||e),true); }
+  finally{ clearInterval(iv); b.disabled=false; } };
 $("mzTrend").onclick=()=>{ bMetric=mzKey; closeTopSheet(); setTimeout(()=>{ renderBody(); $("bChartCard").scrollIntoView({behavior:"smooth",block:"start"}); },120); };
 function latestBodyFrom(es){ const last={}; es.forEach(x=>METRICS.forEach(([k])=>{ if(x[k]!=null) last[k]={v:x[k],date:x.date}; })); return last; }
 function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e); } try{ renderBPhotos(); }catch(e){ console.warn("foto fisico",e); }
@@ -8850,7 +8862,7 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
   const anyCm=cms.some(k=>lastOf(k)!=null), anySeg=segKeys.some(k=>lastOf("sf"+k)!=null||lastOf("sm"+k)!=null);
   applyCNames(); $("bCircCard").hidden=false;
   $("bSegLg").hidden=!anySeg;
-  $("bMapSub").textContent= (anySeg? "Circonferenze e analisi segmentale. " : "")+"Tocca una misura per inserirla o vederne l'andamento.";
+  $("bMapSub").textContent= (anySeg? "Circonferenze e analisi segmentale. " : "")+"Tocca una misura per inserirla"+(localStorage.getItem("hf:tapeAddr")&&HRN()? ", anche con il metro," : "")+" o vederne l'andamento.";
   {
     const map=$("bMap"); map.innerHTML="";
     const L=el("div","col"), C=el("div"), R=el("div","col");
