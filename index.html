@@ -414,6 +414,7 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .srow .no{font-weight:800;font-size:1.05rem;text-align:center}
 .srow input{width:100%;min-width:0;text-align:center;font:inherit;font-size:1.25rem;font-weight:700;padding:8px 4px;border:0;border-radius:12px;background:var(--surface-solid);color:var(--ink)}
 .srow .u{font-size:.8rem;font-weight:700;color:var(--muted)}
+.srow .tplay{width:38px;height:38px;border:0;border-radius:50%;background:var(--basil);color:var(--basil-ink);font-size:1rem;font-weight:800;cursor:pointer;padding:0}
 .srow.done input{opacity:.65}
 .srow.cardio{grid-template-columns:36px 22px minmax(0,1fr)}
 .srow.cardio input{text-align:left;font-size:1rem;font-weight:500}
@@ -2399,7 +2400,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.84 (palestra: riscaldamento all'inizio e stretching alla fine)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.85 (timer per il plank e gli esercizi a tempo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -8182,6 +8183,38 @@ function rfApply(on){ logCtx.rf=!!on; logCtx.exercises.forEach(x=>{ if(!isLegEx(
 function ssApply(on){ logCtx.ss=!!on; logCtx.exercises.forEach(x=>{ delete x.ssp; delete x.ssl; });
   if(on){ ssPairs(logCtx.exercises).forEach(([i,j],k)=>{ const L="ABCDEFGH"[k]; const a=logCtx.exercises[i], b=logCtx.exercises[j]; a.ssp=j; b.ssp=i; a.ssl=L+"1"; b.ssl=L+"2"; }); }
   saveLive(); }
+/* v3.85: timer per gli esercizi a tempo (plank…): ▶ nella serie → 5 s per mettersi in posizione, conto alla rovescia, bip + vibrazione + voce alla fine, serie segnata come fatta e parte il recupero */
+let TM=null;
+function tmSecs(v){ const t=String(v||"").toLowerCase().replace(",","."); let m=t.match(/(\d+):(\d{1,2})/); if(m) return +m[1]*60+ +m[2];
+  const ns=(t.match(/\d+(\.\d+)?/g)||[]).map(Number); if(!ns.length) return 30; const n=Math.max(...ns); return Math.round(/min|'/.test(t)&&!/sec|\bs\b/.test(t)? n*60 : n); }
+function tmSay(m){ try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(m); u.lang="it-IT"; speechSynthesis.speak(u); }catch{} }
+function tmStart(xi,si){ const x=logCtx&&logCtx.exercises[xi], st=x&&x.sets[si]; if(!st) return; try{ document.activeElement&&document.activeElement.blur(); }catch{}
+  restEnd=0; restNative(true); TM={xi,si,sec:Math.max(5,tmSecs(st.reps||x.repsLabel)),prep:5,run:true,el:0,t0:0};
+  let ov=$("strOv"); if(!ov){ ov=el("div","str-ov"); ov.id="strOv"; document.body.appendChild(ov); } ov.hidden=false;
+  try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>{ if(TM) TM.wl=l; }).catch(()=>{}); }catch{}
+  tmSay("Mettiti in posizione"); tmDraw(); clearInterval(tmStart.t); tmStart.t=setInterval(tmTick,250); }
+function tmLeft(){ return TM.sec-Math.floor(TM.el/1000); }
+function tmTick(){ if(!TM||!TM.run) return; const now=Date.now();
+  if(TM.prep>0){ if(!TM.p0) TM.p0=now; const p=5-Math.floor((now-TM.p0)/1000); if(p!==TM.prep){ TM.prep=p; if(p<=0){ TM.prep=0; TM.last=now; strBeep(); tmSay("Via"); } } tmDraw(); return; }
+  TM.el+=now-(TM.last||now); TM.last=now; const L=tmLeft();
+  if(L===Math.floor(TM.sec/2)&&TM.sec>=30&&!TM.half){ TM.half=true; tmSay("Metà"); }
+  if(L<=10&&L>0&&TM.sec>=20&&!TM.t10){ TM.t10=true; tmSay("Ultimi dieci secondi"); }
+  if(L<=0){ tmEnd(true); return; } tmDraw(); }
+function tmDraw(){ const ov=$("strOv"); if(!ov||!TM) return; const x=logCtx.exercises[TM.xi], L=tmLeft();
+  ov.innerHTML=`<div class="str-in"><div class="str-top"><span></span><button type="button" class="str-x" aria-label="Chiudi">✕</button></div><p class="str-c"></p><h2 class="str-n"></h2><div class="str-t"></div><p class="str-tip"></p>
+   <div class="str-b">${TM.prep>0? '<button type="button" class="btn ghost" data-a="m">−5 s</button><button type="button" class="btn" data-a="go">Via subito</button><button type="button" class="btn ghost" data-a="p">+5 s</button>' : '<button type="button" class="btn ghost" data-a="pause"></button><button type="button" class="btn" data-a="stop">Finito</button>'}</div></div>`;
+  ov.querySelector(".str-top span").textContent="Esercizio a tempo"; ov.querySelector(".str-c").textContent=`Serie ${TM.si+1} di ${x.sets.length}`; ov.querySelector(".str-n").textContent=x.name;
+  const t=ov.querySelector(".str-t"); t.textContent= TM.prep>0? `Pronto… ${TM.prep}` : (L>=60? Math.floor(L/60)+":"+String(L%60).padStart(2,"0") : String(L)); t.classList.toggle("prep",TM.prep>0);
+  ov.querySelector(".str-tip").textContent= TM.prep>0? `Mettiti in posizione: parte tra ${TM.prep} secondi. Durata ${TM.sec} secondi.` : (TM.run? "Tieni la posizione, respira." : "In pausa");
+  ov.querySelector(".str-x").onclick=()=>tmEnd(false);
+  const B=k=>ov.querySelector(`[data-a="${k}"]`);
+  if(TM.prep>0){ B("m").onclick=()=>{ TM.sec=Math.max(5,TM.sec-5); tmDraw(); }; B("p").onclick=()=>{ TM.sec+=5; tmDraw(); }; B("go").onclick=()=>{ TM.prep=0; TM.last=Date.now(); strBeep(); tmSay("Via"); tmDraw(); }; }
+  else{ B("pause").textContent= TM.run? "Pausa" : "Riprendi"; B("pause").onclick=()=>{ TM.run=!TM.run; TM.last=Date.now(); tmDraw(); }; B("stop").onclick=()=>tmEnd(true,true); } }
+function tmEnd(done,early){ clearInterval(tmStart.t); const T=TM; TM=null; try{ T&&T.wl&&T.wl.release(); }catch{} const ov=$("strOv"); if(ov) ov.hidden=true; if(!T||!done) return;
+  if(!early){ beep(); tmSay("Tempo! Fatto"); } try{ navigator.vibrate&&navigator.vibrate([400,150,400,150,400]); }catch{}
+  const x=logCtx&&logCtx.exercises[T.xi], st=x&&x.sets[T.si]; if(!st) return;
+  if(T.prep<=0){ const held= early? Math.max(1,Math.floor(T.el/1000)) : T.sec; st.reps=held+" s"; }
+  if(!st.done) markSet(T.xi,T.si,true); else { saveLive(); renderLogger(); } }
 function markSet(xi,si,val){ try{ const ae=document.activeElement; if(ae&&ae.closest&&ae.closest("#logBody")) ae.blur(); }catch{}
   const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
   if(st.done){ try{ adaptNextSet(x,si); }catch(e){ console.warn("serie successiva",e); }
@@ -8230,7 +8263,8 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
       else{ const kg=el("input"); kg.type="number"; kg.inputMode="decimal"; kg.step="0.5"; kg.placeholder="–"; kg.value=st.kg; kg.setAttribute("aria-label","Kg serie "+(si+1)); kg.oninput=()=>{ st.kg=kg.value; saveLive(); };
         const rp=el("input"); if(x.timed){ rp.type="text"; rp.placeholder="tempo"; } else { rp.type="number"; rp.inputMode="numeric"; rp.placeholder="–"; }
         rp.value=st.reps; rp.setAttribute("aria-label",(x.timed?"Tempo":"Ripetizioni")+" serie "+(si+1)); rp.oninput=()=>{ st.reps=rp.value; saveLive(); };
-        row.append(dot,el("span","no",String(si+1)),kg,el("span","u",x.bw&&+x.vest>0?"🦺 KG":"KG"),rp,el("span","u",x.timed?"TEMPO":"RIP."));
+        let un=el("span","u",x.timed?"TEMPO":"RIP."); if(x.timed&&!st.done){ un=el("button","tplay","▶"); un.type="button"; un.setAttribute("aria-label","Avvia il timer della serie "+(si+1)); un.onclick=()=>tmStart(xi,si); }
+        row.append(dot,el("span","no",String(si+1)),kg,el("span","u",x.bw&&+x.vest>0?"🦺 KG":"KG"),rp,un);
         row.addEventListener("focusin",()=>showRecent(row,x,si));
         row.addEventListener("focusout",()=>setTimeout(()=>{ if(!row.contains(document.activeElement)){ delete row.dataset.picked; const r0=(row.closest(".srow-w")||row).nextElementSibling; if(r0&&r0.classList.contains("srecent")) r0.remove(); } },0)); }
       /* scorri la serie a sinistra e tocca Elimina, come nella dieta */
