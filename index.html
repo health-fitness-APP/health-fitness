@@ -1262,6 +1262,9 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 @media (max-width:420px){.three-t{grid-template-columns:1fr 1fr}.three-t label:last-child{grid-column:1/-1}}
 @media (max-width:380px){.summary{grid-template-columns:1fr;justify-items:center}.eq{width:100%}.goals{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.mzhow{display:flex;gap:12px;align-items:center;background:var(--basil-soft);border-radius:16px;padding:10px 12px;margin:4px 0 2px}
+.mzhow .fig{flex:0 0 116px}.mzhow .fig svg{width:116px;height:auto;display:block}
+.mzhow .tx{flex:1;font-size:14px;line-height:1.4}.mzhow .tx p{margin:0}.mzhow .tx .h{font-weight:700;margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -2393,7 +2396,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.76 (integratori: il coach dà gli stessi consigli in chat)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.77 (misure del corpo: dove mettere il metro)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2454,6 +2457,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <div class="sheet-inner">
     <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
     <h3 id="mzTitle">Misura</h3>
+    <div class="mzhow" id="mzHow" hidden><div class="fig" id="mzFig"></div><div class="tx"><p class="h">📏 Dove mettere il metro</p><p id="mzHowTx"></p></div></div>
+    <p class="note" id="mzHowTip" style="margin:6px 2px 10px" hidden>Misura sempre allo stesso modo: la mattina, prima di mangiare, sulla pelle nuda. Metro aderente ma senza schiacciare la pelle e parallelo al pavimento. Misura due volte e scrivi la media.</p>
     <div class="form">
       <label id="mzNameL" hidden>Nome della parte<input class="field" id="mzName" maxlength="30" placeholder="Es. Avambraccio sinistro"></label>
       <div class="two"><label>Misura (cm)<input class="field" id="mzVal" type="number" inputmode="decimal" step="0.1" min="0"></label><label>Data<input class="field" id="mzDate" type="date"></label></div>
@@ -8750,12 +8755,39 @@ function renderRatios(w,h){ const box=$("bRatios"), p=state.profile||{}, f=p.sex
   box.innerHTML=`<div class="ratio"><h3>Rapporto vita-fianchi</h3><div class="rv num${whr==null?" none":""}">${whr==null?"––":fx(whr)}</div><p class="rk">${k1}</p>${ratioBar(whr,f?0.65:0.75,f?1.0:1.15,ths,["Basso","Moderato","Alto"],[G,O,R])}</div>
   <div class="ratio"><h3>Rapporto vita-altezza</h3><div class="rv num${wht==null?" none":""}">${wht==null?"––":fx(wht)}</div><p class="rk">${k2}</p>${ratioBar(wht,0.35,0.7,[0.4,0.5,0.6],["Magro","Norma","Attenzione","Alto"],[B,G,O,R])}</div>
   <p class="note" style="margin:10px 2px 0">Stime di rischio cardiometabolico (OMS): non sono una diagnosi.</p>`; }
+/* dove misurare: linea evidenziata sulla sagoma (stesse coordinate di bodySVG, viewBox 120x262) + istruzione */
+const MZ_HOW={
+  neck:{b:[[54,66,38]],t:"Subito sotto il pomo d'Adamo, nel punto più stretto del collo. Metro dritto, un po' inclinato in avanti verso il basso. Guarda dritto davanti a te, spalle rilassate."},
+  shoulders:{b:[[27,93,52]],t:"Nel punto più largo delle spalle, sopra i muscoli delle spalle (deltoidi), metro orizzontale tutto intorno, anche sulla schiena. Braccia rilassate lungo i fianchi. Da solo è difficile: meglio farsi aiutare."},
+  chest:{b:[[34,86,63]],t:"All'altezza dei capezzoli, subito sotto le ascelle. Il metro passa dritto anche dietro, sulle scapole. Braccia giù, misura alla fine di un respiro normale (senza gonfiare il petto)."},
+  waist:{b:[[36,84,90]],t:"Nel punto più stretto della pancia, a metà tra l'ultima costola e l'osso del bacino (di solito 2-3 cm sopra l'ombelico). Pancia rilassata, misura alla fine di un respiro normale: non tirare in dentro. È la misura usata per i rapporti vita-fianchi e vita-altezza."},
+  abdomen:{b:[[37,83,106]],t:"All'altezza dell'ombelico, metro orizzontale tutto intorno. Pancia rilassata, misura alla fine di un respiro normale."},
+  hips:{b:[[38,82,131]],t:"Nel punto più largo dei glutei, metro orizzontale. Piedi uniti e glutei rilassati. Guardati di lato allo specchio per controllare che il metro sia dritto anche dietro."},
+  arm:{b:[[23.5,38.5,72],[81.5,96.5,72]],t:"A metà tra la spalla e il gomito, nel punto più grosso del bicipite. Braccio rilassato lungo il fianco, muscolo non contratto. Misura sempre lo stesso braccio, oppure tutti e due."},
+  armL:{b:[[23.5,38.5,72]],t:"Braccio sinistro: a metà tra la spalla e il gomito, nel punto più grosso del bicipite. Braccio rilassato lungo il fianco, muscolo non contratto."},
+  armR:{b:[[81.5,96.5,72]],t:"Braccio destro: a metà tra la spalla e il gomito, nel punto più grosso del bicipite. Braccio rilassato lungo il fianco, muscolo non contratto."},
+  forearm:{b:[[21.5,36.5,92],[83.5,98.5,92]],t:"Nel punto più grosso dell'avambraccio, qualche centimetro sotto il gomito. Braccio disteso e mano aperta, rilassata."},
+  thigh:{b:[[40,60,156],[60,80,156]],t:"Subito sotto la piega del gluteo, nel punto più grosso della coscia. In piedi, gambe un po' divaricate e peso su tutte e due."},
+  thighL:{b:[[40,60,156]],t:"Coscia sinistra: subito sotto la piega del gluteo, nel punto più grosso. In piedi, gambe un po' divaricate e peso su tutte e due."},
+  thighR:{b:[[60,80,156]],t:"Coscia destra: subito sotto la piega del gluteo, nel punto più grosso. In piedi, gambe un po' divaricate e peso su tutte e due."},
+  calf:{b:[[42,59,206],[61,78,206]],t:"Nel punto più grosso del polpaccio. In piedi, peso su tutte e due le gambe, polpaccio rilassato."},
+  calfL:{b:[[42,59,206]],t:"Polpaccio sinistro: nel punto più grosso. In piedi, peso su tutte e due le gambe, polpaccio rilassato."},
+  calfR:{b:[[61,78,206]],t:"Polpaccio destro: nel punto più grosso. In piedi, peso su tutte e due le gambe, polpaccio rilassato."}
+};
+function mzFigSVG(k){ const h=MZ_HOW[k]; if(!h) return ""; const C="var(--basil)";
+  const band=([x1,x2,y])=>{ const rx=(x2-x1)/2, cx=x1+rx, ry=Math.max(1.6,rx*.18);
+    return `<path d="M${x1} ${y} A${rx} ${ry} 0 0 1 ${x2} ${y}" style="fill:none;stroke:${C};stroke-width:1.2;stroke-dasharray:2 1.6;opacity:.75"/>`
+      +`<path d="M${x1} ${y} A${rx} ${ry} 0 0 0 ${x2} ${y}" style="fill:none;stroke:${C};stroke-width:3.2;stroke-linecap:round"/>`
+      +`<circle cx="${cx}" cy="${y+ry}" r="2.4" style="fill:var(--surface-solid);stroke:${C};stroke-width:1.4"/>`; };
+  return bodySVG({}).replace(/var\(--basil\)/g,"var(--muted)").replace(/fill-opacity:\.3/g,"fill-opacity:.28").replace("</svg>", h.b.map(band).join("")+"</svg>"); }
+function renderMzHow(k){ const h=MZ_HOW[k]; $("mzHow").hidden=!h; $("mzHowTip").hidden=!h; if(!h) return;
+  $("mzFig").innerHTML=mzFigSVG(k); $("mzHowTx").textContent=h.t; }
 /* foglio di una misura: inserisci il valore, rinomina le parti personalizzate, vedi lo storico */
 let mzKey=null;
 function openMz(k,label){ mzKey=k; const cust=CKEYS.includes(k);
   $("mzTitle").textContent= cust? cLabel(k) : label; $("mzNameL").hidden=!cust; $("mzName").value= cust&&body.cnames&&body.cnames[k]? body.cnames[k] : "";
   const ds=bodyDates(), bd=bodyDay(); $("mzDate").value= (bodyDate&&ds.length&&bd<ds[ds.length-1])? bd : todayISO(); $("mzVal").value="";
-  renderMzHist(); openSheet("mzSheet"); if(!cust) setTimeout(()=>$("mzVal").focus(),250); }
+  renderMzHow(k); renderMzHist(); openSheet("mzSheet"); if(!cust&&!MZ_HOW[k]) setTimeout(()=>$("mzVal").focus(),250); }
 function renderMzHist(){ const k=mzKey, ul=$("mzHist"); ul.innerHTML=""; const es=sortedEntries().filter(x=>x[k]!=null);
   $("mzHistT").hidden=!es.length; $("mzTrend").hidden=es.length<2;
   [...es].reverse().slice(0,20).forEach((x,i,a)=>{ const li=el("li"), t=el("div","t"), nx=a[i+1], dd= nx? Math.round((x[k]-nx[k])*10)/10 : null;
