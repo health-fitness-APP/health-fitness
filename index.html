@@ -4626,16 +4626,9 @@ function renderDietAI(){
   const todayWd=new Date(state.date+"T12:00:00").getDay();
   if(dietDayIdx==null||!days[dietDayIdx]){ const i=days.findIndex(d=>d.weekday===todayWd); dietDayIdx= i>=0? i : 0; }
   const curWd=new Date(todayISO()+"T12:00:00").getDay();
-  const liveT=(()=>{ if(state.date!==todayISO()) return null; try{ const dt=dayTargets(); if(!dt||dt.fromDiet) return null; const base=wt&&wt.find(x=>x.wd===curWd);
+  const liveT=(()=>{ if(state.date!==todayISO()) return null; try{ const dt=dayTargets(); if(!dt||dt.fromDiet) return null; const b0=wt&&wt.find(x=>x.wd===curWd), dpT=dayPlanFor(curWd,todayISO()), base=b0&&dpT&&dpT.ovr? {...b0, train:false, kind:"rest", label:dpT.label, when:""} : b0;   // riposo deciso col coach per oggi: niente «Corsa…» nel riquadro
     return {...(base||{}), kcal:Math.round(dt.goal), p:Math.round(dt.P), c:Math.round(dt.C), f:Math.round(dt.F), live:true, pre:dt.pre||0, preLabel:dt.preLabel||"", burnReal:Math.round(workoutKcal()), burnPlan:base? Math.round(base.kcal-tg.kcal-(base.pre||0)) : 0}; }catch{ return null; } })();
   const tgtOf=d=> (liveT&&d.weekday===curWd)? liveT : (wt&&wt.find(x=>x.wd===d.weekday) || (tg? {kcal:tg.kcal,p:tg.prot,c:tg.carb,f:tg.fat,train:false} : null));
-  // settimana
-  const wk=$("dietWeek"); wk.innerHTML="";
-  days.forEach((d,i)=>{ const t=sumMeals(mealsWithEaten(d)), tt=tgtOf(d), b=el("button");
-    b.type="button"; if(tt&&tt.train) b.classList.add("tr");
-    b.innerHTML=`<b>${d.weekday!=null?WD_SHORT[d.weekday]:(i+1)}</b><small>${r(t.kcal)}</small><i></i>`;
-    b.setAttribute("aria-pressed",i===dietDayIdx); b.setAttribute("aria-label",(d.label||WD_NAME[d.weekday]||"Giorno "+(i+1))+", "+r(t.kcal)+" kcal");
-    b.onclick=()=>{ dietDayIdx=i; renderDietAI(); }; wk.appendChild(b); });
   // giorno selezionato
   // oggi: il piano segue sempre l'obiettivo di Cibo (allenamento reale di oggi + quello di domani)
   if(liveT){ const iT=days.findIndex(x=>x.weekday===curWd);
@@ -4650,6 +4643,13 @@ function renderDietAI(){
         days[iT]={...td, meals:td.meals.map(m=>{ const c=cal.find(x=>x.id===m.id); return c? (part[m.id]? {...c,foods:[...part[m.id],...(c.foods||[])]} : c) : m; }), syncedFor:key};
         state.diet.plan={...state.diet.plan, days}; save("diet",state.diet);
       } } }
+  // settimana (dopo il riallineamento di oggi, così il numero del giorno è lo stesso del riquadro sotto)
+  const wk=$("dietWeek"); wk.innerHTML="";
+  days.forEach((d,i)=>{ const t=sumMeals(mealsWithEaten(d)), tt=tgtOf(d), b=el("button");
+    b.type="button"; if(tt&&tt.train) b.classList.add("tr");
+    b.innerHTML=`<b>${d.weekday!=null?WD_SHORT[d.weekday]:(i+1)}</b><small>${r(t.kcal)}</small><i></i>`;
+    b.setAttribute("aria-pressed",i===dietDayIdx); b.setAttribute("aria-label",(d.label||WD_NAME[d.weekday]||"Giorno "+(i+1))+", "+r(t.kcal)+" kcal");
+    b.onclick=()=>{ dietDayIdx=i; renderDietAI(); }; wk.appendChild(b); });
   const d=days[dietDayIdx], vm=mealsWithEaten(d), t=sumMeals(vm), tt=tgtOf(d), name=d.label||WD_NAME[d.weekday]||"Giorno";
   const eatenK=vm.reduce((a,m)=>a+sumFoods(m.eaten? m.foods : (m.foods||[]).filter(f=>f.done)).kcal,0);
   const bar=(v,tv,col)=>`<div class="bar"><i style="width:${tv?Math.min(100,v/tv*100):0}%;background:${col}"></i></div>`;
