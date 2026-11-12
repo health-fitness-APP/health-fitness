@@ -353,6 +353,7 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<style>[hidden]{display:none!important}</style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0F5C63">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2370,7 +2371,7 @@ async function dspLive() {
   v.srcObject = stream; try { await v.play(); } catch (e) {}
   if ("BarcodeDetector" in window) { try { const ok = await BarcodeDetector.getSupportedFormats(); fmt = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "itf"].filter(x => ok.includes(x)); } catch (e) {} }
   const det = fmt && fmt.length ? new BarcodeDetector({ formats: fmt }) : null;
-  if (!det) { try { ZX = await loadZX(); } catch (e) { t.textContent = "Il lettore dei codici non si è caricato: chiudi e usa «Fai una foto»."; return; } }
+  if (!det) { try { ZX = await loadZX(); } catch (e) { t.textContent = "Il lettore dei codici non si è caricato: chiudi e scrivi i numeri del codice."; return; } }
   const c = document.createElement("canvas"), x = c.getContext("2d", { willReadFrequently: true });
   let rd = null; if (ZX) { const h = new Map(); h.set(ZX.DecodeHintType.TRY_HARDER, true); h.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8, ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E, ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.CODE_39, ZX.BarcodeFormat.ITF]); rd = new ZX.MultiFormatReader(); rd.setHints(h); }
   let ultimo = "", volte = 0;
@@ -2524,7 +2525,7 @@ V.dispensa = () => {
   <div class="panel" style="margin-bottom:14px">
     <div class="modes dsp-mode" role="group" aria-label="Cosa fai con il prodotto" style="margin-bottom:10px"><button class="mode m-agg ${add ? "on" : ""}" data-dspmode="add" aria-pressed="${add}">➕ Aggiungi</button><button class="mode m-togli ${add ? "" : "on"}" data-dspmode="del" aria-pressed="${!add}">➖ Togli</button></div>
     <p class="small muted" style="margin:0 0 10px">${add ? "Fotografa il codice a barre di ogni prodotto che metti in dispensa. La prima volta scrivi il nome, poi l'app lo riconosce da sola." : "Fotografa il codice di ogni prodotto che usi o butti: l'app toglie il pezzo che scade per primo."}</p>
-    <div class="row" style="gap:8px"><input type="file" id="dspFoto" accept="image/*" capture="environment" class="fz" data-fz="1"><input type="file" id="dspGal" accept="image/*" class="fz" data-fz="1">${dspLiveOk() ? `<button type="button" class="btn" id="dspLiveBtn" style="${add ? "" : "background:var(--bad);border-color:var(--bad);color:#fff"}">📷 Inquadra il codice</button>` : ""}<button type="button" class="btn${dspLiveOk() ? " ghost" : ""}" id="dspFotoBtn"${dspLiveOk() ? " hidden" : ""} style="${add || dspLiveOk() ? "" : "background:var(--bad);border-color:var(--bad);color:#fff"}">${dspLiveOk() ? "Fai una foto" : "📷 Fotografa il codice"}</button><button type="button" class="btn ghost" id="dspGalBtn">🖼️ Scegli una foto</button>
+    <div class="row" style="gap:8px"><input type="file" id="dspFoto" accept="image/*" capture="environment" class="fz" data-fz="1"><input type="file" id="dspGal" accept="image/*" class="fz" data-fz="1">${dspLiveOk() ? `<button type="button" class="btn" id="dspLiveBtn" style="${add ? "" : "background:var(--bad);border-color:var(--bad);color:#fff"}">📷 Inquadra il codice</button>` : ""}<button type="button" class="btn${dspLiveOk() ? " ghost" : ""}" id="dspFotoBtn"${dspLiveOk() ? " hidden" : ""} style="${add || dspLiveOk() ? "" : "background:var(--bad);border-color:var(--bad);color:#fff"}">${dspLiveOk() ? "Fai una foto" : "📷 Fotografa il codice"}</button><button type="button" class="btn ghost" id="dspGalBtn"${dspLiveOk() ? " hidden" : ""}>🖼️ Scegli una foto</button>
       <div class="row" style="flex:1 1 230px;flex-wrap:nowrap;gap:6px;min-width:0"><input type="text" id="dspCod" inputmode="numeric" autocomplete="off" placeholder="Oppure scrivi i numeri del codice" aria-label="Numeri del codice a barre" style="flex:1;min-width:0"><button class="btn ghost" id="dspCodGo">${add ? "Aggiungi" : "Togli"}</button></div></div>
     ${DSP.busy ? `<p class="small" style="margin:10px 0 0" role="status">${esc(DSP.busy)}</p>` : ""}
     ${toast}
