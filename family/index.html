@@ -3803,6 +3803,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
+<script>(function(){const B="7603c9a955e7";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
