@@ -2361,7 +2361,7 @@ async function dspLive() {
   const chiudi = cod => { if (finito) return; finito = true; if (stream) stream.getTracks().forEach(x => x.stop()); d.remove(); document.removeEventListener("keydown", esc_); if (cod) { if (navigator.vibrate) try { navigator.vibrate(80); } catch (e) {} DSP.kb = false; dspCodice(cod, null); } };
   const esc_ = e => { if (e.key === "Escape") chiudi(null); };
   document.addEventListener("keydown", esc_); d.querySelector("#dspLiveX").onclick = () => chiudi(null);
-  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }); }
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 }, advanced: [{ focusMode: "continuous" }] }, audio: false }); }
   catch (e) {
     chiudi(null); DSP.liveNo = true; DSP.vedi = true;
     DSP.msg = { kind: "warn", t: "Qui la fotocamera dal vivo non si può usare (permesso negato o non disponibile in questa app): usa «📷 Fotografa il codice»." };
@@ -2369,11 +2369,11 @@ async function dspLive() {
   }
   if (finito) { stream.getTracks().forEach(x => x.stop()); return; }
   v.srcObject = stream; try { await v.play(); } catch (e) {}
-  if ("BarcodeDetector" in window) { try { const ok = await BarcodeDetector.getSupportedFormats(); fmt = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "itf"].filter(x => ok.includes(x)); } catch (e) {} }
+  if ("BarcodeDetector" in window) { try { const ok = await BarcodeDetector.getSupportedFormats(); fmt = ["ean_13", "ean_8", "upc_a", "upc_e"].filter(x => ok.includes(x)); } catch (e) {} }
   const det = fmt && fmt.length ? new BarcodeDetector({ formats: fmt }) : null;
   if (!det) { try { ZX = await loadZX(); } catch (e) { t.textContent = "Il lettore dei codici non si è caricato: chiudi e scrivi i numeri del codice."; return; } }
   const c = document.createElement("canvas"), x = c.getContext("2d", { willReadFrequently: true });
-  let rd = null; if (ZX) { const h = new Map(); h.set(ZX.DecodeHintType.TRY_HARDER, true); h.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8, ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E, ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.CODE_39, ZX.BarcodeFormat.ITF]); rd = new ZX.MultiFormatReader(); rd.setHints(h); }
+  let rd = null; if (ZX) { const h = new Map(); h.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8, ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E]); rd = new ZX.MultiFormatReader(); rd.setHints(h); }
   let ultimo = "", volte = 0;
   const giro = async () => {
     if (finito) return;
@@ -2383,7 +2383,7 @@ async function dspLive() {
         if (det) { const r = await det.detect(v); if (r && r[0]) val = r[0].rawValue; }
         else {
           // ritaglio la fascia centrale, dove c'è il mirino
-          const w = v.videoWidth, h = v.videoHeight, cw = Math.round(w * 0.8), ch = Math.round(h * 0.5), s = Math.min(1, 1000 / cw);
+          const w = v.videoWidth, h = v.videoHeight, cw = Math.round(w * 0.8), ch = Math.round(h * 0.5), s = Math.min(1, 640 / cw);
           c.width = Math.round(cw * s); c.height = Math.round(ch * s); x.drawImage(v, (w - cw) / 2, (h - ch) / 2, cw, ch, 0, 0, c.width, c.height);
           try { const lum = new ZX.HTMLCanvasElementLuminanceSource(c), bmp = new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum)); val = rd.decode(bmp).getText(); } catch (e) { val = null; }
         }
@@ -2391,7 +2391,7 @@ async function dspLive() {
         if (val) { const n = soloCifre(val); if (n === val && eanOk(n)) return chiudi(val); if (val === ultimo && ++volte >= 1) return chiudi(val); ultimo = val; volte = 0; }
       }
     } catch (e) {}
-    setTimeout(giro, det ? 120 : 200);
+    setTimeout(giro, det ? 60 : 40);
   };
   giro();
 }
@@ -3803,7 +3803,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="7603c9a955e7";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="99d1f018d96a";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
