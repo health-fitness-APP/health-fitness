@@ -8,6 +8,10 @@ m = open(mf, encoding="utf-8").read()
 if "android.permission.CAMERA" not in m:
     m = m.replace('<uses-permission android:name="android.permission.INTERNET" />',
                   '<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />')
+# lettore dei codici a barre di Google (ML Kit), scaricato da Play Services alla prima lettura
+if "com.google.mlkit.vision.DEPENDENCIES" not in m:
+    m = re.sub(r"(<application\b[^>]*>)", r'\1\n        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui"/>', m, count=1)
+    assert "com.google.mlkit.vision.DEPENDENCIES" in m
 open(mf, "w", encoding="utf-8").write(m)
 bg = os.path.join(AND, "app/build.gradle")
 g = open(bg, encoding="utf-8").read()

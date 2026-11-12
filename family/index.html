@@ -537,6 +537,39 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
 })();
 
 </script>
+<script>
+/* Lettore dei codici a barre di Android (Google, ML Kit): si usa solo dentro l'app installata (APK).
+   Se non c'è o non va, l'app torna alla lettura con la fotocamera della pagina. */
+window.FM_NATIVO = {
+  no: false,
+  ok() { const C = window.Capacitor; return !this.no && !!(C && C.nativePromise && (C.PluginHeaders || []).some(p => p.name === "BarcodeScanner")); },
+  async leggi() {
+    const C = window.Capacitor, P = (m, o) => C.nativePromise("BarcodeScanner", m, o || {});
+    try {
+      const a = await P("isGoogleBarcodeScannerModuleAvailable");
+      if (!a || !a.available) {
+        DSP.msg = { kind: "warn", t: "Preparo il lettore di codici del telefono: serve solo la prima volta, aspetta qualche secondo." }; route();
+        await new Promise((res, rej) => {
+          C.addListener("BarcodeScanner", "googleBarcodeScannerModuleInstallProgress", e => { const s = e && (e.state != null ? e.state : e.data && e.data.state); if (s === 4) res(); else if (s === 3 || s === 5) rej(new Error("installazione non riuscita")); });
+          P("installGoogleBarcodeScannerModule").catch(rej);
+          setTimeout(() => rej(new Error("tempo scaduto")), 90000);
+        });
+        DSP.msg = null; route();
+      }
+      const r = await P("scan", { formats: ["EAN_13", "EAN_8", "UPC_A", "UPC_E", "CODE_128"] });
+      const b = r && r.barcodes && r.barcodes[0];
+      if (!b || !b.rawValue) return;
+      if (navigator.vibrate) try { navigator.vibrate(80); } catch (e) {}
+      DSP.kb = false; dspCodice(b.rawValue, null);
+    } catch (e) {
+      if (/cancel/i.test((e && e.message) || "")) return;   // ha premuto indietro
+      this.no = true; DSP.msg = null;
+      return dspLive();                                       // riserva: fotocamera della pagina
+    }
+  }
+};
+
+</script>
 </head>
 <body>
 <header class="topbar">
@@ -2352,6 +2385,7 @@ async function leggiBarre(file) {
 // lettura dal vivo: la fotocamera resta accesa e il codice si legge appena è inquadrato
 const dspLiveOk = () => !DSP.liveNo && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 async function dspLive() {
+  if (window.FM_NATIVO && FM_NATIVO.ok()) return FM_NATIVO.leggi();
   const d = document.createElement("div");
   d.className = "dsp-live"; d.setAttribute("role", "dialog"); d.setAttribute("aria-label", "Inquadra il codice a barre");
   d.innerHTML = `<video playsinline muted autoplay></video><div class="dsp-mirino"></div><p class="dsp-live-t">Avvicina il codice a barre dentro il riquadro</p><button type="button" class="btn" id="dspLiveX">Chiudi</button>`;
@@ -3803,7 +3837,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="99d1f018d96a";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="9810cd0e5c49";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>

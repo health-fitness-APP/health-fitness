@@ -5,7 +5,8 @@
   "description": "FamilyManager per Android (guscio che carica l'app da GitHub Pages)",
   "dependencies": {
     "@capacitor/android": "8.5.2",
-    "@capacitor/core": "8.5.2"
+    "@capacitor/core": "8.5.2",
+    "@capacitor-mlkit/barcode-scanning": "8.2.2"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.2"
