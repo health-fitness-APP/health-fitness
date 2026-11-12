@@ -5,7 +5,19 @@
   "server": {
     "url": "https://health-fitness-app.github.io/health-fitness/family/",
     "androidScheme": "https",
-    "allowNavigation": ["health-fitness-app.github.io", "*.supabase.co"]
+    "allowNavigation": [
+      "health-fitness-app.github.io",
+      "*.supabase.co"
+    ]
   },
-  "android": { "allowMixedContent": false, "backgroundColor": "#EDF1EF" }
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#EDF1EF"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_famiglia",
+      "iconColor": "#0F5C63"
+    }
+  }
 }
