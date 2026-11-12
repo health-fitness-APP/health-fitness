@@ -407,7 +407,7 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
     f.onsubmit = async e => {
       e.preventDefault(); go.disabled = true; setErr("");
       const cred = { email: em.value.trim(), password: pw.value };
-      const { data, error } = nuovo ? await sb.auth.signUp(cred) : await sb.auth.signInWithPassword(cred);
+      const { data, error } = nuovo ? await sb.auth.signUp(Object.assign({ options: { emailRedirectTo: location.href.split("#")[0] } }, cred)) : await sb.auth.signInWithPassword(cred);
       go.disabled = false;
       if (error) { setErr(/invalid/i.test(error.message) ? "Email o password sbagliate." : /registered/i.test(error.message) ? "Questa email ha già una password: premi «Ho già la password»." : "Errore: " + error.message); return; }
       if (nuovo && !data.session) { setErr("Ti ho mandato una mail: apri il link per confermare, poi torna qui ed entra."); return; }
