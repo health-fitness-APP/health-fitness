@@ -360,7 +360,7 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script>window.FM_CONFIG = {"url": "", "key": ""};</script>
+<script>window.FM_CONFIG = {"url": "https://x.supabase.co", "key": "K"};</script>
 <script>
 /* FamilyManager fuori da claude.ai: accesso con email e password e archivio comune su Supabase.
    Imita le funzioni "db" e "user" di claude.ai, così il resto dell'app resta identico. */
@@ -369,6 +369,9 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
   const sb = window.supabase && CFG.url && CFG.key ? window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
   window.FM_SB = sb;
   let session = null, readyRes;
+  // link speciale per copiare i dati dell'app di claude.ai: #importa=<chiave> (la chiave non lascia mai il telefono)
+  let IMPORTA = null;
+  { const m = /^#importa=([A-Za-z0-9_-]+)$/.exec(location.hash); if (m) { IMPORTA = m[1]; history.replaceState(null, "", location.pathname + location.search + "#/home"); } }
   const ready = new Promise(r => { readyRes = r; });
 
   /* ---------- schermata di accesso ---------- */
@@ -422,7 +425,21 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
     if (session && session.user.id === s.user.id) { session = s; return; }
     session = s;
     if (!(await checkFamily())) { showLogin("Questa email non è tra quelle della famiglia. Chiedi a Daniele di aggiungerla."); await sb.auth.signOut(); return; }
+    if (IMPORTA) { try { await importa(IMPORTA); } catch (e) { alert("Copia dei dati non riuscita: " + (e && e.message || e)); } IMPORTA = null; }
     hideLogin(); readyRes(true);
+  }
+  async function importa(k) {
+    const b64 = k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4);
+    const key = await crypto.subtle.importKey("raw", Uint8Array.from(atob(b64), c => c.charCodeAt(0)), "AES-GCM", false, ["decrypt"]);
+    const r = await fetch("importa.bin", { cache: "no-store" }); if (!r.ok) throw new Error("file dei dati non trovato");
+    const buf = new Uint8Array(await r.arrayBuffer());
+    const gz = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
+    const txt = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    const rows = Object.entries(JSON.parse(txt)).map(([path, data]) => ({ path, data, updated_by: session.user.id }));
+    for (let i = 0; i < rows.length; i += 5) {
+      const { error } = await sb.from("docs").upsert(rows.slice(i, i + 5)); if (error) throw error;
+    }
+    alert("Fatto: ho copiato " + rows.length + " voci dall'app di claude.ai.");
   }
   if (sb) {
     sb.auth.getSession().then(({ data }) => onSession(data.session));
