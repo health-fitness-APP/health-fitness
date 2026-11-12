@@ -574,6 +574,18 @@ window.FM_NATIVO = {
     }
   }
 };
+/* Tasto indietro di Android: chiude quello che è aperto, poi torna alla pagina di prima; dalla prima pagina mette l'app in sottofondo */
+(function () {
+  const C = window.Capacitor;
+  if (!C || !C.addListener || !C.nativePromise || !(C.PluginHeaders || []).some(p => p.name === "App")) return;
+  C.addListener("App", "backButton", e => {
+    if (document.body.classList.contains("menu") && typeof closeDrawer === "function") { closeDrawer(); return; }
+    const live = document.querySelector(".dsp-live #dspLiveX"); if (live) { live.click(); return; }
+    const sw = document.querySelector("#view .sw.open"); if (sw) { sw.classList.remove("open"); return; }
+    const dl = document.querySelector("dialog[open]"); if (dl) { try { dl.close(); } catch (er) {} return; }
+    if (e && e.canGoBack) history.back(); else C.nativePromise("App", "minimizeApp", {}).catch(() => {});
+  });
+})();
 
 </script>
 </head>
@@ -4178,7 +4190,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="9b5ddf17f857";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="cf411a9b5e49";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
