@@ -615,6 +615,11 @@ window.FM_NATIVO = {
 .dsp-imp .qn{width:56px}
 .sw-usa{position:absolute;top:0;left:0;bottom:0;width:130px;display:flex;align-items:center;padding-left:14px;background:#2E7D5B;color:#fff;font-weight:700;visibility:hidden}
 .sw.moving .sw-usa{visibility:visible}
+body.sp-neg #view .sp-nome{font-size:1.3rem;font-weight:600}
+body.sp-neg #view .sw-in{padding:8px 0!important}
+body.sp-neg #view .sp-chi{display:none}
+body.sp-neg #spgrid{grid-template-columns:1fr!important}
+body.sp-neg #spgrid .dev{display:none}
 .dsp-ric{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
 </style>
 <script>
@@ -891,7 +896,7 @@ async function dspFotoMancanti() {
 }
 
 /* ---- scorri a destra = Usato ---- */
-function dspUsaSwipe(k) { const u = dspTogliUno(k); if (!u) return; DSP.vedi = true; route(); }
+function dspUsaSwipe(k) { if (String(k).startsWith("sp:")) return spSwipe(+String(k).slice(3)); const u = dspTogliUno(k); if (!u) return; DSP.vedi = true; route(); }
 
 /* ---- comandi ---- */
 function dspBindExtra() {
@@ -929,6 +934,105 @@ function dspBindExtra() {
   const ao = document.getElementById("avvOn"); if (ao) ao.onchange = () => dspAvvisiAccendi(ao.checked);
   const ag = document.getElementById("avvG"); if (ag) ag.onchange = () => { const A = dspAvv(); A.giorni = +ag.value; dspLs("avvisi", A); dspAvvisiProgramma(true).then(route); };
   const ah = document.getElementById("avvOra"); if (ah) ah.onchange = () => { const A = dspAvv(); A.ora = ah.value || "09:00"; dspLs("avvisi", A); dspAvvisiProgramma(true).then(route); };
+}
+
+/* Lista della spesa: migliorie chieste da Daniele il 12/11/2026.
+   Quantità e nota per ogni voce, modifica toccando il nome, suggerimenti mentre scrivi, voci uguali unite,
+   scorri a destra = preso / a sinistra = elimina, «Togli i presi» con Annulla, presi → in dispensa,
+   finiti di recente dalla dispensa, modalità «Sono al supermercato» (schermo acceso, testo grande), invio su WhatsApp. */
+const SP_ICO = { "Frutta e verdura": "🥦", "Frigo": "🥛", "Dispensa": "🥫", "Surgelati": "🧊", "Casa e pulizia": "🧽", "Igiene": "🧴", "Altro": "📦" };
+// «2 latte», «latte x2», «latte 2 kg» → nome e quantità
+function spLeggi(t) {
+  t = String(t || "").trim().replace(/\s+/g, " "); let q = "";
+  let m = /^(\d+(?:[.,]\d+)?\s*(?:kg|g|gr|l|lt|ml|pz|pezzi|confezioni|conf)?)\s+(.+)$/i.exec(t);
+  if (m) { q = m[1]; t = m[2]; }
+  else if ((m = /^(.+?)\s+(?:x\s?(\d+)|(\d+(?:[.,]\d+)?\s*(?:kg|g|gr|l|lt|ml|pz|pezzi|confezioni|conf)))$/i.exec(t))) { t = m[1]; q = m[2] || m[3]; }
+  return { t: capit(t), q: q.replace(/\s+/g, " ") };
+}
+function spAggiungi(L, testo, crudo) {
+  const { t, q } = crudo ? { t: capit(String(testo).trim()), q: "" } : spLeggi(testo); if (!t) return null;
+  const c = L.items.find(i => !i.ok && sameName(i.t, t));
+  if (c) { if (q) c.q = q; else if (/^\d+$/.test(c.q || "1")) c.q = String((+c.q || 1) + 1); return c; }
+  const it = { t, cat: L.id === "super" ? guessCat(t) : "Altro", da: state.viewAs, ok: false }; if (q) it.q = q;
+  L.items.unshift(it); return it;
+}
+function spNomiNoti(L) {
+  const s = new Set();
+  (L.pref || []).forEach(p => s.add(p.t));
+  if (L.id === "super") { PRODOTTI.forEach(p => s.add(p.nome)); DISPENSA.forEach(u => s.add(u.nome)); FREQUENTI.forEach(x => s.add(x)); }
+  L.items.forEach(i => s.add(i.t));
+  return [...s].filter(Boolean).sort((a, b) => a.localeCompare(b, "it")).slice(0, 400);
+}
+function spRiga(i, k, L, isPref, who) {
+  if (state.spEdit === k) return `<div class="item" style="display:block;border:1px solid var(--accent);border-radius:10px;padding:10px">
+    <div class="fgrid"><div><label class="f">Prodotto</label><input type="text" id="spEn" value="${esc(i.t)}"></div><div><label class="f">Quantità</label><input type="text" id="spEq" value="${esc(i.q || "")}" placeholder="Es. 2, 1 kg"></div>
+    ${L.id === "super" ? `<div><label class="f">Reparto</label><select class="f" id="spEc">${CAT_SPESA.map(c => `<option ${c === i.cat ? "selected" : ""}>${c}</option>`).join("")}</select></div>` : ""}<div><label class="f">Nota</label><input type="text" id="spEnota" value="${esc(i.nota || "")}" placeholder="Es. quello senza lattosio"></div></div>
+    <div class="row" style="margin-top:8px;gap:8px"><button class="btn sm" id="spEok">Salva</button><button class="btn ghost sm" id="spEno">Annulla</button></div></div>`;
+  return `<div class="sw" data-swusa="sp:${k}"><span class="sw-usa" aria-hidden="true">${i.ok ? "↩ Da comprare" : "✓ Preso"}</span><div class="sw-in row" style="flex-wrap:nowrap;gap:6px;align-items:center;padding:2px 0">
+    <input type="checkbox" data-it="${k}" ${i.ok ? "checked" : ""} style="width:22px;height:22px;flex:0 0 22px" aria-label="Preso: ${esc(i.t)}">
+    <span class="grow" data-spe="${k}" role="button" tabindex="0" style="cursor:pointer;min-width:0;${i.ok ? "text-decoration:line-through;color:var(--muted)" : ""}"><span class="sp-nome">${esc(i.t)}</span>${i.q ? ` <span class="pill neu sp-q">${esc(i.q)}</span>` : ""}${i.nota ? `<span class="small muted" style="display:block">${esc(i.nota)}</span>` : ""}</span>
+    <span class="small muted sp-chi" style="white-space:nowrap"><span class="who-dot" style="background:${who(i.da).col}"></span>${esc(who(i.da).nome)}</span>
+    <button class="star ${isPref(i.t) ? "on" : ""}" data-star="${k}" aria-label="${isPref(i.t) ? "Togli dalla spesa abituale" : "Salva nella spesa abituale"}: ${esc(i.t)}" title="Spesa abituale">${isPref(i.t) ? "★" : "☆"}</button></div>
+    <button type="button" class="sw-del" data-spdel="${k}" aria-label="Elimina ${esc(i.t)}">Elimina</button></div>`;
+}
+// prodotti finiti di recente in dispensa e non ancora in lista
+function spFiniti(L) {
+  if (L.id !== "super" || typeof DSP_STORICO === "undefined") return [];
+  const limite = addDays(-21), visti = new Set(), out = [];
+  DSP_STORICO.forEach(e => {
+    if (new Date(e.d) < limite || visti.has(e.k)) return; visti.add(e.k);
+    if (DISPENSA.some(u => dspKey(u) === e.k)) return;
+    if (L.items.some(i => !i.ok && sameName(i.t, e.nome))) return;
+    if ((state.spNo || []).includes(e.k)) return;
+    out.push(e);
+  });
+  return out.slice(0, 8);
+}
+function spSopra(L) {
+  const f = spFiniti(L), neg = !!state.spNegozio, da = L.items.filter(i => !i.ok);
+  const testo = encodeURIComponent(`Lista ${L.nome}:\n` + (L.id === "super" ? CAT_SPESA : ["Altro"]).map(c => { const its = da.filter(i => L.id !== "super" || i.cat === c); return its.length ? (L.id === "super" ? `\n${c}\n` : "") + its.map(i => `- ${i.t}${i.q ? " (" + i.q + ")" : ""}${i.nota ? ", " + i.nota : ""}`).join("\n") : ""; }).join("\n").replace(/\n{3,}/g, "\n\n"));
+  return `<div class="row" style="gap:8px;margin:10px 0;flex-wrap:wrap"><button class="btn ${neg ? "" : "ghost"}" id="spNeg">${neg ? "✓ Sono al supermercato" : "🛒 Sono al supermercato"}</button>${da.length ? `<a class="btn ghost" href="https://wa.me/?text=${testo}" target="_blank" rel="noopener">📤 Manda su WhatsApp</a>` : ""}</div>
+    ${neg ? `<p class="small muted" style="margin:-4px 0 10px">Schermo sempre acceso e scritte grandi. Spunta o fai scorrere a destra quello che metti nel carrello.</p>` : ""}
+    ${f.length ? `<div class="panel flat" style="margin-bottom:12px;padding:10px 12px"><p class="small" style="margin:0 0 6px">Finiti di recente in dispensa:</p><div class="chips" style="margin:0">${f.map(e => `<button class="pchip" data-spfin="${esc(e.k)}">+ ${esc(e.nome)}</button>`).join("")}<button class="btn ghost sm" id="spFinNo">Non servono</button></div></div>` : ""}
+    ${state.spUndo ? `<div class="dsp-toast" role="status"><span class="grow">${esc(state.spUndo.t)}</span><button class="btn ghost sm" id="spUndo">Annulla</button></div>` : ""}`;
+}
+let spLock = null;
+async function spSchermo(on) {
+  try { if (on && navigator.wakeLock && !spLock) { spLock = await navigator.wakeLock.request("screen"); spLock.addEventListener("release", () => { spLock = null; }); } else if (!on && spLock) { await spLock.release(); spLock = null; } } catch (e) { spLock = null; }
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && state.spNegozio && /^#\/spesa/.test(location.hash)) spSchermo(true); });
+addEventListener("hashchange", () => { if (!/^#\/spesa/.test(location.hash)) { spSchermo(false); document.body.classList.remove("sp-neg"); } });
+function spSwipe(k) {
+  const L = LISTE.find(l => l.id === state.lista) || LISTE[0]; const it = L && L.items[k]; if (!it) return;
+  it.ok = !it.ok; route();
+}
+function spBind() {
+  const L = LISTE.find(l => l.id === state.lista) || LISTE[0]; if (!L) return;
+  document.body.classList.toggle("sp-neg", !!state.spNegozio && /^#\/spesa/.test(location.hash));
+  const q = s => document.querySelectorAll(s);
+  q("[data-spe]").forEach(el => { const ap = () => { state.spEdit = +el.dataset.spe; route(); setTimeout(() => { const x = $("#spEq"); if (x) x.focus(); }, 0); }; el.onclick = ap; el.onkeydown = e => { if (e.key === "Enter") ap(); }; });
+  const ok = $("#spEok"); if (ok) ok.onclick = () => { const it = L.items[state.spEdit]; if (it) { const n = $("#spEn").value.trim(); if (n) it.t = capit(n); it.q = $("#spEq").value.trim(); const c = $("#spEc"); if (c) it.cat = c.value; it.nota = $("#spEnota").value.trim(); if (!it.q) delete it.q; if (!it.nota) delete it.nota; } state.spEdit = null; route(); };
+  const no = $("#spEno"); if (no) no.onclick = () => { state.spEdit = null; route(); };
+  ["#spEn", "#spEq", "#spEnota"].forEach(s => { const x = $(s); if (x) x.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#spEok").click(); } }; });
+  q("[data-spdel]").forEach(b => b.onclick = e => { e.stopPropagation(); const k = +b.dataset.spdel, it = L.items[k]; if (!it) return; L.items.splice(k, 1); state.spUndo = { t: `Eliminato ${it.t}.`, lista: L.id, items: [[k, it]] }; route(); });
+  const un = $("#spUndo"); if (un) un.onclick = () => { const U = state.spUndo, LL = U && LISTE.find(l => l.id === U.lista); if (LL) U.items.slice().sort((a, b) => a[0] - b[0]).forEach(([k, it]) => LL.items.splice(Math.min(k, LL.items.length), 0, it)); state.spUndo = null; route(); };
+  q("[data-spfin]").forEach(b => b.onclick = () => { const e = DSP_STORICO.find(x => x.k === b.dataset.spfin); if (!e) return; const it = spAggiungi(L, e.nome, true); if (it) { const p = e.k.startsWith("c:") ? prodOf(e.k.slice(2)) : null; if (p && CAT_SPESA.includes(p.cat)) it.cat = p.cat; } route(); });
+  const fn = $("#spFinNo"); if (fn) fn.onclick = () => { state.spNo = (state.spNo || []).concat(spFiniti(L).map(e => e.k)); route(); };
+  const ng = $("#spNeg"); if (ng) ng.onclick = () => { state.spNegozio = !state.spNegozio; spSchermo(state.spNegozio); route(); };
+  const md = $("#spInDisp"); if (md) md.onclick = () => {
+    const presi = L.items.filter(i => i.ok); if (!presi.length) return;
+    dspStato(); DSP.veloce = DSP.veloce || [];
+    presi.forEach(i => {
+      const p = PRODOTTI.find(x => sameName(x.nome, i.t)), cod = p ? p.cod : "", k = cod ? "c:" + cod : "n:" + i.t.trim().toLowerCase();
+      const n = /^\d+$/.test(i.q || "") ? Math.min(50, +i.q) : 1;
+      DSP.veloce.push({ cod, nome: p ? p.nome : i.t, cat: p ? p.cat : (CAT_SPESA.includes(i.cat) ? i.cat : guessCat(i.t)), tipo: p && p.tipo || "", qta: n, scad: cod ? dspUltima(k) : "", dove: dspDovePredef(k, p ? p.cat : i.cat) });
+    });
+    L.items = L.items.filter(i => !i.ok); state.spUndo = null;
+    DSP.mode = "add"; DSP.card = null; DSP.msg = { kind: "ok", t: "Controlla scadenze e posto, poi premi «Metti tutto in dispensa»." };
+    location.hash = "#/dispensa";
+  };
+  if (state.spNegozio) spSchermo(true);
+  bindSwipe();
 }
 
 </script>
@@ -2580,7 +2684,7 @@ V.spesa = () => {
   const da = L.items.filter(i => !i.ok), presi = L.items.filter(i => i.ok), tab = state.spesaTab || "lista";
   const cats = L.id === "super" ? CAT_SPESA : ["Altro"], who = id => MEMBRI.find(m => m.id === id) || { nome: "?", col: "var(--muted)" };
   const isPref = t => L.pref.some(p => sameName(p.t, t)), inList = t => L.items.some(i => !i.ok && sameName(i.t, t));
-  const row = (i, k) => `<div class="row" style="flex-wrap:nowrap;gap:4px"><label class="item" style="cursor:pointer;align-items:center;flex:1;min-width:0"><input type="checkbox" data-it="${k}" ${i.ok ? "checked" : ""} style="width:20px;height:20px;flex:0 0 20px"><span class="grow" style="${i.ok ? "text-decoration:line-through;color:var(--muted)" : ""}">${esc(i.t)}</span><span class="small muted" style="white-space:nowrap"><span class="who-dot" style="background:${who(i.da).col}"></span>${esc(who(i.da).nome)}</span></label><button class="star ${isPref(i.t) ? "on" : ""}" data-star="${k}" aria-label="${isPref(i.t) ? "Togli dalla spesa abituale" : "Salva nella spesa abituale"}: ${esc(i.t)}" title="Spesa abituale">${isPref(i.t) ? "★" : "☆"}</button></div>`;
+  const row = (i, k) => spRiga(i, k, L, isPref, who);
   const idx = L.items.map((i, k) => [i, k]), nMiss = L.pref.filter(p => inList(p.t)).length;
   const tabs = `<div class="chips" role="tablist"><button class="chip ${tab === "lista" ? "on" : ""}" data-stab="lista" role="tab" aria-selected="${tab === "lista"}">🛒 Da comprare (${da.length})</button><button class="chip ${tab === "abituale" ? "on" : ""}" data-stab="abituale" role="tab" aria-selected="${tab === "abituale"}">⭐ Spesa abituale (${L.pref.length})</button></div>`;
   let body;
@@ -2595,24 +2699,24 @@ V.spesa = () => {
     </div>`;
   } else {
     body = `<div class="grid" id="spgrid" style="grid-template-columns:minmax(0,1.4fr) minmax(250px,1fr);gap:14px">
-    <div class="panel"><div class="row" style="gap:8px;flex-wrap:nowrap"><input type="text" id="sT" placeholder="Aggiungi un prodotto" style="flex:1;min-width:0" aria-label="Prodotto"><button class="btn" id="sAdd">Aggiungi</button></div>
-      ${cats.map(c => { const its = idx.filter(([i]) => !i.ok && (cats.length === 1 || i.cat === c)); return its.length ? `${cats.length > 1 ? `<p class="small muted" style="margin:14px 0 0">${c}</p>` : ""}<div class="list">${its.map(([i, k]) => row(i, k)).join("")}</div>` : ""; }).join("")}
+    <div class="panel"><div class="row" style="gap:8px;flex-wrap:nowrap"><input type="text" id="sT" list="spSug" autocomplete="off" placeholder="Aggiungi (es. 2 latte)" style="flex:1;min-width:0" aria-label="Prodotto"><button class="btn" id="sAdd">Aggiungi</button></div><datalist id="spSug">${spNomiNoti(L).map(n => `<option value="${esc(n)}">`).join("")}</datalist>
+      ${cats.map(c => { const its = idx.filter(([i]) => !i.ok && (cats.length === 1 || i.cat === c)); return its.length ? `${cats.length > 1 ? `<p class="small" style="margin:14px 0 2px;font-weight:700">${SP_ICO[c] || ""} ${c} <span class="muted" style="font-weight:400">(${its.length})</span></p>` : ""}<div class="list">${its.map(([i, k]) => row(i, k)).join("")}</div>` : ""; }).join("")}
       ${da.length ? "" : `<p class="muted" style="margin-top:12px">Non manca niente. ${L.pref.length ? `Apri <button class="btn ghost sm" data-stab="abituale">⭐ Spesa abituale</button> e tocca quello che finisce.` : ""}</p>`}
-      ${presi.length ? `<div class="row between" style="margin-top:16px"><p class="small muted">Nel carrello (${presi.length})</p><button class="btn ghost sm" id="sClear">Togli i presi</button></div><div class="list">${idx.filter(([i]) => i.ok).map(([i, k]) => row(i, k)).join("")}</div>` : ""}
-      <p class="small muted" style="margin-top:12px">☆ accanto a un prodotto lo salva nella spesa abituale.</p></div>
+      ${presi.length ? `<div class="row between" style="margin-top:16px"><p class="small muted">Nel carrello (${presi.length})</p><span class="row" style="gap:6px">${L.id === "super" ? `<button class="btn sm" id="spInDisp">Metti i presi in dispensa</button>` : ""}<button class="btn ghost sm" id="sClear">Togli i presi</button></span></div><div class="list">${idx.filter(([i]) => i.ok).map(([i, k]) => row(i, k)).join("")}</div>` : ""}
+      <p class="small muted" style="margin-top:12px">Tocca un prodotto per cambiare nome, quantità o nota. Scorri a destra = preso, a sinistra = elimina. ☆ lo salva nella spesa abituale.</p></div>
     <div class="dev"><div class="panel"><h2>Vado io</h2><p class="small">Avvisa gli altri che stai andando a fare la spesa, così aggiungono subito quello che manca.</p><button class="btn sm" id="sGo" style="margin-top:8px" ${state.vadoIo ? "disabled" : ""}>${state.vadoIo ? "Avviso inviato a tutti" : "Sto andando a fare la spesa"}</button></div>
       <div class="panel flat"><p class="small">L'app mette da sola i prodotti nel reparto giusto. Puoi aggiungere anche a voce ("aggiungi latte alla lista della spesa"), e dalla scheda di una stanza mandi pitture e materiali alla lista Ferramenta con un tocco.</p></div></div></div>`;
   }
   return head("Lista della spesa", "Una lista condivisa, più la vostra spesa abituale da cui segnare solo quello che manca.") + `
   <div class="chips">${LISTE.map(l => `<button class="chip ${l.id === L.id ? "on" : ""}" data-li="${l.id}">${esc(l.nome)} (${l.items.filter(i => !i.ok).length})</button>`).join("")}</div>
-  ${tabs}${body}`;
+  ${tabs}${tab === "lista" ? spSopra(L) : ""}${body}`;
 };
 function bindSpesa() {
   const L = LISTE.find(l => l.id === state.lista) || LISTE[0]; if (!L) return;
   L.pref = L.pref || [];
   document.querySelectorAll("[data-li]").forEach(b => b.onclick = () => { state.lista = b.dataset.li; state.prefEdit = false; route(); });
   document.querySelectorAll("[data-stab]").forEach(b => b.onclick = () => { state.spesaTab = b.dataset.stab; state.prefEdit = false; route(); });
-  const add = t => { t = t.trim(); if (!t) return; L.items.unshift({ t: capit(t), cat: L.id === "super" ? guessCat(t) : "Altro", da: state.viewAs, ok: false }); route(); setTimeout(() => { const x = $("#sT"); if (x) x.focus(); }, 0); };
+  const add = t => { t = t.trim(); if (!t) return; spAggiungi(L, t); route(); setTimeout(() => { const x = $("#sT"); if (x) x.focus(); }, 0); };
   const sa = $("#sAdd"); if (sa) { sa.onclick = () => add($("#sT").value); $("#sT").onkeydown = e => { if (e.key === "Enter") add($("#sT").value); }; }
   document.querySelectorAll("[data-it]").forEach(c => c.onchange = () => { L.items[+c.dataset.it].ok = c.checked; route(); });
   document.querySelectorAll("[data-star]").forEach(b => b.onclick = e => { e.preventDefault(); e.stopPropagation(); const it = L.items[+b.dataset.star]; const k = L.pref.findIndex(p => sameName(p.t, it.t)); if (k >= 0) L.pref.splice(k, 1); else L.pref.push({ t: it.t, cat: it.cat || guessCat(it.t) }); route(); });
@@ -2628,8 +2732,9 @@ function bindSpesa() {
   const pa = $("#prefAdd"); if (pa) { pa.onclick = padd; $("#prefNew").onkeydown = e => { if (e.key === "Enter") padd(); }; }
   const pb = $("#prefBase"); if (pb) pb.onclick = () => { BASE_ABITUALE.forEach(t => { if (!L.pref.some(p => sameName(p.t, t))) L.pref.push({ t, cat: guessCat(t) }); }); route(); };
   const pl = $("#prefFromList"); if (pl) pl.onclick = () => { L.items.forEach(i => { if (!L.pref.some(p => sameName(p.t, i.t))) L.pref.push({ t: i.t, cat: i.cat || guessCat(i.t) }); }); route(); };
-  const cl = $("#sClear"); if (cl) cl.onclick = () => { L.items = L.items.filter(i => !i.ok); route(); };
+  const cl = $("#sClear"); if (cl) cl.onclick = () => { const via = L.items.map((i, k) => [k, i]).filter(([, i]) => i.ok); L.items = L.items.filter(i => !i.ok); state.spUndo = { t: `Tolti ${via.length} presi.`, lista: L.id, items: via }; route(); };
   const sg = $("#sGo"); if (sg) sg.onclick = () => { state.vadoIo = true; route(); };
+  spBind();
 }
 
 /* ---------- dispensa ---------- */
@@ -4190,7 +4295,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="cf411a9b5e49";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="b1f845203c64";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
