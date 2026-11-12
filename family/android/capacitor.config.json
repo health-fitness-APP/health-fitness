@@ -1,0 +1,11 @@
+{
+  "appId": "it.familymanager.app",
+  "appName": "Famiglia",
+  "webDir": "www",
+  "server": {
+    "url": "https://health-fitness-app.github.io/health-fitness/family/",
+    "androidScheme": "https",
+    "allowNavigation": ["health-fitness-app.github.io", "*.supabase.co"]
+  },
+  "android": { "allowMixedContent": false, "backgroundColor": "#EDF1EF" }
+}

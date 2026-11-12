@@ -1,0 +1,67 @@
+name: Crea APK FamilyManager
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "family/android/**"
+      - ".github/workflows/family-apk.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: family/android
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      # la chiave di firma non sta nel codice pubblico: nasce la prima volta e resta nella memoria privata delle Actions
+      - name: Chiave di firma (memoria privata)
+        uses: actions/cache@v4
+        with:
+          path: ~/fm-firma
+          key: familymanager-firma-v1
+      - name: Crea la chiave se manca
+        run: |
+          mkdir -p ~/fm-firma
+          if [ ! -f ~/fm-firma/firma.p12 ]; then
+            head -c 24 /dev/urandom | base64 | tr -dc A-Za-z0-9 > ~/fm-firma/pass
+            keytool -genkeypair -storetype pkcs12 -keystore ~/fm-firma/firma.p12 -storepass "$(cat ~/fm-firma/pass)" -keypass "$(cat ~/fm-firma/pass)" -alias familymanager -keyalg RSA -keysize 2048 -validity 20000 -dname "CN=FamilyManager"
+          fi
+          echo "::add-mask::$(cat ~/fm-firma/pass)"
+          echo "FM_KEYSTORE=$HOME/fm-firma/firma.p12" >> $GITHUB_ENV
+          echo "FM_KEYPASS=$(cat ~/fm-firma/pass)" >> $GITHUB_ENV
+      - name: Installa Capacitor
+        run: npm install --no-audit --no-fund
+      - name: Crea il progetto Android
+        run: |
+          rm -rf android
+          npx cap add android
+          python3 scripts/prepara_android.py ${{ github.run_number }}
+          npx cap sync android
+      - name: Compila l'APK
+        working-directory: family/android/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/FamilyManager.apk
+      - name: Pubblica l'APK (mai come «ultima versione», così HealthFit non lo vede)
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: famiglia-${{ github.run_number }}
+          name: FamilyManager per Android 1.${{ github.run_number }}
+          body: "FamilyManager.apk va sul telefono (sopra la versione precedente: si resta collegati)."
+          files: family/android/android/app/build/outputs/apk/release/FamilyManager.apk
+          make_latest: false
+          prerelease: true
