@@ -2401,7 +2401,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.88 (stretching e riscaldamento con figure animate)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.89 (bip a fine esercizio al volume della sveglia)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7124,10 +7124,14 @@ function startStretch(k,opt){ const R=STRETCH[k]; if(!R) return; const steps=[];
   let ov=$("strOv"); if(!ov){ ov=el("div","str-ov"); ov.id="strOv"; document.body.appendChild(ov); }
   STR={k,steps,i:0,left:steps[0].sec,run:true,t0:Date.now(),prep:5,...(opt||{})}; ov.hidden=false; try{ screenNative("str",true); audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume&&audioCtx.resume(); }catch{} strDraw(); clearInterval(strDraw.t); strDraw.t=setInterval(strTick,1000); try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>STR.wl=l).catch(()=>{}); }catch{} }
 function strSay(m){ try{ if(!STRETCH[STR.k].voice||!m) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(m); u.lang="it-IT"; speechSynthesis.speak(u); }catch{} }
-function strTick(){ if(!STR||!STR.run) return; if(STR.prep>0){ if(STR.prep===5||STR.prep===3&&!STR.saidI) { const s0=STR.steps[STR.i]; STR.saidI=true; strSay(s0.n+(s0.tip? ". "+s0.tip : "")); } STR.prep--; if(!STR.prep){ strBeep(); STR.saidI=false; strSay("Via"); } strDraw(); return; }
+function strTick(){ if(!STR||!STR.run) return; if(STR.prep>0){ if(STR.prep===5||STR.prep===3&&!STR.saidI) { const s0=STR.steps[STR.i]; STR.saidI=true; strSay(s0.n+(s0.tip? ". "+s0.tip : "")); } STR.prep--; if(!STR.prep){ strBeep(1); STR.saidI=false; strSay("Via"); } strDraw(); return; }
   STR.left--; if(STR.left<=0){ strBeep(); STR.i++; if(STR.i>=STR.steps.length){ strEnd(true); return; } STR.left=STR.steps[STR.i].sec; STR.prep=5; } strDraw(); }
 const strMuted=()=>{ try{ return localStorage.getItem("hf:strMute")==="1"; }catch{ return false; } };
-function strBeep(){ try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch{} if(strMuted()) return; try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); const t0=audioCtx.currentTime;
+/* v3.89: sul telefono (APK dalla 57) il bip lo suona l'app nativa al volume della SVEGLIA: si sente anche con il volume dei contenuti a zero */
+function strBeep(n){ try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch{} if(strMuted()) return;
+  try{ const P=RTN(); if(P&&typeof P.beep==="function"){ P.beep({n:n||3}).catch(()=>strBeepWeb()); return; } }catch{}
+  strBeepWeb(); }
+function strBeepWeb(){ try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); const t0=audioCtx.currentTime;
   [0,0.28,0.56].forEach((dt,k)=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type="square"; o.frequency.value= k<2? 880 : 1175; g.gain.setValueAtTime(0.0001,t0+dt); g.gain.exponentialRampToValueAtTime(0.35,t0+dt+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+(k<2? 0.18 : 0.4)); o.connect(g); g.connect(audioCtx.destination); o.start(t0+dt); o.stop(t0+dt+0.45); }); }catch{} }
 /* v3.88: figure animate (disegnate dall'app) per gli esercizi di stretching/riscaldamento/andature senza foto */
 const FIG_SIDE={H:[100,26],N:[100,40],P:[100,86],E1:[100,62],W1:[100,82],E2:[100,62],W2:[100,82],K1:[100,112],A1:[100,138],T1:[110,139],K2:[100,112],A2:[100,138],T2:[110,139]};
