@@ -586,6 +586,70 @@ window.FM_NATIVO = {
     if (e && e.canGoBack) history.back(); else C.nativePromise("App", "minimizeApp", {}).catch(() => {});
   });
 })();
+/* Aggiornamenti dell'app (come HealthFit): se su GitHub c'è un APK FamilyManager più nuovo compare un avviso con «Aggiorna».
+   In Impostazioni c'è anche «Aggiornamenti app» per controllare a mano. */
+window.FM_AGG = (function () {
+  const C = window.Capacitor;
+  const ok = !!(C && C.nativePromise && (C.PluginHeaders || []).some(p => p.name === "App"));
+  const REL = "https://api.github.com/repos/health-fitness-APP/health-fitness/releases?per_page=30";
+  const st = { mio: 0, ultima: null, quando: 0, stato: "" };
+  async function mio() { if (!st.mio) { try { const i = await C.nativePromise("App", "getInfo", {}); st.mio = +i.build || 0; } catch (e) {} } return st.mio; }
+  async function ultima() {
+    const r = await fetch(REL, { cache: "no-store" }); if (!r.ok) throw new Error("GitHub non risponde");
+    let best = null;
+    (await r.json()).forEach(x => { const m = /^famiglia-(\d+)$/.exec(x.tag_name || ""); const a = (x.assets || []).find(a => a.name === "FamilyManager.apk"); if (m && a && !x.draft && (!best || +m[1] > best.n)) best = { n: +m[1], url: a.browser_download_url }; });
+    return best;
+  }
+  function chiudi() { const b = document.getElementById("fmAggBox"); if (b) b.remove(); }
+  function avviso(testo, conPulsante) {
+    chiudi();
+    const b = document.createElement("div"); b.id = "fmAggBox"; b.setAttribute("role", "status");
+    b.style.cssText = "position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:9999;background:#0F5C63;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;font-size:15px";
+    b.innerHTML = `<span style="flex:1">${testo}</span>${conPulsante ? '<button id="fmAggVai" style="background:#fff;color:#0F5C63;border:0;border-radius:10px;padding:9px 14px;font-weight:700;font-size:15px">Aggiorna</button>' : ""}<button id="fmAggX" aria-label="Chiudi" style="background:none;border:0;color:#fff;font-size:20px;padding:4px 6px">✕</button>`;
+    document.body.appendChild(b);
+    b.querySelector("#fmAggX").onclick = () => { if (conPulsante && st.ultima) try { localStorage.setItem("fm-agg-salta", String(st.ultima.n)); } catch (e) {} chiudi(); };
+    const v = b.querySelector("#fmAggVai");
+    if (v) v.onclick = () => { avviso("Sto scaricando l'aggiornamento: quando è finito apri il file FamilyManager.apk e tocca «Installa». I tuoi dati restano.", false); location.href = st.ultima.url; };
+  }
+  async function controlla(aMano) {
+    if (!ok) return;
+    if (aMano) avviso("Controllo se c'è una versione nuova…", false);
+    try {
+      const m = await mio(), u = await ultima(); st.ultima = u; st.quando = Date.now();
+      if (u && u.n > m) {
+        st.stato = "Nuova versione 1." + u.n + " disponibile";
+        let salta = 0; try { salta = +localStorage.getItem("fm-agg-salta") || 0; } catch (e) {}
+        if (aMano || salta !== u.n) avviso(`C'è una nuova versione dell'app (1.${u.n}). Hai la 1.${m}.`, true);
+      } else { st.stato = "Aggiornata"; if (aMano) avviso(`L'app è aggiornata (versione 1.${m}).`, false); }
+    } catch (e) { st.stato = ""; if (aMano) avviso("Non riesco a controllare gli aggiornamenti adesso: controlla la connessione e riprova.", false); }
+    voceMenu();
+  }
+  // voce in Impostazioni
+  function voceMenu() {
+    const d = document.getElementById("drawer"); if (!ok || !d || !d.firstElementChild) return;
+    let a = document.getElementById("fmAggMenu");
+    const sub = `Versione 1.${st.mio || "?"}${st.stato ? " · " + st.stato : ""}`;
+    if (!a) {
+      a = document.createElement("a"); a.className = "dlink"; a.id = "fmAggMenu"; a.href = "#"; a.setAttribute("role", "button");
+      a.innerHTML = '<span class="ic" aria-hidden="true">🔄</span><span>Aggiornamenti app<small></small></span>';
+      a.onclick = e => { e.preventDefault(); if (typeof closeDrawer === "function") closeDrawer(); controlla(true); };
+      const dopo = d.querySelector('a.dlink[href="#/membri"]');
+      if (dopo && dopo.nextSibling) d.insertBefore(a, dopo.nextSibling); else d.appendChild(a);
+    }
+    const s = a.querySelector("small"); if (s && s.textContent !== sub) s.textContent = sub;
+  }
+  if (ok) {
+    const go = () => {
+      const d = document.getElementById("drawer");
+      if (d) new MutationObserver(() => { if (!document.getElementById("fmAggMenu")) voceMenu(); }).observe(d, { childList: true });
+      mio().then(voceMenu);
+      setTimeout(() => controlla(false), 4000);
+      try { C.addListener("App", "resume", () => { if (Date.now() - st.quando > 30 * 60000) controlla(false); }); } catch (e) {}
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+  }
+  return { controlla };
+})();
 
 </script>
 </head>
@@ -2165,7 +2229,7 @@ async function cercaWeb(q) {
   let mcp = null; try { mcp = await window.claude.use("mcp"); } catch (e) {}
   if (!mcp) { RIC.err = "La ricerca sul web non è disponibile in questa vista: apri l'app da claude.ai."; route(); return; }
   RIC.busy = true; RIC.err = ""; route();
-  const id = "r" + Date.now().toString(36) + uid().slice(0, 4), ref = PERS.db.doc("ricerche/" + id);
+  const id = "r" + Date.now().toString(36) + uid().slice(0, 4), ref = (PERS.oldDb || PERS.db).doc("ricerche/" + id);
   try {
     await ref.set({ q, stato: "in coda", da: PERS.myId || "", at: Date.now() });
     await mcp.callTool("Claude Code Remote", "create_trigger", { name: "Ricerca investimenti: " + q.slice(0, 60), prompt: ricercaPrompt(id, q), run_once_at: new Date(Date.now() + 90000).toISOString(), create_new_session_on_fire: true, environment_id: CCR_ENV, initiation: "human_request", notifications: {} }, { cache: false });
@@ -2177,10 +2241,10 @@ async function cercaWeb(q) {
   }
   RIC.busy = false; route();
 }
-RM.ric = id => { dropId(RICERCHE, id); if (PERS.db) PERS.db.doc("ricerche/" + id).delete().catch(() => { RIC.err = "Non sono riuscito a eliminare la ricerca."; route(); }); };
+RM.ric = id => { dropId(RICERCHE, id); if (PERS.db) (PERS.oldDb || PERS.db).doc("ricerche/" + id).delete().catch(() => { RIC.err = "Non sono riuscito a eliminare la ricerca."; route(); }); };
 function subRicerche() {
   if (RIC.sub || !PERS.db) return; RIC.sub = true;
-  PERS.db.collection("ricerche").onSnapshot(snap => {
+  (PERS.oldDb || PERS.db).collection("ricerche").onSnapshot(snap => {
     RICERCHE.splice(0, RICERCHE.length, ...snap.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => (b.at || 0) - (a.at || 0)));
     if (/^#\/investimenti/.test(location.hash)) rerenderSafe();
   }, () => {});
@@ -2767,6 +2831,16 @@ function dspGruppi() {
   DISPENSA.forEach(u => { const k = dspKey(u); let g = G.get(k); if (!g) G.set(k, g = { k, cod: u.cod || "", nome: u.nome, cat: u.cat || "Altro", tipo: dspTipo(u), pezzi: [] }); g.pezzi.push(u); });
   return [...G.values()].map(g => { g.pezzi.sort((a, b) => (a.scad || DSP_BIG) - (b.scad || DSP_BIG)); g.prima = g.pezzi[0].scad || null; return g; }).sort(dspOrdina);
 }
+// durata di un pezzo (in giorni), salvata nel prodotto; per i prodotti senza codice il prodotto si riconosce dal nome
+const DUR_U = { g: [1, "giorni", "giorno"], s: [7, "settimane", "settimana"], m: [30, "mesi", "mese"] };
+function dspProd(k) { if (k.startsWith("c:")) return prodOf(k.slice(2)); const n = k.slice(2); return PRODOTTI.find(p => !p.cod && String(p.nome || "").trim().toLowerCase() === n) || null; }
+function dspDurata(k) { const p = dspProd(k); return p && +p.durata > 0 ? +p.durata : 0; }
+function dspSetDurata(k, g, giorni) { let p = dspProd(k); if (!p) { if (!(giorni > 0)) return; p = { id: uid(), cod: g.cod || "", nome: g.nome, cat: g.cat }; PRODOTTI.push(p); } if (giorni > 0) p.durata = Math.round(giorni); else delete p.durata; }
+function durParti(d) { return d % 30 === 0 ? [d / 30, "m"] : d % 7 === 0 ? [d / 7, "s"] : [d, "g"]; }
+function durTxt(d) { const [n, u] = durParti(d); return `${n} ${n === 1 ? DUR_U[u][2] : DUR_U[u][1]}`; }
+function dspCoperto(g) { const d = dspDurata(g.k); return d ? addDays(g.pezzi.length * d) : null; }
+function durCampo(id, d, extra) { const [n, u] = d ? durParti(d) : ["", "g"]; return `<span class="row" style="flex-wrap:nowrap;gap:6px"><span class="small">1 ogni</span><input type="number" min="0" step="1" inputmode="numeric" id="${id}" value="${n}" placeholder="—" style="width:72px" ${extra || ""}><select class="f" id="${id}U" style="width:auto" ${extra ? extra.replace("data-dspdur=", "data-dspduru=") : ""}>${Object.entries(DUR_U).map(([k, v]) => `<option value="${k}" ${k === u ? "selected" : ""}>${v[1]}</option>`).join("")}</select></span>`; }
+function durLeggi(id) { const i = document.getElementById(id), u = document.getElementById(id + "U"); if (!i) return 0; const n = parseFloat(String(i.value).replace(",", ".")); return n > 0 ? Math.round(n * DUR_U[(u && u.value) || "g"][0]) : 0; }
 function dspLog() { if (!META.started) return; const e = [cur().nome, "ha aggiornato la dispensa"]; if (!(ATTIVITA[0] && ATTIVITA[0][0] === e[0] && ATTIVITA[0][1] === e[1])) { ATTIVITA.unshift(e); ATTIVITA.splice(40); } }
 function dspAggiungi(c) {
   const nome = capit(String(c.nome || "").trim()); if (!nome) return false;
@@ -2782,6 +2856,7 @@ function dspAggiungi(c) {
   for (let i = 0; i < n; i++) { const u = { id: uid(), cod, nome, cat, scad, dal: new Date(today), da: state.viewAs, dove }; if (tipo) u.tipo = tipo; DISPENSA.push(u); ids.push(u.id); }
   const tot = DISPENSA.filter(u => dspKey(u) === dspKey({ cod, nome })).length;
   DSP.msg = { kind: "ok", t: `Aggiunt${n === 1 ? "o" : "i"} ${n} × ${nome}${scad ? `, scadenza ${fd(scad)}` : ""}. In dispensa ora: ${tot}.`, undo: { add: ids } };
+  if (c.dur > 0) dspSetDurata(dspKey({ cod, nome }), { cod, nome, cat }, c.dur);
   dspLog(); return true;
 }
 // toglie il pezzo che scade per primo
@@ -2803,7 +2878,7 @@ function dspCodice(raw, file, info) {
   if (DSP.card && String(DSP.card.nome || "").trim()) dspAggiungi(DSP.card);
   const p = prodOf(cod);
   const prop = p ? dspUltima("c:" + cod) : "";
-  DSP.card = { cod, nome: p ? p.nome : "", cat: p ? p.cat : "Dispensa", qta: 1, scad: prop, proposta: !!prop, nuovo: !p };
+  DSP.card = { cod, nome: p ? p.nome : "", cat: p ? p.cat : "Dispensa", qta: 1, scad: prop, proposta: !!prop, nuovo: !p, dur: p && +p.durata > 0 ? +p.durata : 0 };
   if (info) { if (!p && info.nome) DSP.card.nome = info.nome; if (!p && info.categoria) DSP.card.cat = info.categoria; if (info.scadenza) DSP.card.scad = info.scadenza; }
   route();
   dspCercaCodice(cod, file);
@@ -2999,6 +3074,7 @@ V.dispensa = () => {
       <div style="flex:1 1 160px;min-width:0"><label class="f" for="dspScad">Scadenza</label><input type="date" id="dspScad" value="${esc(C.scad || "")}"></div><div><label class="f" for="dspDove">Dove</label><select class="f" id="dspDove" style="width:auto">${DSP_DOVE.map(d => `<option ${d === (C.dove || dspDovePredef(dspKey(C), C.cat)) ? "selected" : ""}>${d}</option>`).join("")}</select></div>
       ${cap ? `<div><input type="file" id="dspDataFoto" accept="image/*" capture="environment" class="fz" data-fz="1"><label class="btn ghost" for="dspDataFoto" style="cursor:pointer;white-space:nowrap">${C.dataBusy ? "Leggo la data…" : "📷 Leggi la data"}</label></div>` : ""}
     </div>
+    <div style="margin-top:4px"><label class="f" for="dspDur">Quanto ne consumi?</label>${durCampo("dspDur", C.dur)}${C.dur > 0 && C.qta ? `<p class="small muted" style="margin:4px 0 0">Con ${C.qta + (C.nuovo ? 0 : DISPENSA.filter(u => dspKey(u) === dspKey(C)).length)} pezzi in casa sei coperto fino al ${fd(addDays((C.qta + (C.nuovo ? 0 : DISPENSA.filter(u => dspKey(u) === dspKey(C)).length)) * C.dur))}.</p>` : `<p class="small muted" style="margin:4px 0 0">Es. 1 ogni 1 giorni se ne usi uno al giorno: ti dico fino a quando sei coperto.</p>`}</div>
     ${C.proposta && C.scad ? `<p class="small muted" style="margin-top:6px">Ho proposto l'ultima scadenza usata per questo prodotto: se è diversa, cambiala.</p>` : ""}
     ${C.dataErr ? `<p class="small" style="color:var(--bad);margin-top:6px">${esc(C.dataErr)}</p>` : ""}
     <p class="small muted" style="margin-top:6px">Se i pezzi scadono in giorni diversi, aggiungili uno alla volta oppure cambia poi la data di ognuno nell'elenco.</p>
@@ -3006,9 +3082,10 @@ V.dispensa = () => {
   const M = DSP.msg, toast = M ? `<div class="dsp-toast ${M.kind === "ok" ? "" : "warn"}" id="dspToast" role="status"><span class="grow">${esc(M.t)}</span>${M.undo ? `<button class="btn ghost sm" id="dspUndo">Annulla</button>` : ""}${M.lista ? `<button class="btn sm" id="dspLista">Metti nella lista della spesa</button>` : ""}${M.listaAuto ? `<button class="btn ghost sm" id="dspListaNo">Non serve</button>` : ""}${M.togli ? `<button class="btn sm" data-dspmeno="${esc(M.togli.k)}">Togli 1 × ${esc(M.togli.n)}</button>` : ""}<button class="iconbtn" id="dspToastX" aria-label="Chiudi il messaggio">✕</button></div>` : "";
   const riga = g => `<div class="item" data-dsptxt="${esc(txt(g))}" style="display:block;${dspStriscia(g)}"${q && !txt(g).includes(q) ? " hidden" : ""}>
     <div class="sw" data-swusa="${esc(g.k)}"><span class="sw-usa" aria-hidden="true">✓ Usato</span><div class="sw-in row" style="flex-wrap:wrap;align-items:center;gap:12px">
-    ${dspFotoDi(g)}<div class="grow" style="min-width:140px;cursor:pointer" data-dspapri="${esc(g.k)}" role="button" tabindex="0" aria-label="Apri ${esc(g.nome)}: scadenza di ogni pezzo"><b>${esc(g.nome)}</b><span class="small muted" style="display:block">${g.prima ? "Il primo scade il " + fd(g.prima) : "Nessuna scadenza segnata"}${dspDoveTesto(g)}</span></div>
+    ${dspFotoDi(g)}<div class="grow" style="min-width:140px;cursor:pointer" data-dspapri="${esc(g.k)}" role="button" tabindex="0" aria-label="Apri ${esc(g.nome)}: scadenza di ogni pezzo"><b>${esc(g.nome)}</b><span class="small muted" style="display:block">${g.prima ? "Il primo scade il " + fd(g.prima) : "Nessuna scadenza segnata"}${dspDoveTesto(g)}</span>${(() => { const c = dspCoperto(g); if (!c) return ""; const k = daysTo(c); return `<span class="small" style="display:block;font-weight:600;color:${k <= 3 ? "var(--bad)" : k <= 7 ? "var(--warn)" : "var(--good)"}">Coperto fino al ${fd(c)}</span>`; })()}</div>
     ${dspPill(g.prima)}
     <span class="qty"><button data-dspmeno="${esc(g.k)}" aria-label="Togli un pezzo: ${esc(g.nome)}">−</button><input type="number" class="qn" min="0" max="99" step="1" inputmode="numeric" value="${g.pezzi.length}" data-dspn="${esc(g.k)}" aria-label="Quanti pezzi di ${esc(g.nome)}"><button data-dsppiu="${esc(g.k)}" aria-label="Aggiungi un pezzo: ${esc(g.nome)}">+</button></span></div><button type="button" class="sw-del" data-swdel="g:${esc(g.k)}" aria-label="Elimina ${esc(g.nome)} dalla dispensa">Elimina</button></div>
+    <div class="row" style="gap:8px;margin:6px 0 0;align-items:center"><span class="small muted">Ne consumi</span>${durCampo("dspDur-" + g.k.replace(/[^\w-]/g, "_"), dspDurata(g.k), `data-dspdur="${esc(g.k)}"`)}</div>
     <details data-dspk="${esc(g.k)}" style="flex:1 1 100%;border:0"${DSP.open.has(g.k) ? " open" : ""}><summary class="small" hidden style="display:none">${g.pezzi.length === 1 ? "Scadenza del pezzo" : `Scadenza di ognuno dei ${g.pezzi.length} pezzi`}</summary><div class="body" style="padding-bottom:4px">${dspGruppoExtra(g)}${(() => { const ul = dspUltima(g.k), senza = g.pezzi.filter(u => !u.scad).length; return ul && senza ? `<button class="btn ghost sm" data-dsptutti="${esc(g.k)}" style="margin:4px 0 6px">Metti ${fd(new Date(ul + "T00:00"))} ${senza === 1 ? "al pezzo senza scadenza" : `ai ${senza} pezzi senza scadenza`}</button>` : ""; })()}${g.pezzi.map((u, i) => `<div class="sw"><div class="sw-in row" style="flex-wrap:wrap;gap:8px;padding:3px 0"><span class="small muted" style="width:22px;text-align:right">${i + 1}</span><input type="date" value="${u.scad ? iso(u.scad) : ""}" data-dspd="${u.id}" aria-label="Scadenza del pezzo ${i + 1} di ${esc(g.nome)}" style="max-width:170px">${dspPezzoExtra(u)}${!u.scad && dspUltima(g.k) ? `<button class="btn ghost sm" data-dspstessa="${u.id}" aria-label="Metti l'ultima scadenza usata">= ${new Date(dspUltima(g.k) + "T00:00").toLocaleDateString("it-IT", { day: "numeric", month: "short" })}</button>` : dspPill(u.scad)}<span style="flex:1"></span></div><button type="button" class="sw-del" data-swdel="u:${u.id}" aria-label="Elimina il pezzo ${i + 1}">Elimina</button></div>`).join("")}</div></details></div>`;
   const elenco = cat === "tutte" ? cats.map(c => { const L = vis.filter(g => g.tipo === c); return L.length ? dspGruppoTitolo(c, L) + (DSP.chiusi.has(c) ? "" : `<div class="list">${L.map(riga).join("")}</div>`) : ""; }).join("") : `<div class="list">${vis.map(riga).join("")}</div>`;
   return head("Dispensa", "Cosa c'è in casa e quando scade, pezzo per pezzo: fotografa il codice a barre quando metti via un prodotto e quando lo usi.") + `
@@ -3070,6 +3147,7 @@ function bindDispensa() {
     const tp = $("#dspTipo"); if (tp) tp.onchange = () => { C.tipo = tp.value; };
     const dv = $("#dspDove"); if (dv) dv.onchange = () => { C.dove = dv.value; };
     const nm = $("#dspNome"); if (nm) nm.oninput = () => { C.nome = nm.value; if (!C.catScelta && C.nuovo) { const g = guessCat(nm.value); C.cat = g === "Altro" ? "Dispensa" : g; if (ct) ct.value = C.cat; } };
+    const dd = () => { C.dur = durLeggi("dspDur"); }; ["dspDur", "dspDurU"].forEach(id => { const x = document.getElementById(id); if (x) { x.oninput = dd; x.onchange = () => { dd(); route(); }; } });
     const sc = $("#dspScad"); if (sc) sc.oninput = sc.onchange = () => { C.scad = sc.value; C.dataErr = ""; C.proposta = false; };
     document.querySelectorAll("[data-dspq]").forEach(b => b.onclick = () => { C.qta = Math.max(1, Math.min(50, (+C.qta || 1) + +b.dataset.dspq)); const x = $("#dspQ"); if (x) x.value = C.qta; });
     const qn = $("#dspQ"); if (qn) qn.oninput = qn.onchange = () => { const n = Math.round(+qn.value); if (n >= 1) C.qta = Math.min(50, n); };
@@ -3084,6 +3162,7 @@ function bindDispensa() {
   const tx = $("#dspToastX"); if (tx) tx.onclick = () => { DSP.msg = null; const t = $("#dspToast"); if (t) t.remove(); };
   clearTimeout(DSP.tt); if (DSP.vedi) { DSP.vedi = false; const t = $("#dspToast") || $(".dsp-card"), r = t && t.getBoundingClientRect(); if (r && (r.top < 60 || r.bottom > innerHeight - 80)) t.scrollIntoView({ block: "center", behavior: "smooth" }); } if (DSP.msg && DSP.msg.kind === "ok") DSP.tt = setTimeout(() => { DSP.msg = null; const t = $("#dspToast"); if (t) t.remove(); }, 10000);
   document.querySelectorAll("[data-dspmeno]").forEach(b => b.onclick = () => { if (!dspTogliUno(b.dataset.dspmeno)) DSP.msg = { kind: "warn", t: "Non ce n'è più in dispensa." }; route(); });
+  document.querySelectorAll("[data-dspdur],[data-dspduru]").forEach(x => x.onchange = () => { const k = x.dataset.dspdur || x.dataset.dspduru, g = dspGruppi().find(y => y.k === k); if (!g) return; const id = "dspDur-" + k.replace(/[^\w-]/g, "_"); dspSetDurata(k, g, durLeggi(id)); route(); });
   document.querySelectorAll("[data-dsppiu]").forEach(b => b.onclick = () => { const g = dspGruppi().find(x => x.k === b.dataset.dsppiu); if (!g) return; const ult = g.pezzi.slice().sort((a, c) => (c.dal || 0) - (a.dal || 0))[0], sc = ult && ult.scad instanceof Date && !isNaN(ult.scad) ? iso(ult.scad) : ""; dspAggiungi({ cod: g.cod, nome: g.nome, cat: g.cat, qta: 1, scad: sc }); route(); });
   document.querySelectorAll("[data-dspu]").forEach(b => b.onclick = () => { const i = DISPENSA.findIndex(u => u.id === b.dataset.dspu); if (i < 0) return; dspStorico(DISPENSA[i], b.dataset.dspev || (dspScadutoOra(DISPENSA[i]) ? "buttato" : "usato")); const [u] = DISPENSA.splice(i, 1), rest = DISPENSA.filter(x => dspKey(x) === dspKey(u)).length; DSP.msg = { kind: "ok", t: `Tolto 1 × ${u.nome}. ${rest ? `Ne ${rest === 1 ? "resta 1" : `restano ${rest}`}.` : "Era l'ultimo."}`, undo: { del: [u] }, lista: rest ? null : u.nome, listaCat: u.cat }; dspLog(); route(); });
   document.querySelectorAll("[data-dspd]").forEach(i => i.onchange = () => { const u = DISPENSA.find(x => x.id === i.dataset.dspd); if (!u) return; u.scad = dspData(i.value) ? new Date(i.value + "T00:00") : null; if (u.scad) dspRicorda(dspKey(u), i.value); route(); });
@@ -4083,12 +4162,121 @@ async function loadProfile() {
   else PERS.needWho = MEMBRI.length > 1;
   rerenderSafe();
 }
+/* FamilyManager in claude.ai: archivio comune su Supabase tramite il connettore «Supabase».
+   Imita db di claude.ai (doc/collection/onSnapshot) leggendo e scrivendo con execute_sql.
+   Gli aggiornamenti fatti dal telefono arrivano controllando l'archivio ogni 20 secondi. */
+const SUPA = { server: "Supabase", project: "ekqvpwxwvmgrkdrsaaer", mcp: null, err: "" };
+function supaTag(s) { let t; do { t = "$fm" + Math.random().toString(36).slice(2, 8) + "$"; } while (s.includes(t)); return t; }
+function supaLit(s) { const t = supaTag(s); return t + s + t; }
+async function supaSql(query) {
+  const r = await SUPA.mcp.callTool(SUPA.server, "execute_sql", { project_id: SUPA.project, query }, { cache: false });
+  let p = r.payload; if (p && typeof p === "object" && typeof p.result === "string") p = p.result;
+  if (typeof p !== "string") { const b = (r.content || []).find(c => c.type === "text"); p = b ? b.text : ""; try { const j = JSON.parse(p); if (j && typeof j.result === "string") p = j.result; } catch (e) {} }
+  const m = /<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data-/.exec(p);
+  const body = m ? m[1] : p;
+  try { return JSON.parse(body); } catch (e) { throw Object.assign(new Error("risposta non valida dall'archivio"), { code: "bad_answer" }); }
+}
+async function supaUpsert(rows) {   // rows: [{path, data}]
+  if (!rows.length) return;
+  const vals = rows.map(r => `(${supaLit(r.path)}, ${supaLit(JSON.stringify(r.data))}::jsonb, now())`).join(",\n");
+  await supaSql(`insert into public.docs(path, data, updated_at) values ${vals} on conflict (path) do update set data = excluded.data, updated_at = now(); select 1 as ok;`);
+}
+function supaDb() {
+  const cache = new Map(), sums = new Map(), subs = new Set();
+  let loaded = null, timer = null;
+  const colOf = p => p.slice(0, p.lastIndexOf("/")), idOf = p => p.slice(p.lastIndexOf("/") + 1);
+  const snapFor = col => { const docs = []; cache.forEach((v, p) => { if (colOf(p) === col) docs.push({ id: idOf(p), exists: true, data: () => v }); }); return { docs, size: docs.length, empty: !docs.length }; };
+  const emit = col => subs.forEach(s => { if (s.col === col) try { s.cb(snapFor(col)); } catch (e) { console.error(e); } });
+  async function sync() {
+    const list = await supaSql("select path, md5(data::text) as h from public.docs;");
+    const want = [], seen = new Set(), cols = new Set();
+    list.forEach(r => { seen.add(r.path); if (sums.get(r.path) !== r.h) want.push(r.path); });
+    cache.forEach((v, p) => { if (!seen.has(p)) { cache.delete(p); sums.delete(p); cols.add(colOf(p)); } });
+    for (let i = 0; i < want.length; i += 8) {
+      const part = want.slice(i, i + 8);
+      const rows = await supaSql(`select path, data, md5(data::text) as h from public.docs where path in (${part.map(supaLit).join(",")});`);
+      rows.forEach(r => { cache.set(r.path, r.data); sums.set(r.path, r.h); cols.add(colOf(r.path)); });
+    }
+    cols.forEach(emit);
+  }
+  function load() {
+    if (!loaded) loaded = sync().then(() => {
+      clearInterval(timer);
+      timer = setInterval(() => { if (!document.hidden) sync().catch(() => {}); }, 20000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) sync().catch(() => {}); });
+    });
+    return loaded;
+  }
+  function doc(path) {
+    return {
+      id: idOf(path),
+      async get() { await load(); const v = cache.get(path); return { id: idOf(path), exists: v !== undefined, data: () => v }; },
+      async set(data) { await supaUpsert([{ path, data }]); cache.set(path, data); sums.delete(path); emit(colOf(path)); },
+      async update(patch) { await load(); return this.set(Object.assign({}, cache.get(path) || {}, patch)); },
+      async delete() { await supaSql(`delete from public.docs where path = ${supaLit(path)}; select 1 as ok;`); cache.delete(path); sums.delete(path); emit(colOf(path)); }
+    };
+  }
+  return {
+    doc, load,
+    collection: col => ({
+      doc: id => doc(col + "/" + id),
+      onSnapshot(cb, onErr) { const s = { col, cb }; subs.add(s); load().then(() => cb(snapFor(col))).catch(e => { if (onErr) onErr(e); }); return () => subs.delete(s); },
+      async get() { await load(); return snapFor(col); }
+    })
+  };
+}
+/* Unione una tantum: i dati di claude.ai vanno nell'archivio comune solo se lì mancano o se quelli del PC sono più recenti
+   (così non si perde quello che è stato fatto sul telefono). */
+async function supaCopiaTutto(oldDb, onProgress) {
+  const all = [], rows = [], qui = new Map();
+  (await supaSql("select path, coalesce(data->>'at', '0') as at from public.docs;")).forEach(r => qui.set(r.path, +r.at || 0));
+  const fm = await new Promise((res, rej) => { const un = oldDb.collection("fm").onSnapshot(s => { res(s); try { un && un(); } catch (e) {} }, rej); });
+  fm.docs.forEach(d => all.push({ path: "fm/" + d.id, data: d.data() }));
+  if (!all.some(r => r.path === "fm/meta")) throw Object.assign(new Error("archivio di claude.ai vuoto"), { code: "vuoto" });
+  all.forEach(r => { const at = +((r.data || {}).at) || 0; if (!qui.has(r.path) || at > qui.get(r.path)) rows.push(r); });
+  let batch = [], size = 0, done = 0;
+  for (const r of rows) {
+    const n = JSON.stringify(r.data).length;
+    if (batch.length && size + n > 600000) { await supaUpsert(batch); done += batch.length; onProgress && onProgress(done, rows.length); batch = []; size = 0; }
+    batch.push(r); size += n;
+  }
+  if (batch.length) { await supaUpsert(batch); done += batch.length; onProgress && onProgress(done, rows.length); }
+  const check = await supaSql("select count(*)::int as n from public.docs where path like 'fm/%';");
+  return { copiati: rows.length, nell_archivio: check[0] && check[0].n };
+}
+
+async function supaPrepara(oldDb) {
+  // vecchio archivio già spostato? allora qui si guarda soltanto
+  try { const s = await oldDb.doc("sistema/migrazione").get(); if (s.exists) PERS.oldMoved = true; } catch (e) {}
+  let mcp = null; try { mcp = await window.claude.use("mcp"); } catch (e) {}
+  if (!mcp) { SUPA.err = "nomcp"; return null; }
+  SUPA.mcp = mcp;
+  try {
+    const r = await supaSql("select data from public.docs where path = 'sys/migrazione';");
+    if (r && r.length) return supaDb();
+    PERS.canCopy = true; return null;
+  } catch (e) { SUPA.err = (e && e.code) || "errore"; return null; }
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest && e.target.closest("#supaCopia"); if (!b || PERS.copying) return;
+  PERS.copying = true; b.disabled = true; b.textContent = "Unisco…";
+  try {
+    const r = await supaCopiaTutto(PERS.oldDb, (n, t) => { b.textContent = "Unisco… " + n + " di " + t; });
+    await supaUpsert([{ path: "sys/migrazione", data: { at: Date.now(), voci: r.copiati } }]);
+    try { await PERS.oldDb.doc("sistema/migrazione").set({ at: Date.now(), voci: r.copiati }); } catch (x) {}
+    b.textContent = "Fatto: " + r.copiati + " voci aggiunte o aggiornate. Ricarico…"; setTimeout(() => location.reload(), 1500);
+  } catch (x) { PERS.copying = false; b.disabled = false; b.textContent = "Unione non riuscita (" + ((x && x.code) || "errore") + "): riprova"; }
+}, true);
 async function initPersistence() {
   let db = null;
   try { db = window.claude && typeof window.claude.use === "function" ? await window.claude.use("db") : null; } catch (e) { db = null; }
   if (db) {
+    PERS.oldDb = db;
+    const nuovo = await supaPrepara(db);
+    if (nuovo) { db = nuovo; PERS.supa = true; }
+    else if (PERS.oldMoved) PERS.readOnlyOld = true;
     PERS.db = db; PERS.mode = "condiviso";
-    try { const user = await window.claude.use("user"); if (user) { PERS.myId = await user.id(); PERS.canWrite = await user.can("data.write"); } } catch (e) {}
+    try { const user = await window.claude.use("user"); if (user) { PERS.myId = await user.id(); PERS.canWrite = PERS.supa ? true : PERS.readOnlyOld ? false : await user.can("data.write"); } } catch (e) {}
     db.collection("fm").onSnapshot(snap => {
       let changed = false;
       snap.docs.forEach(d => {
@@ -4114,7 +4302,10 @@ function statusBanner() {
   let b = "";
   if (PERS.mode === "locale") b += `<div class="banner">Salvato solo su questo dispositivo: per condividerlo con la famiglia aprilo dal link di claude.ai.</div>`;
   if (PERS.mode === "errore") b += `<div class="banner">Non riesco a collegarmi all'archivio condiviso: ricarica la pagina.</div>`;
-  if (PERS.canWrite === false) b += `<div class="banner">Puoi consultare ma non modificare: chiedi di essere invitato come editor.</div>`;
+  if (PERS.readOnlyOld) b += `<div class="banner">I dati ora stanno nell'archivio comune con l'app del telefono, ma qui non riesco a raggiungerlo${SUPA.err === "nomcp" ? "" : " (" + esc(SUPA.err) + ")"}: stai vedendo una copia vecchia, solo da leggere. Collega Supabase in claude.ai (Impostazioni → Connettori) e ricarica, oppure usa l'app del telefono.</div>`;
+  else if (PERS.canWrite === false) b += `<div class="banner">Puoi consultare ma non modificare: chiedi di essere invitato come editor.</div>`;
+  if (SUPA.err && SUPA.err !== "nomcp" && !PERS.readOnlyOld && META.started) b += `<div class="banner">Non riesco a raggiungere l'archivio comune con l'app del telefono (${esc(SUPA.err)}): per ora salvo come prima, qui in claude.ai.</div>`;
+  if (PERS.canCopy && !PERS.supa) b += `<div class="banner">Manca un ultimo passo per avere gli stessi dati sul PC e sul telefono. <button class="btn sm" id="supaCopia">Unisci i dati del PC con quelli del telefono</button> (si fa una volta sola, non si perde niente)</div>`;
   if (PERS.needWho) b += `<div class="banner">Chi sei? ${MEMBRI.map(m => `<button class="chip" data-iam="${m.id}">${esc(m.nome)}</button>`).join(" ")}</div>`;
   return b + polAvvisoBanner();
 }
@@ -4295,7 +4486,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="b1f845203c64";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="1990117570fc";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
