@@ -1121,6 +1121,16 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 #w-chat .stack{position:sticky;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:5;background:var(--surface-solid);border-radius:16px;padding:8px;box-shadow:0 -6px 18px rgba(0,0,0,.06)}
 #w-chat{padding-bottom:20px}
 .chatlog>*{scroll-margin-bottom:250px}
+.rs-pick{border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;background:var(--surface2)}
+.rs-pick.best{border-color:var(--basil)}
+.rs-pick h4{margin:0 0 4px;font-family:"Bricolage Grotesque",sans-serif;font-size:1.05rem}
+.rs-pick .rs-it{font-size:.9rem;margin:2px 0}
+.rs-pick .rs-mac{font-size:.82rem;color:var(--muted)}
+.rs-pick .btn{margin-top:8px}
+.rs-src{font-size:.78rem;color:var(--muted);margin-top:8px;word-break:break-word}
+.rs-src a{color:var(--muted)}
+.rs-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.rs-thumbs img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 .sug h4{margin:4px 0 2px;font-family:"Bricolage Grotesque",sans-serif;font-size:1.1rem}
 .prep{font-size:.9rem;white-space:pre-wrap;margin:0 0 12px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 10px}
@@ -2401,7 +2411,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.89 (bip a fine esercizio al volume della sveglia)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.90 (al ristorante: cosa ordinare dal menù)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2516,6 +2526,28 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button class="btn" id="rqGo" type="button" style="margin-top:10px">Aggiungi al diario di oggi</button>
   </div>
 </div>
+<div class="sheet" id="restSheet" role="dialog" aria-modal="true" aria-labelledby="rsTitle">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="rsTitle">Al ristorante: cosa ordino?</h3>
+    <p class="note" id="rsInfo"></p>
+    <label>Link del menù o nome del ristorante<input class="field" id="rsQ" placeholder="Es. https://… oppure Da Mario, Torino" autocomplete="off"></label>
+    <div class="chips" id="rsRecent" style="margin:6px 0 0"></div>
+    <div class="two" style="margin-top:6px"><button class="btn ghost" id="rsQr" type="button">▦ Scansiona il QR del menù</button><button class="btn ghost" id="rsPhoto" type="button">📷 Foto del menù</button></div>
+    <input type="file" id="rsCam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="rsGal" accept="image/*" multiple hidden>
+    <div class="scan" id="rsScanBox" hidden>
+      <video id="rsVideo" playsinline muted></video>
+      <p class="note" id="rsScanHint">Inquadra il QR code del menù.</p>
+      <button class="btn ghost" id="rsScanStop" type="button">Chiudi fotocamera</button>
+    </div>
+    <div id="rsPicsBox" hidden><div class="rs-thumbs" id="rsThumbs"></div><div style="display:flex;gap:16px"><button class="linkbtn" id="rsMorePic" type="button">+ Altra foto</button><button class="linkbtn" id="rsGalPic" type="button">🖼️ Dalla galleria</button><button class="linkbtn" id="rsClearPic" type="button">Togli le foto</button></div></div>
+    <label style="margin-top:8px;display:block">Cosa ti va? (facoltativo)<input class="field" id="rsWant" placeholder="Es. pesce, pizza, qualcosa di leggero" autocomplete="off"></label>
+    <button class="btn" id="rsGo" type="button" style="margin-top:10px">Consigliami cosa ordinare</button>
+    <div class="status" id="rsStatus" aria-live="polite"></div>
+    <div id="rsOut"></div>
+  </div>
+</div>
 <div class="sheet" id="qtSheet" role="dialog" aria-modal="true" aria-labelledby="qtTitle">
   <div class="sheet-inner">
     <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
@@ -2617,6 +2649,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <div class="status" id="dpStatus" aria-live="polite"></div>
     </div>
     <div id="paneQuick" hidden>
+      <button class="btn ghost" id="quickRest" type="button" style="margin-bottom:8px">🍽 Al ristorante: cosa ordino?</button>
       <div class="two"><button class="btn ghost" id="quickScan">▥ Codice a barre</button><button class="btn ghost" id="quickMan">✎ Solo valori</button></div>
       <div id="quickBody"></div>
       <div id="quickPickedBox" hidden>
@@ -2703,6 +2736,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       </div>
     </div>
     <div id="paneSuggest" hidden>
+      <button class="btn ghost" id="sugRest" type="button" style="margin-bottom:8px">🍽 Sei al ristorante? Scegli dal menù</button>
       <p class="sub" id="sugTarget"></p>
       <div class="form">
         <label>Cosa hai a disposizione?
@@ -2981,7 +3015,44 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     if(v!==undefined) return v; throw {code:"bad_output"}; };
   sample.limits=async()=>({images:{maxCount:8},maxPromptBytes:900000});
   window.claude={use:async name=> name==="sample"? sample : null};
-  window.HF_GEMINI={API,LS,paid};
+  // v3.90: richiesta con la ricerca Google e la lettura dei link (menù del ristorante). Se gli strumenti non vanno, riprova senza.
+  async function grounded(text,opts={}){
+    const key=LS("apiKey"); if(!key) throw {code:"no_key"};
+    const main=LS("mMain")||"gemini-2.5-flash", quick=LS("mQuick")||main;
+    const parts=[{text}]; for(const b of (opts.images||[])) parts.push({inline_data:{mime_type:b.type||"image/jpeg",data:await blobToB64(b)}});
+    const contents=[{role:"user",parts}];
+    const chain=[main,quick].filter((m,i,a)=>m&&a.indexOf(m)===i);
+    const sets= opts.tools? [[{url_context:{}},{google_search:{}}],[{google_search:{}}],null] : [null];
+    let lastErr=null;
+    for(const model of chain){ let noTc=noThink.has(model);
+      for(let si=0; si<sets.length; si++){
+        const tools=sets[si], tc=noTc? null : thinkCfg(model,false,true);
+        const gc={temperature:0.3,...(tc?{thinkingConfig:tc}:{})};
+        const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),opts.timeout||100000);
+        if(opts.signal) opts.signal.addEventListener("abort",()=>ctl.abort(),{once:true});
+        let res,data; const ts=Date.now();
+        try{ res=await fetch(`${API}/models/${model}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents,...(tools?{tools}:{}),generationConfig:gc}),signal:ctl.signal}); data=await res.json().catch(()=>null); }
+        catch(e){ clearTimeout(t); if(opts.signal&&opts.signal.aborted) throw {code:"cancelled"}; lastErr= ctl.signal.aborted? {code:"timeout"} : {code:"network"}; break; }
+        clearTimeout(t);
+        if(!res.ok){ const msg=(data&&data.error&&data.error.message)||""; window.HF_TRACE.push({m:model+(tools?" +ricerca":""),ms:Date.now()-ts,ok:false,code:"api_"+res.status});
+          if(res.status===400&&tc&&/think/i.test(msg)){ noTc=true; si--; continue; }
+          lastErr=err(res.status,data); if(lastErr.code==="bad_key") throw lastErr;
+          if(res.status===400&&tools) continue;   // strumento non disponibile per questo modello: provo con meno strumenti
+          break; }
+        window.HF_TRACE.push({m:model+(tools?" +ricerca":""),ms:Date.now()-ts,ok:true});
+        try{ addSpend(model,data&&data.usageMetadata); }catch{}
+        const cand=data&&data.candidates&&data.candidates[0];
+        if(!cand||!cand.content){ lastErr={code:"blocked"}; break; }
+        const out=(cand.content.parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
+        const gm=cand.groundingMetadata||{}, um=cand.urlContextMetadata||{};
+        const sources=(gm.groundingChunks||[]).map(c=>c.web).filter(Boolean).map(w=>({uri:w.uri,title:w.title||""}));
+        const urls=(um.urlMetadata||[]).map(u=>({url:u.retrievedUrl||"",ok:/SUCCESS/.test(u.urlRetrievalStatus||"")}));
+        return {text:out,sources,urls,searches:gm.webSearchQueries||[],tools:!!tools,model};
+      }
+    }
+    throw lastErr||{code:"network"};
+  }
+  window.HF_GEMINI={API,LS,paid,grounded,parseJSON};
   // prova vera delle riserve (OpenRouter, Groq) con una domanda brevissima
   window.HF_RESERVE_TEST=async w=>{ const c=[{role:"user",parts:[{text:"Rispondi solo: ok"}]}], t0=Date.now();
     const t=await (w==="or"? orOnce : groqOnce)(c,false,{maxTokens:20}); const last=window.HF_TRACE[window.HF_TRACE.length-1]||{};
@@ -3863,7 +3934,7 @@ function openSheet(id){
   history.pushState({v:view,sheet:sheetStack.length},"");
 }
 function hideTopSheet(){
-  const id=sheetStack.pop(); if(id){ $(id).classList.remove("open"); if(id==="addSheet"){ try{ stopScan(); }catch{} } if(id==="gelSheet"){ try{ gelScanStop(); }catch{} } }
+  const id=sheetStack.pop(); if(id){ $(id).classList.remove("open"); if(id==="addSheet"){ try{ stopScan(); }catch{} } if(id==="gelSheet"){ try{ gelScanStop(); }catch{} } if(id==="restSheet"){ try{ rsScanStop(); }catch{} } }
   if(!sheetStack.length) $("scrim").classList.remove("open"); else $("scrim").style.zIndex=String(20+sheetStack.length*2);
 }
 function closeTopSheet(){ if(sheetStack.length) history.back(); }
@@ -9463,6 +9534,163 @@ function yearAgo(from,to){ const f=shiftDate(from,-364), t=shiftDate(to,-364), H
   if(!runs.length&&!gym&&!ws.length) return ""; return `Un anno fa, stesso periodo: ${runs.length} corse e ${fmt(Math.round(km*10)/10)} km, ${gym} sedute di palestra${ws.length? `, peso medio ${fmt(Math.round(ws.reduce((a,b)=>a+b,0)/ws.length*10)/10)} kg` : ""}.`; }
 /* ===== pasti fuori casa: porzioni tipiche di bar e ristorante ===== */
 const EAT_OUT=[["Pizza margherita (intera)",330,800,32,105,26],["Pizza con salame o prosciutto",350,900,40,105,34],["Pasta al pomodoro (ristorante)",350,520,17,95,8],["Pasta alla carbonara",350,780,30,85,34],["Lasagne",350,620,32,48,32],["Risotto",350,560,14,90,16],["Panino del bar con prosciutto e formaggio",180,480,24,50,20],["Tramezzino",120,300,10,30,15],["Piadina con crudo e squacquerone",250,650,28,60,32],["Cornetto",70,290,5,35,14],["Cappuccino",150,80,4,7,4],["Hamburger con patatine",450,1050,40,100,52],["Sushi (12 pezzi misti)",330,550,24,90,10],["Poke bowl con salmone",450,650,30,75,24],["Kebab",400,850,40,75,42],["Bistecca con contorno",350,550,48,15,32],["Insalatona con tonno",400,420,30,20,24],["Gelato (coppetta 2 gusti)",150,320,5,40,15],["Birra media",400,170,2,14,0],["Calice di vino",150,125,0,4,0],["Spritz",250,190,0,20,0],["Tiramisù",120,380,7,38,22]];
+/* ===== v3.90: al ristorante: cosa ordino? (link del menù, QR code, nome del ristorante o foto del menù) ===== */
+let rsPics=[], rsStream=null, rsTimer=null, rsZx=null, rsBusy=false, rsRun=0;
+function rsRecentList(){ try{ return JSON.parse(localStorage.getItem("hf:rsRecent")||"[]")||[]; }catch{ return []; } }
+function rsRemember(q,label){ if(!q) return; const l=rsRecentList().filter(x=>x.q!==q); l.unshift({q,label:String(label||q).slice(0,40),at:Date.now()}); try{ localStorage.setItem("hf:rsRecent",JSON.stringify(l.slice(0,6))); }catch{} }
+function rsMealInfo(){
+  const id=currentMeal, name=currentMealName||((mealList().find(m=>m.id===id)||{}).name)||"pasto"; let foods=null;
+  try{ if(upActive()){ const d=upDayFor(state.date), m=d&&(d.meals||[]).find(x=>x.id===id); if(m) foods=m.foods; } }catch{}
+  if(!foods){ try{ const wd=new Date(state.date+"T12:00:00").getDay(), d=planDays(state.diet&&state.diet.plan).find(x=>x.weekday===wd), m=d&&(d.meals||[]).find(x=>x.id===id); if(m) foods=m.foods; }catch{} }
+  const plan=foods&&foods.length? sumFoods(foods) : null, done=sumFoods(state.day.meals[id]||[]);
+  let left=null; try{ const dt=dayTargets(), t=totals(); if(dt) left={kcal:dt.goal-t.kcal,p:dt.P-t.p,c:dt.C-t.c,f:dt.F-t.f}; }catch{}
+  return {id,name,foods,plan:plan&&plan.kcal>0? plan : null,done,left};
+}
+function rsInfoText(mi){
+  const bits=[];
+  if(mi.plan) bits.push(`La dieta per ${mi.name.toLowerCase()} prevede circa ${r(mi.plan.kcal)} kcal (proteine ${r(mi.plan.p)} g)`);
+  if(mi.done.kcal>0) bits.push(`hai già segnato ${r(mi.done.kcal)} kcal in questo pasto`);
+  if(mi.left) bits.push(`oggi ti restano ${r(Math.max(0,mi.left.kcal))} kcal e ${r(Math.max(0,mi.left.p))} g di proteine`);
+  return bits.length? bits.join(", ").replace(/^./,c=>c.toUpperCase())+"." : "";
+}
+function openRest(){
+  if(!sample){ toast("Serve l'AI: inserisci la chiave in Profilo → Impostazioni AI"); return; }
+  const mi=rsMealInfo(); $("rsTitle").textContent="Al ristorante: cosa ordino a "+mi.name.toLowerCase()+"?";
+  $("rsInfo").textContent=rsInfoText(mi)||"Scrivi il link del menù o il nome del ristorante, scansiona il QR code oppure fotografa il menù.";
+  setStatus("rsStatus",""); rsRenderRecent(); rsRenderPics();
+  // l'ultimo consiglio resta visibile per 3 ore (se chiudi per sbaglio)
+  let last=null; try{ last=JSON.parse(localStorage.getItem("hf:rsLast")||"null"); }catch{}
+  if(last&&last.meal===mi.id&&last.date===state.date&&Date.now()-last.at<3*3600e3){ if(!$("rsQ").value) $("rsQ").value=last.q||""; rsShow(last.res,last.meta||{}); } else $("rsOut").innerHTML="";
+  openSheet("restSheet");
+}
+function rsRenderRecent(){ const box=$("rsRecent"); box.innerHTML=""; const l=rsRecentList(); box.hidden=!l.length;
+  l.forEach(x=>{ const b=el("button","chip",x.label); b.type="button"; b.onclick=()=>{ $("rsQ").value=x.q; }; box.appendChild(b); }); }
+function rsRenderPics(){ const box=$("rsThumbs"); box.innerHTML=""; $("rsPicsBox").hidden=false; $("rsClearPic").hidden=$("rsMorePic").hidden=!rsPics.length;
+  rsPics.forEach(b=>{ const im=el("img"); im.alt="Foto del menù"; im.src=URL.createObjectURL(b); box.appendChild(im); });
+  $("rsPhoto").textContent= rsPics.length? "📷 Foto del menù ("+rsPics.length+")" : "📷 Foto del menù"; }
+async function rsAddFiles(files){
+  for(const f of [...(files||[])].slice(0,6)){
+    try{ // se nella foto c'è un QR code, uso il suo link
+      if(!$("rsQ").value.trim()&&"BarcodeDetector" in window){ const bm=await createImageBitmap(f); const c=await new BarcodeDetector({formats:["qr_code"]}).detect(bm); if(c&&c.length&&/^https?:/i.test(c[0].rawValue)){ $("rsQ").value=c[0].rawValue; toast("Ho letto il QR code nella foto"); } }
+    }catch{}
+    try{ rsPics.push(await shrinkFile(f,1600)); }catch{}
+  }
+  rsPics=rsPics.slice(-6); rsRenderPics();
+}
+function rsScanStop(){ clearInterval(rsTimer); rsTimer=null; if(rsZx){ try{ rsZx.reset(); }catch{} rsZx=null; }
+  if(rsStream){ rsStream.getTracks().forEach(t=>t.stop()); rsStream=null; } if($("rsScanBox")) $("rsScanBox").hidden=true; }
+function rsGotCode(txt){ rsScanStop(); txt=String(txt||"").trim(); if(!txt) return; $("rsQ").value=txt;
+  if(navigator.vibrate) try{ navigator.vibrate(60); }catch{}
+  toast(/^https?:/i.test(txt)? "Link del menù letto" : "QR letto"); rsGo(); }
+async function rsScan(){
+  $("rsScanBox").hidden=false; $("rsScanHint").textContent="Inquadra il QR code del menù (sul tavolo o sulla vetrina).";
+  const v=$("rsVideo");
+  try{
+    let ok=false; try{ ok="BarcodeDetector" in window && (await BarcodeDetector.getSupportedFormats()).includes("qr_code"); }catch{}
+    if(ok){ const det=new BarcodeDetector({formats:["qr_code"]});
+      rsStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720},advanced:[{focusMode:"continuous"}]},audio:false});
+      v.srcObject=rsStream; await v.play();
+      rsTimer=setInterval(async()=>{ if(rsBusy||v.readyState<2) return; rsBusy=true; try{ const c=await det.detect(v); if(c&&c.length) rsGotCode(c[0].rawValue); }catch{} finally{ rsBusy=false; } },300);
+    } else {
+      if(!window.ZXing) await loadScript("https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js");
+      rsZx=new ZXing.BrowserQRCodeReader();
+      await rsZx.decodeFromConstraints({video:{facingMode:{ideal:"environment"}}},v,(res)=>{ if(res) rsGotCode(res.getText()); });
+    }
+    setTimeout(()=>{ if(rsStream||rsZx) $("rsScanHint").textContent="Non lo leggo? Avvicinati e metti più luce, oppure fotografa il menù con «📷 Foto del menù»."; },12000);
+  }catch(e){ rsScanStop(); $("rsScanBox").hidden=true;
+    toast(e&&e.name==="NotAllowedError"? "Permesso fotocamera negato: abilitalo per l'app" : "Non riesco ad aprire la fotocamera: fotografa il menù"); }
+}
+function rsPrompt(q,want,mi,hasPics){
+  const isUrl=/^https?:\/\//i.test(q)||/^www\./i.test(q);
+  const src= isUrl? `LINK DEL MENÙ (letto dal QR code o incollato): ${q}\nApri e leggi questo link (può essere una pagina web, un PDF o un'app di menù digitale). Se la pagina non si apre o non contiene i piatti, cerca con Google Search il menù di quel ristorante (sito ufficiale, TheFork, TripAdvisor, Google Maps, Facebook, Instagram, Deliveroo/Just Eat/Glovo).`
+    : q? `RISTORANTE: "${q}"\nCerca con Google Search il menù aggiornato di questo ristorante (sito ufficiale, TheFork, TripAdvisor, Google Maps, Facebook, Instagram, Deliveroo/Just Eat/Glovo). Se ci sono più locali con questo nome e la città non è indicata, scegli il più probabile in Italia e scrivi in "where" quale hai preso.` : "";
+  const ate=mealList().map(m=>{ const it=state.day.meals[m.id]||[]; return it.length? m.name+": "+it.map(i=>i.name+" "+r(i.grams)+"g").join(", ") : ""; }).filter(Boolean).join("; ")||"niente";
+  const planned= mi.foods&&mi.foods.length? mi.foods.map(f=>f.name+" "+r(+f.grams||0)+"g").join(", ") : "";
+  return `Sei un nutrizionista sportivo pratico. La persona è al ristorante e deve scegliere cosa ordinare per il pasto "${mi.name}". Rispondi in italiano.
+${src}${hasPics? "\nFOTO DEL MENÙ: leggi i piatti dalle foto allegate (sono la fonte più affidabile)." : ""}
+REGOLA FONDAMENTALE: consiglia SOLO piatti che sono davvero nel menù che hai letto o trovato, con il nome come sul menù. Non inventare piatti. Se non riesci a trovare il menù, metti "found": false, scrivilo in "note" e dai consigli per il tipo di locale (piatti tipici che quasi sempre ci sono), dicendolo chiaramente.
+
+${dateCtx()}
+Profilo: ${profileSummary()}.
+Oggi ha già mangiato: ${ate}.
+Situazione della giornata: ${remainingText()}.
+${planned? `La dieta per questo pasto prevedeva: ${planned} (circa ${r(mi.plan?mi.plan.kcal:0)} kcal, proteine ${r(mi.plan?mi.plan.p:0)} g, carboidrati ${r(mi.plan?mi.plan.c:0)} g, grassi ${r(mi.plan?mi.plan.f:0)} g). Scegli piatti con valori simili.` : "Non c'è un pasto previsto dalla dieta: usa la parte giusta di quello che resta nella giornata (tieni conto dei pasti che mancano dopo questo)."}
+${mi.done.kcal>0? `In questo pasto ha già segnato ${r(mi.done.kcal)} kcal: considerale.` : ""}
+${want? "Cosa gli va: "+want+"." : ""}
+COME SCEGLIERE:
+- 3 proposte, dalla migliore. Ogni proposta può essere un piatto solo o una combinazione (es. primo + contorno, secondo + contorno + pane).
+- Grammi e valori realistici di una porzione da ristorante (condimenti più abbondanti che a casa: olio, burro, panna). Stime oneste, mai al ribasso.
+- Rispetta il budget del pasto (±15%). Se nessun piatto ci sta, scegli il più vicino e spiega come aggiustare (mezza porzione, senza pane, condimento a parte, cosa togliere a cena).
+- Tieni conto degli allenamenti di oggi e di domani nel calendario: prima di una corsa dura o di un lungo più carboidrati, dopo la palestra proteine a sufficienza, nei giorni di riposo meno carboidrati.
+- Indica anche cosa evitare oggi (dal menù) e cosa bere.
+Rispondi SOLO con un JSON valido, senza altro testo:
+{"restaurant":"nome del ristorante","where":"città o indirizzo se noto","found":true,"source":"link|ricerca|foto|generico","note":"una frase su dove hai trovato il menù o cosa non hai trovato","budget":"una frase breve su quanto puoi mangiare in questo pasto","picks":[{"title":"nome breve della proposta","why":"perché va bene oggi, una frase","ask":"cosa chiedere al cameriere (facoltativo)","items":[{"name":"nome del piatto come sul menù","grams":0,"kcal":0,"p":0,"c":0,"f":0,"price":"prezzo se scritto"}]}],"avoid":["piatto da evitare: motivo breve"],"drink":"cosa bere","tips":["consiglio pratico"]}`;
+}
+async function rsGo(){
+  const q=$("rsQ").value.trim(), want=$("rsWant").value.trim(), mi=rsMealInfo();
+  if(!q&&!rsPics.length){ setStatus("rsStatus","Scrivi il link o il nome del ristorante, scansiona il QR code oppure fotografa il menù.",true); return; }
+  const run=++rsRun; rsScanStop(); $("rsGo").disabled=true; $("rsOut").innerHTML="";
+  setStatus("rsStatus", /^https?:|^www\./i.test(q)? "Apro il menù e scelgo i piatti per te…" : q? "Cerco il menù di «"+q+"» e scelgo i piatti per te…" : "Leggo il menù dalle foto…");
+  const slow=setTimeout(()=>{ if(run===rsRun) setStatus("rsStatus","Sto ancora leggendo il menù (a volte serve un minuto)…"); },20000);
+  try{
+    const G0=window.HF_GEMINI; let out=null, meta={};
+    try{ const g=await G0.grounded(rsPrompt(q,want,mi,rsPics.length>0),{tools:!!q,images:rsPics}); out=G0.parseJSON(g.text); meta={sources:g.sources,urls:g.urls,tools:g.tools}; }
+    catch(e){ if(e&&(e.code==="no_key"||e.code==="bad_key"||e.code==="cancelled")) throw e; }
+    if(!out||!Array.isArray(out.picks)){ // ripiego: senza ricerca (solo foto o consigli generali)
+      setStatus("rsStatus","Ci riprovo in un altro modo…");
+      out=await sample.json(rsPrompt(q,want,mi,rsPics.length>0)+(q&&!rsPics.length? "\nNON puoi aprire link né cercare in internet in questa richiesta: se il menù non è nelle foto, metti found:false e dai consigli per il tipo di locale." : ""),{images:rsPics.length? rsPics : undefined,modelTier:"default"});
+      meta={fallback:true};
+    }
+    if(run!==rsRun) return;
+    if(!out||!Array.isArray(out.picks)||!out.picks.length) throw {code:"bad_output"};
+    setStatus("rsStatus","");
+    rsRemember(q,out.restaurant||q);
+    try{ localStorage.setItem("hf:rsLast",JSON.stringify({at:Date.now(),date:state.date,meal:mi.id,q,res:out,meta})); }catch{}
+    rsShow(out,meta); rsRenderRecent();
+  }catch(e){ if(run===rsRun) setStatus("rsStatus", e&&e.code==="bad_output"? "Non sono riuscito a leggere il menù. Prova a fotografarlo (anche più foto) oppure scrivi il nome del ristorante e la città." : errCopy(e), true); }
+  finally{ clearTimeout(slow); if(run===rsRun) $("rsGo").disabled=false; }
+}
+function rsShow(o,meta){
+  const box=$("rsOut"); box.innerHTML=""; const mi=rsMealInfo();
+  const head=el("p","sub"); head.style.cssText="margin:12px 0 4px;font-weight:700;color:var(--ink,inherit)";
+  head.textContent=(o.restaurant? o.restaurant+(o.where? " · "+o.where : "") : "Il tuo ristorante");
+  box.appendChild(head);
+  if(o.found===false) box.appendChild(el("p","note","⚠️ "+(o.note||"Non ho trovato il menù: sono consigli per questo tipo di locale.")+" Per consigli precisi fotografa il menù."));
+  else if(o.note) box.appendChild(el("p","note",o.note));
+  if(o.budget) box.appendChild(el("p","note",o.budget));
+  (o.picks||[]).slice(0,4).forEach((pk,i)=>{
+    const items=(Array.isArray(pk.items)? pk.items : []).filter(x=>x&&x.name);
+    const tot=items.reduce((a,x)=>({kcal:a.kcal+(+x.kcal||0),p:a.p+(+x.p||0),c:a.c+(+x.c||0),f:a.f+(+x.f||0)}),{kcal:0,p:0,c:0,f:0});
+    const card=el("div","rs-pick"+(i===0?" best":""));
+    card.appendChild(el("h4",null,(i===0?"⭐ ":"")+(pk.title||items.map(x=>x.name).join(" + "))));
+    if(pk.why) card.appendChild(el("p","note",pk.why));
+    items.forEach(x=>card.appendChild(el("div","rs-it","• "+x.name+(x.grams? " (~"+r(x.grams)+" g)" : "")+(x.price? " · "+x.price : ""))));
+    card.appendChild(el("div","rs-mac",`${r(tot.kcal)} kcal · P ${r(tot.p)} g · C ${r(tot.c)} g · G ${r(tot.f)} g`+(mi.plan? ` · previsto ${r(mi.plan.kcal)} kcal` : "")));
+    if(pk.ask) card.appendChild(el("p","note","🗣 Chiedi: "+pk.ask));
+    const b=el("button","btn"+(i===0?"":" ghost"),"Ho preso questo: aggiungi a "+mi.name.toLowerCase()); b.type="button";
+    b.onclick=()=>{ const list=items.map(x=>normItem({name:x.name+(o.restaurant? " ("+o.restaurant+")" : " (ristorante)"),grams:+x.grams||300,kcal:x.kcal,p:x.p,c:x.c,f:x.f}));
+      if(!list.length) return; try{ const l=JSON.parse(localStorage.getItem("hf:rsLast")||"null"); if(l){ l.taken=i; localStorage.setItem("hf:rsLast",JSON.stringify(l)); } }catch{}
+      addItems(list,mi.id); toast("Aggiunto a "+mi.name.toLowerCase()+": tocca il piatto per cambiare i grammi"); };
+    card.appendChild(b); box.appendChild(card);
+  });
+  const ul=(title,arr)=>{ if(!arr||!arr.length) return; box.appendChild(el("p","rq-h",title)); const u=el("ul"); u.style.cssText="margin:0;padding-left:18px;font-size:.9rem"; arr.slice(0,5).forEach(t=>u.appendChild(el("li",null,String(t)))); box.appendChild(u); };
+  ul("Meglio evitare oggi",o.avoid);
+  if(o.drink){ box.appendChild(el("p","rq-h","Da bere")); box.appendChild(el("p","note",o.drink)); }
+  ul("Consigli",o.tips);
+  const src=(meta&&meta.sources||[]).filter((s,i,a)=>s.uri&&a.findIndex(z=>z.title===s.title)===i).slice(0,4);
+  if(src.length){ const p=el("p","rs-src","Fonti: "); src.forEach((s,i)=>{ const a=el("a",null,s.title||"link"); a.href=s.uri; a.target="_blank"; a.rel="noopener"; p.appendChild(a); if(i<src.length-1) p.appendChild(document.createTextNode(" · ")); }); box.appendChild(p); }
+  const again=el("button","btn ghost","🔄 Proponimi altri piatti"); again.type="button"; again.style.marginTop="10px";
+  again.onclick=()=>{ const prev=(o.picks||[]).map(p=>p.title).join(", "); const w=$("rsWant"); if(!/diversi da/.test(w.value)) w.value=(w.value? w.value+"; " : "")+"piatti diversi da: "+prev; rsGo(); };
+  box.appendChild(again);
+  box.appendChild(el("p","note","Valori stimati: le porzioni dei ristoranti variano. Per patologie o diete particolari segui il medico o il nutrizionista."));
+}
+$("quickRest").onclick=openRest; $("sugRest").onclick=openRest;
+$("rsGo").onclick=rsGo; $("rsQ").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); rsGo(); } });
+$("rsQr").onclick=rsScan; $("rsScanStop").onclick=rsScanStop;
+$("rsPhoto").onclick=()=>$("rsCam").click(); $("rsMorePic").onclick=()=>$("rsCam").click(); $("rsGalPic").onclick=()=>$("rsGal").click();
+$("rsClearPic").onclick=()=>{ rsPics=[]; rsRenderPics(); };
+$("rsCam").onchange=e=>{ rsAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
+$("rsGal").onchange=e=>{ rsAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
 /* ===== sfide del mese ===== */
 function chalGet(){ try{ return JSON.parse(localStorage.getItem("hf:chal")||"{}")||{}; }catch{ return {}; } }
 function chalProgress(c){ const from=c.month+"-01", to=shiftDate(todayISO(new Date(new Date(from+"T12:00:00").getFullYear(),new Date(from+"T12:00:00").getMonth()+1,1)),-1), M=monthData(from,to>todayISO()? todayISO() : to); return {km:M.km,gym:M.gym,log:M.logged,to}; }
