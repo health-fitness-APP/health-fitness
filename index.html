@@ -2436,7 +2436,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.95 (corretta la pagina AI e sincronizzazione vuota)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.96 (i pasti detti al Voice di casa entrano da soli nel diario)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3192,6 +3192,7 @@ async function pull(){
     const {data,error}=await SY.client.from("kv").select("key,value,updated_at").order("key").range(from,from+999);
     if(error) throw error;
     for(const r of data){ remote.add(r.key);
+      if(r.key==="voiceInbox") continue;   // casella del Voice di casa: la legge solo voiceImport()
       const lt=Date.parse(m[r.key]||"")||0, rt=Date.parse(r.updated_at)||0;
       if(r.key==="aiSettings"){ if(r.value&&r.value.orKey&&!localStorage.getItem("hf:orKey")){ localStorage.setItem("hf:orKey",r.value.orKey); changed++; }
         if(r.value&&r.value.groqKey&&!localStorage.getItem("hf:groqKey")){ ["groqKey","groqVision","groqText"].forEach(x=>r.value[x]&&localStorage.setItem("hf:"+x,r.value[x])); changed++; }
@@ -11655,6 +11656,86 @@ function renderAll(){ document.body.classList.toggle("home",view==="diario"); tr
  if(view==="attivita"){ try{ renderPains(); }catch(e){ console.warn("fastidi",e); } try{ renderSleep(); const r0=recoveryNow(); $("csRowSub").textContent=`Recupero ${r0.lvl[0].toLowerCase()} (${r0.score}/100) · record, forma, zone, scarpe`; }catch(e){ console.warn("sonno",e); } }
  if(view==="corsa"){ try{ renderCorsa(); }catch(e){ console.warn("corsa",e); } } if(view==="attivita"){ try{ renderActivity(); }catch(e){ console.warn("att",e); } } renderKeyBanner(); renderHello(); renderDiary(); try{ renderDash(); }catch(e){ console.warn("dash",e); } if(view==="dieta"){ renderDiet(); if(dTab==="pantry") renderPantry(); } if(view==="allenamento"||view==="attivita") renderWorkouts(); if(view==="corpo") renderBody(); }
 renderAll();
+/* ---------- pasti detti al Voice di casa (Home Assistant scrive in Supabase, chiave "voiceInbox": {items:[{testo,pasto,quando,da}]}) ----------
+   1) prende le voci e svuota subito la casella (così due dispositivi non le importano due volte), le tiene in hf:viPending
+   2) l'AI stima alimenti, grammi, kcal e macro → pasto vero nel diario del giorno giusto; se l'AI non risponde restano in attesa e si riprova */
+const VI={busy:false,at:0};
+const viKey=x=>String(x&&x.quando||"")+"|"+String(x&&x.testo||"");
+function viRome(q){ const d=new Date(q||Date.now()); const ok=!isNaN(d); const dd=ok? d : new Date();
+  const iso=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit"}).format(dd);
+  const hm=new Intl.DateTimeFormat("it-IT",{timeZone:"Europe/Rome",hour:"2-digit",minute:"2-digit",hour12:false}).format(dd).replace(/^24/,"00");
+  const [h,m]=hm.split(":").map(Number); return {iso,hm,h:h+(m||0)/60}; }
+function viMeal(pasto,h){ const ids=mealList().map(m=>m.id), H=x=>MEAL_H[x]!=null? MEAL_H[x] : 12;
+  const near=list=>list.slice().sort((a,b)=>Math.abs(H(a)-h)-Math.abs(H(b)-h))[0];
+  const p=String(pasto||"").toLowerCase();
+  if(/colaz/.test(p)) return ids.includes("colazione")? "colazione" : near(ids);
+  if(/pranz/.test(p)) return ids.includes("pranzo")? "pranzo" : near(ids);
+  if(/cena/.test(p)) return ids.includes("cena")? "cena" : near(ids);
+  if(/spunt|merend/.test(p)){ const sp=ids.filter(x=>/^spuntin/.test(x)); if(sp.length) return sp.length===1? sp[0] : (h<15? sp[0] : sp[sp.length-1]); }
+  return near(ids); }
+async function voiceImport(){
+  if(VI.busy||!SY.client||!SY.user||!state.profile) return; VI.busy=true; VI.at=Date.now();
+  try{
+    // 1) prendi le voci nuove e svuota la casella
+    const get=async()=>{ const {data,error}=await SY.client.from("kv").select("value").eq("key","voiceInbox").maybeSingle(); if(error) throw error;
+      const v=data&&data.value; return Array.isArray(v)? v : (v&&Array.isArray(v.items)? v.items : []); };
+    const fresh=(await get()).filter(x=>x&&String(x.testo||"").trim());
+    if(fresh.length){
+      const pend=jget("viPending",[]), have=new Set(pend.map(viKey)), done=new Set(jget("viDone",[]));
+      fresh.forEach(x=>{ const k=viKey(x); if(!have.has(k)&&!done.has(k)){ pend.push({testo:String(x.testo).slice(0,500),pasto:x.pasto||"",quando:x.quando||new Date().toISOString(),da:x.da||"voce"}); have.add(k); } });
+      jset("viPending",pend);
+      const taken=new Set(fresh.map(viKey)), rest=(await get()).filter(x=>!taken.has(viKey(x)));
+      const {error}=await SY.client.from("kv").upsert({user_id:SY.user.id,key:"voiceInbox",value:{items:rest},updated_at:new Date().toISOString()},{onConflict:"user_id,key"});
+      if(error) console.warn("voiceInbox",error);
+    }
+    // 2) trasforma in pasti quelle in attesa
+    const pend=jget("viPending",[]); if(!pend.length||!sample) return;
+    const rows=pend.map((x,i)=>{ const t=viRome(x.quando), meal=viMeal(x.pasto,t.h), mn=(mealList().find(m=>m.id===meal)||{}).name||meal;
+      let plan=""; try{ if(t.iso===state.date) plan=plannedMealText(meal); }catch{}
+      return {i,iso:t.iso,hm:t.hm,h:t.h,said:!!x.pasto,meal,mealName:mn,testo:x.testo,plan}; });
+    let casa=""; try{ casa=stapleItems().filter(x=>x&&x.name&&+x.grams>0).slice(0,60).map(x=>`${x.name}: ${r(x.grams)} g = ${r(x.kcal)} kcal, P ${r(x.p)}, C ${r(x.c)}, G ${r(x.f)}`).join("\n"); }catch{}
+    const res=await sample.json(
+`L'utente ha detto a voce all'assistente di casa cosa ha mangiato. Per ogni voce elenca gli alimenti, stima i grammi e calcola kcal e macro con le tabelle CREA.
+- Usa le quantità dette (es. "due uova", "un piatto di pasta", "una fetta"); se non le dice usa una porzione italiana normale e realistica, includi i condimenti probabili (olio della pasta o dell'insalata).
+- Se nomina un prodotto che è tra i suoi cibi di casa, usa quel nome e quei valori riscalati ai grammi.
+- Se dice "come da piano", "il solito", "quello previsto" o simili, usa gli alimenti del pasto previsto (se c'è).
+- Nomi brevi in italiano, un elemento per alimento. Mai lasciare una voce vuota se parla di cibo: fai la stima più probabile.
+${casa? "Cibi di casa (valori per i grammi indicati):\n"+casa+"\n" : ""}Voci (JSON, "ora" = quando l'ha detto): ${JSON.stringify(rows.map(x=>({i:x.i,pasto:x.said? x.mealName : "non detto",ora:x.hm,detto:x.testo,...(x.plan?{pasto_previsto:x.plan}:{})})))}
+Pasti dell'utente: ${mealList().map(m=>m.id+" = "+m.name).join(", ")}.
+Rispondi SOLO con JSON: {"entries":[{"i":0,"ieri":false,"pasto":"id o null","items":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}]}
+"ieri": true solo se la frase dice chiaramente che ha mangiato ieri (es. "ieri sera"). "pasto": l'id del pasto SOLO se il pasto è "non detto" e la frase lo fa capire (es. "a cena"), altrimenti null.
+p=proteine g, c=carboidrati g, f=grassi g, valori per i grammi indicati. Se una voce non parla di cibo: "items":[].`,
+      {maxTokens:4096, cache:false});
+    const ents=(res&&Array.isArray(res.entries))? res.entries : null; if(!ents) return;
+    const doneKeys=jget("viDone",[]), left=[], added=[];
+    for(const x of rows){ const e=ents.find(z=>+z.i===x.i);
+      if(!e){ left.push(pend[x.i]); continue; }
+      const its=(Array.isArray(e.items)?e.items:[]).filter(z=>z&&z.name&&+z.grams>0).map(z=>{ const n=normItem(z); delete n.per; n.src="voce"; return n; });
+      doneKeys.push(viKey(pend[x.i]));
+      if(!its.length){ added.push({...x,kcal:0,none:true}); continue; }
+      if(e.ieri===true) x.iso=shiftDate(x.iso,-1);
+      const ids=mealList().map(m=>m.id); if(!x.said&&e.pasto&&ids.includes(e.pasto)){ x.meal=e.pasto; x.mealName=(mealList().find(m=>m.id===e.pasto)||{}).name||e.pasto; }
+      let day, isCur= x.iso===state.date;
+      if(isCur) day=state.day; else { const d0=await store.getDoc("day-"+x.iso); day= d0&&d0.meals? {workouts:[],...d0} : {meals:{},workouts:[]}; }
+      day.meals[x.meal]=[...(day.meals[x.meal]||[]),...its];
+      // l'ora vale solo se l'ha detto durante il pasto (non "a pranzo…" detto la sera)
+      if(e.ieri!==true&&Math.abs(x.h-(MEAL_H[x.meal]!=null? MEAL_H[x.meal] : x.h))<=2.5){ day.mealTimes=day.mealTimes||{}; if(!day.mealTimes[x.meal]) day.mealTimes[x.meal]=x.hm; }
+      if(isCur) saveDay(); else save("day-"+x.iso,day);
+      if(x.iso===todayISO()){ try{ consumePantry(its); }catch{} try{ addRecents(its); }catch{} }
+      added.push({...x,kcal:its.reduce((a,b)=>a+(+b.kcal||0),0)}); }
+    jset("viPending",left); jset("viDone",doneKeys.slice(-80));
+    if(!added.length) return;
+    try{ renderAll(); if(view==="pasto"&&mealPageId) renderMealPage(); }catch{} try{ queueProgress(); }catch{}
+    const ok=added.filter(a=>!a.none), no=added.filter(a=>a.none);
+    const day=a=> a.iso===todayISO()? "" : a.iso===shiftDate(todayISO(),-1)? " (ieri)" : " ("+a.iso.split("-").reverse().slice(0,2).join("/")+")";
+    const txt= ok.length? "🎤 Dal Voice di casa: "+ok.map(a=>a.mealName+day(a)+" +"+r(a.kcal)+" kcal").join(", ")+(no.length? ". Non ho capito: «"+no.map(a=>a.testo).join("», «")+"»" : "")
+      : "🎤 Dal Voice di casa non ho capito: «"+no.map(a=>a.testo).join("», «")+"»";
+    const first=ok.find(a=>a.iso===state.date);
+    if(first) actionToast(txt,"Vedi",()=>{ mealPageId=first.meal; go("pasto"); renderMealPage(); },15000); else toast(txt);
+  }catch(e){ console.warn("voce",e); }
+  finally{ VI.busy=false; }
+}
+setInterval(()=>{ if(document.visibilityState==="visible"&&Date.now()-VI.at>85e3) voiceImport(); },30e3);
 async function loadAll(){
   const agd=await store.getDoc("actGoals"); if(agd&&agd.steps) actG=agd;
   const hl=await store.getDoc("homeLayout"); applyHomeOrder(hl&&hl.order);
@@ -11694,7 +11775,7 @@ async function loadAll(){
   try{ const lv=JSON.parse(localStorage.getItem("hf:live")||"null"); if(lv&&lv.live&&Date.now()-lv.startedAt<8*3600e3){ logCtx=lv; startSesTimer(); } else localStorage.removeItem("hf:live"); }catch{}
   await initSync(); renderSync();
   try{ if(window.claude){ sample=await claude.use("sample"); if(sample){ const lim=await sample.limits().catch(()=>null); imgLimits=(lim&&lim.images)||null; } } }catch{}
-  await loadAll();
+  await loadAll(); setTimeout(()=>voiceImport(),2500);
   try{ const w=JSON.parse(sessionStorage.getItem("hf:where")||"null");
     if(w&&Date.now()-w.at<30*60e3&&w.v&&w.v!=="diario"&&w.v!=="sessione"){
       if(w.date&&w.date!==state.date&&w.date<=todayISO()){ state.date=w.date; await loadDay(); }
@@ -11732,6 +11813,7 @@ async function loadAll(){
 document.addEventListener("visibilitychange",async()=>{
   if(document.visibilityState!=="visible"||!SY.user||SY.busy) return;
   SY.busy=true; try{ const n=await pull(); renderSync(); if(n){ await loadAll(); void 0; } }catch(e){ console.warn(e); } finally{ SY.busy=false; }
+  voiceImport();
 });
 window.addEventListener("online",()=>{ if(SY.user) pushDirty().catch(()=>{}); });
 })();
