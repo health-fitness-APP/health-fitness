@@ -1134,6 +1134,19 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .rs-rowb{flex:1;display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:0;background:none;padding:8px 0;color:inherit;font:inherit;cursor:pointer}
 .rs-ed{border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;background:var(--surface2)}
 .rs-ed h4{margin:0 0 6px;font-family:"Bricolage Grotesque",sans-serif}
+.rs-th{position:relative;display:inline-block}
+.rs-thn{position:absolute;left:3px;bottom:3px;background:rgba(0,0,0,.6);color:#fff;font-size:.7rem;border-radius:6px;padding:0 4px}
+.rs-thx{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:#000;color:#fff;font-size:.85rem;line-height:22px;padding:0}
+.rs-cam{position:fixed;inset:0;z-index:200;background:#000;display:flex;flex-direction:column}
+.rs-cam video{flex:1;min-height:0;width:100%;object-fit:contain;background:#000}
+.rs-cam.flash video{opacity:.3}
+.rs-camtop{position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;background:linear-gradient(rgba(0,0,0,.7),transparent);color:#fff;display:grid;gap:2px}
+.rs-camn{font-weight:700}
+.rs-camstrip{display:flex;gap:6px;overflow-x:auto;padding:6px 10px;background:#000;min-height:62px}
+.rs-camstrip img{height:50px;border-radius:6px}
+.rs-cambar{display:flex;align-items:center;justify-content:space-between;padding:10px 20px calc(16px + env(safe-area-inset-bottom,0px));background:#000}
+.rs-cambar button{color:#fff;background:none;border:0;font:inherit;font-weight:700;font-size:1rem;min-width:80px}
+.rs-cambar .rs-camshot{width:72px;height:72px;min-width:72px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.25)}
 .rs-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .rs-thumbs img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 .sug h4{margin:4px 0 2px;font-family:"Bricolage Grotesque",sans-serif;font-size:1.1rem}
@@ -2416,7 +2429,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.91 (archivio dei tuoi ristoranti e bar)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.92 (menù: tutte le pagine in una volta)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2542,7 +2555,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <label>Nome<input class="field" id="rsEdName" placeholder="Es. Bar Centrale" autocomplete="off"></label>
       <div class="two"><label>Città<input class="field" id="rsEdCity" placeholder="Es. Torino" autocomplete="off"></label><label>Tipo<select class="field" id="rsEdKind"></select></label></div>
       <label>Link del menù (facoltativo)<input class="field" id="rsEdUrl" placeholder="https://…" autocomplete="off"></label>
-      <p class="note" style="margin:4px 0">Foto del menù (anche più pagine). Senza foto né link cerco il menù su internet.</p>
+      <p class="note" style="margin:4px 0">Foto del menù: scatta tutte le pagine di fila (o sceglile insieme dalla galleria), poi le leggo tutte in una volta. Senza foto né link cerco il menù su internet.</p>
       <div class="two"><button class="btn ghost" id="rsEdCamB" type="button">📷 Fotografa</button><button class="btn ghost" id="rsEdGalB" type="button">🖼️ Dalla galleria</button></div>
       <input type="file" id="rsEdCam" accept="image/*" capture="environment" hidden><input type="file" id="rsEdGal" accept="image/*" multiple hidden>
       <div class="rs-thumbs" id="rsEdThumbs"></div><p class="note" id="rsEdPicN" style="margin:0"></p>
@@ -9587,17 +9600,16 @@ function openRest(){
 }
 function rsRenderRecent(){ const box=$("rsRecent"); box.innerHTML=""; const l=rsRecentList(); box.hidden=!l.length;
   l.forEach(x=>{ const b=el("button","chip",x.label); b.type="button"; b.onclick=()=>{ $("rsQ").value=x.q; }; box.appendChild(b); }); }
-function rsRenderPics(){ const box=$("rsThumbs"); box.innerHTML=""; $("rsPicsBox").hidden=false; $("rsClearPic").hidden=$("rsMorePic").hidden=!rsPics.length;
-  rsPics.forEach(b=>{ const im=el("img"); im.alt="Foto del menù"; im.src=URL.createObjectURL(b); box.appendChild(im); });
-  $("rsPhoto").textContent= rsPics.length? "📷 Foto del menù ("+rsPics.length+")" : "📷 Foto del menù"; }
+function rsRenderPics(){ rsThumbs($("rsThumbs"),rsPics,rsRenderPics); $("rsPicsBox").hidden=false; $("rsClearPic").hidden=$("rsMorePic").hidden=!rsPics.length;
+  $("rsPhoto").textContent= rsPics.length? "📷 Foto del menù ("+rsPics.length+")" : "📷 Foto del menù"; $("rsMorePic").textContent="+ Altre pagine"; }
 async function rsAddFiles(files){
-  for(const f of [...(files||[])].slice(0,6)){
+  for(const f of [...(files||[])].slice(0,RS_MAXPICS)){
     try{ // se nella foto c'è un QR code, uso il suo link
       if(!$("rsQ").value.trim()&&"BarcodeDetector" in window){ const bm=await createImageBitmap(f); const c=await new BarcodeDetector({formats:["qr_code"]}).detect(bm); if(c&&c.length&&/^https?:/i.test(c[0].rawValue)){ $("rsQ").value=c[0].rawValue; toast("Ho letto il QR code nella foto"); } }
     }catch{}
     try{ rsPics.push(await shrinkFile(f,1600)); }catch{}
   }
-  rsPics=rsPics.slice(-6); rsRenderPics();
+  rsPics=rsPics.slice(-RS_MAXPICS); rsRenderPics();
 }
 function rsScanStop(){ clearInterval(rsTimer); rsTimer=null; if(rsZx){ try{ rsZx.reset(); }catch{} rsZx=null; }
   if(rsStream){ rsStream.getTracks().forEach(t=>t.stop()); rsStream=null; } if($("rsScanBox")) $("rsScanBox").hidden=true; }
@@ -9703,8 +9715,8 @@ function rsShow(o,meta){
   ul("Consigli",o.tips);
   const src=(meta&&meta.sources||[]).filter((s,i,a)=>s.uri&&a.findIndex(z=>z.title===s.title)===i).slice(0,4);
   if(src.length){ const p=el("p","rs-src","Fonti: "); src.forEach((s,i)=>{ const a=el("a",null,s.title||"link"); a.href=s.uri; a.target="_blank"; a.rel="noopener"; p.appendChild(a); if(i<src.length-1) p.appendChild(document.createTextNode(" · ")); }); box.appendChild(p); }
-  if(!(meta&&meta.rest)&&o.found!==false&&o.restaurant){ const sv=el("button","btn ghost","⭐ Salva «"+o.restaurant+"» nei miei ristoranti"); sv.type="button"; sv.style.marginTop="10px";
-    const q0=$("rsQ").value.trim(); sv.onclick=()=>rsEdOpen(null,{name:o.restaurant,city:o.where&&o.where.length<40? o.where : "",url:/^https?:/i.test(q0)? q0 : "",pics:rsPics});
+  if(!(meta&&meta.rest)&&o.found!==false&&(o.restaurant||rsPics.length)){ const sv=el("button","btn ghost", o.restaurant? "⭐ Salva «"+o.restaurant+"» nei miei ristoranti" : "⭐ Salva questo menù nei miei ristoranti"); sv.type="button"; sv.style.marginTop="10px";
+    const q0=$("rsQ").value.trim(); sv.onclick=()=>rsEdOpen(null,{name:o.restaurant||"",city:o.where&&o.where.length<40? o.where : "",url:/^https?:/i.test(q0)? q0 : "",pics:rsPics});
     box.appendChild(sv); }
   else if(meta&&meta.rest){ const rs0=restById(meta.rest); if(rs0){ const up=el("button","linkbtn","📚 Menù cambiato? Aggiorna «"+rs0.name+"»"); up.type="button"; up.onclick=()=>rsEdOpen(rs0.id); box.appendChild(up); } }
   const again=el("button","btn ghost","🔄 Proponimi altri piatti"); again.type="button"; again.style.marginTop="10px";
@@ -9715,7 +9727,34 @@ function rsShow(o,meta){
 $("quickRest").onclick=openRest; $("sugRest").onclick=openRest;
 $("rsGo").onclick=rsGo; $("rsQ").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); rsGo(); } });
 $("rsQr").onclick=rsScan; $("rsScanStop").onclick=rsScanStop;
-$("rsPhoto").onclick=()=>$("rsCam").click(); $("rsMorePic").onclick=()=>$("rsCam").click(); $("rsGalPic").onclick=()=>$("rsGal").click();
+$("rsPhoto").onclick=()=>rsShoot(rsPics,rsRenderPics,$("rsCam")); $("rsMorePic").onclick=()=>rsShoot(rsPics,rsRenderPics,$("rsCam")); $("rsGalPic").onclick=()=>$("rsGal").click();
+/* ===== v3.92: fotocamera a raffica per il menù: scatti tutte le pagine di fila, poi una sola lettura per tutte ===== */
+const RS_MAXPICS=12;
+function rsThumbs(box,arr,onChange){ box.innerHTML="";
+  arr.forEach((b,i)=>{ const w=el("span","rs-th"), im=el("img"), x=el("button","rs-thx","×"); im.alt="Pagina "+(i+1)+" del menù"; im.src=URL.createObjectURL(b);
+    x.type="button"; x.setAttribute("aria-label","Togli la pagina "+(i+1)); x.onclick=()=>{ arr.splice(i,1); onChange(); };
+    w.append(im,el("span","rs-thn",String(i+1)),x); box.appendChild(w); }); }
+async function rsShoot(arr,onDone,fallbackInput){
+  if(arr.length>=RS_MAXPICS){ toast("Massimo "+RS_MAXPICS+" pagine: togline qualcuna"); return; }
+  let stream=null;
+  try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:2560},height:{ideal:1440},advanced:[{focusMode:"continuous"}]},audio:false}); }
+  catch(e){ if(fallbackInput) fallbackInput.click(); return; }
+  const ov=el("div","rs-cam"); ov.innerHTML=`<video playsinline muted autoplay></video><div class="rs-camtop"><span class="rs-camn"></span><span class="note" style="color:#fff">Inquadra una pagina alla volta e scatta: puoi fare tutte le pagine di fila.</span></div><div class="rs-camstrip"></div><div class="rs-cambar"><button type="button" class="rs-camx">Annulla</button><button type="button" class="rs-camshot" aria-label="Scatta la pagina"></button><button type="button" class="rs-camok">Fatto</button></div>`;
+  document.body.appendChild(ov); const v=ov.querySelector("video"); v.srcObject=stream; try{ await v.play(); }catch{}
+  try{ history.pushState({v:view,sheet:sheetStack.length,cam:1},""); }catch{}
+  const n0=arr.length;
+  const upd=()=>{ const k=arr.length-n0; ov.querySelector(".rs-camn").textContent= k? k+(k===1?" pagina scattata":" pagine scattate") : "Nessuna pagina ancora"; ov.querySelector(".rs-camok").textContent= k? "Fatto ("+k+")" : "Fatto";
+    const st=ov.querySelector(".rs-camstrip"); st.innerHTML=""; arr.slice(n0).forEach(b=>{ const im=el("img"); im.src=URL.createObjectURL(b); st.appendChild(im); }); };
+  let closed=false;
+  const close=(back)=>{ if(closed) return; closed=true; stream.getTracks().forEach(t=>t.stop()); ov.remove(); window.removeEventListener("popstate",onPop,true); if(back) try{ history.back(); }catch{} onDone(); };
+  const onPop=e=>{ if(!closed){ e.stopImmediatePropagation(); close(false); } };
+  window.addEventListener("popstate",onPop,true);
+  ov.querySelector(".rs-camshot").onclick=async()=>{ if(arr.length>=RS_MAXPICS){ toast("Massimo "+RS_MAXPICS+" pagine"); return; } if(v.readyState<2) return;
+    try{ const b=await drawToBlob(v,v.videoWidth,v.videoHeight,1600); arr.push(b); ov.classList.add("flash"); setTimeout(()=>ov.classList.remove("flash"),150); if(navigator.vibrate) try{ navigator.vibrate(40); }catch{} upd(); }catch{} };
+  ov.querySelector(".rs-camok").onclick=()=>close(true);
+  ov.querySelector(".rs-camx").onclick=()=>{ arr.splice(n0); close(true); };
+  upd();
+}
 /* ===== v3.91: archivio dei ristoranti e bar (doc "rests": nome, città, tipo, link e menù letto una volta, poi riusato) ===== */
 let rests={list:[]}, rsSel=null, rsEdId=null, rsEdPics=[];
 const RS_KINDS=["Ristorante","Trattoria","Pizzeria","Bar","Sushi / giapponese","Pub / hamburger","Self service / mensa","Altro"];
@@ -9747,15 +9786,16 @@ function rsEdOpen(id,pre){
   $("rsEdName").value= rs? rs.name : (p.name||""); $("rsEdCity").value= rs? (rs.city||"") : (p.city||""); $("rsEdUrl").value= rs? (rs.url||"") : (p.url||"");
   $("rsEdKind").innerHTML=""; RS_KINDS.forEach(k=>{ const o=el("option",null,k); o.value=k; $("rsEdKind").appendChild(o); }); $("rsEdKind").value= rs? (rs.kind||"Ristorante") : (p.kind||"Ristorante");
   $("rsEdNotes").value= rs? (rs.notes||"") : "";
-  if(p.pics) rsEdPics=p.pics.slice(0,8);
+  if(p.pics) rsEdPics=p.pics.slice(0,RS_MAXPICS);
   $("rsEdDel").hidden=!rs; $("rsEdGo").textContent= rs? "Salva (e rileggi il menù se hai aggiunto foto o link)" : "Leggi il menù e salva";
   $("rsEdKeep").parentElement.hidden=!rs||!(rs.dishes||[]).length; $("rsEdKeep").checked=true;
   rsEdRenderPics(); rsEdRenderMenu(rs); setStatus("rsEdStatus","");
   setTimeout(()=>$("rsEd").scrollIntoView({behavior:"smooth",block:"start"}),60);
 }
 function rsEdClose(){ $("rsEd").hidden=true; rsEdId=null; rsEdPics=[]; }
-function rsEdRenderPics(){ const b=$("rsEdThumbs"); b.innerHTML=""; rsEdPics.forEach(x=>{ const im=el("img"); im.alt="Foto del menù"; im.src=URL.createObjectURL(x); b.appendChild(im); });
-  $("rsEdPicN").textContent= rsEdPics.length? rsEdPics.length+" foto pronte da leggere" : ""; }
+function rsEdRenderPics(){ rsThumbs($("rsEdThumbs"),rsEdPics,rsEdRenderPics);
+  $("rsEdPicN").textContent= rsEdPics.length? rsEdPics.length+(rsEdPics.length===1?" pagina pronta":" pagine pronte")+": aggiungi le altre, poi tocca il pulsante qui sotto e le leggo tutte insieme." : "";
+  $("rsEdCamB").textContent= rsEdPics.length? "📷 Altre pagine" : "📷 Fotografa le pagine"; }
 function rsEdRenderMenu(rs){ const b=$("rsEdMenu"); b.innerHTML=""; if(!rs||!(rs.dishes||[]).length) return;
   const d=el("details"); d.appendChild(el("summary","rq-h","Menù salvato: "+rs.dishes.length+" piatti"+(rs.menuAt? " (letto il "+dateLong(rs.menuAt)+")" : "")));
   const ul=el("ul"); ul.style.cssText="margin:0;padding-left:0;list-style:none;font-size:.88rem";
@@ -9809,8 +9849,8 @@ async function rsEdSave(){
 }
 function rsEdDelete(){ const rs=restById(rsEdId); if(!rs||!confirm("Eliminare «"+rs.name+"» dai tuoi ristoranti?")) return;
   rests.list=rests.list.filter(x=>x.id!==rs.id); if(rsSel===rs.id) rsSel=null; saveRests(); rsEdClose(); rsRenderArch(); toast("Eliminato"); }
-async function rsEdAddFiles(files){ for(const f of [...(files||[])].slice(0,8)){ try{ rsEdPics.push(await shrinkFile(f,1600)); }catch{} } rsEdPics=rsEdPics.slice(-8); rsEdRenderPics(); }
-$("rsEdCamB").onclick=()=>$("rsEdCam").click(); $("rsEdGalB").onclick=()=>$("rsEdGal").click();
+async function rsEdAddFiles(files){ for(const f of [...(files||[])].slice(0,RS_MAXPICS)){ try{ rsEdPics.push(await shrinkFile(f,1600)); }catch{} } rsEdPics=rsEdPics.slice(-RS_MAXPICS); rsEdRenderPics(); }
+$("rsEdCamB").onclick=()=>rsShoot(rsEdPics,rsEdRenderPics,$("rsEdCam")); $("rsEdGalB").onclick=()=>$("rsEdGal").click();
 $("rsEdCam").onchange=e=>{ rsEdAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
 $("rsEdGal").onchange=e=>{ rsEdAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
 $("rsEdGo").onclick=rsEdSave; $("rsEdX").onclick=rsEdClose; $("rsEdDel").onclick=rsEdDelete;
