@@ -1147,6 +1147,12 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .rs-cambar{display:flex;align-items:center;justify-content:space-between;padding:10px 20px calc(16px + env(safe-area-inset-bottom,0px));background:#000}
 .rs-cambar button{color:#fff;background:none;border:0;font:inherit;font-weight:700;font-size:1rem;min-width:80px}
 .rs-cambar .rs-camshot{width:72px;height:72px;min-width:72px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.25)}
+.rl-item{border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;background:var(--surface2)}
+.rl-top{display:flex;gap:12px;align-items:flex-start}
+.rl-ico{flex:none;width:40px;height:40px;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:1.3rem}
+.rl-t{display:flex;flex-direction:column;min-width:0}.rl-t b{font-size:1.02rem}.rl-t .note{margin:0}
+.rl-act{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}.rl-act .btn{margin:0;padding:10px 14px}
+#rlSheet .chip[aria-pressed="true"]{background:var(--basil);color:#fff;border-color:var(--basil)}
 .rs-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .rs-thumbs img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 .sug h4{margin:4px 0 2px;font-family:"Bricolage Grotesque",sans-serif;font-size:1.1rem}
@@ -1363,6 +1369,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <section class="card" id="painWarnCard" hidden></section>
   <section class="card" id="deloadCard" hidden></section>
   <section class="card" id="suppCard" hidden></section>
+  <button class="card raceRow" id="rsRow" type="button"><span class="mi">🍽</span><span class="mt"><b>I miei ristoranti e bar</b><span class="ms" id="rsRowSub"></span></span><span class="chev">›</span></button>
   <section class="card" id="nightCard" hidden></section>
   <section class="card" id="waterCard" hidden></section>
   <section class="card" id="monthCard" hidden></section>
@@ -2429,7 +2436,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.92 (menù: tutte le pagine in una volta)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.93 (elenco comodo dei tuoi ristoranti e bar)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2542,6 +2549,19 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="two"><label>Porzioni<input class="field" id="rqPortions" inputmode="decimal" value="1"></label><label>oppure grammi<input class="field" id="rqGrams" inputmode="decimal" placeholder="peso"></label></div>
     <p class="note">Hai pesato il piatto? Scrivi i grammi: le porzioni si calcolano da sole.</p>
     <button class="btn" id="rqGo" type="button" style="margin-top:10px">Aggiungi al diario di oggi</button>
+  </div>
+</div>
+<div class="sheet" id="rlSheet" role="dialog" aria-modal="true" aria-labelledby="rlTitle">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
+    <h3 id="rlTitle">I miei ristoranti e bar</h3>
+    <input class="search" id="rlQ" type="search" placeholder="Cerca per nome, città o piatto" autocomplete="off">
+    <div class="chips" id="rlSorts" style="margin:8px 0 4px"><button class="chip" type="button" data-s="recent">Recenti</button><button class="chip" type="button" data-s="used">Più usati</button><button class="chip" type="button" data-s="az">A-Z</button></div>
+    <div class="chips" id="rlKinds" hidden></div>
+    <p class="note" style="margin:2px 0">Consiglio per:</p><div class="chips" id="rlMeal"></div>
+    <p class="note" id="rlEmpty" hidden>Non hai ancora salvato nessun locale. Aggiungi quelli dove vai spesso: leggo il menù una volta (foto, link o ricerca) e poi ti consiglio subito cosa ordinare.</p>
+    <div id="rlList"></div>
+    <div class="two" style="margin-top:10px"><button class="btn ghost" id="rlNew" type="button">+ Nuovo locale</button><button class="btn ghost" id="rlAsk" type="button">QR, link o foto</button></div>
   </div>
 </div>
 <div class="sheet" id="restSheet" role="dialog" aria-modal="true" aria-labelledby="rsTitle">
@@ -9588,7 +9608,7 @@ function rsInfoText(mi){
   if(mi.left) bits.push(`oggi ti restano ${r(Math.max(0,mi.left.kcal))} kcal e ${r(Math.max(0,mi.left.p))} g di proteine`);
   return bits.length? bits.join(", ").replace(/^./,c=>c.toUpperCase())+"." : "";
 }
-function openRest(){
+function openRest(selId,auto){
   if(!sample){ toast("Serve l'AI: inserisci la chiave in Profilo → Impostazioni AI"); return; }
   const mi=rsMealInfo(); $("rsTitle").textContent="Al ristorante: cosa ordino a "+mi.name.toLowerCase()+"?";
   $("rsInfo").textContent=rsInfoText(mi)||"Scrivi il link del menù o il nome del ristorante, scansiona il QR code oppure fotografa il menù.";
@@ -9596,7 +9616,9 @@ function openRest(){
   // l'ultimo consiglio resta visibile per 3 ore (se chiudi per sbaglio)
   let last=null; try{ last=JSON.parse(localStorage.getItem("hf:rsLast")||"null"); }catch{}
   if(last&&last.meal===mi.id&&last.date===state.date&&Date.now()-last.at<3*3600e3){ if(!$("rsQ").value) $("rsQ").value=last.q||""; if(last.meta&&last.meta.rest&&restById(last.meta.rest)) rsSel=last.meta.rest; rsShow(last.res,last.meta||{}); } else $("rsOut").innerHTML="";
+  if(selId&&restById(selId)){ rsSel=selId; $("rsQ").value=""; $("rsOut").innerHTML=""; }
   rsRenderArch(); openSheet("restSheet");
+  if(selId&&auto) setTimeout(rsGo,80);
 }
 function rsRenderRecent(){ const box=$("rsRecent"); box.innerHTML=""; const l=rsRecentList(); box.hidden=!l.length;
   l.forEach(x=>{ const b=el("button","chip",x.label); b.type="button"; b.onclick=()=>{ $("rsQ").value=x.q; }; box.appendChild(b); }); }
@@ -9758,7 +9780,7 @@ async function rsShoot(arr,onDone,fallbackInput){
 /* ===== v3.91: archivio dei ristoranti e bar (doc "rests": nome, città, tipo, link e menù letto una volta, poi riusato) ===== */
 let rests={list:[]}, rsSel=null, rsEdId=null, rsEdPics=[];
 const RS_KINDS=["Ristorante","Trattoria","Pizzeria","Bar","Sushi / giapponese","Pub / hamburger","Self service / mensa","Altro"];
-function saveRests(){ save("rests",rests); }
+function saveRests(){ save("rests",rests); try{ renderRsRow(); }catch{} }
 function restById(id){ return (rests.list||[]).find(x=>x.id===id)||null; }
 function restMenuText(rs){ return (rs.dishes||[]).map(d=>`- ${d.n}${d.cat?" ["+d.cat+"]":""}${d.price?" "+d.price:""}${d.k? ` (stima ~${r(+d.g||0)} g, ${r(d.k)} kcal, P ${r(+d.p||0)} C ${r(+d.c||0)} G ${r(+d.f||0)})` : ""}`).join("\n"); }
 function rsRenderArch(){
@@ -9854,6 +9876,48 @@ $("rsEdCamB").onclick=()=>rsShoot(rsEdPics,rsEdRenderPics,$("rsEdCam")); $("rsEd
 $("rsEdCam").onchange=e=>{ rsEdAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
 $("rsEdGal").onchange=e=>{ rsEdAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
 $("rsEdGo").onclick=rsEdSave; $("rsEdX").onclick=rsEdClose; $("rsEdDel").onclick=rsEdDelete;
+/* ===== v3.93: elenco comodo dei ristoranti e bar: riga nella pagina Cibo → foglio con ricerca, ordine, tipo e «Cosa ordino?» in un tocco ===== */
+let rlMealPick=null, rlSort=(()=>{ try{ return localStorage.getItem("hf:rlSort")||"recent"; }catch{ return "recent"; } })(), rlKind="";
+const RS_ICO=k=>/pizz/i.test(k||"")? "🍕" : /bar/i.test(k||"")? "☕" : /sushi|giappon/i.test(k||"")? "🍣" : /pub|hamburger/i.test(k||"")? "🍔" : "🍽";
+function rsAgo(t){ if(!t) return ""; const d=Math.floor((Date.now()-t)/864e5); return d<=0? "oggi" : d===1? "ieri" : d<30? d+" giorni fa" : Math.round(d/30)+" mesi fa"; }
+function rsDefMeal(){ const ml=mealList(); return (rlMealPick&&ml.find(m=>m.id===rlMealPick)) || ml.find(m=>mealOpen(m.id,m.name)&&!(state.day.meals[m.id]||[]).length) || ml.find(m=>mealOpen(m.id,m.name)) || ml[ml.length-1]; }
+function rsUseMeal(m){ currentMeal=m.id; currentMealName=m.name; }
+function renderRsRow(){ const b=$("rsRow"); if(!b) return; const l=rests.list||[];
+  const last=[...l].sort((a,c)=>(c.lastAt||0)-(a.lastAt||0))[0];
+  $("rsRowSub").textContent= l.length? l.length+(l.length===1?" locale salvato":" locali salvati")+(last&&last.lastAt? " · ultimo: "+last.name : "") : "Salva i locali dove vai spesso e chiedi cosa ordinare";
+  }
+function openRestList(){ $("rlQ").value=""; rlKind=""; rlMealPick=null; renderRestList(); openSheet("rlSheet"); }
+function renderRestList(){
+  const q=$("rlQ").value.trim(), l0=rests.list||[], box=$("rlList"); box.innerHTML="";
+  $("rlSorts").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===rlSort));
+  const kinds=[...new Set(l0.map(x=>x.kind).filter(Boolean))]; const kb=$("rlKinds"); kb.innerHTML=""; kb.hidden=kinds.length<2;
+  if(kinds.length>1) ["",...kinds].forEach(k=>{ const c=el("button","chip",k? RS_ICO(k)+" "+k : "Tutti"); c.type="button"; c.setAttribute("aria-pressed",rlKind===k); c.onclick=()=>{ rlKind=k; renderRestList(); }; kb.appendChild(c); });
+  let l=l0.filter(x=>(!rlKind||x.kind===rlKind)&&textMatch(q,x.name,x.city||"",x.kind||"",x.notes||"",(x.dishes||[]).map(d=>d.n).join(" ")));
+  l.sort(rlSort==="az"? (a,b)=>String(a.name).localeCompare(b.name,"it") : rlSort==="used"? (a,b)=>(b.visits||0)-(a.visits||0)||(b.lastAt||0)-(a.lastAt||0) : (a,b)=>(b.lastAt||b.updated||0)-(a.lastAt||a.updated||0));
+  $("rlEmpty").hidden=!!l0.length;
+  if(l0.length&&!l.length) box.appendChild(el("p","note","Nessun locale trovato con «"+q+"»."));
+  const dm=rsDefMeal();
+  l.forEach(rs=>{ const c=el("div","rl-item");
+    const top=el("div","rl-top"); top.append(el("span","rl-ico",RS_ICO(rs.kind)));
+    const t=el("div","rl-t"); t.append(el("b",null,rs.name), el("span","note",[rs.kind,rs.city].filter(Boolean).join(" · ")));
+    const nd=(rs.dishes||[]).length, m=[nd+(nd===1?" piatto":" piatti"), rs.visits? rs.visits+(rs.visits===1?" volta":" volte") : "", rs.lastAt? "ultima "+rsAgo(rs.lastAt) : ""].filter(Boolean).join(" · ");
+    t.append(el("span","note",m)); top.appendChild(t); c.appendChild(top);
+    if(q){ const hit=(rs.dishes||[]).filter(d=>textMatch(q,d.n)).slice(0,3).map(d=>d.n); if(hit.length) c.appendChild(el("p","note","Nel menù: "+hit.join(", "))); }
+    const row=el("div","rl-act"); const go=el("button","btn","Cosa ordino a "+dm.name.toLowerCase()+"?"); go.type="button";
+    go.onclick=()=>{ rsUseMeal(rsDefMeal()); openRest(rs.id,true); };
+    const ed=el("button","btn ghost","Modifica"); ed.type="button"; ed.onclick=()=>{ rsUseMeal(rsDefMeal()); openRest(); rsEdOpen(rs.id); };
+    row.append(go,ed); c.appendChild(row);
+    if(!(rs.dishes||[]).length){ go.disabled=true; c.appendChild(el("p","note","Menù non ancora letto: tocca Modifica e aggiungi le foto o il link.")); }
+    box.appendChild(c); });
+  const mb=$("rlMeal"); mb.innerHTML=""; const ml=mealList();
+  ml.forEach(x=>{ const ch=el("button","chip",x.name); ch.type="button"; ch.setAttribute("aria-pressed",x.id===dm.id); ch.onclick=()=>{ rlMealPick=x.id; renderRestList(); }; mb.appendChild(ch); });
+}
+$("rsRow").onclick=openRestList;
+$("rlQ").addEventListener("input",renderRestList);
+$("rlSorts").querySelectorAll("button").forEach(b=>b.onclick=()=>{ rlSort=b.dataset.s; try{ localStorage.setItem("hf:rlSort",rlSort); }catch{} renderRestList(); });
+$("rlNew").onclick=()=>{ rsUseMeal(rsDefMeal()); openRest(); rsEdOpen(null); };
+$("rlAsk").onclick=()=>{ rsUseMeal(rsDefMeal()); openRest(); };
+renderRsRow();
 $("rsClearPic").onclick=()=>{ rsPics=[]; rsRenderPics(); };
 $("rsCam").onchange=e=>{ rsAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
 $("rsGal").onchange=e=>{ rsAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
@@ -11371,7 +11435,7 @@ function renderDash(){
 }
 /* ---------- ordine dei riquadri della home (tieni premuto e trascina) ---------- */
 const TILES=[["hero","dHero"],["food","dFood"],["act","dAct"],["body","dBody"],["progress","progCard"],["event","eventCard"]];
-["summary","nutriCard","meals","suppCard","suppEdit","coach"].forEach(id=>{ const n=$(id); n.style.marginTop="0"; $("ciboBody").appendChild(n); });
+["summary","nutriCard","meals","rsRow","suppCard","suppEdit","coach"].forEach(id=>{ const n=$(id); n.style.marginTop="0"; $("ciboBody").appendChild(n); });
 const HALF=["food","act"], DEF_ORDER=TILES.map(t=>t[0]);
 let homeOrder=[...DEF_ORDER]; var editMode=false;
 (function initHomeGrid(){
@@ -11590,7 +11654,7 @@ async function loadAll(){
   try{ const rr=await store.getDoc("recipes"); if(rr&&Array.isArray(rr.list)) recipes=rr; }catch{}
   try{ const sh=await store.getDoc("shoes"); if(sh&&Array.isArray(sh.list)) shoes=sh; }catch{}
   try{ const ro=await store.getDoc("routes"); if(ro&&Array.isArray(ro.list)) routes=ro; }catch{}
-  try{ const rz=await store.getDoc("rests"); if(rz&&Array.isArray(rz.list)) rests=rz; }catch{}
+  try{ const rz=await store.getDoc("rests"); if(rz&&Array.isArray(rz.list)) rests=rz; renderRsRow(); }catch{}
   setTimeout(()=>{ notifSchedule().catch(()=>{}); },8000);
   try{ const bp0=await store.getDoc("bphotos"); if(bp0&&Array.isArray(bp0.list)) bphotos=bp0; }catch{}
   try{ const pn0=await store.getDoc("pains"); if(pn0&&Array.isArray(pn0.list)) pains=pn0; }catch{}
