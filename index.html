@@ -2436,7 +2436,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.93 (elenco comodo dei tuoi ristoranti e bar)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.94 (ristoranti e bar dentro il pasto)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3857,6 +3857,11 @@ function renderMealPage(){
   addRow("Aggiungi alimenti",()=>openAdd(m));
   addRow("Aggiungi calorie rapide",()=>{ openAdd(m); setTab("search"); $("manBox").hidden=false; $("newFoodBox").hidden=true; setTimeout(()=>$("mnK").focus(),80); });
   box.appendChild(card);
+  // v3.94: ristoranti direttamente dal pasto (Daniele: apro Pranzo → Ristoranti → chiedo cosa mangiare)
+  { const nR=((typeof rests!=="undefined"&&rests.list)||[]).length, rb=el("button","card raceRow mp-rest"); rb.type="button";
+    rb.innerHTML=`<span class="mi">🍽</span><span class="mt"><b>Ristoranti e bar</b><span class="ms"></span></span><span class="chev">›</span>`;
+    rb.querySelector(".ms").textContent= nR? "Sei fuori? Scegli il locale e ti dico cosa ordinare ("+nR+(nR===1?" salvato)":" salvati)") : "Sei fuori? Menù da QR, link, nome o foto e ti dico cosa ordinare";
+    rb.style.marginTop="12px"; rb.onclick=()=>openRestList(m.id); box.appendChild(rb); }
   // preferiti e come ieri
   const tools=el("div","meal-tools");
   if(items.length){ const sv=el("button","linkbtn","⭐ Salva come pasto preferito"); sv.onclick=()=>saveMealFav(m,items); tools.appendChild(sv); }
@@ -9746,7 +9751,7 @@ function rsShow(o,meta){
   box.appendChild(again);
   box.appendChild(el("p","note","Valori stimati: le porzioni dei ristoranti variano. Per patologie o diete particolari segui il medico o il nutrizionista."));
 }
-$("quickRest").onclick=openRest; $("sugRest").onclick=openRest;
+$("quickRest").onclick=()=>openRestList(currentMeal); $("sugRest").onclick=()=>openRestList(currentMeal);
 $("rsGo").onclick=rsGo; $("rsQ").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); rsGo(); } });
 $("rsQr").onclick=rsScan; $("rsScanStop").onclick=rsScanStop;
 $("rsPhoto").onclick=()=>rsShoot(rsPics,rsRenderPics,$("rsCam")); $("rsMorePic").onclick=()=>rsShoot(rsPics,rsRenderPics,$("rsCam")); $("rsGalPic").onclick=()=>$("rsGal").click();
@@ -9886,7 +9891,7 @@ function renderRsRow(){ const b=$("rsRow"); if(!b) return; const l=rests.list||[
   const last=[...l].sort((a,c)=>(c.lastAt||0)-(a.lastAt||0))[0];
   $("rsRowSub").textContent= l.length? l.length+(l.length===1?" locale salvato":" locali salvati")+(last&&last.lastAt? " · ultimo: "+last.name : "") : "Salva i locali dove vai spesso e chiedi cosa ordinare";
   }
-function openRestList(){ $("rlQ").value=""; rlKind=""; rlMealPick=null; renderRestList(); openSheet("rlSheet"); }
+function openRestList(mealId){ $("rlQ").value=""; rlKind=""; rlMealPick= typeof mealId==="string"? mealId : null; renderRestList(); openSheet("rlSheet"); }
 function renderRestList(){
   const q=$("rlQ").value.trim(), l0=rests.list||[], box=$("rlList"); box.innerHTML="";
   $("rlSorts").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===rlSort));
@@ -9912,7 +9917,7 @@ function renderRestList(){
   const mb=$("rlMeal"); mb.innerHTML=""; const ml=mealList();
   ml.forEach(x=>{ const ch=el("button","chip",x.name); ch.type="button"; ch.setAttribute("aria-pressed",x.id===dm.id); ch.onclick=()=>{ rlMealPick=x.id; renderRestList(); }; mb.appendChild(ch); });
 }
-$("rsRow").onclick=openRestList;
+$("rsRow").onclick=()=>openRestList();
 $("rlQ").addEventListener("input",renderRestList);
 $("rlSorts").querySelectorAll("button").forEach(b=>b.onclick=()=>{ rlSort=b.dataset.s; try{ localStorage.setItem("hf:rlSort",rlSort); }catch{} renderRestList(); });
 $("rlNew").onclick=()=>{ rsUseMeal(rsDefMeal()); openRest(); rsEdOpen(null); };
