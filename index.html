@@ -1129,6 +1129,11 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .rs-pick .btn{margin-top:8px}
 .rs-src{font-size:.78rem;color:var(--muted);margin-top:8px;word-break:break-word}
 .rs-src a{color:var(--muted)}
+.rs-sel{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--basil);border-radius:12px;padding:8px 12px;margin:8px 0;font-size:.9rem;font-weight:600}
+.rs-row{display:flex;align-items:center;gap:8px}
+.rs-rowb{flex:1;display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:0;background:none;padding:8px 0;color:inherit;font:inherit;cursor:pointer}
+.rs-ed{border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;background:var(--surface2)}
+.rs-ed h4{margin:0 0 6px;font-family:"Bricolage Grotesque",sans-serif}
 .rs-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .rs-thumbs img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 .sug h4{margin:4px 0 2px;font-family:"Bricolage Grotesque",sans-serif;font-size:1.1rem}
@@ -2411,7 +2416,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.90 (al ristorante: cosa ordinare dal menù)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.91 (archivio dei tuoi ristoranti e bar)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2531,6 +2536,23 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="grab"></div><button class="sheet-x" type="button" aria-label="Chiudi">✕</button>
     <h3 id="rsTitle">Al ristorante: cosa ordino?</h3>
     <p class="note" id="rsInfo"></p>
+    <div id="rsArch"></div>
+    <div class="form rs-ed" id="rsEd" hidden>
+      <h4 id="rsEdT">Nuovo ristorante o bar</h4>
+      <label>Nome<input class="field" id="rsEdName" placeholder="Es. Bar Centrale" autocomplete="off"></label>
+      <div class="two"><label>Città<input class="field" id="rsEdCity" placeholder="Es. Torino" autocomplete="off"></label><label>Tipo<select class="field" id="rsEdKind"></select></label></div>
+      <label>Link del menù (facoltativo)<input class="field" id="rsEdUrl" placeholder="https://…" autocomplete="off"></label>
+      <p class="note" style="margin:4px 0">Foto del menù (anche più pagine). Senza foto né link cerco il menù su internet.</p>
+      <div class="two"><button class="btn ghost" id="rsEdCamB" type="button">📷 Fotografa</button><button class="btn ghost" id="rsEdGalB" type="button">🖼️ Dalla galleria</button></div>
+      <input type="file" id="rsEdCam" accept="image/*" capture="environment" hidden><input type="file" id="rsEdGal" accept="image/*" multiple hidden>
+      <div class="rs-thumbs" id="rsEdThumbs"></div><p class="note" id="rsEdPicN" style="margin:0"></p>
+      <label style="display:flex;gap:8px;align-items:center;font-size:.88rem"><input type="checkbox" id="rsEdKeep" checked> Aggiungi i piatti delle nuove foto a quelli già salvati</label>
+      <label>Note (facoltative)<input class="field" id="rsEdNotes" placeholder="Es. porzioni grandi, chiedo sempre senza burro" autocomplete="off"></label>
+      <div id="rsEdMenu"></div>
+      <button class="btn" id="rsEdGo" type="button" style="margin-top:8px">Leggi il menù e salva</button>
+      <div class="status" id="rsEdStatus" aria-live="polite"></div>
+      <div style="display:flex;gap:16px;margin-top:4px"><button class="linkbtn" id="rsEdX" type="button">Annulla</button><button class="linkbtn" id="rsEdDel" type="button" style="color:var(--muted)">Elimina il locale</button></div>
+    </div>
     <label>Link del menù o nome del ristorante<input class="field" id="rsQ" placeholder="Es. https://… oppure Da Mario, Torino" autocomplete="off"></label>
     <div class="chips" id="rsRecent" style="margin:6px 0 0"></div>
     <div class="two" style="margin-top:6px"><button class="btn ghost" id="rsQr" type="button">▦ Scansiona il QR del menù</button><button class="btn ghost" id="rsPhoto" type="button">📷 Foto del menù</button></div>
@@ -9557,11 +9579,11 @@ function openRest(){
   if(!sample){ toast("Serve l'AI: inserisci la chiave in Profilo → Impostazioni AI"); return; }
   const mi=rsMealInfo(); $("rsTitle").textContent="Al ristorante: cosa ordino a "+mi.name.toLowerCase()+"?";
   $("rsInfo").textContent=rsInfoText(mi)||"Scrivi il link del menù o il nome del ristorante, scansiona il QR code oppure fotografa il menù.";
-  setStatus("rsStatus",""); rsRenderRecent(); rsRenderPics();
+  setStatus("rsStatus",""); rsRenderRecent(); rsRenderPics(); rsSel=null; rsEdClose();
   // l'ultimo consiglio resta visibile per 3 ore (se chiudi per sbaglio)
   let last=null; try{ last=JSON.parse(localStorage.getItem("hf:rsLast")||"null"); }catch{}
-  if(last&&last.meal===mi.id&&last.date===state.date&&Date.now()-last.at<3*3600e3){ if(!$("rsQ").value) $("rsQ").value=last.q||""; rsShow(last.res,last.meta||{}); } else $("rsOut").innerHTML="";
-  openSheet("restSheet");
+  if(last&&last.meal===mi.id&&last.date===state.date&&Date.now()-last.at<3*3600e3){ if(!$("rsQ").value) $("rsQ").value=last.q||""; if(last.meta&&last.meta.rest&&restById(last.meta.rest)) rsSel=last.meta.rest; rsShow(last.res,last.meta||{}); } else $("rsOut").innerHTML="";
+  rsRenderArch(); openSheet("restSheet");
 }
 function rsRenderRecent(){ const box=$("rsRecent"); box.innerHTML=""; const l=rsRecentList(); box.hidden=!l.length;
   l.forEach(x=>{ const b=el("button","chip",x.label); b.type="button"; b.onclick=()=>{ $("rsQ").value=x.q; }; box.appendChild(b); }); }
@@ -9600,9 +9622,10 @@ async function rsScan(){
   }catch(e){ rsScanStop(); $("rsScanBox").hidden=true;
     toast(e&&e.name==="NotAllowedError"? "Permesso fotocamera negato: abilitalo per l'app" : "Non riesco ad aprire la fotocamera: fotografa il menù"); }
 }
-function rsPrompt(q,want,mi,hasPics){
+function rsPrompt(q,want,mi,hasPics,rs){
   const isUrl=/^https?:\/\//i.test(q)||/^www\./i.test(q);
-  const src= isUrl? `LINK DEL MENÙ (letto dal QR code o incollato): ${q}\nApri e leggi questo link (può essere una pagina web, un PDF o un'app di menù digitale). Se la pagina non si apre o non contiene i piatti, cerca con Google Search il menù di quel ristorante (sito ufficiale, TheFork, TripAdvisor, Google Maps, Facebook, Instagram, Deliveroo/Just Eat/Glovo).`
+  const src= rs? `MENÙ SALVATO DEL LOCALE «${rs.name}»${rs.city? " ("+rs.city+")" : ""}${rs.kind? ", "+rs.kind : ""}, letto il ${rs.menuAt||"?"}${rs.notes? ". Note della persona: "+rs.notes : ""}:\n${restMenuText(rs)}\nUsa questi piatti (i valori tra parentesi sono stime già fatte: correggile solo se evidentemente sbagliate). In "restaurant" metti «${rs.name}», "found": true, "source": "archivio".`
+    : isUrl? `LINK DEL MENÙ (letto dal QR code o incollato): ${q}\nApri e leggi questo link (può essere una pagina web, un PDF o un'app di menù digitale). Se la pagina non si apre o non contiene i piatti, cerca con Google Search il menù di quel ristorante (sito ufficiale, TheFork, TripAdvisor, Google Maps, Facebook, Instagram, Deliveroo/Just Eat/Glovo).`
     : q? `RISTORANTE: "${q}"\nCerca con Google Search il menù aggiornato di questo ristorante (sito ufficiale, TheFork, TripAdvisor, Google Maps, Facebook, Instagram, Deliveroo/Just Eat/Glovo). Se ci sono più locali con questo nome e la città non è indicata, scegli il più probabile in Italia e scrivi in "where" quale hai preso.` : "";
   const ate=mealList().map(m=>{ const it=state.day.meals[m.id]||[]; return it.length? m.name+": "+it.map(i=>i.name+" "+r(i.grams)+"g").join(", ") : ""; }).filter(Boolean).join("; ")||"niente";
   const planned= mi.foods&&mi.foods.length? mi.foods.map(f=>f.name+" "+r(+f.grams||0)+"g").join(", ") : "";
@@ -9627,24 +9650,25 @@ Rispondi SOLO con un JSON valido, senza altro testo:
 {"restaurant":"nome del ristorante","where":"città o indirizzo se noto","found":true,"source":"link|ricerca|foto|generico","note":"una frase su dove hai trovato il menù o cosa non hai trovato","budget":"una frase breve su quanto puoi mangiare in questo pasto","picks":[{"title":"nome breve della proposta","why":"perché va bene oggi, una frase","ask":"cosa chiedere al cameriere (facoltativo)","items":[{"name":"nome del piatto come sul menù","grams":0,"kcal":0,"p":0,"c":0,"f":0,"price":"prezzo se scritto"}]}],"avoid":["piatto da evitare: motivo breve"],"drink":"cosa bere","tips":["consiglio pratico"]}`;
 }
 async function rsGo(){
-  const q=$("rsQ").value.trim(), want=$("rsWant").value.trim(), mi=rsMealInfo();
-  if(!q&&!rsPics.length){ setStatus("rsStatus","Scrivi il link o il nome del ristorante, scansiona il QR code oppure fotografa il menù.",true); return; }
+  const q=$("rsQ").value.trim(), want=$("rsWant").value.trim(), mi=rsMealInfo(), rs=rsSel? restById(rsSel) : null;
+  if(rs){ rs.lastAt=Date.now(); rs.visits=(rs.visits||0)+1; saveRests(); }
+  if(!rs&&!q&&!rsPics.length){ setStatus("rsStatus","Scrivi il link o il nome del ristorante, scansiona il QR code oppure fotografa il menù.",true); return; }
   const run=++rsRun; rsScanStop(); $("rsGo").disabled=true; $("rsOut").innerHTML="";
-  setStatus("rsStatus", /^https?:|^www\./i.test(q)? "Apro il menù e scelgo i piatti per te…" : q? "Cerco il menù di «"+q+"» e scelgo i piatti per te…" : "Leggo il menù dalle foto…");
+  setStatus("rsStatus", rs? "Guardo il menù salvato di «"+rs.name+"»…" : /^https?:|^www\./i.test(q)? "Apro il menù e scelgo i piatti per te…" : q? "Cerco il menù di «"+q+"» e scelgo i piatti per te…" : "Leggo il menù dalle foto…");
   const slow=setTimeout(()=>{ if(run===rsRun) setStatus("rsStatus","Sto ancora leggendo il menù (a volte serve un minuto)…"); },20000);
   try{
     const G0=window.HF_GEMINI; let out=null, meta={};
-    try{ const g=await G0.grounded(rsPrompt(q,want,mi,rsPics.length>0),{tools:!!q,images:rsPics}); out=G0.parseJSON(g.text); meta={sources:g.sources,urls:g.urls,tools:g.tools}; }
+    try{ const g=await G0.grounded(rsPrompt(rs?"":q,want,mi,rsPics.length>0,rs),{tools:!rs&&!!q,images:rsPics}); out=G0.parseJSON(g.text); meta={sources:g.sources,urls:g.urls,tools:g.tools,rest:rs?rs.id:null}; }
     catch(e){ if(e&&(e.code==="no_key"||e.code==="bad_key"||e.code==="cancelled")) throw e; }
     if(!out||!Array.isArray(out.picks)){ // ripiego: senza ricerca (solo foto o consigli generali)
       setStatus("rsStatus","Ci riprovo in un altro modo…");
-      out=await sample.json(rsPrompt(q,want,mi,rsPics.length>0)+(q&&!rsPics.length? "\nNON puoi aprire link né cercare in internet in questa richiesta: se il menù non è nelle foto, metti found:false e dai consigli per il tipo di locale." : ""),{images:rsPics.length? rsPics : undefined,modelTier:"default"});
-      meta={fallback:true};
+      out=await sample.json(rsPrompt(rs?"":q,want,mi,rsPics.length>0,rs)+(!rs&&q&&!rsPics.length? "\nNON puoi aprire link né cercare in internet in questa richiesta: se il menù non è nelle foto, metti found:false e dai consigli per il tipo di locale." : ""),{images:rsPics.length? rsPics : undefined,modelTier:"default"});
+      meta={fallback:true,rest:rs?rs.id:null};
     }
     if(run!==rsRun) return;
     if(!out||!Array.isArray(out.picks)||!out.picks.length) throw {code:"bad_output"};
     setStatus("rsStatus","");
-    rsRemember(q,out.restaurant||q);
+    if(!rs) rsRemember(q,out.restaurant||q);
     try{ localStorage.setItem("hf:rsLast",JSON.stringify({at:Date.now(),date:state.date,meal:mi.id,q,res:out,meta})); }catch{}
     rsShow(out,meta); rsRenderRecent();
   }catch(e){ if(run===rsRun) setStatus("rsStatus", e&&e.code==="bad_output"? "Non sono riuscito a leggere il menù. Prova a fotografarlo (anche più foto) oppure scrivi il nome del ristorante e la città." : errCopy(e), true); }
@@ -9679,6 +9703,10 @@ function rsShow(o,meta){
   ul("Consigli",o.tips);
   const src=(meta&&meta.sources||[]).filter((s,i,a)=>s.uri&&a.findIndex(z=>z.title===s.title)===i).slice(0,4);
   if(src.length){ const p=el("p","rs-src","Fonti: "); src.forEach((s,i)=>{ const a=el("a",null,s.title||"link"); a.href=s.uri; a.target="_blank"; a.rel="noopener"; p.appendChild(a); if(i<src.length-1) p.appendChild(document.createTextNode(" · ")); }); box.appendChild(p); }
+  if(!(meta&&meta.rest)&&o.found!==false&&o.restaurant){ const sv=el("button","btn ghost","⭐ Salva «"+o.restaurant+"» nei miei ristoranti"); sv.type="button"; sv.style.marginTop="10px";
+    const q0=$("rsQ").value.trim(); sv.onclick=()=>rsEdOpen(null,{name:o.restaurant,city:o.where&&o.where.length<40? o.where : "",url:/^https?:/i.test(q0)? q0 : "",pics:rsPics});
+    box.appendChild(sv); }
+  else if(meta&&meta.rest){ const rs0=restById(meta.rest); if(rs0){ const up=el("button","linkbtn","📚 Menù cambiato? Aggiorna «"+rs0.name+"»"); up.type="button"; up.onclick=()=>rsEdOpen(rs0.id); box.appendChild(up); } }
   const again=el("button","btn ghost","🔄 Proponimi altri piatti"); again.type="button"; again.style.marginTop="10px";
   again.onclick=()=>{ const prev=(o.picks||[]).map(p=>p.title).join(", "); const w=$("rsWant"); if(!/diversi da/.test(w.value)) w.value=(w.value? w.value+"; " : "")+"piatti diversi da: "+prev; rsGo(); };
   box.appendChild(again);
@@ -9688,6 +9716,104 @@ $("quickRest").onclick=openRest; $("sugRest").onclick=openRest;
 $("rsGo").onclick=rsGo; $("rsQ").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); rsGo(); } });
 $("rsQr").onclick=rsScan; $("rsScanStop").onclick=rsScanStop;
 $("rsPhoto").onclick=()=>$("rsCam").click(); $("rsMorePic").onclick=()=>$("rsCam").click(); $("rsGalPic").onclick=()=>$("rsGal").click();
+/* ===== v3.91: archivio dei ristoranti e bar (doc "rests": nome, città, tipo, link e menù letto una volta, poi riusato) ===== */
+let rests={list:[]}, rsSel=null, rsEdId=null, rsEdPics=[];
+const RS_KINDS=["Ristorante","Trattoria","Pizzeria","Bar","Sushi / giapponese","Pub / hamburger","Self service / mensa","Altro"];
+function saveRests(){ save("rests",rests); }
+function restById(id){ return (rests.list||[]).find(x=>x.id===id)||null; }
+function restMenuText(rs){ return (rs.dishes||[]).map(d=>`- ${d.n}${d.cat?" ["+d.cat+"]":""}${d.price?" "+d.price:""}${d.k? ` (stima ~${r(+d.g||0)} g, ${r(d.k)} kcal, P ${r(+d.p||0)} C ${r(+d.c||0)} G ${r(+d.f||0)})` : ""}`).join("\n"); }
+function rsRenderArch(){
+  const box=$("rsArch"); if(!box) return; box.innerHTML="";
+  const l=[...(rests.list||[])].sort((a,b)=>(b.lastAt||0)-(a.lastAt||0)||String(a.name).localeCompare(b.name));
+  if(rsSel&&restById(rsSel)){ const rs=restById(rsSel), ban=el("div","rs-sel");
+    ban.append(el("span",null,"📚 Uso il menù salvato di «"+rs.name+"» ("+(rs.dishes||[]).length+" piatti)"));
+    const x=el("button","linkbtn","Cambia"); x.type="button"; x.onclick=()=>{ rsSel=null; rsRenderArch(); }; ban.appendChild(x); box.appendChild(ban); }
+  const d=el("details"); d.className="rs-arch"; d.open= !l.length || (!rsSel&&l.length<=4);
+  d.appendChild(el("summary","rq-h","📚 I miei ristoranti e bar"+(l.length? " ("+l.length+")" : "")));
+  if(!l.length) d.appendChild(el("p","note","Salva i locali dove vai spesso: l'app legge il menù una volta (foto, link o ricerca) e poi te lo consiglia subito, anche senza QR code."));
+  const ul=el("ul","results");
+  l.forEach(rs=>{ const li=el("li","rs-row"); const t=el("button","rs-rowb"); t.type="button";
+    t.append(el("span","nm",rs.name), el("span","note",[rs.kind,rs.city,(rs.dishes||[]).length+" piatti"].filter(Boolean).join(" · ")));
+    t.onclick=()=>{ rsSel=rs.id; $("rsQ").value=""; rsRenderArch(); $("rsGo").scrollIntoView({behavior:"smooth",block:"center"}); };
+    const ed=el("button","linkbtn","Modifica"); ed.type="button"; ed.onclick=()=>rsEdOpen(rs.id);
+    li.append(t,ed); ul.appendChild(li); });
+  d.appendChild(ul);
+  const add=el("button","btn ghost","+ Aggiungi un ristorante o bar"); add.type="button"; add.onclick=()=>rsEdOpen(null); d.appendChild(add);
+  box.appendChild(d);
+}
+function rsEdOpen(id,pre){
+  rsEdId=id; rsEdPics=[]; const rs=id? restById(id) : null, p=pre||{};
+  $("rsEd").hidden=false; $("rsEdT").textContent= rs? "Modifica «"+rs.name+"»" : "Nuovo ristorante o bar";
+  $("rsEdName").value= rs? rs.name : (p.name||""); $("rsEdCity").value= rs? (rs.city||"") : (p.city||""); $("rsEdUrl").value= rs? (rs.url||"") : (p.url||"");
+  $("rsEdKind").innerHTML=""; RS_KINDS.forEach(k=>{ const o=el("option",null,k); o.value=k; $("rsEdKind").appendChild(o); }); $("rsEdKind").value= rs? (rs.kind||"Ristorante") : (p.kind||"Ristorante");
+  $("rsEdNotes").value= rs? (rs.notes||"") : "";
+  if(p.pics) rsEdPics=p.pics.slice(0,8);
+  $("rsEdDel").hidden=!rs; $("rsEdGo").textContent= rs? "Salva (e rileggi il menù se hai aggiunto foto o link)" : "Leggi il menù e salva";
+  $("rsEdKeep").parentElement.hidden=!rs||!(rs.dishes||[]).length; $("rsEdKeep").checked=true;
+  rsEdRenderPics(); rsEdRenderMenu(rs); setStatus("rsEdStatus","");
+  setTimeout(()=>$("rsEd").scrollIntoView({behavior:"smooth",block:"start"}),60);
+}
+function rsEdClose(){ $("rsEd").hidden=true; rsEdId=null; rsEdPics=[]; }
+function rsEdRenderPics(){ const b=$("rsEdThumbs"); b.innerHTML=""; rsEdPics.forEach(x=>{ const im=el("img"); im.alt="Foto del menù"; im.src=URL.createObjectURL(x); b.appendChild(im); });
+  $("rsEdPicN").textContent= rsEdPics.length? rsEdPics.length+" foto pronte da leggere" : ""; }
+function rsEdRenderMenu(rs){ const b=$("rsEdMenu"); b.innerHTML=""; if(!rs||!(rs.dishes||[]).length) return;
+  const d=el("details"); d.appendChild(el("summary","rq-h","Menù salvato: "+rs.dishes.length+" piatti"+(rs.menuAt? " (letto il "+dateLong(rs.menuAt)+")" : "")));
+  const ul=el("ul"); ul.style.cssText="margin:0;padding-left:0;list-style:none;font-size:.88rem";
+  rs.dishes.forEach((x,i)=>{ const li=el("li"); li.style.cssText="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)";
+    li.appendChild(el("span",null,x.n+(x.price? " · "+x.price : "")+(x.k? " · ~"+r(x.k)+" kcal" : "")));
+    const del=el("button","linkbtn","×"); del.type="button"; del.setAttribute("aria-label","Togli "+x.n); del.onclick=()=>{ rs.dishes.splice(i,1); saveRests(); rsEdRenderMenu(rs); rsRenderArch(); };
+    li.appendChild(del); ul.appendChild(li); });
+  d.appendChild(ul); b.appendChild(d); }
+function rsMenuPrompt(name,city,kind,url,hasPics){
+  return `Devi trascrivere il menù di un locale per un'app di nutrizione. Rispondi in italiano.
+Locale: "${name}"${city? " a "+city : ""}${kind? " ("+kind+")" : ""}.
+${hasPics? "FOTO DEL MENÙ allegate: trascrivi TUTTI i piatti e le bevande che vedi, con il prezzo se scritto. Sono la fonte principale.\n" : ""}${url? "LINK DEL MENÙ: "+url+" → aprilo e leggilo (pagina web, PDF o app di menù).\n" : ""}${!hasPics&&!url? "Cerca con Google Search il menù aggiornato di questo locale (sito ufficiale, TheFork, TripAdvisor, Google Maps, Facebook, Instagram, Deliveroo/Just Eat/Glovo).\n" : (url? "Se il link non si apre, cerca il menù con Google Search.\n" : "")}
+Trascrivi solo piatti che ci sono davvero: non inventare. Per ogni piatto stima porzione da ristorante (grammi del piatto servito) e valori realistici (condimenti da ristorante).
+Rispondi SOLO con un JSON valido:
+{"found":true,"name":"nome del locale","city":"città","kind":"${RS_KINDS.join("|")}","note":"dove hai trovato il menù o cosa manca","dishes":[{"n":"nome del piatto come sul menù","cat":"antipasti|primi|secondi|contorni|pizze|panini|dolci|colazione|bevande|altro","price":"€ se scritto","g":0,"k":0,"p":0,"c":0,"f":0}]}
+Se non trovi il menù: "found": false e "dishes": [].`;
+}
+async function rsReadMenu(name,city,kind,url,pics,onStatus){
+  const G0=window.HF_GEMINI, txt=rsMenuPrompt(name,city,kind,url,pics.length>0); let out=null;
+  try{ const g=await G0.grounded(txt,{tools:!pics.length||!!url,images:pics,timeout:150000}); out=G0.parseJSON(g.text); }
+  catch(e){ if(e&&(e.code==="no_key"||e.code==="bad_key"||e.code==="cancelled")) throw e; }
+  if((!out||!Array.isArray(out.dishes))&&pics.length){ onStatus&&onStatus("Ci riprovo in un altro modo…"); out=await sample.json(txt,{images:pics,modelTier:"default",maxTokens:0}); }
+  if(!out||!Array.isArray(out.dishes)) throw {code:"bad_output"};
+  out.dishes=out.dishes.filter(d=>d&&d.n).map(d=>({n:String(d.n).slice(0,80),cat:String(d.cat||"").slice(0,20),price:String(d.price||"").slice(0,12),g:r(+d.g||0),k:r(+d.k||0),p:r(+d.p||0),c:r(+d.c||0),f:r(+d.f||0)})).slice(0,250);
+  return out;
+}
+async function rsEdSave(){
+  const name=$("rsEdName").value.trim(); if(!name){ setStatus("rsEdStatus","Scrivi il nome del locale.",true); $("rsEdName").focus(); return; }
+  const city=$("rsEdCity").value.trim(), kind=$("rsEdKind").value, url=$("rsEdUrl").value.trim(), notes=$("rsEdNotes").value.trim();
+  let rs=rsEdId? restById(rsEdId) : null; const isNew=!rs;
+  const needRead= isNew || rsEdPics.length>0 || (url&&url!==(rs.url||"")) || !(rs.dishes||[]).length;
+  if(!rs) rs={id:uid(),name,dishes:[],at:Date.now()};
+  Object.assign(rs,{name:name.slice(0,60),city:city.slice(0,40),kind,url:url.slice(0,400),notes:notes.slice(0,300)});
+  if(needRead){
+    if(!sample){ setStatus("rsEdStatus","Serve l'AI per leggere il menù: inserisci la chiave in Profilo → Impostazioni AI.",true); return; }
+    $("rsEdGo").disabled=true; setStatus("rsEdStatus", rsEdPics.length? "Leggo il menù dalle foto…" : url? "Apro il link e leggo il menù…" : "Cerco il menù di «"+name+"» su internet…");
+    try{ const o=await rsReadMenu(name,city,kind,url,rsEdPics,t=>setStatus("rsEdStatus",t));
+      if(o.found===false||!o.dishes.length){ setStatus("rsEdStatus",(o.note? o.note+" " : "")+"Non ho trovato il menù: fotografalo (anche più foto) o metti il link, poi salva di nuovo.",true);
+        if(isNew&&!rsEdPics.length&&!url){ $("rsEdGo").disabled=false; return; } }
+      else { const keep=!isNew&&$("rsEdKeep").checked&&rsEdPics.length&&!(url&&url!==rs.urlRead);
+        if(keep){ const have=new Set((rs.dishes||[]).map(d=>normFood(d.n))); o.dishes.forEach(d=>{ if(!have.has(normFood(d.n))) rs.dishes.push(d); }); }
+        else rs.dishes=o.dishes;
+        rs.menuAt=todayISO(); if(url) rs.urlRead=url;
+        if(isNew){ if(!city&&o.city) rs.city=String(o.city).slice(0,40); } }
+    }catch(e){ $("rsEdGo").disabled=false; setStatus("rsEdStatus", e&&e.code==="bad_output"? "Non sono riuscito a leggere il menù. Riprova con foto più nitide (una pagina per foto)." : errCopy(e), true); return; }
+    $("rsEdGo").disabled=false;
+  }
+  rs.updated=Date.now(); if(isNew) rests.list=[...(rests.list||[]),rs].slice(-80);
+  saveRests(); rsSel=rs.id; rsEdClose(); rsRenderArch(); setStatus("rsStatus","");
+  toast("«"+rs.name+"» salvato: "+(rs.dishes||[]).length+" piatti");
+}
+function rsEdDelete(){ const rs=restById(rsEdId); if(!rs||!confirm("Eliminare «"+rs.name+"» dai tuoi ristoranti?")) return;
+  rests.list=rests.list.filter(x=>x.id!==rs.id); if(rsSel===rs.id) rsSel=null; saveRests(); rsEdClose(); rsRenderArch(); toast("Eliminato"); }
+async function rsEdAddFiles(files){ for(const f of [...(files||[])].slice(0,8)){ try{ rsEdPics.push(await shrinkFile(f,1600)); }catch{} } rsEdPics=rsEdPics.slice(-8); rsEdRenderPics(); }
+$("rsEdCamB").onclick=()=>$("rsEdCam").click(); $("rsEdGalB").onclick=()=>$("rsEdGal").click();
+$("rsEdCam").onchange=e=>{ rsEdAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
+$("rsEdGal").onchange=e=>{ rsEdAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
+$("rsEdGo").onclick=rsEdSave; $("rsEdX").onclick=rsEdClose; $("rsEdDel").onclick=rsEdDelete;
 $("rsClearPic").onclick=()=>{ rsPics=[]; rsRenderPics(); };
 $("rsCam").onchange=e=>{ rsAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
 $("rsGal").onchange=e=>{ rsAddFiles(e.target.files).then(()=>{ e.target.value=""; }); };
@@ -11424,6 +11550,7 @@ async function loadAll(){
   try{ const rr=await store.getDoc("recipes"); if(rr&&Array.isArray(rr.list)) recipes=rr; }catch{}
   try{ const sh=await store.getDoc("shoes"); if(sh&&Array.isArray(sh.list)) shoes=sh; }catch{}
   try{ const ro=await store.getDoc("routes"); if(ro&&Array.isArray(ro.list)) routes=ro; }catch{}
+  try{ const rz=await store.getDoc("rests"); if(rz&&Array.isArray(rz.list)) rests=rz; }catch{}
   setTimeout(()=>{ notifSchedule().catch(()=>{}); },8000);
   try{ const bp0=await store.getDoc("bphotos"); if(bp0&&Array.isArray(bp0.list)) bphotos=bp0; }catch{}
   try{ const pn0=await store.getDoc("pains"); if(pn0&&Array.isArray(pn0.list)) pains=pn0; }catch{}
