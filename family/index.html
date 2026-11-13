@@ -802,7 +802,7 @@ function dspDoveChips(G) {
 function dspGruppoExtra(g) {
   const r = dspReg(g.k) || {};
   return `<div class="dsp-imp small"><label>Tienine almeno <input type="number" min="0" max="20" inputmode="numeric" class="qn" data-dspmin="${esc(g.k)}" value="${r.min || 0}" aria-label="Scorta minima di ${esc(g.nome)}"></label><span class="muted">(con meno va nella lista della spesa)</span>
-    <label>Una volta aperto dura <input type="number" min="0" max="365" inputmode="numeric" class="qn" data-dspdur="${esc(g.k)}" value="${r.durAperto || ""}" placeholder="–" aria-label="Giorni dopo l'apertura per ${esc(g.nome)}"> giorni</label>
+    <label>Una volta aperto dura <input type="number" min="0" max="365" inputmode="numeric" class="qn" data-dspaperto="${esc(g.k)}" value="${r.durAperto || ""}" placeholder="–" aria-label="Giorni dopo l'apertura per ${esc(g.nome)}"> giorni</label>
     <label>Tipo <select class="f" data-dsptp="${esc(g.k)}" style="width:auto;padding:4px 8px">${DSP_TIPI.map(t => `<option ${t === g.tipo ? "selected" : ""}>${t}</option>`).join("")}</select></label>${g.cod ? `<span class="muted dsp-cod">Codice ${esc(g.cod)}</span>` : ""}</div>`;
 }
 function dspPezzoExtra(u) {
@@ -970,7 +970,7 @@ function dspBindExtra() {
   q("[data-dspdv]").forEach(b => b.onclick = () => { DSP.dove = b.dataset.dspdv; route(); });
   const o = document.getElementById("dspOrd"); if (o) o.onchange = () => { DSP.ordine = o.value; dspLs("dsp-ordine", o.value); route(); };
   q("[data-dspmin]").forEach(i => i.onchange = () => { const g = dspGruppi().find(x => x.k === i.dataset.dspmin); if (!g) return; const r = dspReg(g.k, true); r.min = Math.max(0, Math.min(20, Math.round(+i.value) || 0)); r.nome = g.nome; r.cat = g.cat; r.inLista = false; DSP.vedi = false; dspSalva(); route(); });
-  q("[data-dspdur]").forEach(i => i.onchange = () => { const g = dspGruppi().find(x => x.k === i.dataset.dspdur); if (!g) return; const r = dspReg(g.k, true); r.nome = g.nome; r.durAperto = Math.max(0, Math.min(365, Math.round(+i.value) || 0)); g.pezzi.filter(u => u.aperto).forEach(u => { if (!("scadChiuso" in u)) u.scadChiuso = u.scad || null; const d = new Date(u.aperto); d.setDate(d.getDate() + (r.durAperto || 0)); u.scad = r.durAperto && (!u.scadChiuso || d < u.scadChiuso) ? d : u.scadChiuso; }); dspSalva(); route(); });
+  q("[data-dspaperto]").forEach(i => i.onchange = () => { const g = dspGruppi().find(x => x.k === i.dataset.dspaperto); if (!g) return; const r = dspReg(g.k, true); r.nome = g.nome; r.durAperto = Math.max(0, Math.min(365, Math.round(+i.value) || 0)); g.pezzi.filter(u => u.aperto).forEach(u => { if (!("scadChiuso" in u)) u.scadChiuso = u.scad || null; const d = new Date(u.aperto); d.setDate(d.getDate() + (r.durAperto || 0)); u.scad = r.durAperto && (!u.scadChiuso || d < u.scadChiuso) ? d : u.scadChiuso; }); dspSalva(); route(); });
   q("[data-dsptp]").forEach(s => s.onchange = () => { const k = s.dataset.dsptp, v = s.value; DISPENSA.forEach(u => { if (dspKey(u) === k) u.tipo = v; }); if (k.startsWith("c:")) { const p = prodOf(k.slice(2)); if (p) p.tipo = v; } dspSalva(); route(); });
   q("[data-dspdove]").forEach(s => s.onchange = () => { const u = DISPENSA.find(x => x.id === s.dataset.dspdove); if (!u) return; u.dove = s.value; const r = dspReg(dspKey(u), true); r.nome = u.nome; r.dove = s.value; dspSalva(); route(); });
   q("[data-dspaperto]").forEach(b => b.onclick = () => { const u = DISPENSA.find(x => x.id === b.dataset.dspaperto); if (!u) return; dspApri(u); dspSalva(); route(); });
@@ -4486,7 +4486,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="1990117570fc";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="71a9d1bf89d7";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
