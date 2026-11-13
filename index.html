@@ -2436,7 +2436,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.94 (ristoranti e bar dentro il pasto)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.95 (corretta la pagina AI e sincronizzazione vuota)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6016,7 +6016,7 @@ function renderPfList(){ const box=$("pfList"); if(!box) return; box.innerHTML="
   box.appendChild(el("p","pf-gh","Aiuto")); const g2=el("div","pf-group"); g2.appendChild(chat); box.appendChild(g2); }
 function psRestore(){ if(!psCur) return; try{ const pc=$("pfCards"), ok=psCur.parent&&psCur.parent.isConnected? psCur.parent : pc; ok.insertBefore(psCur.card, psCur.next&&psCur.next.parentNode===ok? psCur.next : null); }catch(e){ try{ $("pfCards").appendChild(psCur.card); }catch{} } psCur=null; }
 function openPset(title,label,k){ psRestore(); const c=pfCardFor(title); if(!c){ toast("Non trovo questa sezione: chiudi e riapri l'app"); return; } psCur={card:c,parent:c.parentNode,next:c.nextSibling,k};
-  $("psTitle").textContent=label; c.classList.remove("collapsed"); $("psBody").innerHTML=""; $("psBody").appendChild(c);
+  $("psTitle").textContent=label; c.classList.remove("collapsed","folded"); $("psBody").innerHTML=""; $("psBody").appendChild(c);
   const needSave=(PF_GROUPS.flatMap(x=>x[1]).find(x=>x[2]===k)||[])[3]; $("psSaveBar").hidden=!needSave; go("pset"); window.scrollTo(0,0); }
 function closePset(){ psRestore(); renderPfList(); }
 $("psBack").onclick=()=>{ if(history.state&&history.state.v==="pset") history.back(); else { go("profilo"); closePset(); } };
@@ -10208,7 +10208,9 @@ if(!icoOff){ iconize(document.body); let pend=new Set(), raf=0;
 function foldKey(c,h){ return "hf:fold:"+(c.id||(h.textContent||"").replace(/\s+/g," ").trim().slice(0,40)); }
 function foldHead(c){ const f=c.firstElementChild; if(!f) return null; if(f.tagName==="H2") return f; if(f.classList.contains("meal-head")&&f.querySelector("h2")) return f; return null; }
 function foldSet(c,on){ c.classList.toggle("folded",on); const h=c._fh; if(h) h.setAttribute("aria-expanded",String(!on)); try{ if(h) localStorage.setItem(foldKey(c,h),on?"1":"0"); }catch{} }
-function foldScan(){ document.querySelectorAll(".card").forEach(c=>{ if(c.tagName==="BUTTON"||c.closest(".sheet")) return; const h=foldHead(c); if(!h) return;
+function foldScan(){ document.querySelectorAll(".card").forEach(c=>{ if(c.tagName==="BUTTON"||c.closest(".sheet")) return;
+    // v3.95: nelle pagine del Profilo il titolo è nascosto: niente chiusura, altrimenti resta solo una barra vuota (AI e sincronizzazione)
+    if(c.closest("#psBody")||c.closest("#pfCards")){ if(c.classList.contains("folded")) c.classList.remove("folded"); const bx=[...c.children].find(n=>n.classList.contains("fold-x")&&n.dataset.auto); if(bx) bx.remove(); return; } const h=foldHead(c); if(!h) return;
     if(c._fh!==h){ c._fh=h; h.classList.add("fold-hd"); h.setAttribute("role","button"); h.tabIndex=0; let on=false; try{ on=localStorage.getItem(foldKey(c,h))==="1"; }catch{} c.classList.toggle("folded",on); h.setAttribute("aria-expanded",String(!on)); }
     let b=[...c.children].find(n=>n.classList.contains("fold-x")&&n.dataset.auto);
     if(!c.classList.contains("folded")&&c.offsetHeight>420){ if(!b){ b=document.createElement("button"); b.type="button"; b.className="fold-x"; b.dataset.auto="1"; b.textContent="▲ Chiudi"; } if(c.lastElementChild!==b) c.appendChild(b); }
