@@ -4644,11 +4644,29 @@ onSave("inizia", "", v => { resetAll(v); location.hash = "#/"; saveNow(); return
 /* ---------- router ---------- */
 const BIND = { stanze: bindStanze, stanza: bindStanza, mappa: bindMappa, polizze: bindPolizze, garanzie: bindGaranzie, spese: bindSpese, mutuo: bindMutuo, investimenti: bindInvestimenti, pareggio: bindPareggio, domotica: bindAssistente, assistente: bindAssistente, guida: bindGuida, foto: bindFoto, membri: bindMembri, drive: bindDrive, viaggi: bindViaggi, cerca: bindCerca, documenti: bindDocumenti, scadenze: bindScadenze, accensioni: bindAccensioni, manutenzioni: bindManutenzioni, home: bindHome, area: bindHome, dati: bindTransfer, personalizza: bindImpostazioni, impostazioni: bindImpostazioni, calendario: bindCalendario, inizia: bindInizia, spesa: bindSpesa, dispensa: bindDispensa, salute: bindSalute, veicoli: bindVeicoli };
 let lastRoute = "";
+/* il pulsante appena toccato (−, +, data…) resta sotto il dito anche quando la pagina si ridisegna */
+let ULTIMO_TOCCO = null;
+document.addEventListener("pointerdown", e => { const v = document.getElementById("view"); if (v && v.contains(e.target)) ULTIMO_TOCCO = { el: e.target, t: Date.now() }; }, true);
+function ancoraPrima() {
+  const v = document.getElementById("view"); if (!v) return null;
+  let el = document.activeElement && v.contains(document.activeElement) && document.activeElement !== v ? document.activeElement : null;
+  if (!el && ULTIMO_TOCCO && Date.now() - ULTIMO_TOCCO.t < 3000 && v.contains(ULTIMO_TOCCO.el)) el = ULTIMO_TOCCO.el;
+  for (let x = el; x && x !== v; x = x.parentElement) {
+    const a = [...x.attributes].find(t => t.name.startsWith("data-") && t.value && !/^data-(sec|txt)$/.test(t.name)) ;
+    if (x.id || a) { const sel = x.id ? "#" + CSS.escape(x.id) : `[${a.name}="${CSS.escape(a.value)}"]`; const all = [...v.querySelectorAll(sel)]; return { sel, i: Math.max(0, all.indexOf(x)), top: x.getBoundingClientRect().top }; }
+  }
+  return null;
+}
+function ancoraDopo(a) {
+  if (!a) return false; const all = document.querySelectorAll("#view " + a.sel), x = all[a.i] || all[0]; if (!x) return false;
+  const d = x.getBoundingClientRect().top - a.top; if (Math.abs(d) > 1) window.scrollBy(0, d); return true;
+}
 function route() {
   if (!location.hash || location.hash === "#" || location.hash === "#/") { location.replace(startHash()); return; }
   if (!PERS.ready) { $("#view").innerHTML = `<div class="panel" style="margin-top:24px"><p class="muted">Carico i dati della famiglia…</p></div>`; return; }
   ensureIds();
   const yPrima = window.scrollY, stessa = location.hash === lastRoute;   // ridisegno della stessa pagina: resta dov'eri
+  const anc = stessa ? ancoraPrima() : null;
   const parts = location.hash.slice(2).split("/");
   const id = V[parts[0]] ? parts[0] : "home";
   if (!can(id)) { $("#view").innerHTML = head("Sezione riservata", `Questa sezione è visibile solo ai genitori. Stai usando il profilo di ${esc(cur().nome)}.`) + `<a class="btn" href="#/home">Torna alla casa</a>`; }
@@ -4660,7 +4678,7 @@ function route() {
   document.body.classList.remove("menu");
   const key = location.hash;
   if (key !== lastRoute) { window.scrollTo(0, 0); lastRoute = key; }
-  else if (stessa && yPrima > 0) { window.scrollTo(0, yPrima); requestAnimationFrame(() => { if (Math.abs(window.scrollY - yPrima) > 2) window.scrollTo(0, yPrima); }); }
+  else if (stessa) { const fix = () => { if (!ancoraDopo(anc) && yPrima > 0 && Math.abs(window.scrollY - yPrima) > 2) window.scrollTo(0, yPrima); }; if (!ancoraDopo(anc) && yPrima > 0) window.scrollTo(0, yPrima); requestAnimationFrame(fix); }
   saveSoon();
 }
 window.addEventListener("hashchange", route);
@@ -4674,7 +4692,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="d5d2ae05431d";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="1dc0f5b38d45";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
