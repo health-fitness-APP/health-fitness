@@ -1527,8 +1527,10 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <h2>🩹 Fastidi e dolori</h2>
     <p class="sub">Segna dove ti fa male e quanto (da 1 a 10): il coach adatta palestra e corsa e ti avvisa se peggiora.</p>
     <div id="painList"></div>
-    <div class="two" style="margin-top:8px"><select class="field" id="painZone" aria-label="Dove"></select>
-      <label style="display:flex;align-items:center;gap:8px">Quanto <input type="range" id="painLv" min="1" max="10" value="3" style="flex:1"><b id="painLvT">3</b></label></div>
+    <p class="note" style="margin:10px 0 6px">Dove? Puoi toccarne anche più di uno.</p>
+    <div id="painZones" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    <input class="field" id="painOther" placeholder="Dove, con parole tue (es. piede destro, sopra la caviglia)" style="margin-top:8px" hidden>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:8px">Quanto <input type="range" id="painLv" min="1" max="10" value="3" style="flex:1"><b id="painLvT">3</b></label>
     <button class="btn ghost" id="painAdd" type="button" style="margin-top:8px">＋ Segna il fastidio</button>
   </section>
   <section class="card" id="aTellCard">
@@ -2436,7 +2438,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.98 («ritmo giusto» solo quando sei davvero entro 5 secondi dall'obiettivo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.99 (fastidi: più di uno insieme · dopo la corsa ti chiede lo stretching)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6116,7 +6118,15 @@ async function saveWatchResult(o){ if(o&&o.kind==="pain"){ try{ painFromWatch(o)
   if(!plan&&o.title===THR_TITLE) try{ plan=thrPlanInfo(); }catch{}
   await runDetSave(wid,runDetFrom(o,plan));
   setTimeout(()=>{ try{ raceCheckRun({...item,date}); }catch{} },500); return wid; }
-async function watchPending(){ const P=WBR(); if(!P) return; try{ const r0=await P.pending(); let n=0, last=null; for(const o of (r0&&r0.results)||[]){ const id=await saveWatchResult(o); if(id){ n++; last=id; } } if(n){ renderAll(); actionToast(`⌚ ${n===1?"Corsa":"Corse"} dal Galaxy Watch salvat${n===1?"a":"e"} ✓ · stretching e recupero nel riepilogo`,"Apri",()=>openRunSummary(last)); } }catch(e){ console.warn("orologio",e); } }
+async function watchPending(){ const P=WBR(); if(!P) return; try{ const r0=await P.pending(); let n=0, last=null; let lastO=null; for(const o of (r0&&r0.results)||[]){ const id=await saveWatchResult(o); if(id){ n++; last=id; lastO=o; } } if(n){ renderAll(); if(runStretchOffer(last,lastO)) return; actionToast(`⌚ ${n===1?"Corsa":"Corse"} dal Galaxy Watch salvat${n===1?"a":"e"} ✓ · stretching e recupero nel riepilogo`,"Apri",()=>openRunSummary(last)); } }catch(e){ console.warn("orologio",e); } }
+/* v3.99: corsa dall'orologio appena finita (entro 3 ore) → chiede subito lo stretching, come dopo la palestra (prima c'era solo il pulsante nel riepilogo).
+   Una volta per corsa (hf:runStrAsk), mai con «Non chiederlo più» (hf:stretchOff). */
+function runStretchOffer(id,o){ try{ if(localStorage.getItem("hf:stretchOff")==="1"||localStorage.getItem("hf:runStrAsk")===String(id)) return false;
+    const end=(+(o&&o.startedAt)||0)+(+(o&&o.seconds)||0)*1000; if(!end||Date.now()-end>3*3600e3||!(+o.seconds>=15*60)) return false;
+    localStorage.setItem("hf:runStrAsk",String(id)); const stMin=Math.round(STRETCH.corsa.ex.reduce((a,q)=>a+q[2]*(q[3]?2:1),0)/60);
+    stretchAsk("corsa",stMin,"⌚ Corsa salvata ✓");
+    const ov=$("strOv"), no=ov&&ov.querySelector('[data-a="no"]'); if(no){ no.textContent="Non oggi, apri il riepilogo"; no.onclick=()=>{ ov.hidden=true; try{ openRunSummary(id); }catch{} }; }
+    return true; }catch(e){ console.warn("stretching corsa",e); return false; } }
 /* ----- APK: motore nativo (fascia e GPS a schermo spento) ----- */
 const NAT=()=>{ const C=window.Capacitor; return C&&C.isNativePlatform&&C.isNativePlatform()? C : null; };
 const HRN=()=>{ const C=NAT(); return C&&C.Plugins? C.Plugins.HrRecorder : null; };
@@ -10069,7 +10079,7 @@ function painTrend(x){ const ks=Object.keys(x.log||{}).sort(); if(ks.length<2) r
 function painText(){ const A=painActive(); if(!A.length) return ""; return "FASTIDI IN CORSO (adatta allenamenti ed esercizi, niente che li carichi; se intensità ≥6 o in peggioramento consiglia di fermarsi e sentire un medico o un fisioterapista): "+A.map(x=>{ const l=painLast(x), t=painTrend(x), days=Math.round((new Date(todayISO()+"T12:00:00")-new Date(x.start+"T12:00:00"))/864e5);
   return `${x.zone} ${l? l.v : "?"}/10 (da ${days} giorni${t>=2? ", in peggioramento" : t<=-2? ", in miglioramento" : ""}${l&&l.d!==todayISO()? ", ultimo valore del "+l.d : ""})`; }).join("; ")+"."; }
 function savePains(){ save("pains",pains); }
-function renderPains(){ const box=$("painList"); if(!box) return; box.innerHTML=""; const sel=$("painZone"); if(!sel.options.length) PAIN_Z.forEach(z=>{ const o=el("option",null,z); o.value=z; sel.appendChild(o); });
+function renderPains(){ const box=$("painList"); if(!box) return; box.innerHTML=""; painChips();
   const A=painActive(); if(!A.length) box.appendChild(el("p","note","Nessun fastidio segnato 👍"));
   A.forEach(x=>{ const l=painLast(x), t=painTrend(x), r0=el("div","pain-row"); const today=x.log&&x.log[todayISO()];
     r0.innerHTML=`<div><b></b><small></small></div><div class="pain-b"></div>`; r0.querySelector("b").textContent=x.zone;
@@ -10078,8 +10088,19 @@ function renderPains(){ const box=$("painList"); if(!box) return; box.innerHTML=
       inp.onchange=()=>{ const v=Math.max(0,Math.min(10,Math.round(+inp.value))); if(isNaN(v)) return; x.log=x.log||{}; x.log[todayISO()]=v; if(v===0) x.closed=todayISO(); savePains(); renderPains(); try{ renderPainWarn(); }catch{} toast(v===0? "Bene, fastidio passato ✓" : "Segnato ✓"); }; bb.appendChild(inp); });
     const ok=el("button","linkbtn","Passato"); ok.type="button"; ok.onclick=()=>{ x.closed=todayISO(); savePains(); renderPains(); toast("Fastidio chiuso ✓"); }; bb.appendChild(ok); box.appendChild(r0); }); }
 $("painLv").oninput=()=>{ $("painLvT").textContent=$("painLv").value; };
-$("painAdd").onclick=()=>{ const z=$("painZone").value, v=+$("painLv").value; let x=painActive().find(y=>y.zone===z);
-  if(!x){ x={id:uid(),zone:z,start:todayISO(),log:{}}; pains.list=[...(pains.list||[]),x].slice(-40); } x.log[todayISO()]=v; savePains(); renderPains(); try{ renderPainWarn(); }catch{}
+/* v3.99: zone a pulsanti, se ne possono scegliere più di una insieme (prima un menù a tendina con una sola zona) */
+let painSel=new Set();
+function painChips(){ const box=$("painZones"); if(!box||box.childElementCount) return;
+  PAIN_Z.forEach(z=>{ const b=el("button","chip",z); b.type="button"; b.setAttribute("aria-pressed","false");
+    b.onclick=()=>{ painSel.has(z)? painSel.delete(z) : painSel.add(z); b.setAttribute("aria-pressed",painSel.has(z)?"true":"false"); $("painOther").hidden=!painSel.has("Altro"); painBtnTxt(); }; box.appendChild(b); }); painBtnTxt(); }
+function painBtnTxt(){ const n=painSel.size; $("painAdd").textContent= n>1? `＋ Segna i ${n} fastidi` : "＋ Segna il fastidio"; }
+$("painAdd").onclick=()=>{ const v=+$("painLv").value, oth=($("painOther").value||"").trim();
+  const zs=[...painSel].map(z=>z==="Altro"&&oth? oth : z); if(!zs.length){ toast("Tocca prima dove ti fa male (anche più zone)"); return; }
+  zs.forEach(z=>{ let x=painActive().find(y=>y.zone.toLowerCase()===z.toLowerCase());
+    if(!x){ x={id:uid(),zone:z,start:todayISO(),log:{}}; pains.list=[...(pains.list||[]),x].slice(-40); } x.log=x.log||{}; x.log[todayISO()]=v; });
+  painSel.clear(); $("painOther").value=""; $("painOther").hidden=true; $("painZones").querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed","false")); painBtnTxt();
+  savePains(); renderPains(); try{ renderPainWarn(); }catch{}
+  if(zs.length>1&&v<6){ toast(`Segnati ${zs.length} fastidi: il coach ne tiene conto ✓`); return; }
   toast(v>=6? "Segnato. Con un dolore così forte oggi riposa e, se non passa in pochi giorni, senti un medico o un fisioterapista." : "Segnato: il coach ne tiene conto ✓"); };
 function renderPainWarn(){ const card=$("painWarnCard"); if(!card) return; const bad=painActive().filter(x=>{ const l=painLast(x); return l&&(l.v>=6||painTrend(x)>=2||(l.v>=3&&x.start<=shiftDate(todayISO(),-10))); });
   let seen=""; try{ seen=localStorage.getItem("hf:painSeen")||""; }catch{}
@@ -11828,7 +11849,7 @@ async function loadAll(){
     $("hcConnect").onclick=hcConnect; $("hcPermsLink").onclick=hcConnect; $("hcSyncNow").onclick=()=>hcSync(true); $("hcSettings").onclick=()=>{ const H=HCP(); if(H&&H.openHealthConnectSettings) H.openHealthConnectSettings().catch(()=>{}); };
     if(localStorage.getItem("hf:hcLast")) setStatus("hcStatus","Ultima sincronizzazione: "+new Date(localStorage.getItem("hf:hcLast")).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}));
     setTimeout(()=>{ hcAutoFix().finally(()=>hcSync(false)); },3500);
-    try{ const W=WBR(); if(W){ W.addListener("watchResult",async o=>{ const id=await saveWatchResult(o); if(id){ renderAll(); actionToast("⌚ Corsa salvata ✓ · stretching e recupero nel riepilogo","Apri",()=>openRunSummary(id)); } }); setTimeout(watchPending,2500); NAT().Plugins.App.addListener("resume",()=>watchPending()); } }catch(e){ console.warn("orologio",e); }
+    try{ const W=WBR(); if(W){ W.addListener("watchResult",async o=>{ const id=await saveWatchResult(o); if(id){ renderAll(); if(runStretchOffer(id,o)) return; actionToast("⌚ Corsa salvata ✓ · stretching e recupero nel riepilogo","Apri",()=>openRunSummary(id)); } }); setTimeout(watchPending,2500); NAT().Plugins.App.addListener("resume",()=>watchPending()); } }catch(e){ console.warn("orologio",e); }
     try{ NAT().Plugins.App.addListener("resume",()=>{ const l=+new Date(localStorage.getItem("hf:hcLast")||0); if(Date.now()-l>10*60000) hcSync(false); }); }catch{}
     setTimeout(()=>{ hrnRestore(); },900); setTimeout(()=>{ rdFix0711(); },3000);
     try{ NAT().Plugins.App.addListener("backButton",()=>{ if(view==="diario"&&!sheetStack.length) NAT().Plugins.App.minimizeApp(); else history.back(); }); }catch{}
