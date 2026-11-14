@@ -4253,6 +4253,15 @@ function dspDatePiu(root) {
     tx.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); prova(true); tx.blur(); } });
     cal.onclick = () => { try { di.showPicker(); } catch (e) { di.focus(); di.click(); } };
     di.addEventListener("change", () => { tx.value = dspDateTesto(di.value); if (di.value) dspDateRicorda(di.value); });
+    if (!conChips) {   // nell'elenco dei pezzi: un menu piccolo con le date recenti
+      const R = dspDateRecenti();
+      if (R.length) {
+        const sel = document.createElement("select"); sel.className = "f dsp-dt-rec"; sel.setAttribute("aria-label", "Scadenze usate di recente");
+        sel.innerHTML = `<option value="">Recenti</option>` + R.map(x => `<option value="${x}">${dspDateTesto(x)}</option>`).join("");
+        sel.onchange = () => { if (sel.value) { tx.value = dspDateTesto(sel.value); dspDateMetti(di, sel.value); } };
+        box.insertBefore(sel, di);
+      }
+    }
     if (conChips) {
       const R = dspDateRecenti().filter(x => x !== di.value);
       if (R.length) {
@@ -4270,6 +4279,7 @@ function dspDatePiu(root) {
 .dsp-dt input[type=text]{width:110px;min-width:0}
 .dsp-dt .dsp-dt-nat{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;padding:0;border:0}
 .dsp-dt-err{border-color:var(--bad)!important;outline:1px solid var(--bad)}
+.dsp-dt-rec{width:auto;max-width:100px;padding:6px 4px;font-size:.85rem}
 .dsp-dt-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
 .dsp-dt-chips .chip{margin:0;padding:4px 10px;font-size:.85rem}`;
   (document.head || document.documentElement).appendChild(st);
@@ -4637,6 +4647,7 @@ function route() {
   if (!location.hash || location.hash === "#" || location.hash === "#/") { location.replace(startHash()); return; }
   if (!PERS.ready) { $("#view").innerHTML = `<div class="panel" style="margin-top:24px"><p class="muted">Carico i dati della famiglia…</p></div>`; return; }
   ensureIds();
+  const yPrima = window.scrollY, stessa = location.hash === lastRoute;   // ridisegno della stessa pagina: resta dov'eri
   const parts = location.hash.slice(2).split("/");
   const id = V[parts[0]] ? parts[0] : "home";
   if (!can(id)) { $("#view").innerHTML = head("Sezione riservata", `Questa sezione è visibile solo ai genitori. Stai usando il profilo di ${esc(cur().nome)}.`) + `<a class="btn" href="#/home">Torna alla casa</a>`; }
@@ -4648,6 +4659,7 @@ function route() {
   document.body.classList.remove("menu");
   const key = location.hash;
   if (key !== lastRoute) { window.scrollTo(0, 0); lastRoute = key; }
+  else if (stessa && yPrima > 0) { window.scrollTo(0, yPrima); requestAnimationFrame(() => { if (Math.abs(window.scrollY - yPrima) > 2) window.scrollTo(0, yPrima); }); }
   saveSoon();
 }
 window.addEventListener("hashchange", route);
@@ -4661,7 +4673,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="4b513aa2f5c9";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="f158675b6f4d";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
