@@ -3102,7 +3102,9 @@ V.dispensa = () => {
   dspDopo();
   const G = dspGruppi(), C = DSP.card, add = DSP.mode === "add", cap = dspCap();
   const presto = DISPENSA.filter(u => u.scad && daysTo(u.scad) >= 0 && daysTo(u.scad) <= 7).length, scaduti = DISPENSA.filter(u => u.scad && daysTo(u.scad) < 0).length;
-  const urg = DISPENSA.filter(u => u.scad && daysTo(u.scad) <= 7).sort((a, b) => a.scad - b.scad);
+  // riquadro sempre visibile: cosa scade nei prossimi 30 giorni (o è già scaduto), un rigo per prodotto e data (Daniele 14/11/2026)
+  const urgM = new Map(); DISPENSA.filter(u => u.scad && daysTo(u.scad) <= 30).sort((a, b) => a.scad - b.scad).forEach(u => { const k = u.nome + "|" + dspDateIso(new Date(u.scad)); if (!urgM.has(k)) urgM.set(k, []); urgM.get(k).push(u); });
+  const urg = [...urgM.values()];
   const cats = DSP_TIPI.filter(c => G.some(g => g.tipo === c)), cat = DSP.cat === "presto" || cats.includes(DSP.cat) ? DSP.cat : "tutte";
   const q = DSP.q.trim().toLowerCase(), txt = g => (g.nome + " " + g.cod + " " + g.cat).toLowerCase();
   const vis = G.filter(g => !DSP.dove || g.pezzi.some(u => dspDoveDi(u) === DSP.dove)).filter(g => (cat === "tutte" || (cat === "presto" ? g.prima && daysTo(g.prima) <= 7 : g.tipo === cat)));
@@ -3145,7 +3147,7 @@ V.dispensa = () => {
     <div class="panel" style="padding:12px"><p class="small muted" style="margin:0">Pezzi in casa</p><div class="big">${DISPENSA.length}</div><p class="small muted" style="margin:0">${G.length === 1 ? "1 prodotto" : `${G.length} prodotti`}</p></div>
     <div class="panel" style="padding:12px"><p class="small muted" style="margin:0">Entro 7 giorni</p><div class="big" style="color:${presto ? "var(--warn)" : "inherit"}">${presto}</div></div>
     <div class="panel" style="padding:12px"><p class="small muted" style="margin:0">Scaduti</p><div class="big" style="color:${scaduti ? "var(--bad)" : "inherit"}">${scaduti}</div></div></div>
-  ${urg.length ? `<div class="panel" style="margin-bottom:14px;border-color:var(--warn)"><h2>Da consumare presto</h2><div class="list">${urg.slice(0, 12).map(u => `<div class="item" style="align-items:center"><span class="grow"><b>${esc(u.nome)}</b></span>${dspPill(u.scad)}<button class="btn ghost sm" data-dspu="${u.id}">Usato</button><button class="btn ghost sm" data-dspu="${u.id}" data-dspev="buttato">Buttato</button></div>`).join("")}</div>${urg.length > 12 ? `<p class="small muted">E altri ${urg.length - 12}.</p>` : ""}</div>` : ""}
+  <div class="panel" style="margin-bottom:14px${urg.length ? ";border-color:var(--warn)" : ""}"><h2>⏰ Scade nei prossimi 30 giorni</h2>${urg.length ? `<div class="list">${urg.slice(0, 15).map(L => { const u = L[0]; return `<div class="item" style="align-items:center"><span class="grow"><b>${esc(u.nome)}</b>${L.length > 1 ? ` <span class="small muted">× ${L.length}</span>` : ""}</span>${dspPill(u.scad)}<button class="btn ghost sm" data-dspu="${u.id}">Usato</button><button class="btn ghost sm" data-dspu="${u.id}" data-dspev="buttato">Buttato</button></div>`; }).join("")}</div>${urg.length > 15 ? `<p class="small muted">E altri ${urg.length - 15}.</p>` : ""}` : `<p class="small muted" style="margin:4px 0 0">Niente: nei prossimi 30 giorni non scade nessun prodotto.</p>`}</div>
   ${G.length ? `<div class="panel"><div class="row between" style="gap:8px"><h2>Cosa c'è in casa</h2><input type="text" id="dspQ2" value="${esc(DSP.q)}" placeholder="Cerca un prodotto" aria-label="Cerca nella dispensa" style="max-width:260px;flex:1 1 180px;min-width:0"></div>
     <p class="small muted" style="margin:6px 0 0">Fai scorrere un prodotto verso destra per segnarne un pezzo come usato, verso sinistra per eliminarlo.</p>
     <div class="chips" style="margin-top:10px"><button class="chip ${cat === "tutte" ? "on" : ""}" data-dspc="tutte">Tutto (${G.length})</button>${presto + scaduti ? `<button class="chip ${cat === "presto" ? "on" : ""}" data-dspc="presto">⏰ In scadenza</button>` : ""}${cats.map(c => `<button class="chip ${cat === c ? "on" : ""}" data-dspc="${esc(c)}">${c} (${G.filter(g => g.tipo === c).length})</button>`).join("")}</div>${dspDoveChips(G)}
@@ -4710,7 +4712,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="11c3e70109fa";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="79030b2b8d40";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
