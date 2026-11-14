@@ -2436,7 +2436,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.97 (i pasti che mancano si adattano da soli all'obiettivo, anche togliendo quello che non serve)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.98 («ritmo giusto» solo quando sei davvero entro 5 secondi dall'obiettivo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6600,8 +6600,8 @@ function rdScoreCard(box,x,full){ const {pl,m,km,sec}=x; if(!pl||!(pl.km||pl.min
   if(!full) return;
   const bars=[]; if(pl.km) bars.push(["Distanza allenamento principale",rdKm(mk)+" km",Math.min(100,Math.round(mk/pl.km*100)),"Obiettivo: "+rdKm(pl.km)+" km","#E9A21E"]);
   if(pl.min) bars.push(["Durata allenamento principale",hms2(ms), pl.km&&mk>=pl.km*0.99? 100 : Math.min(100,Math.round(ms/(pl.min*60)*100)),"Obiettivo: "+hms(pl.min),"#1EA7E0"]);
-  if(pl.ps&&mp) bars.push(["Andatura media allenamento principale",paceTxt(mp)+"/km", mp<=pl.ps*1.03? 100 : Math.round(pl.ps/mp*100),"Obiettivo: "+paceTxt(pl.ps)+"/km","#14B8A6"]);
-  let msg=""; if(pl.ps&&mp){ const d=mp-pl.ps; msg= /facile|lungo|recupero|jogging/i.test(pl.type+" "+pl.title)&&d<-20? `Sei andato ${Math.round(-d)} secondi al km più veloce del previsto: nelle corse facili e nei lunghi rallenta, alleni meglio la resistenza e recuperi prima.` : d>20? `Sei andato ${Math.round(d)} secondi al km più lento del previsto: se eri stanco va bene, altrimenti la prossima volta prova a tenere il ritmo.` : "Ritmo in linea con l'obiettivo: ottimo controllo."; }
+  if(pl.ps&&mp) bars.push(["Andatura media allenamento principale",paceTxt(mp)+"/km", mp<=pl.ps+5? 100 : Math.round(pl.ps/mp*100),"Obiettivo: "+paceTxt(pl.ps)+"/km","#14B8A6"]);
+  let msg=""; if(pl.ps&&mp){ const d=mp-pl.ps; msg= /facile|lungo|recupero|jogging/i.test(pl.type+" "+pl.title)&&d<-20? `Sei andato ${Math.round(-d)} secondi al km più veloce del previsto: nelle corse facili e nei lunghi rallenta, alleni meglio la resistenza e recuperi prima.` : d>20? `Sei andato ${Math.round(d)} secondi al km più lento del previsto: se eri stanco va bene, altrimenti la prossima volta prova a tenere il ritmo.` : d>5? `Sei andato ${Math.round(d)} secondi al km più lento del previsto: ci sei quasi, la prossima volta spingi un pochino.` : d<-5&&!/facile|lungo|recupero|jogging/i.test(pl.type+" "+pl.title)? `Sei andato ${Math.round(-d)} secondi al km più veloce del previsto: bene se stavi bene, ma attento a non esagerare.` : d<-5? `Sei andato ${Math.round(-d)} secondi al km più veloce del previsto: nelle corse facili e nei lunghi va bene, purché il battito resti basso.` : "Ritmo in linea con l'obiettivo (entro 5 secondi al km): ottimo controllo."; }
   if(pl.km&&mk<pl.km*0.95) msg=`Hai fatto ${rdKm(mk)} km su ${rdKm(pl.km)}. `+msg;
   c.insertAdjacentHTML("beforeend",`${m? `<p class="sub"><b>Allenamento principale</b> (esclusi riscaldamento e defaticamento): <b>${rdKm(m.km)} km · ${hms2(m.sec)} · ${m.pace? paceTxt(m.pace)+"/km" : "–"}</b></p>` : ""}<p class="rd-msg"></p>`+
     bars.map(b=>`<div class="rd-goal"><div class="h"><span>${b[0]}: <b>${b[1]}</b></span></div><div class="r"><b class="num">${b[2]}</b><small>/100%</small><span>${b[3]}</span></div><div class="bar"><i style="width:${b[2]}%;background:${b[4]}"></i></div></div>`).join(""));
@@ -7520,7 +7520,7 @@ function raceCheckRun(w){ if(/^Obiettivo /.test(w&&w.name||"")) return;
     if(pp&&pace<pp*0.95&&/Facile|Lungo/i.test(planned.runType)) msgs.push(`Sei andato più forte del previsto (${paceStr(pace)} invece di ${planned.pace}/km): le corse facili vanno tenute lente per recuperare.`);
     else if(pp&&pace<pp*0.95) msgs.push(`${planned.runType} più veloce del previsto: ${paceStr(pace)} invece di ${planned.pace}/km.`);
     else if(pp&&pace>pp*1.06&&!/Facile|Lungo/i.test(planned.runType)) msgs.push(`Ritmo più lento del previsto (${paceStr(pace)} invece di ${planned.pace}/km).`);
-    else if(pp&&Math.abs(pace-pp)/pp<=0.03) msgs.push(`${planned.runType} centrato: ${paceStr(pace)}/km come previsto 👍`);
+    else if(pp&&Math.abs(pace-pp)<=8) msgs.push(`${planned.runType} centrato: ${paceStr(pace)}/km come previsto 👍`);
     planned.done={km,pace:paceStr(pace),date:w.date}; }
   // forma: se una corsa tirata (≥5 km) indica un VDOT più alto, aggiorno i ritmi del resto del piano
   const hard= planned? !/Facile|Lungo/i.test(planned.runType) : pace<racePaces(g.vdot).soglia*1.04;
