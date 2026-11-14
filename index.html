@@ -2438,7 +2438,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 3.99 (fastidi: più di uno insieme · dopo la corsa ti chiede lo stretching)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.00 (porzioni: si apre sull'unità che dà un numero intero, es. 3 fette)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3758,6 +3758,9 @@ function qtyUnits(it){ const u=[], R=portionOf(it), my=myPortion(it.name);
   if(R&&R[4]&&!u.some(x=>Math.abs(x.g-R[3])<0.5)) u.push({one:R[4][0],many:R[4][1],g:R[3]});
   if(!u.length) u.push({one:"porzione",many:"porzioni",g:Math.max(1,Math.round(+it.grams||100)),cur:true});   // nessuna dose nota: 1 porzione = quanto avevi messo
   return u; }
+/* v4.00: apre il foglio sull'unità che dà un numero intero (75 g di pancarré = 3 fette, non 4,17 porzioni da 18 g); poi mezze unità; altrimenti la prima */
+function qtBestUnit(U,g){ if(!(g>0)||U.length<2) return 0; const fit=m=>U.findIndex(x=>{ const n=g/x.g*m, k=Math.round(n); return k>=m&&Math.abs(n-k)<=0.06*m; });
+  let i=fit(1); if(i<0) i=fit(2); return i<0? 0 : i; }
 const qtG=()=>qtCtx? qtCtx.u[qtCtx.k].g : 0;
 linkPG("qtPortions","qtGrams",qtG);
 function qtRender(){ const c=qtCtx, U=c.u[c.k], kc=(+c.it.kcal||0)/Math.max(1,+c.it.grams||1)*U.g;
@@ -3767,7 +3770,7 @@ function qtRender(){ const c=qtCtx, U=c.u[c.k], kc=(+c.it.kcal||0)/Math.max(1,+c
   c.u.forEach((x,i)=>{ const b=el("button","chip",`${x.one} (${fmt(Math.round(x.g))} g)`); b.type="button"; b.setAttribute("aria-pressed",i===c.k);
     b.onclick=()=>{ c.k=i; $("qtPortions").dataset.last="g"; $("qtGrams").dispatchEvent(new Event("input")); qtRender(); }; box.appendChild(b); }); }
 function openQty(mid,it){
-  qtCtx={mid,id:it.id,it,u:qtyUnits(it),k:0}; $("qtTitle").textContent=it.name;
+  const U0=qtyUnits(it); qtCtx={mid,id:it.id,it,u:U0,k:qtBestUnit(U0,+it.grams||0)}; $("qtTitle").textContent=it.name;
   $("qtGrams").value=String(Math.round((+it.grams||0)*10)/10).replace(".",","); $("qtPortions").dataset.last="g"; $("qtGrams").dispatchEvent(new Event("input"));
   qtRender(); openSheet("qtSheet"); }
 $("qtGo").onclick=()=>{ if(!qtCtx) return; const c=qtCtx, p=$("qtPortions");
