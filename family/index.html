@@ -4233,7 +4233,10 @@ async function supaCopiaTutto(oldDb, onProgress) {
   const fm = await new Promise((res, rej) => { const un = oldDb.collection("fm").onSnapshot(s => { res(s); try { un && un(); } catch (e) {} }, rej); });
   fm.docs.forEach(d => all.push({ path: "fm/" + d.id, data: d.data() }));
   if (!all.some(r => r.path === "fm/meta")) throw Object.assign(new Error("archivio di claude.ai vuoto"), { code: "vuoto" });
-  all.forEach(r => { const at = +((r.data || {}).at) || 0; if (!qui.has(r.path) || at > qui.get(r.path)) rows.push(r); });
+  // Dispensa e spesa: vince sempre il telefono (Daniele 14/11/2026). Una voce vuota del PC non cancella mai quella del telefono.
+  const DEL_TEL = ["fm/dispensa", "fm/prodotti", "fm/dspregole", "fm/dspstorico", "fm/liste"];
+  const vuota = d => { const j = String((d || {}).json == null ? "" : d.json).trim(); return !j || j === "[]" || j === "{}" || j === "null"; };
+  all.forEach(r => { const at = +((r.data || {}).at) || 0; if (!qui.has(r.path)) { if (!vuota(r.data)) rows.push(r); return; } if (DEL_TEL.includes(r.path) || vuota(r.data)) return; if (at > qui.get(r.path)) rows.push(r); });
   let batch = [], size = 0, done = 0;
   for (const r of rows) {
     const n = JSON.stringify(r.data).length;
@@ -4486,7 +4489,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="71a9d1bf89d7";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="00393b6f2ea1";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
