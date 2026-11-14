@@ -4248,7 +4248,8 @@ function dspDatePiu(root) {
       if (iso) { tx.classList.remove("dsp-dt-err"); if (iso !== di.value) dspDateMetti(di, iso); if (fin) tx.value = dspDateTesto(iso); }
       else if (fin) tx.classList.add("dsp-dt-err");
     };
-    tx.addEventListener("input", () => { const v = tx.value.replace(/\D/g, ""); if (v.length === 6 || v.length === 8 || /\d{1,2}\D\d{1,2}\D(\d{2}|\d{4})$/.test(tx.value)) prova(false); });
+    // mentre scrivi non si salva niente (altrimenti la pagina si ridisegna): si salva quando esci dalla casella o premi Invio
+    tx.addEventListener("input", () => tx.classList.remove("dsp-dt-err"));
     tx.addEventListener("change", () => prova(true));
     tx.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); prova(true); tx.blur(); } });
     cal.onclick = () => { try { di.showPicker(); } catch (e) { di.focus(); di.click(); } };
@@ -4673,7 +4674,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="f158675b6f4d";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="d5d2ae05431d";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
