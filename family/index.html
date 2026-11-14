@@ -864,9 +864,10 @@ async function dspVeloce() {
     if (it) it.qta++;
     else {
       const p = prodOf(cod), k = "c:" + cod;
-      it = { cod, nome: p ? p.nome : "", cat: p ? p.cat : "Dispensa", tipo: p && p.tipo || "", qta: 1, scad: p ? dspUltima(k) : "", dove: dspDovePredef(k, p ? p.cat : "Dispensa"), cerca: !p };
+      const h = p ? null : notoHF(cod), hc = h ? (g => g === "Altro" ? "Dispensa" : g)(guessCat(h.nome)) : "";
+      it = { cod, nome: p ? p.nome : h ? h.nome : "", cat: p ? p.cat : hc || "Dispensa", tipo: p && p.tipo || "", qta: 1, scad: p ? dspUltima(k) : "", dove: dspDovePredef(k, p ? p.cat : hc || "Dispensa"), cerca: !p && !h };
       DSP.veloce.push(it);
-      if (!p) dspArchivio(cod).then(r => { it.cerca = false; if (r && !it.nome) { it.nome = r.nome; it.cat = r.categoria; it.img = r.img || ""; it.dove = dspDovePredef("c:" + cod, r.categoria); } rerenderSafe(); });
+      if (!p && !h) dspArchivio(cod).then(r => { it.cerca = false; if (r && !it.nome) { it.nome = r.nome; it.cat = r.categoria; it.img = r.img || ""; it.dove = dspDovePredef("c:" + cod, r.categoria); } rerenderSafe(); });
     }
     const n = DSP.veloce.reduce((s, x) => s + x.qta, 0);
     DSP.busy = `Spesa veloce: ${n === 1 ? "1 pezzo letto" : n + " pezzi letti"}. Quando hai finito premi indietro.`; route();
@@ -2839,10 +2840,14 @@ function bindSpesa() {
 // ogni pezzo in casa è una riga con la sua scadenza; PRODOTTI ricorda il nome di ogni codice a barre già visto
 const DISPENSA = [];
 const PRODOTTI = [];
+// nomi dei codici a barre già riconosciuti dall'app HealthFit (copiati dal PC ogni volta che si apre): si usano quando un codice non è ancora in PRODOTTI
+const CODICI = [];
+const codNorm = c => String(c || "").replace(/^0+(?=\d{8})/, "");
+const notoHF = cod => { const n = codNorm(cod); return n ? CODICI.find(x => codNorm(x.cod) === n) || null : null; };
 const DSP = { mode: "add", card: null, msg: null, busy: "", cat: "tutte", q: "", cap: undefined, capP: null, kb: false, open: new Set(), tt: null };
 const DSP_BIG = new Date(9e15);
 const dspKey = x => x.cod ? "c:" + x.cod : "n:" + String(x.nome || "").trim().toLowerCase();
-const prodOf = cod => cod ? PRODOTTI.find(p => p.cod === cod) : null;
+const prodOf = cod => { if (!cod) return null; const n = codNorm(cod); return PRODOTTI.find(p => p.cod === cod) || PRODOTTI.find(p => p.cod && codNorm(p.cod) === n) || null; };
 const soloCifre = s => String(s || "").replace(/\D/g, "");
 // cifra di controllo dei codici EAN-8, EAN-13, UPC-A e ITF-14
 function eanOk(c) { if (!/^\d+$/.test(c) || ![8, 12, 13, 14].includes(c.length)) return false; const d = c.split("").map(Number), chk = d.pop(); let s = 0; d.reverse().forEach((n, i) => { s += n * (i % 2 === 0 ? 3 : 1); }); return (10 - s % 10) % 10 === chk; }
@@ -2913,6 +2918,7 @@ function dspCodice(raw, file, info) {
   const p = prodOf(cod);
   const prop = p ? dspUltima("c:" + cod) : "";
   DSP.card = { cod, nome: p ? p.nome : "", cat: p ? p.cat : "Dispensa", qta: 1, scad: prop, proposta: !!prop, nuovo: !p, dur: p && +p.durata > 0 ? +p.durata : 0 };
+  if (!p) { const h = notoHF(cod); if (h) { DSP.card.nome = h.nome; const g = guessCat(h.nome); DSP.card.cat = g === "Altro" ? "Dispensa" : g; DSP.card.daHF = true; } }
   if (info) { if (!p && info.nome) DSP.card.nome = info.nome; if (!p && info.categoria) DSP.card.cat = info.categoria; if (info.scadenza) DSP.card.scad = info.scadenza; }
   route();
   dspCercaCodice(cod, file);
@@ -2996,7 +3002,7 @@ async function dspLive() {
 async function dspArchivio(cod) {
   if (!/^\d{8,14}$/.test(cod)) return null;
   const prova = async (host, cat) => {
-    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 7000);
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 15000);
     try {
       const r = await fetch(`https://${host}/api/v2/product/${cod}.json?fields=product_name,product_name_it,generic_name_it,brands,quantity,categories_tags,image_front_small_url&lc=it`, { signal: ctl.signal });
       if (!r.ok) return null; const j = await r.json(); if (!j || j.status !== 1 || !j.product) return null;
@@ -3010,7 +3016,9 @@ async function dspArchivio(cod) {
     } catch (e) { DSP.archivioNo = true; return null; } finally { clearTimeout(t); }
   };
   DSP.archivioNo = false;
-  const r = (await prova("world.openfoodfacts.org", "")) || (await prova("world.openbeautyfacts.org", "Igiene"));
+  let r = await prova("world.openfoodfacts.org", "");
+  if (!r && DSP.archivioNo) { DSP.archivioNo = false; r = await prova("world.openfoodfacts.org", ""); }   // rete lenta: riprovo una volta
+  if (!r) r = await prova("world.openbeautyfacts.org", "Igiene");
   if (r) DSP.archivioNo = false;
   return r;
 }
@@ -3024,7 +3032,7 @@ async function dspCercaCodice(cod, file) {
     if (r.img) C.img = r.img;
     if (C.nuovo) { if (!String(C.nome || "").trim() || C.daClaude) { C.nome = r.nome; C.cat = r.categoria; C.catScelta = true; C.daClaude = false; } else if (!C.catScelta) { C.cat = r.categoria; C.catScelta = true; } C.daArchivio = true; }
     else if (r.nome.toLowerCase() !== String(C.nome || "").toLowerCase()) C.altroNome = r.nome; else C.confermato = true;
-  } else C.nonTrovato = DSP.archivioNo ? "rete" : "manca";
+  } else if (!C.daHF) C.nonTrovato = DSP.archivioNo ? "rete" : "manca";
   rerenderSafe();
 }
 // Claude guarda la foto: codice (se lo legge con certezza), nome del prodotto, reparto e scadenza se visibile
@@ -4135,7 +4143,7 @@ const LOCAL_KEY = "familymanager-dati", LOCAL_IO = "familymanager-io";
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 const ser = v => JSON.stringify(v, (k, x) => k === "timer" ? undefined : x);
 const des = str => JSON.parse(str, (k, x) => typeof x === "string" && ISO_RE.test(x) ? new Date(x) : x);
-const STORE_ARR = { rooms: ROOMS, impianti: IMPIANTI, pins: PINS, bonus: BONUS, polizze: POLIZZE, coperture: COPERTURE, previdenza: PREVIDENZA, garanzie: GARANZIE, spese: SPESE, invest: INVEST, storico: STORICO, fisse: FISSE, devices: DEVICES, album: ALBUM, membri: MEMBRI, attivita: ATTIVITA, viaggi: VIAGGI, docv: DOCV, eventi: EVENTI, liste: LISTE, salute: SALUTE, armadietto: ARMADIETTO, dispensa: DISPENSA, prodotti: PRODOTTI, dspregole: DSP_REG, dspstorico: DSP_STORICO, veicoli: VEICOLI, scadCustom: SCAD_CUSTOM, accensioni: ACCENSIONI, manut: MANUT };
+const STORE_ARR = { rooms: ROOMS, impianti: IMPIANTI, pins: PINS, bonus: BONUS, polizze: POLIZZE, coperture: COPERTURE, previdenza: PREVIDENZA, garanzie: GARANZIE, spese: SPESE, invest: INVEST, storico: STORICO, fisse: FISSE, devices: DEVICES, album: ALBUM, membri: MEMBRI, attivita: ATTIVITA, viaggi: VIAGGI, docv: DOCV, eventi: EVENTI, liste: LISTE, salute: SALUTE, armadietto: ARMADIETTO, dispensa: DISPENSA, prodotti: PRODOTTI, dspregole: DSP_REG, dspstorico: DSP_STORICO, codici: CODICI, veicoli: VEICOLI, scadCustom: SCAD_CUSTOM, accensioni: ACCENSIONI, manut: MANUT };
 const STORE_OBJ = { meta: META, mutuo: MUTUO, itin: ITIN, valigia: VALIGIA, drive: state.drive, plan: PLAN };
 const STORE_KEYS = () => Object.keys(STORE_ARR).concat(Object.keys(STORE_OBJ), ["doctree"], Object.keys(SCONTRINI).map(x => "sc_" + x));
 const storeGet = k => k.startsWith("sc_") ? { img: SCONTRINI[k.slice(3)] } : k === "doctree" ? docTree() : (STORE_ARR[k] || STORE_OBJ[k]);
@@ -4426,11 +4434,21 @@ async function supaCompletaFoto(oldDb) {
     }
   } catch (e) {}
 }
+// copia i nomi dei codici a barre che l'app HealthFit conosce già (es. sughi letti dalla foto dell'etichetta) nella riga comune «codici»
+async function supaCodiciHF() {
+  try {
+    const r = await SUPA.mcp.callTool(SUPA.server, "execute_sql", { project_id: "glwllwwcyguxtamoeuqb", query: "select k as cod, trim(regexp_replace(v->>'name', '\\s*\\((.*)\\)\\s*$', ' \\1')) as nome from public.kv, jsonb_each(value->'barcodes') as e(k, v) where key = 'foods' and coalesce(v->>'name', '') <> '' order by k;" }, { cache: false });
+    const rows = supaEstrai(r, 0); if (!Array.isArray(rows) || !rows.length) return;
+    const nuovi = rows.filter(x => /^\d{6,14}$/.test(x.cod) && x.nome).map(x => ({ cod: x.cod, nome: capit(String(x.nome).replace(/\s+/g, " ").slice(0, 80)) }));
+    if (!nuovi.length || JSON.stringify(nuovi) === JSON.stringify(CODICI)) return;
+    CODICI.splice(0, CODICI.length, ...nuovi); saveSoon();
+  } catch (e) {}
+}
 async function supaPrepara(oldDb) {
   let gia = false; try { gia = localStorage.getItem("fm-supa-unito") === "1"; } catch (e) {}
   if (gia) {
     let mcp = null; try { mcp = await window.claude.use("mcp"); } catch (e) {}
-    if (mcp) { SUPA.mcp = mcp; setTimeout(() => supaCompletaFoto(oldDb), 15000); return supaDb(); }
+    if (mcp) { SUPA.mcp = mcp; setTimeout(() => supaCompletaFoto(oldDb), 15000); setTimeout(supaCodiciHF, 6000); return supaDb(); }
   }
   // vecchio archivio già spostato? allora qui si guarda soltanto
   try { const s = await oldDb.doc("sistema/migrazione").get(); if (s.exists) PERS.oldMoved = true; } catch (e) {}
@@ -4439,7 +4457,7 @@ async function supaPrepara(oldDb) {
   SUPA.mcp = mcp;
   try {
     const r = await supaSql("select data from public.docs where path = 'sys/migrazione';");
-    if (r && r.length) { try { localStorage.setItem("fm-supa-unito", "1"); } catch (e) {} setTimeout(() => supaCompletaFoto(oldDb), 8000); return supaDb(); }
+    if (r && r.length) { try { localStorage.setItem("fm-supa-unito", "1"); } catch (e) {} setTimeout(() => supaCompletaFoto(oldDb), 8000); setTimeout(supaCodiciHF, 6000); return supaDb(); }
     PERS.canCopy = true; return null;
   } catch (e) { SUPA.err = (e && e.code) || "errore"; return null; }
 }
@@ -4692,7 +4710,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="1dc0f5b38d45";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="11c3e70109fa";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
