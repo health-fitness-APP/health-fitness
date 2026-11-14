@@ -2438,7 +2438,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.00 (porzioni: si apre sull'unità che dà un numero intero, es. 3 fette)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.01 (la tua porzione dei cibi di casa decide le dosi della dieta: fette intere tue)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3753,9 +3753,9 @@ function qtyText(it){ if(it.manual) return `${r(it.kcal)} kcal, ${fmt(it.grams)}
 /* ----- quantità di un alimento del pasto: in porzioni (porzione, fetta, vasetto…) oppure in grammi ----- */
 let qtCtx=null;
 function qtyUnits(it){ const u=[], R=portionOf(it), my=myPortion(it.name);
-  if(my) u.push({one:my.unit,many:unitPl(my.unit),g:my.g,mine:true});
+  if(my){ const gen=/^porzion/i.test(my.unit||"")&&R&&R[4]; u.push({one:gen? R[4][0] : my.unit,many:gen? R[4][1] : unitPl(my.unit),g:my.g,mine:true}); }
   if(+it.portion>0&&!u.some(x=>Math.abs(x.g-it.portion)<0.5)) u.push({one:it.unit||"porzione",many:unitPl(it.unit||"porzione"),g:+it.portion});
-  if(R&&R[4]&&!u.some(x=>Math.abs(x.g-R[3])<0.5)) u.push({one:R[4][0],many:R[4][1],g:R[3]});
+  if(R&&R[4]&&!R[5]&&!u.some(x=>Math.abs(x.g-R[3])<0.5)) u.push({one:R[4][0],many:R[4][1],g:R[3]});
   if(!u.length) u.push({one:"porzione",many:"porzioni",g:Math.max(1,Math.round(+it.grams||100)),cur:true});   // nessuna dose nota: 1 porzione = quanto avevi messo
   return u; }
 /* v4.00: apre il foglio sull'unità che dà un numero intero (75 g di pancarré = 3 fette, non 4,17 porzioni da 18 g); poi mezze unità; altrimenti la prima */
@@ -4616,8 +4616,17 @@ const PORTIONS=[
   [/insalat|rucola|lattuga|spinaci|valerian|songino/,50,300,10],
   [/verdur|zucchin|pomodor|carot|broccol|cavol|finocch|peperon|melanzan|fagiolin|asparag|bietol|cetriol|funghi|minestrone|zuppa|passato/,80,500,10],
 ];
-function portionOf(f){ const n=fnorm(f&&f.name); if(!n||/ con |poke|bowl|insalaton|pizza|lasagn|piatto|menu|tramezz|sandwich|wrap|sushi|kebab|farcit/.test(n)) return null;   // piatti composti: solo arrotondamento
+function portionOf0(f){ const n=fnorm(f&&f.name); if(!n||/ con |poke|bowl|insalaton|pizza|lasagn|piatto|menu|tramezz|sandwich|wrap|sushi|kebab|farcit/.test(n)) return null;   // piatti composti: solo arrotondamento
   for(const R of PORTIONS) if(R[0].test(n)) return R; return null; }
+/* v4.01: «la mia porzione» dei cibi di casa vince sulla tabella (pancarré di Daniele: fetta da 18 g, non 25): le dosi diventano fette intere sue */
+let myPCache={t:0,m:new Map()};
+function portionOf(f){ const R=portionOf0(f), nm=f&&f.name; if(!nm) return R;
+  if(Date.now()-myPCache.t>3000) myPCache={t:Date.now(),m:new Map()};
+  let my=myPCache.m.get(nm); if(my===undefined){ try{ my=myPortion(nm)||null; }catch{ my=null; } myPCache.m.set(nm,my); }
+  if(!my||!(my.g>=3)) return R;
+  const generic=/^porzion/i.test(my.unit||""), u= generic&&R&&R[4]? R[4] : [my.unit,unitPl(my.unit)], st=my.g;
+  const lo= R? Math.max(st,Math.round(R[1]/st)*st) : st, hi= R? Math.max(lo,Math.round(R[2]/st)*st) : st*12;
+  return [R? R[0] : /.^/,lo,hi,st,u,true]; }
 // porta i grammi a una dose che si può davvero pesare o contare; dir: 0 al più vicino, 1 per eccesso
 function snapG(f,g,dir){
   const R=portionOf(f);
@@ -4682,10 +4691,10 @@ function balanceSpread(m){
 const fixMeal=m=>fixCereal(balanceSpread(withSupport(m&&Array.isArray(m.foods)? {...m,foods:m.foods.map(f=>snapFood(f,0))} : m)));
 /* piani già salvati: aggiungo il supporto e ricalibro le porzioni perché ogni giorno torni all'obiettivo */
 function fixSpreadPlan(plan){
-  if(!plan||plan.fixV>=5) return plan;
+  if(!plan||plan.fixV>=6) return plan;
   const fixD=d=>{ const {syncedFor,...rest}=d; return {...rest,meals:(d.meals||[]).map(fixMeal)}; };   // il giorno di oggi si riallinea da solo all'obiettivo di Cibo
-  const out={...plan,spreadOk:true,fixV:5};
-  if(Array.isArray(plan.days)&&plan.days.length) return {...calibratePlan({...out,days:plan.days.map(fixD)}),fixV:5};
+  const out={...plan,spreadOk:true,fixV:6};
+  if(Array.isArray(plan.days)&&plan.days.length) return {...calibratePlan({...out,days:plan.days.map(fixD)}),fixV:6};
   if(Array.isArray(plan.meals)) out.meals=plan.meals.map(m=>({...fixMeal(m),foods:(fixMeal(m).foods||[]).map(f=>snapFood(f,0))}));
   return out;
 }
@@ -4750,7 +4759,7 @@ const uncut=m=> m&&m.cut&&m.cut.length? (()=>{ const {cut,...rest}=m; return {..
 function calibratePlan(plan){
   const wt=weekTargets(); if(!plan||!wt) return plan;
   const fix=d=>{ const tt=wt.find(x=>x.wd===d.weekday); return tt? {...d,meals:calibrateMeals(d.meals,{kcal:tt.kcal,p:tt.p})} : d; };
-  if(Array.isArray(plan.days)&&plan.days.length) return {...plan,days:plan.days.map(fix),calibrated:true,spreadOk:true,fixV:5};
+  if(Array.isArray(plan.days)&&plan.days.length) return {...plan,days:plan.days.map(fix),calibrated:true,spreadOk:true,fixV:6};
   return plan;
 }
 function planDays(plan){
@@ -4781,7 +4790,7 @@ function renderDietAI(){
   $("makeDiet").disabled = !tg || !sample;
   if(document.activeElement!==$("dietPrefs") && !$("dietPrefs").value) $("dietPrefs").value = (state.diet&&state.diet.prefs) || (state.profile&&state.profile.foodPrefs) || "";
   if(state.diet&&state.diet.plan&&Array.isArray(state.diet.plan.days)&&state.diet.plan.days.length&&!state.diet.plan.calibrated){ state.diet.plan=calibratePlan(state.diet.plan); save("diet",state.diet); }
-  if(state.diet&&state.diet.plan&&!(state.diet.plan.fixV>=5)){ state.diet.plan=fixSpreadPlan(state.diet.plan); save("diet",state.diet); }
+  if(state.diet&&state.diet.plan&&!(state.diet.plan.fixV>=6)){ state.diet.plan=fixSpreadPlan(state.diet.plan); save("diet",state.diet); }
   const plan=state.diet&&state.diet.plan, days=planDays(plan);
   if($("dietAuto")){ $("dietAuto").value=dietAutoMode(); $("dietAuto").onchange=e=>{ try{ localStorage.setItem("hf:dietAuto",e.target.value); }catch{} toast(e.target.value==="auto"?"La dieta si adatterà da sola":e.target.value==="ask"?"Ti chiederò prima di adattare la dieta":"Adattamento automatico disattivato"); }; }
   $("dietPlanCard").hidden=!days.length; $("dietChatCard").hidden=!days.length||!sample; $("dietWeekCard").hidden=!days.length;
