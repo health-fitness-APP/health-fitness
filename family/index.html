@@ -4168,13 +4168,29 @@ async function loadProfile() {
 const SUPA = { server: "Supabase", project: "ekqvpwxwvmgrkdrsaaer", mcp: null, err: "" };
 function supaTag(s) { let t; do { t = "$fm" + Math.random().toString(36).slice(2, 8) + "$"; } while (s.includes(t)); return t; }
 function supaLit(s) { const t = supaTag(s); return t + s + t; }
+// legge la risposta di execute_sql in qualunque forma arrivi (oggetto, testo, testo JSON, blocchi content)
+function supaEstrai(x, prof) {
+  if (prof > 6 || x == null) return undefined;
+  if (Array.isArray(x)) { if (!x.length || (typeof x[0] === "object" && x[0] && !("type" in x[0] && "text" in x[0]))) return x; for (const y of x) { const v = supaEstrai(y, prof + 1); if (v !== undefined) return v; } return undefined; }
+  if (typeof x === "string") {
+    try { const j = JSON.parse(x); const v = supaEstrai(j, prof + 1); if (v !== undefined) return v; } catch (e) {}
+    const m = /<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data-/.exec(x);
+    if (m) { try { const j = JSON.parse(m[1]); if (Array.isArray(j)) return j; } catch (e) {} }
+    return undefined;
+  }
+  if (typeof x === "object") {
+    for (const k of ["payload", "structuredContent", "result", "content", "text", "data", "rows"]) if (k in x) { const v = supaEstrai(x[k], prof + 1); if (v !== undefined) return v; }
+  }
+  return undefined;
+}
 async function supaSql(query) {
   const r = await SUPA.mcp.callTool(SUPA.server, "execute_sql", { project_id: SUPA.project, query }, { cache: false });
-  let p = r.payload; if (p && typeof p === "object" && typeof p.result === "string") p = p.result;
-  if (typeof p !== "string") { const b = (r.content || []).find(c => c.type === "text"); p = b ? b.text : ""; try { const j = JSON.parse(p); if (j && typeof j.result === "string") p = j.result; } catch (e) {} }
-  const m = /<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data-/.exec(p);
-  const body = m ? m[1] : p;
-  try { return JSON.parse(body); } catch (e) { throw Object.assign(new Error("risposta non valida dall'archivio"), { code: "bad_answer" }); }
+  const v = supaEstrai(r, 0);
+  if (v !== undefined) return v;
+  let raw = ""; try { raw = JSON.stringify(r); } catch (e) { raw = String(r); }
+  SUPA.raw = raw.slice(0, 3000); console.warn("Risposta di Supabase non letta:", SUPA.raw);
+  try { if (PERS.oldDb) PERS.oldDb.doc("sistema/diagnosi").set({ at: Date.now(), query: query.slice(0, 200), raw: SUPA.raw }); } catch (e) {}
+  throw Object.assign(new Error("risposta non valida dall'archivio"), { code: "bad_answer" });
 }
 async function supaUpsert(rows) {   // rows: [{path, data}]
   if (!rows.length) return;
@@ -4489,7 +4505,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="00393b6f2ea1";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="e61dccf8d3bb";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
