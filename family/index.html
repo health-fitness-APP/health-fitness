@@ -4196,6 +4196,86 @@ async function loadProfile() {
   else PERS.needWho = MEMBRI.length > 1;
   rerenderSafe();
 }
+/* Dispensa: la scadenza si può scrivere a mano (31/12/26, 311226, 12/26…) oppure scegliere dal calendario 📅,
+   e sotto compaiono le date usate di recente: un tocco e sono messe (Daniele 14/11/2026). */
+const DSP_DATE_LS = "fm-dsp-date-recenti";
+function dspDateIso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function dspDateTesto(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : ""; }
+function dspDateLeggi(t) {
+  t = String(t || "").trim(); if (!t) return "";
+  let g, m, a, r;
+  if ((r = /^(\d{1,2})\D+(\d{1,2})\D+(\d{2}|\d{4})$/.exec(t))) [, g, m, a] = r;
+  else if ((r = /^(\d{2})(\d{2})(\d{2}|\d{4})$/.exec(t))) [, g, m, a] = r;
+  else if ((r = /^(\d{1,2})\D+(\d{2}|\d{4})$/.exec(t)) || (r = /^(\d{2})(\d{2})$/.exec(t))) { [, m, a] = r; g = 0; }   // solo mese e anno: ultimo giorno del mese
+  else return null;
+  a = +a; if (a < 100) a += 2000; m = +m; g = +g;
+  if (m < 1 || m > 12 || a < 2000 || a > 2100) return null;
+  if (!g) g = new Date(a, m, 0).getDate();
+  const d = new Date(a, m - 1, g); if (d.getMonth() !== m - 1) return null;
+  return dspDateIso(d);
+}
+function dspDateRecenti() {
+  let mie = []; try { mie = JSON.parse(localStorage.getItem(DSP_DATE_LS) || "[]"); } catch (e) {}
+  const oggi = dspDateIso(new Date()), viste = [];
+  const add = x => { if (x && x >= oggi && !viste.includes(x)) viste.push(x); };
+  mie.forEach(add);
+  (typeof DISPENSA !== "undefined" ? DISPENSA : []).slice().sort((a, b) => new Date(b.dal || 0) - new Date(a.dal || 0)).forEach(u => { if (u.scad) add(typeof u.scad === "string" ? u.scad.slice(0, 10) : dspDateIso(new Date(u.scad))); });
+  return viste.slice(0, 6);
+}
+function dspDateRicorda(iso) {
+  if (!iso) return; let L = []; try { L = JSON.parse(localStorage.getItem(DSP_DATE_LS) || "[]"); } catch (e) {}
+  L = [iso].concat(L.filter(x => x !== iso)).slice(0, 12); try { localStorage.setItem(DSP_DATE_LS, JSON.stringify(L)); } catch (e) {}
+}
+function dspDateMetti(di, iso) {
+  di.value = iso || ""; di.dispatchEvent(new Event("input", { bubbles: true })); di.dispatchEvent(new Event("change", { bubbles: true }));
+  if (iso) dspDateRicorda(iso);
+}
+function dspDatePiu(root) {
+  if (!/^#\/dispensa/.test(location.hash)) return;
+  root.querySelectorAll('input[type="date"]:not([data-dspdt])').forEach(di => {
+    di.setAttribute("data-dspdt", "1");
+    const conChips = di.id === "dspScad" || di.hasAttribute("data-dvs");
+    const box = document.createElement("span"); box.className = "dsp-dt";
+    const tx = document.createElement("input"); tx.type = "text"; tx.inputMode = "numeric"; tx.autocomplete = "off"; tx.placeholder = "gg/mm/aa";
+    tx.value = dspDateTesto(di.value); tx.setAttribute("aria-label", (di.getAttribute("aria-label") || "Scadenza") + ", scritta a mano");
+    const cal = document.createElement("button"); cal.type = "button"; cal.className = "iconbtn"; cal.textContent = "📅"; cal.setAttribute("aria-label", "Scegli dal calendario");
+    di.parentNode.insertBefore(box, di); box.appendChild(tx); box.appendChild(cal); box.appendChild(di);
+    di.classList.add("dsp-dt-nat");
+    if (di.id) { const lab = document.querySelector(`label[for="${di.id}"]`); if (lab) { tx.id = di.id + "Txt"; lab.htmlFor = tx.id; } }
+    const prova = fin => {
+      const v = tx.value.trim(); if (!v) { if (fin) dspDateMetti(di, ""); tx.classList.remove("dsp-dt-err"); return; }
+      const iso = dspDateLeggi(v);
+      if (iso) { tx.classList.remove("dsp-dt-err"); if (iso !== di.value) dspDateMetti(di, iso); if (fin) tx.value = dspDateTesto(iso); }
+      else if (fin) tx.classList.add("dsp-dt-err");
+    };
+    tx.addEventListener("input", () => { const v = tx.value.replace(/\D/g, ""); if (v.length === 6 || v.length === 8 || /\d{1,2}\D\d{1,2}\D(\d{2}|\d{4})$/.test(tx.value)) prova(false); });
+    tx.addEventListener("change", () => prova(true));
+    tx.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); prova(true); tx.blur(); } });
+    cal.onclick = () => { try { di.showPicker(); } catch (e) { di.focus(); di.click(); } };
+    di.addEventListener("change", () => { tx.value = dspDateTesto(di.value); if (di.value) dspDateRicorda(di.value); });
+    if (conChips) {
+      const R = dspDateRecenti().filter(x => x !== di.value);
+      if (R.length) {
+        const ch = document.createElement("div"); ch.className = "dsp-dt-chips";
+        ch.innerHTML = `<span class="small muted">Usate di recente:</span>` + R.map(x => `<button type="button" class="chip" data-dtr="${x}">${dspDateTesto(x)}</button>`).join("");
+        ch.querySelectorAll("[data-dtr]").forEach(b => b.onclick = () => { dspDateMetti(di, b.dataset.dtr); tx.value = dspDateTesto(b.dataset.dtr); });
+        (box.closest("div") || box.parentNode).appendChild(ch);
+      }
+    }
+  });
+}
+(function () {
+  const st = document.createElement("style");
+  st.textContent = `.dsp-dt{display:inline-flex;align-items:center;gap:4px;position:relative;max-width:100%}
+.dsp-dt input[type=text]{width:110px;min-width:0}
+.dsp-dt .dsp-dt-nat{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;padding:0;border:0}
+.dsp-dt-err{border-color:var(--bad)!important;outline:1px solid var(--bad)}
+.dsp-dt-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.dsp-dt-chips .chip{margin:0;padding:4px 10px;font-size:.85rem}`;
+  (document.head || document.documentElement).appendChild(st);
+  const go = () => { const v = document.getElementById("view"); if (!v) return; dspDatePiu(v); new MutationObserver(() => dspDatePiu(v)).observe(v, { childList: true, subtree: true }); };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();
 /* FamilyManager in claude.ai: archivio comune su Supabase tramite il connettore «Supabase».
    Imita db di claude.ai (doc/collection/onSnapshot) leggendo e scrivendo con execute_sql.
    Gli aggiornamenti fatti dal telefono arrivano controllando l'archivio ogni 20 secondi. */
@@ -4581,7 +4661,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="f2d2826fa7ae";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="4b513aa2f5c9";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
