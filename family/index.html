@@ -4174,8 +4174,9 @@ function supaEstrai(x, prof) {
   if (Array.isArray(x)) { if (!x.length || (typeof x[0] === "object" && x[0] && !("type" in x[0] && "text" in x[0]))) return x; for (const y of x) { const v = supaEstrai(y, prof + 1); if (v !== undefined) return v; } return undefined; }
   if (typeof x === "string") {
     try { const j = JSON.parse(x); const v = supaEstrai(j, prof + 1); if (v !== undefined) return v; } catch (e) {}
-    const m = /<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data-/.exec(x);
-    if (m) { try { const j = JSON.parse(m[1]); if (Array.isArray(j)) return j; } catch (e) {} }
+    // il testo nomina il segnaposto anche prima dei dati: si prende l'ultimo segnaposto aperto prima di quello di chiusura
+    const fine = x.indexOf("</untrusted-data-");
+    if (fine > 0) { const ini = x.lastIndexOf("<untrusted-data-", fine); const gt = ini >= 0 ? x.indexOf(">", ini) : -1; if (gt > 0 && gt < fine) { try { const j = JSON.parse(x.slice(gt + 1, fine).trim()); if (Array.isArray(j)) return j; } catch (e) {} } }
     return undefined;
   }
   if (typeof x === "object") {
@@ -4505,7 +4506,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="e61dccf8d3bb";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="d8f0c40d7f4c";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
