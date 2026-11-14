@@ -4232,9 +4232,16 @@ async function supaUpsert(rows) {   // rows: [{path, data}]
   const vals = rows.map(r => `(${supaLit(r.path)}, ${supaLit(JSON.stringify(r.data))}::jsonb, now())`).join(",\n");
   await supaSql(`insert into public.docs(path, data, updated_at) values ${vals} on conflict (path) do update set data = excluded.data, updated_at = now(); select 1 as ok;`);
 }
+const SUPA_LS = "fm-supa-cache-v1";
 function supaDb() {
   const cache = new Map(), sums = new Map(), subs = new Set();
-  let loaded = null, timer = null;
+  let loaded = null, timer = null, salvaT = null;
+  // copia dei dati in questo browser: la pagina si apre subito, poi si aggiorna da Supabase
+  try { const c = JSON.parse(localStorage.getItem(SUPA_LS) || "null"); if (c && c.rows) Object.entries(c.rows).forEach(([p, [v, h]]) => { cache.set(p, v); sums.set(p, h); }); } catch (e) {}
+  const salva = () => { clearTimeout(salvaT); salvaT = setTimeout(() => {
+    const tutto = {}, soloDati = {}; cache.forEach((v, p) => { tutto[p] = [v, sums.get(p) || ""]; if (!p.startsWith("fm/sc_")) soloDati[p] = tutto[p]; });
+    try { localStorage.setItem(SUPA_LS, JSON.stringify({ rows: tutto })); } catch (e) { try { localStorage.setItem(SUPA_LS, JSON.stringify({ rows: soloDati })); } catch (x) {} }
+  }, 1000); };
   const colOf = p => p.slice(0, p.lastIndexOf("/")), idOf = p => p.slice(p.lastIndexOf("/") + 1);
   const snapFor = col => { const docs = []; cache.forEach((v, p) => { if (colOf(p) === col) docs.push({ id: idOf(p), exists: true, data: () => v }); }); return { docs, size: docs.length, empty: !docs.length }; };
   const emit = col => subs.forEach(s => { if (s.col === col) try { s.cb(snapFor(col)); } catch (e) { console.error(e); } });
@@ -4245,31 +4252,42 @@ function supaDb() {
     const cols = new Set(); rows.forEach(r => { cache.set(r.path, r.data); sums.set(r.path, r.h); cols.add(colOf(r.path)); }); return cols;
   }
   async function sync() {
-    const list = await supaSql("select path, md5(data::text) as h from public.docs;");
+    let list;
+    if (!cache.size) {   // prima apertura su questo PC: dati e impronte delle foto in una sola chiamata
+      list = await supaSql("select path, md5(data::text) as h, case when path like 'fm/sc_%' then null else data end as data from public.docs;");
+      list.forEach(r => { if (r.data != null) { cache.set(r.path, r.data); sums.set(r.path, r.h); } });
+    } else list = await supaSql("select path, md5(data::text) as h from public.docs;");
     const want = [], seen = new Set(), cols = new Set();
     list.forEach(r => { seen.add(r.path); if (sums.get(r.path) !== r.h) want.push(r.path); });
     cache.forEach((v, p) => { if (!seen.has(p)) { cache.delete(p); sums.delete(p); cols.add(colOf(p)); } });
     const dati = want.filter(p => !FOTO(p)), fotoW = want.filter(p => FOTO(p) && !inArrivo.has(p));
     fotoW.forEach(p => inArrivo.add(p));
     if (dati.length) (await prendi(dati)).forEach(c => cols.add(c));
-    cols.forEach(emit);
-    if (fotoW.length) setTimeout(async () => { for (let i = 0; i < fotoW.length; i += 2) { const part = fotoW.slice(i, i + 2); try { (await prendi(part)).forEach(emit); } catch (e) {} part.forEach(p => inArrivo.delete(p)); } }, 0);
+    if (!cols.size && list.some(r => r.data != null)) cols.add("fm");
+    cols.forEach(emit); if (cols.size || want.length) salva();
+    if (fotoW.length) setTimeout(async () => { for (let i = 0; i < fotoW.length; i += 2) { const part = fotoW.slice(i, i + 2); try { (await prendi(part)).forEach(emit); salva(); } catch (e) {} part.forEach(p => inArrivo.delete(p)); } }, 0);
   }
   function load() {
-    if (!loaded) loaded = sync().then(() => {
+    if (!loaded && cache.size) { const bg = sync().catch(() => {}); loaded = Promise.resolve(); bg.then(() => avvia()); return loaded; }
+    if (!loaded) loaded = sync().then(() => avvia());
+    return loaded;
+  }
+  let avviato = false;
+  function avvia() {
+    if (avviato) return; avviato = true;
+    {
       clearInterval(timer);
       timer = setInterval(() => { if (!document.hidden) sync().catch(() => {}); }, 20000);
       document.addEventListener("visibilitychange", () => { if (!document.hidden) sync().catch(() => {}); });
-    });
-    return loaded;
+    }
   }
   function doc(path) {
     return {
       id: idOf(path),
       async get() { await load(); const v = cache.get(path); return { id: idOf(path), exists: v !== undefined, data: () => v }; },
-      async set(data) { await supaUpsert([{ path, data }]); cache.set(path, data); sums.delete(path); emit(colOf(path)); },
+      async set(data) { await supaUpsert([{ path, data }]); cache.set(path, data); sums.delete(path); emit(colOf(path)); salva(); },
       async update(patch) { await load(); return this.set(Object.assign({}, cache.get(path) || {}, patch)); },
-      async delete() { await supaSql(`delete from public.docs where path = ${supaLit(path)}; select 1 as ok;`); cache.delete(path); sums.delete(path); emit(colOf(path)); }
+      async delete() { await supaSql(`delete from public.docs where path = ${supaLit(path)}; select 1 as ok;`); cache.delete(path); sums.delete(path); emit(colOf(path)); salva(); }
     };
   }
   return {
@@ -4318,6 +4336,11 @@ async function supaCompletaFoto(oldDb) {
   } catch (e) {}
 }
 async function supaPrepara(oldDb) {
+  let gia = false; try { gia = localStorage.getItem("fm-supa-unito") === "1"; } catch (e) {}
+  if (gia) {
+    let mcp = null; try { mcp = await window.claude.use("mcp"); } catch (e) {}
+    if (mcp) { SUPA.mcp = mcp; setTimeout(() => supaCompletaFoto(oldDb), 15000); return supaDb(); }
+  }
   // vecchio archivio già spostato? allora qui si guarda soltanto
   try { const s = await oldDb.doc("sistema/migrazione").get(); if (s.exists) PERS.oldMoved = true; } catch (e) {}
   let mcp = null; try { mcp = await window.claude.use("mcp"); } catch (e) {}
@@ -4325,7 +4348,7 @@ async function supaPrepara(oldDb) {
   SUPA.mcp = mcp;
   try {
     const r = await supaSql("select data from public.docs where path = 'sys/migrazione';");
-    if (r && r.length) { setTimeout(() => supaCompletaFoto(oldDb), 8000); return supaDb(); }
+    if (r && r.length) { try { localStorage.setItem("fm-supa-unito", "1"); } catch (e) {} setTimeout(() => supaCompletaFoto(oldDb), 8000); return supaDb(); }
     PERS.canCopy = true; return null;
   } catch (e) { SUPA.err = (e && e.code) || "errore"; return null; }
 }
@@ -4558,7 +4581,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="dc922d214e10";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="f2d2826fa7ae";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
