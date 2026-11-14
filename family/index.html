@@ -419,13 +419,17 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
 
   async function checkFamily() {
     const { data, error } = await sb.from("famiglia").select("email").limit(1);
-    return !error && data && data.length > 0;
+    if (error) return null;           // rete assente: non si decide
+    return !!(data && data.length > 0);
   }
   async function onSession(s) {
     if (!s) { session = null; showLogin(); return; }
     if (session && session.user.id === s.user.id) { session = s; return; }
     session = s;
-    if (!(await checkFamily())) { showLogin("Questa email non è tra quelle della famiglia. Chiedi a Daniele di aggiungerla."); await sb.auth.signOut(); return; }
+    let ok = false; try { ok = localStorage.getItem("fm-fam-ok") === s.user.id; } catch (e) {}
+    if (ok && !IMPORTA) { hideLogin(); readyRes(true); checkFamily().then(v => { if (v === false) { try { localStorage.removeItem("fm-fam-ok"); } catch (e) {} sb.auth.signOut(); } }).catch(() => {}); return; }
+    if ((await checkFamily()) !== true) { showLogin("Questa email non è tra quelle della famiglia. Chiedi a Daniele di aggiungerla."); await sb.auth.signOut(); return; }
+    try { localStorage.setItem("fm-fam-ok", s.user.id); } catch (e) {}
     if (IMPORTA) { try { await importa(IMPORTA); } catch (e) { alert("Copia dei dati non riuscita: " + (e && e.message || e)); } IMPORTA = null; }
     hideLogin(); readyRes(true);
   }
@@ -459,33 +463,63 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
     return { docs, size: docs.length, empty: !docs.length };
   }
   function emit(col) { subs.forEach(s => { if (s.col === col) try { s.cb(snapFor(col)); } catch (e) { console.error(e); } }); }
+  /* Avvio veloce: i dati (senza foto) restano salvati sul telefono e compaiono subito;
+     poi si scaricano solo le voci cambiate. Le foto arrivano dopo, in sottofondo. */
+  const LS = "fm-cache-v1", FOTO = p => p.startsWith("fm/sc_");
+  const ts = new Map();             // path -> updated_at conosciuto
+  let salvaT = null;
+  function salvaCache() {
+    clearTimeout(salvaT);
+    salvaT = setTimeout(() => {
+      const rows = {}; cache.forEach((v, p) => { if (!FOTO(p)) rows[p] = [v, ts.get(p) || ""]; });
+      try { localStorage.setItem(LS, JSON.stringify({ u: session && session.user.id, rows })); } catch (e) {}
+    }, 800);
+  }
+  function leggiCache() {
+    try { const c = JSON.parse(localStorage.getItem(LS) || "null"); if (!c || !c.rows || !session || c.u !== session.user.id) return false;
+      Object.entries(c.rows).forEach(([p, [v, t]]) => { cache.set(p, v); ts.set(p, t); }); return cache.size > 0; } catch (e) { return false; }
+  }
+  async function prendi(paths) {
+    const cols = new Set();
+    for (let i = 0; i < paths.length; i += 20) {
+      const { data, error } = await sb.from("docs").select("path,data,updated_at").in("path", paths.slice(i, i + 20));
+      if (error) throw error;
+      data.forEach(r => { cache.set(r.path, r.data); ts.set(r.path, r.updated_at || ""); cols.add(colOf(r.path)); });
+    }
+    return cols;
+  }
+  let aggInCorso = null;
+  function aggiorna() {            // scarica solo ciò che è cambiato: prima i dati, poi le foto
+    if (aggInCorso) return aggInCorso;
+    aggInCorso = (async () => {
+      const elenco = []; let from = 0;
+      for (;;) { const { data, error } = await sb.from("docs").select("path,updated_at").range(from, from + 999); if (error) throw error; elenco.push(...data); if (data.length < 1000) break; from += 1000; }
+      const qui = new Set(elenco.map(r => r.path)), cols = new Set();
+      cache.forEach((v, p) => { if (!qui.has(p)) { cache.delete(p); ts.delete(p); cols.add(colOf(p)); } });
+      const cambiati = elenco.filter(r => !cache.has(r.path) || ts.get(r.path) !== (r.updated_at || "")).map(r => r.path);
+      const dati = cambiati.filter(p => !FOTO(p)), foto = cambiati.filter(FOTO);
+      if (dati.length) (await prendi(dati)).forEach(c => cols.add(c));
+      cols.forEach(emit); if (cols.size) salvaCache();
+      for (let i = 0; i < foto.length; i += 3) { try { (await prendi(foto.slice(i, i + 3))).forEach(emit); } catch (e) {} }
+    })().finally(() => { aggInCorso = null; });
+    return aggInCorso;
+  }
   async function loadAll() {
     if (loaded) return; loaded = true;
-    let from = 0;
-    for (;;) {
-      const { data, error } = await sb.from("docs").select("path,data").range(from, from + 499);
-      if (error) { loaded = false; throw error; }
-      data.forEach(r => cache.set(r.path, r.data));
-      if (data.length < 500) break; from += 500;
-    }
+    try {
+      if (leggiCache()) aggiorna().catch(() => {});          // subito dalla memoria del telefono
+      else {
+        const p = aggiorna();                                 // prima volta: si aspetta solo la parte dati
+        await new Promise((res, rej) => { const t = setInterval(() => { if ([...cache.keys()].some(k => !FOTO(k)) ) { clearInterval(t); res(); } }, 50); p.then(() => { clearInterval(t); res(); }, e => { clearInterval(t); rej(e); }); });
+      }
+    } catch (e) { loaded = false; throw e; }
     channel = sb.channel("docs-live").on("postgres_changes", { event: "*", schema: "public", table: "docs" }, pl => {
       const p = (pl.new && pl.new.path) || (pl.old && pl.old.path); if (!p) return;
-      if (pl.eventType === "DELETE") cache.delete(p); else cache.set(p, pl.new.data);
-      emit(colOf(p));
-    }).subscribe(st => { if (st === "SUBSCRIBED" && loaded) { /* ricollegato: ricarica per non perdere modifiche */ refresh(); } });
+      if (pl.eventType === "DELETE") { cache.delete(p); ts.delete(p); } else { cache.set(p, pl.new.data); ts.set(p, pl.new.updated_at || ""); }
+      emit(colOf(p)); salvaCache();
+    }).subscribe(st => { if (st === "SUBSCRIBED" && loaded) refresh(); });
   }
-  let refreshing = false;
-  async function refresh() {
-    if (refreshing) return; refreshing = true;
-    try {
-      const fresh = new Map(); let from = 0;
-      for (;;) { const { data, error } = await sb.from("docs").select("path,data").range(from, from + 499); if (error) return; data.forEach(r => fresh.set(r.path, r.data)); if (data.length < 500) break; from += 500; }
-      const cols = new Set();
-      cache.forEach((v, p) => { if (!fresh.has(p)) { cache.delete(p); cols.add(colOf(p)); } });
-      fresh.forEach((v, p) => { if (JSON.stringify(cache.get(p)) !== JSON.stringify(v)) { cache.set(p, v); cols.add(colOf(p)); } });
-      cols.forEach(emit);
-    } finally { refreshing = false; }
-  }
+  function refresh() { return aggiorna().catch(() => {}); }
   document.addEventListener("visibilitychange", () => { if (!document.hidden && loaded) refresh(); });
 
   function doc(path) {
@@ -495,13 +529,13 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
       async set(data) {
         const { error } = await sb.from("docs").upsert({ path, data, updated_by: session.user.id, updated_at: new Date().toISOString() });
         if (error) throw Object.assign(new Error(error.message), { code: "write_failed" });
-        cache.set(path, data); emit(colOf(path));
+        cache.set(path, data); ts.set(path, ""); emit(colOf(path)); salvaCache();
       },
       async update(patch) { await loadAll(); return this.set(Object.assign({}, cache.get(path) || {}, patch)); },
       async delete() {
         const { error } = await sb.from("docs").delete().eq("path", path);
         if (error) throw Object.assign(new Error(error.message), { code: "write_failed" });
-        cache.delete(path); emit(colOf(path));
+        cache.delete(path); ts.delete(path); emit(colOf(path)); salvaCache();
       }
     };
   }
@@ -4204,17 +4238,22 @@ function supaDb() {
   const colOf = p => p.slice(0, p.lastIndexOf("/")), idOf = p => p.slice(p.lastIndexOf("/") + 1);
   const snapFor = col => { const docs = []; cache.forEach((v, p) => { if (colOf(p) === col) docs.push({ id: idOf(p), exists: true, data: () => v }); }); return { docs, size: docs.length, empty: !docs.length }; };
   const emit = col => subs.forEach(s => { if (s.col === col) try { s.cb(snapFor(col)); } catch (e) { console.error(e); } });
+  // prima i dati (piccoli, una sola chiamata), poi le foto in sottofondo, poche alla volta: così la pagina si apre subito
+  const FOTO = p => p.startsWith("fm/sc_"), inArrivo = new Set();
+  async function prendi(paths) {
+    const rows = await supaSql(`select path, data, md5(data::text) as h from public.docs where path in (${paths.map(supaLit).join(",")});`);
+    const cols = new Set(); rows.forEach(r => { cache.set(r.path, r.data); sums.set(r.path, r.h); cols.add(colOf(r.path)); }); return cols;
+  }
   async function sync() {
     const list = await supaSql("select path, md5(data::text) as h from public.docs;");
     const want = [], seen = new Set(), cols = new Set();
     list.forEach(r => { seen.add(r.path); if (sums.get(r.path) !== r.h) want.push(r.path); });
     cache.forEach((v, p) => { if (!seen.has(p)) { cache.delete(p); sums.delete(p); cols.add(colOf(p)); } });
-    for (let i = 0; i < want.length; i += 8) {
-      const part = want.slice(i, i + 8);
-      const rows = await supaSql(`select path, data, md5(data::text) as h from public.docs where path in (${part.map(supaLit).join(",")});`);
-      rows.forEach(r => { cache.set(r.path, r.data); sums.set(r.path, r.h); cols.add(colOf(r.path)); });
-    }
+    const dati = want.filter(p => !FOTO(p)), fotoW = want.filter(p => FOTO(p) && !inArrivo.has(p));
+    fotoW.forEach(p => inArrivo.add(p));
+    if (dati.length) (await prendi(dati)).forEach(c => cols.add(c));
     cols.forEach(emit);
+    if (fotoW.length) setTimeout(async () => { for (let i = 0; i < fotoW.length; i += 2) { const part = fotoW.slice(i, i + 2); try { (await prendi(part)).forEach(emit); } catch (e) {} part.forEach(p => inArrivo.delete(p)); } }, 0);
   }
   function load() {
     if (!loaded) loaded = sync().then(() => {
@@ -4265,6 +4304,19 @@ async function supaCopiaTutto(oldDb, onProgress) {
   return { copiati: rows.length, nell_archivio: check[0] && check[0].n };
 }
 
+/* Foto rimaste solo in claude.ai (anche quelle salvate nel formato vecchio {img}): si copiano in sottofondo, una alla volta */
+async function supaCompletaFoto(oldDb) {
+  try {
+    const qui = new Set((await supaSql("select path from public.docs where path like 'fm/sc_%';")).map(r => r.path));
+    const fm = await new Promise((res, rej) => { const un = oldDb.collection("fm").onSnapshot(s => { res(s); try { un && un(); } catch (e) {} }, rej); });
+    for (const d of fm.docs) {
+      const path = "fm/" + d.id; if (!d.id.startsWith("sc_") || qui.has(path)) continue;
+      const v = d.data() || {};
+      const data = typeof v.json === "string" && v.json.length > 2 ? v : v.img ? { json: JSON.stringify({ img: v.img }), by: v.by || "", at: Date.now() } : null;
+      if (data) { try { await supaUpsert([{ path, data }]); } catch (e) {} }
+    }
+  } catch (e) {}
+}
 async function supaPrepara(oldDb) {
   // vecchio archivio già spostato? allora qui si guarda soltanto
   try { const s = await oldDb.doc("sistema/migrazione").get(); if (s.exists) PERS.oldMoved = true; } catch (e) {}
@@ -4273,7 +4325,7 @@ async function supaPrepara(oldDb) {
   SUPA.mcp = mcp;
   try {
     const r = await supaSql("select data from public.docs where path = 'sys/migrazione';");
-    if (r && r.length) return supaDb();
+    if (r && r.length) { setTimeout(() => supaCompletaFoto(oldDb), 8000); return supaDb(); }
     PERS.canCopy = true; return null;
   } catch (e) { SUPA.err = (e && e.code) || "errore"; return null; }
 }
@@ -4506,7 +4558,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="d8f0c40d7f4c";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="dc922d214e10";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
