@@ -2438,7 +2438,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.05 (esercizi per le ginocchia più chiari, video che si aprono)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.06 (aggiornamento dell'orologio: se il collegamento cade, l'orologio scarica da solo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -11494,8 +11494,9 @@ $("updBtn").onclick=async()=>{
 $("updWatchBtn").hidden=!WBR();
 $("updWatchBtn").onclick=async()=>{ const P=WBR(); if(!P) return; const b=$("updWatchBtn"); b.disabled=true;
   setStatus("updWatchStatus","Scarico l'app dell'orologio e la mando al Watch… (1-2 minuti, tieni l'orologio vicino)");
-  try{ const r0=await P.updateWatch(); setStatus("updWatchStatus",`Mandata a ${r0&&r0.watch||"orologio"} (${r0&&r0.version||"ultima versione"}) ✓ Ora sull'orologio tocca la notifica "aggiornamento pronto" e poi Installa.`); }
-  catch(e){ const m=String((e&&e.message)||e); setStatus("updWatchStatus", /not implemented|non implementat|is not a function/i.test(m)? "Prima aggiorna l'app del telefono (HealthFit.apk), poi riprova." : m, true); }
+  try{ const r0=await P.updateWatch(); if(r0&&r0.fallback){ setStatus("updWatchStatus",`Il collegamento col Watch si è interrotto: ho chiesto all'orologio di scaricare da solo la ${r0.version||"nuova versione"}. Se tra 2 minuti non vedi "aggiornamento pronto", sul Watch apri HealthFit e tocca AGGIORNA APP.`); return; }
+    setStatus("updWatchStatus",`Mandata a ${r0&&r0.watch||"orologio"} (${r0&&r0.version||"ultima versione"}) ✓ Ora sull'orologio tocca la notifica "aggiornamento pronto" e poi Installa.`); }
+  catch(e){ const m=String((e&&e.message)||e); setStatus("updWatchStatus", /not implemented|non implementat|is not a function/i.test(m)? "Prima aggiorna l'app del telefono (HealthFit.apk), poi riprova." : /channel|stream|closed/i.test(m)? "Il collegamento col Watch si è interrotto a metà. Fai così: sul Watch apri HealthFit e tocca AGGIORNA APP: l'orologio scarica da solo l'ultima versione (serve il Wi-Fi o il telefono vicino)." : m, true); }
   finally{ b.disabled=false; } };
 $("hello").onclick=()=>go("profilo");
 function readForm(){ return {...draft, fname:$("fname").value.trim(), lname:$("lname").value.trim(), nick:$("nick").value.trim(), sex:$("sex").value, age:+$("age").value, height:+$("height").value, weight:+$("weight").value, activity:+$("activity").value}; }
