@@ -2438,7 +2438,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.02 (ginocchia sane: rinforzo guidato e tecnica di corsa)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.03 (avviso della cadenza sull'orologio, esercizi per le ginocchia proposti 2 volte a settimana)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5235,10 +5235,26 @@ function kneeMark(){ try{ const L=kneeLog().filter(d=>d!==todayISO()&&d>=shiftDa
 const kneeN=days=>kneeLog().filter(d=>d>shiftDate(todayISO(),-days)).length;
 function kneeCad(){ const L=(runEvals.list||[]).filter(e=>+e.cad>=120&&+e.cad<=220).slice(-6); if(!L.length) return null;
   const avg=Math.round(L.reduce((a,e)=>a+ +e.cad,0)/L.length); return {avg,n:L.length,last:+L[L.length-1].cad,d:L[L.length-1].d}; }
+function cadGoalOf(){ const c=kneeCad(); return !c? 165 : c.avg<165? kneeTarget(c.avg) : Math.min(175,c.avg); }
 const kneeTarget=c=> Math.min(180,Math.max(165,Math.round(c*1.05)));
 function kneePains(){ try{ return painActive().filter(x=>/ginocch|bandelletta|anca/i.test(x.zone||"")); }catch{ return []; } }
 function kneeText(){ const c=kneeCad(), n=kneeN(14), P=kneePains(); if(!c&&!n&&!P.length) return "";
   return "PREVENZIONE GINOCCHIA: routine «Ginocchia forti» (glutei, anche, quadricipiti, polpacci, "+stretchMin("ginocchia")+" min) fatta "+n+(n===1?" volta":" volte")+" negli ultimi 14 giorni (consigliata 2-3 a settimana)"+(c? `; cadenza media ultime corse ${c.avg} passi/min${c.avg<165? ` (bassa: obiettivo circa ${kneeTarget(c.avg)}, passi più corti e frequenti)` : ""}` : "")+(P.length? "; fastidio in corso: "+P.map(x=>x.zone).join(", ") : "")+". Se parla di ginocchia o tecnica di corsa, consiglia la routine (Corsa → Ginocchia sane) e aumenti di km graduali."; }
+/* v4.03: scelta di Daniele – l'app propone la routine finché non arriva a 2 nella settimana (lun-dom): a fine palestra o dopo una corsa facile.
+   Una volta al giorno (hf:kneeAskD), mai se già fatta oggi, «Non propormeli più» = hf:kneeAskOff (rimettibile da Riquadri nascosti). */
+function kneeWeek(){ const t=todayISO(), wd=(new Date(t+"T12:00:00").getDay()+6)%7, mon=shiftDate(t,-wd); return kneeLog().filter(d=>d>=mon&&d<=t).length; }
+function kneeDue(){ try{ if(localStorage.getItem("hf:kneeAskOff")==="1"||localStorage.getItem("hf:kneeAskD")===todayISO()) return false; }catch{ return false; }
+  return !kneeLog().includes(todayISO())&&kneeWeek()<2; }
+function kneeAsk(head,then){ const go=()=>{ try{ then&&then(); }catch(e){ console.warn("dopo ginocchia",e); } };
+  try{ localStorage.setItem("hf:kneeAskD",todayISO()); }catch{}
+  let ov=$("strOv"); if(!ov){ ov=el("div","str-ov"); ov.id="strOv"; document.body.appendChild(ov); } ov.dataset.sk="";
+  ov.innerHTML=`<div class="str-in"><p class="str-c"></p><h2 class="str-n">Ora gli esercizi per le ginocchia? 🦵</h2><p class="str-tip"></p><div class="str-b" style="flex-wrap:wrap"><button type="button" class="btn ghost" data-a="no">Non oggi</button><button type="button" class="btn" data-a="si">Sì, iniziamo</button></div><p class="note" style="text-align:center;margin-top:14px"><button type="button" class="gd-donelink" data-a="mai">Non propormeli più</button></p></div>`;
+  const n=kneeWeek(); ov.querySelector(".str-c").textContent=head||"";
+  ov.querySelector(".str-tip").textContent=`${stretchMin("ginocchia")} minuti di rinforzo per glutei, anche e polpacci: è il modo migliore per evitare il dolore alle ginocchia correndo. Questa settimana: ${n} su 2. Ti serve un gradino.`+(kneePains().length? " Hai un fastidio segnato: fai solo gli esercizi che non fanno male." : "");
+  ov.hidden=false;
+  ov.querySelector('[data-a="si"]').onclick=()=>{ try{ startStretch("ginocchia",{next:then}); }catch(e){ console.warn("ginocchia",e); ov.hidden=true; go(); } };
+  ov.querySelector('[data-a="no"]').onclick=()=>{ ov.hidden=true; go(); };
+  ov.querySelector('[data-a="mai"]').onclick=()=>{ ov.hidden=true; try{ localStorage.setItem("hf:kneeAskOff","1"); }catch{} toast("Ok, non te li propongo più. La routine resta in Corsa → Ginocchia sane e tecnica."); setTimeout(go,300); }; }
 function kneeRow(){ const b=el("button","card raceRow"); b.type="button"; b.id="kneeRow";
   b.innerHTML=`<span class="mi">🦵</span><span class="mt"><b>Ginocchia sane e tecnica</b><span class="ms"></span></span><span class="chev">›</span>`;
   const n=kneeN(7), c=kneeCad();
@@ -5272,6 +5288,11 @@ function renderKnee(){ const box=$("kneeBody"); if(!box) return; box.innerHTML="
   minus.onclick=()=>{ bpm=Math.max(140,bpm-5); try{ localStorage.setItem("hf:metroBpm",bpm); }catch{} if(METRO.t) metroStart(bpm); upd(); };
   plus.onclick=()=>{ bpm=Math.min(200,bpm+5); try{ localStorage.setItem("hf:metroBpm",bpm); }catch{} if(METRO.t) metroStart(bpm); upd(); };
   play.onclick=()=>{ METRO.t? metroStop() : metroStart(bpm); upd(); }; row.append(minus,val,plus,play); m.appendChild(row); upd(); box.appendChild(m);
+  const cw=el("label","note"); cw.style.cssText="display:flex;gap:10px;align-items:flex-start;margin-top:12px;cursor:pointer"; const cb=el("input"); cb.type="checkbox"; cb.style.cssText="width:22px;height:22px;flex:none;margin:0";
+  let on=true; try{ on=localStorage.getItem("hf:cadOff")!=="1"; }catch{} cb.checked=on; const ct=el("span");
+  const ctx=()=>{ ct.textContent=`⌚ Avviso della cadenza sull'orologio: se per un minuto fai meno di ${cadGoalOf()-6} passi al minuto ti dice di accorciare il passo (obiettivo ${cadGoalOf()}). Non avvisa in riscaldamento, recuperi, defaticamento e salita.`; }; ctx();
+  cb.onchange=()=>{ try{ localStorage.setItem("hf:cadOff",cb.checked? "0" : "1"); }catch{} toast(cb.checked? "Avviso della cadenza acceso" : "Avviso della cadenza spento"); };
+  cw.append(cb,ct); box.appendChild(cw);
   box.appendChild(el("p","note","⚠️ Sono indicazioni generali, non una diagnosi. Se il dolore dura più di una settimana, peggiora mentre corri, ti fa zoppicare o il ginocchio si gonfia: fermati e fatti vedere da un medico o da un fisioterapista.")); }
 const METRO={t:null,wl:null};
 function metroStart(bpm){ metroStop(); try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume&&audioCtx.resume(); }catch{ return; }
@@ -6140,6 +6161,8 @@ async function watchSend(o){ const P=WBR(); if(!P) return;
   if(isEasyRunName(o.runType||o.title)) plan.hrCap=hrCapOf();
   // corsa facile (non il lungo): a fine parte facile l'orologio chiede se fare 5-6 minuti di tecnica di corsa
   if(isEasyRunName(o.runType||o.title)&&!/lungo/i.test(o.runType||o.title)&&localStorage.getItem("hf:techOff")!=="1") plan.tech=true;
+  // v4.03: cadenza – l'orologio avvisa se per un minuto resta 6 passi sotto l'obiettivo (dalle ultime corse)
+  try{ if(localStorage.getItem("hf:cadOff")!=="1") plan.cad=cadGoalOf(); }catch{}
   // corsa del piano: l'orologio la rimanda indietro e il risultato va su quella seduta (nel giorno in cui corri davvero)
   if(o.from&&o.from.d) plan.ref={iso:o.from.iso,di:o.from.di,t:o.from.d.title||""};
   // fasi della seduta: l'orologio avvisa a voce quando finisce il riscaldamento e confronta ogni km con il ritmo obiettivo
@@ -6183,11 +6206,14 @@ async function saveWatchResult(o){ if(o&&o.kind==="pain"){ try{ painFromWatch(o)
 async function watchPending(){ const P=WBR(); if(!P) return; try{ const r0=await P.pending(); let n=0, last=null; let lastO=null; for(const o of (r0&&r0.results)||[]){ const id=await saveWatchResult(o); if(id){ n++; last=id; lastO=o; } } if(n){ renderAll(); if(runStretchOffer(last,lastO)) return; actionToast(`⌚ ${n===1?"Corsa":"Corse"} dal Galaxy Watch salvat${n===1?"a":"e"} ✓ · stretching e recupero nel riepilogo`,"Apri",()=>openRunSummary(last)); } }catch(e){ console.warn("orologio",e); } }
 /* v3.99: corsa dall'orologio appena finita (entro 3 ore) → chiede subito lo stretching, come dopo la palestra (prima c'era solo il pulsante nel riepilogo).
    Una volta per corsa (hf:runStrAsk), mai con «Non chiederlo più» (hf:stretchOff). */
-function runStretchOffer(id,o){ try{ if(localStorage.getItem("hf:stretchOff")==="1"||localStorage.getItem("hf:runStrAsk")===String(id)) return false;
+function runStretchOffer(id,o){ try{ if(localStorage.getItem("hf:runStrAsk")===String(id)) return false;
     const end=(+(o&&o.startedAt)||0)+(+(o&&o.seconds)||0)*1000; if(!end||Date.now()-end>3*3600e3||!(+o.seconds>=15*60)) return false;
+    const easy=isEasyRunName(o.runType||o.title)&&!/lungo/i.test(o.runType||o.title||""), kn=easy&&kneeDue(), stOn=localStorage.getItem("hf:stretchOff")!=="1";
+    if(!stOn&&!kn) return false;
     localStorage.setItem("hf:runStrAsk",String(id)); const stMin=Math.round(STRETCH.corsa.ex.reduce((a,q)=>a+q[2]*(q[3]?2:1),0)/60);
-    stretchAsk("corsa",stMin,"⌚ Corsa salvata ✓");
-    const ov=$("strOv"), no=ov&&ov.querySelector('[data-a="no"]'); if(no){ no.textContent="Non oggi, apri il riepilogo"; no.onclick=()=>{ ov.hidden=true; try{ openRunSummary(id); }catch{} }; }
+    const sa=()=>{ if(!stOn){ try{ openRunSummary(id); }catch{} return; } stretchAsk("corsa",stMin,"⌚ Corsa salvata ✓");
+      const ov=$("strOv"), no=ov&&ov.querySelector('[data-a="no"]'); if(no){ no.textContent="Non oggi, apri il riepilogo"; no.onclick=()=>{ ov.hidden=true; try{ openRunSummary(id); }catch{} }; } };
+    if(kn) kneeAsk("⌚ Corsa salvata ✓",sa); else sa();
     return true; }catch(e){ console.warn("stretching corsa",e); return false; } }
 /* ----- APK: motore nativo (fascia e GPS a schermo spento) ----- */
 const NAT=()=>{ const C=window.Capacitor; return C&&C.isNativePlatform&&C.isNativePlatform()? C : null; };
@@ -7513,15 +7539,16 @@ function strDraw(){ const ov=$("strOv"); if(!ov||!STR) return; const s=STR.steps
   ov.querySelector('[data-a="next"]').onclick=()=>{ STR.i++; if(STR.i>=STR.steps.length){ strEnd(true); return; } STR.left=STR.steps[STR.i].sec; STR.prep=3; strDraw(); };
   ov.querySelector('[data-a="prev"]').onclick=()=>{ if(STR.i>0) STR.i--; STR.left=STR.steps[STR.i].sec; STR.prep=3; ov.dataset.sk=""; strDraw(); }; }
 function strEnd(done){ clearInterval(strDraw.t); const ov=$("strOv"); if(ov) ov.dataset.sk=""; try{ screenNative("str",false); }catch{} const S0=STR; STR=null; try{ S0&&S0.wl&&S0.wl.release(); }catch{}
-  if(!ov) return; if(!done||!S0){ ov.hidden=true; return; } if(STRETCH[S0.k].str) kneeMark();
+  if(!ov) return; if(!done||!S0){ ov.hidden=true; if(S0&&S0.next) setTimeout(()=>{ try{ S0.next(); }catch{} },350); return; } if(STRETCH[S0.k].str) kneeMark();
   if(STRETCH[S0.k].warm){ try{ localStorage.setItem("hf:warmDone",todayISO()); }catch{} const fx=S0.first? `Ora 2 serie leggere di ${S0.first}: 10 ripetizioni con circa metà del peso, poi 5 con circa il 70%. Poi parti con le serie vere.` : "Ora fai 1-2 serie leggere del primo esercizio prima delle serie vere.";
     ov.innerHTML=`<div class="str-in"><h2 class="str-n">Sei caldo! 🔥</h2><p class="str-tip"></p><div class="str-b"><button type="button" class="btn ghost" data-a="no">Chiudi</button>${S0.after?'<button type="button" class="btn" data-a="go">INIZIA LA SEDUTA</button>':""}</div></div>`;
     ov.querySelector(".str-tip").textContent=fx; ov.querySelector('[data-a="no"]').onclick=()=>{ ov.hidden=true; };
     if(S0.after) ov.querySelector('[data-a="go"]').onclick=()=>{ ov.hidden=true; try{ S0.after(); }catch(e){ console.warn("seduta",e); } }; return; }
   const min=Math.max(1,Math.round((Date.now()-S0.t0)/60000)), R=STRETCH[S0.k], w=+(state.profile&&state.profile.weight)||75;
   ov.innerHTML=`<div class="str-in"><h2 class="str-n">Fatto! ${R.str? "🦵" : "🧘"}</h2><p class="str-tip">${R.t}: ${min} minuti. Vuoi registrarla negli allenamenti di oggi?</p><div class="str-b"><button type="button" class="btn ghost" data-a="no">No</button><button type="button" class="btn" data-a="si">Registra</button></div></div>`;
-  ov.querySelector('[data-a="no"]').onclick=()=>{ ov.hidden=true; };
-  ov.querySelector('[data-a="si"]').onclick=()=>{ ov.hidden=true; const sv=state.date; if(state.date!==todayISO()){ toast("Registro su oggi"); } if(R.str){ kneeMark(); addWorkoutOn(todayISO(),{name:"Rinforzo ginocchia",minutes:min,intensity:"moderata",kcal:Math.round(3.5*w*min/60)}); return; }
+  const nx=()=>{ if(S0.next) setTimeout(()=>{ try{ S0.next(); }catch(e){ console.warn("dopo",e); } },350); };
+  ov.querySelector('[data-a="no"]').onclick=()=>{ ov.hidden=true; nx(); };
+  ov.querySelector('[data-a="si"]').onclick=()=>{ ov.hidden=true; const sv=state.date; if(state.date!==todayISO()){ toast("Registro su oggi"); } if(R.str){ kneeMark(); addWorkoutOn(todayISO(),{name:"Rinforzo ginocchia",minutes:min,intensity:"moderata",kcal:Math.round(3.5*w*min/60)}); nx(); return; }
     addWorkoutOn(todayISO(),{name:"Stretching – "+R.t.toLowerCase(),minutes:min,intensity:"leggera",kcal:Math.round(2.3*w*min/60)}); }; }
 /* pagine degli altri sport scelti nel Coach (bici, nuoto, altro): giornate, totali e registrazione */
 const SP_DEF={bici:{re:/bici|cicl|bike|spinning|mtb|gravel/i,met:7,ic:"🚴",names:["Bici da strada","Mountain bike","Bici elettrica","Spinning"],km:true},
@@ -8700,7 +8727,8 @@ $("logSave").onclick=async()=>{
   const stK= /corsa|run|tapis/i.test(logCtx.title||"")? "corsa" : "palestra", stMin=Math.round(STRETCH[stK].ex.reduce((a,x)=>a+x[2]*(x[3]?2:1),0)/60);
   const svd=`Allenamento salvato: ${min} minuti ✓`+(ready?` · ${ready} ${ready===1?"esercizio pronto":"esercizi pronti"} ad aumentare il peso 📈`:"");
   let stOff=""; try{ stOff=localStorage.getItem("hf:stretchOff")||""; }catch{}
-  if(stOff==="1") toast(svd); else setTimeout(()=>stretchAsk(stK,stMin,svd),400);
+  const stGo=()=>{ if(stOff==="1") toast(svd); else stretchAsk(stK,stMin,svd); };
+  if(kneeDue()) setTimeout(()=>kneeAsk(svd,stGo),400); else if(stOff==="1") toast(svd); else setTimeout(stGo,400);
   if(history.state&&history.state.v==="sessione") history.back(); else go("allenamento"); renderProgram();
 };
 /* ----- importa scheda ----- */
@@ -9635,7 +9663,7 @@ async function notifSchedule(){ const L=LN(); if(!L||localStorage.getItem("hf:no
       push(shiftDate(d,2),MZ_AT,"📏 Misure del corpo","Non le hai ancora prese: bastano 5 minuti, la mattina a digiuno."); } }catch{} }
   if(out.length) try{ await L.schedule({notifications:out}); }catch(e){ console.warn("notifiche",e); } }
 /* riquadri nascosti: dal Profilo si rimettono */
-const HIDE_KEYS=[["hf:waterOff","💧 Acqua","1"],["hf:chalOff","🎯 Sfide del mese","1"],["hf:warmOff","🔥 Proposta del riscaldamento in palestra","1"],["hf:stretchOff","🧘 Proposta dello stretching a fine seduta","1"]];
+const HIDE_KEYS=[["hf:waterOff","💧 Acqua","1"],["hf:chalOff","🎯 Sfide del mese","1"],["hf:warmOff","🔥 Proposta del riscaldamento in palestra","1"],["hf:stretchOff","🧘 Proposta dello stretching a fine seduta","1"],["hf:kneeAskOff","🦵 Proposta degli esercizi per le ginocchia","1"]];
 const SEEN_KEYS=["hf:fatSeen","hf:fuelSeen","hf:nightSeen","hf:painSeen","hf:deloadSeen","hf:weekSeen","hf:monthSeen"];
 function renderHiddenBox(id){ const box=$(id||"hiddenBox"); if(!box) return; box.innerHTML=""; const re=()=>{ renderHiddenBox(); renderHidCard(); }; const g=k=>{ try{ return localStorage.getItem(k); }catch{ return null; } };
   const h=el("h3",null,"👁 Riquadri nascosti"); h.style.cssText="margin:14px 0 4px;font-size:1rem"; box.appendChild(h);
