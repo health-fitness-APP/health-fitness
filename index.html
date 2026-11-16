@@ -2438,7 +2438,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.03 (avviso della cadenza sull'orologio, esercizi per le ginocchia proposti 2 volte a settimana)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.04 (storico della military press ritrovato anche col nome nuovo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5145,7 +5145,8 @@ function exTarget(x){ return x.detail ? x.detail : [x.sets? x.sets+" serie × "+
 /* stesso esercizio anche con nomi leggermente diversi ("Panca piana" = "Panca piana con bilanciere") */
 function exKey(n){ return String(n||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\(.*?\)/g," ").replace(/\b(con|al|alla|allo|ai|alle|il|lo|la|i|gli|le|di|da|in|e|a)\b/g," ").replace(/\b(bilanciere|manubri|manubrio|macchina|cavi|cavo|kettlebell|smith|multipower)\b/g,m=>m.slice(0,4)).replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim(); }
 function sameEx(a,b){ const x=exKey(a), y=exKey(b); if(!x||!y) return false; if(x===y) return true;
-  const strip=t=>t.replace(/\b(bila|manu|macc|cavi|cavo|kett|smit|mult)\b/g,"").replace(/\s+/g," ").trim(); const sx=strip(x), sy=strip(y);
+  /* v4.04: «nel rack», «sul…», «dal…» non cambiano l'esercizio (Military Press con bilanciere = … nel rack: lo storico di Daniele non si vedeva più) */
+  const strip=t=>t.replace(/\b(bila|manu|macc|cavi|cavo|kett|smit|mult|rack|nel|sul|dal)\b/g,"").replace(/\s+/g," ").trim(); const sx=strip(x), sy=strip(y);
   if(sx===sy&&sx.length>=5){ const eq=t=>(t.match(/\b(bila|manu|macc|cavi|cavo|kett|smit|mult)\b/)||[""])[0]; return !eq(x)||!eq(y)||eq(x)===eq(y); }
   return false; }
 function lastFor(name){
