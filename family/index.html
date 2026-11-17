@@ -270,6 +270,13 @@ input.fz:focus-visible + *{outline:2px solid var(--accent)}
 .lightbox{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);cursor:zoom-out}
 .lightbox img{max-width:100%;max-height:100%;border-radius:8px;background:#fff}
 
+/* visore PDF dei documenti */
+.pdfview{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.88);display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
+.pdfbar{display:flex;gap:8px;align-items:center;color:#fff;padding:4px 4px 10px}
+.pdfbar .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdfpages{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:10px}
+.pdfpages canvas{max-width:100%;height:auto;background:#fff;border-radius:4px}
+
 /* cartelle documenti */
 .crumbs{margin:-8px 0 14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .crumbs a{color:var(--accent);text-decoration:none}
@@ -1281,7 +1288,18 @@ onSave("inv", "gli investimenti", v => { INVEST.push(invFromForm(v, null)); });
 onSave("veicolo", "i veicoli", x => { VEICOLI.push(veicFromForm(x, null)); });
 onSave("impianto", "gli impianti", v => { const id = uid(); IMPIANTI.push({ id, nome: v.nome, marca: v.marca || "", modello: v.modello || "", dove: v.dove || "", stato: v.stato || "", guide: [], errori: [] }); location.hash = "#/impianti/" + id; return false; });
 onSave("bonus", "i bonus", v => { BONUS.push({ id: uid(), nome: v.nome, anno: v.anno || today.getFullYear(), lavori: v.lavori || 0, uso: v.uso, rate: v.tot ? { tot: v.tot, usate: v.usate || 0 } : null, docs: [["Fatture dei lavori", 0], ["Bonifici parlanti", 0], ["Titolo edilizio (CILA, SCIA)", 0], ["Asseverazioni", 0], ["Comunicazione ENEA, se prevista", 0]] }); });
-onSave("docfile", "i documenti", v => { const { node } = docPath(); node.files.push({ id: uid(), n: v.n, d: v.d || new Date(today), t: "pdf", link: v.link || "", scad: v.scad || undefined }); });
+onSave("docfile", "i documenti", v => {
+  const { node } = docPath(), f = { id: uid(), n: v.n, d: v.d || new Date(today), t: "pdf", link: v.link || "", scad: v.scad || undefined };
+  if (v.file) {
+    if (v.file.size > DOCPDF_MAX) { const e = document.getElementById("ff-docfile-err"); if (e) e.textContent = "Il file è troppo grande: al massimo 8 MB."; return false; }
+    f.t = /^image\//.test(v.file.type) ? "img" : "pdf"; f.file = { k: "doc_" + f.id, parti: 0, nome: v.file.name, kb: Math.round(v.file.size / 1024) }; f.carica = 1;
+    const r = new FileReader();
+    r.onload = () => { docPdfMetti(f, String(r.result || "")); delete f.carica; saveSoon(); rerenderSafe(); };
+    r.onerror = () => { delete f.carica; delete f.file; f.t = "pdf"; rerenderSafe(); };
+    r.readAsDataURL(v.file);
+  }
+  node.files.push(f);
+});
 onSave("album", "le foto", v => { ALBUM.push({ id: uid(), nome: v.nome, tipo: v.tipo, data: v.data || new Date(today), luogo: v.luogo || "", persone: (v.persone || "").split(",").map(x => x.trim()).filter(Boolean), n: 0, v: 0, col: ["#A9B5A0", "#D6B994", "#AFC2DA"], link: v.link || "" }); });
 Object.assign(RM, {
   el: (rid, eid) => { const r = ROOMS.find(x => x.id === rid); if (r) dropId(r.el, eid); },
@@ -1292,7 +1310,7 @@ Object.assign(RM, {
   acc: id => dropId(ACCENSIONI, id), man: id => dropId(MANUT, id), scad: id => dropId(SCAD_CUSTOM, id),
   pren: id => VIAGGI.forEach(v => dropId(v.pren, id)), itin: id => Object.values(ITIN).forEach(L => dropId(L, id)),
   val: (vid, i) => { if (VALIGIA[vid]) VALIGIA[vid].splice(+i, 1); }, viaggio: id => { dropId(VIAGGI, id); location.hash = "#/viaggi"; },
-  file: id => { (function w(n) { dropId(n.files, id); n.kids.forEach(w); })(docTree()); },
+  file: id => { (function w(n) { const f = n.files.find(x => x.id === id); if (f) docPdfVia(f); dropId(n.files, id); n.kids.forEach(w); })(docTree()); },
   folder: id => { const { trail } = docPath(), parent = trail[trail.length - 2]; if (parent) { dropId(parent.kids, id); location.hash = "#/documenti" + trail.slice(1, -1).map(x => "/" + x.id).join(""); } },
   album: id => { dropId(ALBUM, id); location.hash = "#/foto"; }, membro: id => dropId(MEMBRI, id),
   veic: id => dropId(VEICOLI, id), imp: id => { const i = IMPIANTI.find(x => x.id === id); if (i) { (i.foto || []).forEach(k => delete SCONTRINI[k]); (i.guide || []).forEach(g => (g.f || []).forEach(k => { if (k) delete SCONTRINI[k]; })); } dropId(IMPIANTI, id); }, impfoto: (iid, k) => { const i = IMPIANTI.find(x => x.id === iid); if (i) i.foto = (i.foto || []).filter(x => x !== k); delete SCONTRINI[k]; }, guida: (iid, gi) => { const i = IMPIANTI.find(x => x.id === iid); if (!i) return; const g = i.guide.splice(+gi, 1)[0]; if (g) (g.f || []).forEach(k => { if (k) delete SCONTRINI[k]; }); },
@@ -1805,14 +1823,14 @@ V.documenti = () => {
   const sub = n => { const c = n.kids.length, f = countDocs(n); return [c ? `${c} cartell${c === 1 ? "a" : "e"}` : "", `${f} document${f === 1 ? "o" : "i"}`].filter(Boolean).join(", "); };
   const crumbs = trail.map((n, i) => i === trail.length - 1 ? `<b>${esc(n.nome)}</b>` : `<a href="${href(i)}">${esc(n.nome)}</a>`).join(` <span class="muted" aria-hidden="true">›</span> `);
   const pill = f => f.gar ? (daysTo(f.gar) < 0 ? `<span class="pill bad">Garanzia scaduta</span>` : `<span class="pill ok">In garanzia</span>`) : f.scad ? (daysTo(f.scad) > 365 ? `<span class="pill ok">Valido fino al ${fd(f.scad)}</span>` : scadPill(f.scad, 60)) : "";
-  const row = f => `<div class="item" style="align-items:center"><span class="fic sm" aria-hidden="true">${f.t === "img" ? "🖼️" : "📄"}</span><span class="grow">${f.href ? `<a href="${f.href}" style="color:inherit;text-decoration:none"><b>${esc(f.n)}</b></a>` : `<b>${esc(f.n)}</b>`}<span class="small muted" style="display:block">${f.d ? fd(f.d) : ""}</span></span>${pill(f)}${f.link ? `<a class="btn ghost sm" href="${esc(f.link)}" target="_blank" rel="noopener">Apri</a>` : ""}${rmBtn("file:" + f.id, "✕")}</div>`;
+  const row = f => `<div class="item" style="align-items:center"><span class="fic sm" aria-hidden="true">${f.t === "img" ? "🖼️" : "📄"}</span><span class="grow">${f.href ? `<a href="${f.href}" style="color:inherit;text-decoration:none"><b>${esc(f.n)}</b></a>` : `<b>${esc(f.n)}</b>`}<span class="small muted" style="display:block">${f.d ? fd(f.d) : ""}</span></span>${pill(f)}${f.file ? (f.carica ? `<span class="small muted">Salvo il file…</span>` : `<button class="btn sm" data-docapri="${esc(f.id)}">Apri</button><button class="btn ghost sm" data-docscarica="${esc(f.id)}">Scarica</button>`) : ""}${f.link ? `<a class="btn ghost sm" href="${esc(f.link)}" target="_blank" rel="noopener">${f.file ? "Link" : "Apri"}</a>` : ""}${rmBtn("file:" + f.id, "✕")}</div>`;
   let top = "";
   if (isRoot) {
     const es = allEvents().filter(e => e.auto && ["polizze", "garanzie", "veicoli"].includes(e.sez) && daysTo(e.d) >= 0 && daysTo(e.d) <= 90).slice(0, 4);
     const idd = DOCV.filter(d => daysTo(d.scad) >= 0 && daysTo(d.scad) <= 90 && !/Assicurazione/.test(d.nome));
     top = es.length || idd.length ? `<div class="panel" style="margin-bottom:14px"><h2>In scadenza nei prossimi 3 mesi</h2><div class="list">${es.map(evItem).join("")}${idd.map(d => `<a class="item" href="#/documenti/identita" style="text-decoration:none;color:inherit;align-items:center"><span class="who-dot" style="background:var(--muted)"></span><span class="grow"><b>${esc(d.nome)}</b><span class="small muted" style="display:block">${fd(d.scad)}</span></span>${scadPill(d.scad, 90)}</a>`).join("")}</div></div>` : "";
   }
-  return head(isRoot ? "Documenti" : node.nome, isRoot ? "Tutti i documenti di casa e famiglia, in cartelle. I file veri li tenete su Google Drive e qui incollate il link." : "") + `
+  return head(isRoot ? "Documenti" : node.nome, isRoot ? "Tutti i documenti di casa e famiglia, in cartelle. Allega il PDF al documento: resta nell'app e si apre da PC e telefono." : "") + `
   ${isRoot ? "" : `<nav class="crumbs small" aria-label="Percorso">${crumbs}</nav>`}
   ${top}
   ${node.link ? `<a class="btn ghost sm" href="${node.link[0]}" style="margin-bottom:14px">${node.link[1]}</a>` : ""}
@@ -1820,12 +1838,66 @@ V.documenti = () => {
   ${node.kids.length ? `<div class="folders">${node.kids.map(k => `<a class="folder" href="${here}/${k.id}"><span class="fic" aria-hidden="true">${k.ic || "📁"}</span><span style="min-width:0"><b>${esc(k.nome)}</b><span class="s">${sub(k)}</span></span></a>`).join("")}</div>` : ""}
   ${node.files.length ? `<div class="panel" style="margin-top:14px"><h2>Documenti</h2><div class="list">${node.files.slice().sort((a, b) => b.d - a.d).map(row).join("")}</div></div>` : !node.kids.length ? `<div class="panel" style="margin-top:14px"><p class="muted">Cartella vuota: carica il primo documento qui sotto.</p></div>` : ""}
   <div class="grid g2" style="margin-top:14px">
-    ${formHtml("docfile", isRoot ? "Aggiungi un documento" : "Aggiungi un documento in questa cartella", [{ k: "n", l: "Nome del documento", req: 1, ph: "Es. Visura catastale 2026" }, { k: "d", l: "Data", t: "date" }, { k: "link", l: "Link al file su Google Drive", ph: "https://drive.google.com/...", full: 1 }, { k: "scad", l: "Scadenza, se c'è", t: "date" }], "Aggiungi")}
+    ${formHtml("docfile", isRoot ? "Aggiungi un documento" : "Aggiungi un documento in questa cartella", [{ k: "n", l: "Nome del documento", req: 1, ph: "Es. Visura catastale 2026" }, { k: "d", l: "Data", t: "date" }, { k: "file", l: "Allega il file (PDF o foto, fino a 8 MB): resta nell'app, su PC e telefono", t: "file", accept: "application/pdf,image/*", full: 1 }, { k: "link", l: "Oppure link al file su Google Drive", ph: "https://drive.google.com/...", full: 1 }, { k: "scad", l: "Scadenza, se c'è", t: "date" }], "Aggiungi")}
     <div class="panel"><h3>Nuova cartella</h3><div class="row" style="flex-wrap:nowrap;margin-top:8px"><input type="text" id="dNew" placeholder="${isRoot ? "Es. Casa – Via Verdi 3, Modena" : "Nome della cartella"}" style="flex:1;min-width:0"><button class="btn sm" id="dNewB">Crea</button></div>
-      ${isRoot ? "" : `<h3 style="margin-top:14px">Rinomina questa cartella</h3><div class="row" style="flex-wrap:nowrap;margin-top:8px"><input type="text" id="dRen" value="${esc(node.nome)}" style="flex:1;min-width:0"><button class="btn ghost sm" id="dRenB">Rinomina</button></div><div style="margin-top:12px">${rmBtn("folder:" + node.id, "Elimina questa cartella")}</div>`}<p class="small muted" style="margin-top:10px">I file veri tienili su Google Drive: incolla il link nel documento e lo apri con un tocco.</p></div></div>`;
+      ${isRoot ? "" : `<h3 style="margin-top:14px">Rinomina questa cartella</h3><div class="row" style="flex-wrap:nowrap;margin-top:8px"><input type="text" id="dRen" value="${esc(node.nome)}" style="flex:1;min-width:0"><button class="btn ghost sm" id="dRenB">Rinomina</button></div><div style="margin-top:12px">${rmBtn("folder:" + node.id, "Elimina questa cartella")}</div>`}<p class="small muted" style="margin-top:10px">Allega il PDF quando aggiungi il documento: lo apri e lo scarichi con un tocco, da PC e telefono.</p></div></div>`;
 };
+/* File dei documenti salvati nell'app (Daniele, 17/11/2026): il file sta nell'archivio comune
+   come «data:» diviso in pezzi da 200.000 caratteri (chiavi sc_doc_<id>, sc_doc_<id>_1, ...). */
+const DOCPDF_MAX = 8 * 1024 * 1024, DOCPDF_PEZZO = 200000;
+const docPdfChiavi = f => { const L = [f.file.k]; for (let i = 1; i < (f.file.parti || 1); i++) L.push(f.file.k + "_" + i); return L; };
+function docPdfMetti(f, data) {
+  const n = Math.max(1, Math.ceil(data.length / DOCPDF_PEZZO)); f.file.parti = n;
+  for (let i = 0; i < n; i++) SCONTRINI[i ? f.file.k + "_" + i : f.file.k] = data.slice(i * DOCPDF_PEZZO, (i + 1) * DOCPDF_PEZZO);
+}
+function docPdfVia(f) { if (f && f.file) docPdfChiavi(f).forEach(k => delete SCONTRINI[k]); }
+function docPdfDati(f) { const L = docPdfChiavi(f).map(k => SCONTRINI[k]); return L.every(x => typeof x === "string" && x) ? L.join("") : ""; }
+function docPdfTrova(id) { let r = null; (function w(n) { n.files.forEach(x => { if (x.id === id) r = x; }); if (!r) n.kids.forEach(w); })(docTree()); return r; }
+function docPdfBlob(data) { const m = /^data:([^;,]*)(;base64)?,/.exec(data); if (!m) return null; const b = atob(data.slice(m[0].length)), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new Blob([u], { type: m[1] || "application/pdf" }); }
+const docPdfNome = f => { const e = f.t === "img" ? ((/\.(jpe?g|png|webp|gif)$/i.exec((f.file && f.file.nome) || "") || [, "jpg"])[1].toLowerCase()) : "pdf"; return String(f.n || "documento").replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 120) + "." + e; };
+let PDFJS_P = null;
+function pdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return PDFJS_P || (PDFJS_P = new Promise((ok, no) => {
+    const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload = () => { const L = window.pdfjsLib; if (!L) return no(new Error("pdf.js")); L.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; ok(L); };
+    s.onerror = () => { PDFJS_P = null; no(new Error("pdf.js")); }; document.head.appendChild(s);
+  }));
+}
+async function docPdfApri(f) {
+  const data = docPdfDati(f);
+  if (!data) { alertLite("Il file sta ancora arrivando dall'archivio: riprova tra qualche secondo."); return; }
+  if (f.t === "img") { showImage(data); return; }
+  const d = document.createElement("div"); d.className = "pdfview"; d.setAttribute("role", "dialog"); d.setAttribute("aria-label", f.n);
+  d.innerHTML = `<div class="pdfbar"><b class="grow">${esc(f.n)}</b><button class="btn sm" data-pv="dl">Scarica</button><button class="btn ghost sm" data-pv="x" style="background:var(--surface)">Chiudi</button></div><div class="pdfpages"><p class="small muted" style="color:#fff">Apro il PDF…</p></div>`;
+  const chiudi = () => { d.remove(); document.removeEventListener("keydown", esc_); }, esc_ = e => { if (e.key === "Escape") chiudi(); };
+  d.querySelector('[data-pv="x"]').onclick = chiudi; d.querySelector('[data-pv="dl"]').onclick = () => docPdfScarica(f);
+  document.addEventListener("keydown", esc_); document.body.appendChild(d);
+  const box = d.querySelector(".pdfpages");
+  try {
+    const L = await pdfJs(), b = atob(data.slice(data.indexOf(",") + 1)), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+    const pdf = await L.getDocument({ data: u }).promise; box.innerHTML = "";
+    for (let p = 1; p <= pdf.numPages && d.isConnected; p++) {
+      const pg = await pdf.getPage(p), w = Math.min(box.clientWidth || 800, 1000), v0 = pg.getViewport({ scale: 1 }), sc = w / v0.width, dpr = Math.min(window.devicePixelRatio || 1, 2), v = pg.getViewport({ scale: sc * dpr });
+      const c = document.createElement("canvas"); c.width = v.width; c.height = v.height; c.style.width = Math.round(v.width / dpr) + "px"; c.setAttribute("aria-label", `Pagina ${p} di ${pdf.numPages}`);
+      box.appendChild(c); await pg.render({ canvasContext: c.getContext("2d"), viewport: v }).promise;
+    }
+  } catch (e) { box.innerHTML = `<p style="color:#fff">Non riesco a mostrare il PDF qui. Usa «Scarica» per aprirlo con il lettore del telefono o del PC.</p>`; }
+}
+function alertLite(t) { const el = $("#saveState"); if (el) { el.textContent = t; el.style.color = "var(--warn)"; clearTimeout(setSaved.t); setSaved.t = setTimeout(() => { el.textContent = ""; el.style.color = ""; }, 5000); } }
+async function docPdfScarica(f) {
+  const data = docPdfDati(f); if (!data) { alertLite("Il file sta ancora arrivando dall'archivio: riprova tra qualche secondo."); return; }
+  const blob = docPdfBlob(data), nome = docPdfNome(f); if (!blob) return;
+  let dl = null; try { dl = window.claude && typeof window.claude.use === "function" ? await window.claude.use("downloads") : null; } catch (e) { dl = null; }
+  if (dl) { try { await dl.save({ filename: nome, data: blob }); } catch (e) { if (e && e.code !== "declined") alertLite("Non sono riuscito a scaricare il file."); } return; }
+  if (window.FM_NATIVO && typeof FM_NATIVO.salvaFile === "function") { try { await FM_NATIVO.salvaFile(nome, data); return; } catch (e) {} }
+  try { const fl = new File([blob], nome, { type: blob.type }); if (navigator.canShare && navigator.canShare({ files: [fl] })) { await navigator.share({ files: [fl], title: f.n }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+  const u = URL.createObjectURL(blob), a = document.createElement("a"); a.href = u; a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000);
+}
 function bindDocumenti() {
   const { node } = docPath();
+  document.querySelectorAll("[data-docapri]").forEach(b => b.onclick = () => { const f = docPdfTrova(b.dataset.docapri); if (f) docPdfApri(f); });
+  document.querySelectorAll("[data-docscarica]").forEach(b => b.onclick = () => { const f = docPdfTrova(b.dataset.docscarica); if (f) docPdfScarica(f); });
   const mk = () => { const v = $("#dNew").value.trim(); if (!v) return; node.kids.push({ id: "c" + Date.now(), nome: v, kids: [], files: [] }); route(); };
   $("#dNewB").onclick = mk; $("#dNew").onkeydown = e => { if (e.key === "Enter") mk(); };
   const rb = $("#dRenB"); if (rb) rb.onclick = () => { const v = $("#dRen").value.trim(); if (v) { node.nome = v; route(); } };
@@ -4712,7 +4784,7 @@ refreshDerived();
 route();
 initPersistence();
 </script>
-<script>(function(){const B="79030b2b8d40";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
+<script>(function(){const B="ac6b09ffefec";let t=0;async function c(){if(document.hidden||Date.now()-t<10000)return;t=Date.now();try{const r=await fetch("versione.txt?"+Date.now(),{cache:"no-store"});if(r.ok){const v=(await r.text()).trim();if(v&&v!==B)location.reload();}}catch(e){}}document.addEventListener("visibilitychange",c);addEventListener("focus",c);setTimeout(c,3000);})();</script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 </body>
 </html>
