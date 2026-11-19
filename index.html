@@ -1956,31 +1956,6 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <h2>La tua composizione corporea</h2>
     <div id="bComp"></div>
   </section>
-  <section class="card" id="bAnaCard" hidden>
-    <h2>Analisi corporea</h2>
-    <div id="bAna"></div>
-  </section>
-  <section class="card" id="bBmrCard" hidden>
-    <h2>Metabolismo basale</h2>
-    <div class="bmrv num" id="bBmr"></div>
-    <p class="sub" id="bBmrNote" style="margin:4px 0 0"></p>
-  </section>
-  <section class="card" id="bChartCard" hidden>
-    <h2>Andamento</h2>
-    <div class="seg2" role="tablist" id="bPeriod" style="margin-top:8px">
-      <button role="tab" data-p="30">1M</button><button role="tab" data-p="90">3M</button><button role="tab" data-p="180">6M</button><button role="tab" data-p="365">1A</button><button role="tab" data-p="0">Tutto</button>
-    </div>
-    <div class="chips" id="bMetricChips" style="margin-top:10px"></div>
-    <div id="bChart"></div>
-    <p class="sub" id="bTrend" style="margin:6px 0 0"></p>
-  </section>
-  <section class="card" id="bPhotoCard">
-    <h2>📸 Foto del fisico</h2>
-    <p class="sub" id="bpSub" style="margin:2px 0 0">Una foto ogni 4 settimane, stessa luce, stessa posa, stessa ora: le metto a confronto una accanto all'altra.</p>
-    <input type="file" id="bpFile" accept="image/*" capture="environment" hidden>
-    <div id="bpCmp"></div>
-    <div class="two" style="margin-top:8px"><button class="btn ghost" id="bpAdd" type="button">📷 Aggiungi la foto di oggi</button><button class="btn ghost" id="bpAsk" type="button" hidden>Chiedi al coach</button></div>
-  </section>
   <section class="card" id="bCircCard" hidden>
     <h2>Misure del corpo</h2>
     <p class="sub" id="bMapSub" style="margin:2px 0 0">Tocca una misura per vederne l'andamento.</p>
@@ -2007,6 +1982,32 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="stats" id="bStats" hidden></div>
     <div id="bRatios"></div>
   </section>
+  <section class="card" id="bAnaCard" hidden>
+    <h2>Analisi corporea</h2>
+    <div id="bAna"></div>
+  </section>
+  <section class="card" id="bBmrCard" hidden>
+    <h2>Metabolismo basale</h2>
+    <div class="bmrv num" id="bBmr"></div>
+    <p class="sub" id="bBmrNote" style="margin:4px 0 0"></p>
+  </section>
+  <section class="card" id="bChartCard" hidden>
+    <h2>Andamento</h2>
+    <div class="seg2" role="tablist" id="bPeriod" style="margin-top:8px">
+      <button role="tab" data-p="30">1M</button><button role="tab" data-p="90">3M</button><button role="tab" data-p="180">6M</button><button role="tab" data-p="365">1A</button><button role="tab" data-p="0">Tutto</button>
+    </div>
+    <div class="chips" id="bMetricChips" style="margin-top:10px"></div>
+    <div id="bChart"></div>
+    <p class="sub" id="bTrend" style="margin:6px 0 0"></p>
+  </section>
+  <section class="card" id="bPhotoCard">
+    <h2>📸 Foto del fisico</h2>
+    <p class="sub" id="bpSub" style="margin:2px 0 0">Una foto ogni 4 settimane, stessa luce, stessa posa, stessa ora: le metto a confronto una accanto all'altra.</p>
+    <input type="file" id="bpFile" accept="image/*" capture="environment" hidden>
+    <div id="bpCmp"></div>
+    <div class="two" style="margin-top:8px"><button class="btn ghost" id="bpAdd" type="button">📷 Aggiungi la foto di oggi</button><button class="btn ghost" id="bpAsk" type="button" hidden>Chiedi al coach</button></div>
+  </section>
+  
   <section class="card">
     <h2>Aggiungi misurazione</h2>
     <p class="sub">Fai uno screenshot della schermata di Lepulse, FitDays, Renpho o di un'altra app e leggo io i valori. Oppure inseriscili a mano.</p>
@@ -2453,7 +2454,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.10 (fase della dieta: bulk, normocalorica o definizione)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.11 (Misure del corpo subito sotto la composizione corporea)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
