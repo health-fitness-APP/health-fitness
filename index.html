@@ -1305,6 +1305,11 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .mzhow .tx{flex:1;font-size:14px;line-height:1.4}.mzhow .tx p{margin:0}.mzhow .tx .h{font-weight:700;margin-bottom:4px}
 .mzadv{margin-top:12px;background:var(--surface2);border:1px solid var(--line);border-radius:16px;padding:12px}
 .mzadv .h{font-weight:700;margin:0 0 6px}.mzadv .r{display:flex;gap:8px;font-size:14px;line-height:1.4;margin:6px 0}.mzadv .r .i{flex:0 0 auto}.mzadv .note{margin:8px 2px 0}
+.mdd{position:relative;margin-top:10px}.mdd-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border-radius:16px;border:1px solid var(--line);background:var(--surface-solid);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-shadow:0 2px 10px rgba(60,30,10,.06)}
+.mdd-btn .t{flex:1;min-width:0;display:flex;flex-direction:column}.mdd-btn small{font-size:12px;color:var(--muted)}.mdd-btn b{font-size:16px}.mdd-btn .v{font-weight:700;color:var(--basil);white-space:nowrap}.mdd-btn .chev{color:var(--muted);transition:transform .2s}.mdd-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.mdd-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;max-height:320px;overflow:auto;padding:6px;border-radius:16px;border:1px solid var(--line);background:var(--surface-solid);box-shadow:0 12px 32px rgba(40,20,10,.18)}
+.mdd-it{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border:0;border-radius:12px;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}.mdd-it .n{flex:1}.mdd-it .v{font-size:13px;color:var(--muted);white-space:nowrap}
+.mdd-it.on{background:var(--basil-soft);font-weight:700}.mdd-it.on .v{color:var(--basil)}
 .mzsec{font-weight:700;margin:16px 0 2px}.mzexp{margin:2px 0 4px}.mzhrow.on{border-color:var(--accent,#E8833A)}.mzhist{margin-top:16px}.mzhist .h{font-weight:700;margin:0 0 6px}.mzhrow{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:6px 0;font:inherit;color:var(--ink);cursor:pointer}.mzhrow span{font-size:13px;color:var(--muted)}
 .mzcmp{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}.mzcmp th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:4px 6px;border-bottom:1px solid var(--line)}.mzcmp th:first-child,.mzcmp td:first-child{text-align:left}
 .mzcmp td{padding:7px 6px;border-bottom:1px solid var(--line)}.mzcmp td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -1999,7 +2004,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="seg2" role="tablist" id="bPeriod" style="margin-top:8px">
       <button role="tab" data-p="30">1M</button><button role="tab" data-p="90">3M</button><button role="tab" data-p="180">6M</button><button role="tab" data-p="365">1A</button><button role="tab" data-p="0">Tutto</button>
     </div>
-    <div class="chips" id="bMetricChips" style="margin-top:10px"></div>
+    <div class="mdd" id="bMetricDd"><button class="mdd-btn" id="bMetricBtn" type="button" aria-haspopup="listbox" aria-expanded="false"><span class="t"><small>Cosa vuoi vedere</small><b id="bMetricName"></b></span><span class="v" id="bMetricVal"></span><svg class="chev" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button><div class="mdd-list" id="bMetricList" role="listbox" hidden></div></div>
     <div id="bChart"></div>
     <p class="sub" id="bTrend" style="margin:6px 0 0"></p>
     <div class="binfo" id="bInfo" hidden></div>
@@ -2458,7 +2463,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.15 (confronto misure: date giuste, cm e % separati, ricerca delle misure perse)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.16 (andamento del corpo: scelta della voce con una tendina)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9553,8 +9558,13 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
   if(avail.length){
     if(!avail.includes(bMetric)) bMetric=avail[0];
     document.querySelectorAll("#bPeriod button").forEach(b=>{ b.setAttribute("aria-selected",+b.dataset.p===bPeriod); b.onclick=()=>{ bPeriod=+b.dataset.p; renderBody(); }; });
-    const ch=$("bMetricChips"); ch.innerHTML="";
-    avail.forEach(k=>{ const b=el("button","chip",nameOf(k)[0]); b.setAttribute("aria-pressed",k===bMetric); b.onclick=()=>{ bMetric=k; renderBody(); }; ch.appendChild(b); });
+    { const lastV=k=>{ for(let i=es.length-1;i>=0;i--){ const v=derivedVal(es[i],k); if(v!=null) return fmt(Math.round(v*10)/10)+(nameOf(k)[1]? " "+nameOf(k)[1] : ""); } return ""; };
+      const list=$("bMetricList"), btn=$("bMetricBtn"); list.innerHTML=""; $("bMetricName").textContent=nameOf(bMetric)[0]; $("bMetricVal").textContent=lastV(bMetric);
+      const close=()=>{ list.hidden=true; btn.setAttribute("aria-expanded","false"); };
+      avail.forEach(k=>{ const o=el("button","mdd-it"+(k===bMetric?" on":"")); o.type="button"; o.setAttribute("role","option"); o.setAttribute("aria-selected",k===bMetric);
+        o.append(el("span","n",nameOf(k)[0]),el("span","v",lastV(k))); o.onclick=()=>{ close(); bMetric=k; renderBody(); }; list.appendChild(o); });
+      btn.onclick=e=>{ e.stopPropagation(); const op=list.hidden; list.hidden=!op; btn.setAttribute("aria-expanded",op); if(op){ const on=list.querySelector(".on"); if(on) list.scrollTop=Math.max(0,on.offsetTop-60); } };
+      if(!renderBody.mddDoc){ renderBody.mddDoc=1; document.addEventListener("click",e=>{ const l=$("bMetricList"); if(l&&!l.hidden&&!e.target.closest("#bMetricDd")){ l.hidden=true; $("bMetricBtn").setAttribute("aria-expanded","false"); } }); } }
     const from= bPeriod? shiftDate(todayISO(),-bPeriod) : "0000";
     let pts=es.filter(x=>x.date>=from).map(x=>({d:x.date,v:derivedVal(x,bMetric)})).filter(p=>p.v!=null);
     const [nm,unit]=nameOf(bMetric);
