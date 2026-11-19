@@ -869,7 +869,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .ico{width:1.15em;height:1.15em;vertical-align:-.2em;color:inherit;flex:none;display:inline-block}.mi .ico{width:1.05em;height:1.05em;vertical-align:middle;color:var(--basil)}
 .fold-hd{cursor:pointer;-webkit-tap-highlight-color:transparent}h2.fold-hd,.meal-head.fold-hd{display:flex;align-items:center;gap:8px}h2.fold-hd::after,.meal-head.fold-hd::after{content:"";flex:none;width:8px;height:8px;margin:0 4px 4px 10px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s}h2.fold-hd::after{margin-left:auto}.folded>.fold-hd::after{transform:rotate(-45deg);margin-bottom:0}.meal-head.fold-hd>h2{margin-right:auto}.card.folded>:not(.fold-hd){display:none!important}.card.folded>.fold-hd{margin-bottom:0}
 .fold-x{display:block;width:100%;margin-top:12px;padding:10px;border:0;border-top:1px solid var(--line,rgba(0,0,0,.08));background:none;color:var(--muted);font:inherit;font-size:.9rem;cursor:pointer}
-#progCard{padding:12px 14px}.pg-row{background:none;border:0;padding:0;margin:0;box-shadow:none}.pg-row .pill{display:inline-block;font-size:.72rem;padding:2px 8px;margin:3px 4px 0 0;vertical-align:middle}.pg-row .chev{transition:transform .2s}.pg-row[aria-expanded="true"] .chev{transform:rotate(90deg)}#pgBody{margin-top:10px}
+#progCard,#phaseCard{padding:12px 14px}#phBody{margin-top:10px}.ph-bar{position:relative;display:flex;height:12px;border-radius:6px;overflow:visible;margin:18px 0 4px}.ph-bar .z{height:100%}.ph-bar .z.d{flex:20;background:color-mix(in srgb,#3b82f6 45%,transparent);border-radius:6px 0 0 6px}.ph-bar .z.n{flex:6;background:color-mix(in srgb,var(--basil) 45%,transparent)}.ph-bar .z.s{flex:14;background:color-mix(in srgb,var(--warn) 45%,transparent);border-radius:0 6px 6px 0}.ph-bar .mk{position:absolute;top:-6px;width:4px;height:24px;margin-left:-2px;border-radius:2px;background:var(--ink)}.ph-bar .mk.real{background:var(--muted);height:18px;top:-3px}.ph-bar .mk i{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:.66rem;font-style:normal;white-space:nowrap;color:var(--muted)}.ph-lbl{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:8px}.ph-lbl span{flex:20}.ph-lbl span:nth-child(2){flex:6;white-space:nowrap;display:flex;justify-content:center}.ph-lbl span:last-child{flex:14}.ph-lbl span:first-child{text-align:left}.ph-lbl span:last-child{text-align:right}.pg-row{background:none;border:0;padding:0;margin:0;box-shadow:none}.pg-row .pill{display:inline-block;font-size:.72rem;padding:2px 8px;margin:3px 4px 0 0;vertical-align:middle}.pg-row .chev{transition:transform .2s}.pg-row[aria-expanded="true"] .chev{transform:rotate(90deg)}#pgBody{margin-top:10px}
 .raceRow .mt{flex:1;min-width:0;display:flex;flex-direction:column}.raceRow b{font-size:1.05rem}.raceRow .ms{font-size:.82rem;color:var(--muted)}.raceRow .chev{color:var(--muted);font-size:1.4rem}
 #rcDays .chip.on{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
 .cs-sp{display:flex;flex-wrap:wrap;gap:14px 6px;justify-content:space-around;margin:6px 0 4px}
@@ -1578,6 +1578,16 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button role="tab" data-d="recipes" aria-selected="false">Ricette</button>
   </div>
   <div id="d-plan">
+  <section class="card" id="phaseCard" hidden>
+    <button class="raceRow pg-row" id="phRow" type="button" aria-expanded="false"><span class="mi">⚖️</span><span class="mt"><b id="phTitle">Fase della dieta</b><span class="ms"><span class="pill na" id="phPill">…</span> <span id="phSub"></span></span></span><span class="chev">›</span></button>
+    <div id="phBody" hidden>
+      <div class="ph-bar" id="phBar"><span class="z d"></span><span class="z n"></span><span class="z s"></span></div>
+      <div class="ph-lbl"><span>Deficit<br>(cut)</span><span>Normocalorica</span><span>Surplus<br>(bulk)</span></div>
+      <div id="phLines"></div>
+      <p class="note" id="phNote"></p>
+      <button class="fold-x" id="phClose" type="button">▲ Chiudi</button>
+    </div>
+  </section>
   <section class="card" id="upCard">
     <h2>Hai già una dieta?</h2>
     <p class="sub">Se te l'ha data un nutrizionista caricala: foto o screenshot delle pagine, oppure incolla il testo. Da quel momento diario e consigli seguiranno quella.</p>
@@ -2443,7 +2453,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.09 (misure del corpo: data sui riquadri e confronto tra due date)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.10 (fase della dieta: bulk, normocalorica o definizione)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -4500,7 +4510,7 @@ function renderDiet(){
   try{ renderDietInner(); } finally {
     const has=!$("dietPlanCard").hidden||!$("upPlanCard").hidden, dp=$("d-plan");
     dp.classList.toggle("has-diet",has);
-    const order= has? ["upPlanCard","dietPlanCard","dietWeekCard","dietChatCard","dietMore","dietAiCard","upCard"] : ["upCard","upPlanCard","dietMore","dietAiCard","dietPlanCard","dietWeekCard","dietChatCard"];
+    const order= has? ["phaseCard","upPlanCard","dietPlanCard","dietWeekCard","dietChatCard","dietMore","dietAiCard","upCard"] : ["phaseCard","upCard","upPlanCard","dietMore","dietAiCard","dietPlanCard","dietWeekCard","dietChatCard"];
     order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===dp) dp.appendChild(n); }); applyOrder(dp,"dieta");
     $("dietAiTitle").textContent= has&&!upActive()? "✨ Rifai o cambia la dieta" : "✨ Ti preparo la dieta";
   }
@@ -4798,7 +4808,57 @@ function mealsWithEaten(d){
   Object.keys(state.day.meals||{}).forEach(k=>{ if(!out.find(m=>m.id===k)&&(state.day.meals[k]||[]).length){ const m=ml.find(x=>x.id===k)||{id:k,name:k}; out.push({id:k,name:m.name,eaten:true,foods:state.day.meals[k].map(x=>({name:x.name,grams:x.grams,kcal:x.kcal,p:x.p,c:x.c,f:x.f}))}); } });
   return out;
 }
+/* fase della dieta: confronta le calorie del piano (e quelle mangiate davvero) con il mantenimento stimato */
+const PH_MIN=-25, PH_MAX=15;
+function phaseOf(pct){
+  if(pct>=8) return {id:"bulk",t:"Massa (bulk)",d:"surplus calorico",cls:"warn"};
+  if(pct>=3) return {id:"lean",t:"Massa pulita (lean bulk)",d:"leggero surplus",cls:"warn"};
+  if(pct>-3) return {id:"normo",t:"Normocalorica",d:"mantenimento",cls:"ok"};
+  if(pct>-22) return {id:"cut",t:"Definizione (cut)",d:"deficit calorico",cls:"na"};
+  return {id:"deep",t:"Deficit marcato",d:"deficit forte",cls:"na"};
+}
+function dietPhase(){
+  const p=state.profile, tg=targets(p); if(!tg) return null;
+  const wt=weekTargets()||[]; let k=0, m=0, n=0;
+  for(let i=0;i<7;i++){ const iso=shiftDate(todayISO(),i), wd=new Date(iso+"T12:00:00").getDay(), t=wt.find(x=>x.wd===wd); if(!t) continue;
+    const burn=Math.max(0,t.kcal-tg.kcal-(t.pre||0)), up=upDayFor(iso), kk= up? upDayTotals(up).kcal : t.kcal; if(!(kk>300)) continue;
+    k+=kk; m+=tg.tdee+burn; n++; }
+  if(!n) return null; k/=n; m/=n;
+  const out={plan:{k,m,d:k-m,pct:(k-m)/m*100}, up:upActive(), goal:goalOf(p)};
+  out.ph=phaseOf(out.plan.pct);
+  const pg=progress; if(pg&&pg.last7>=3&&pg.avgK&&pg.avgM){ const d=pg.avgK-pg.avgM; out.real={k:pg.avgK,m:pg.avgM,d,pct:d/pg.avgM*100,n:pg.last7}; out.real.ph=phaseOf(out.real.pct); }
+  if(pg&&pg.weight) out.weight=pg.weight;
+  return out;
+}
+function renderPhaseCard(){
+  const card=$("phaseCard"); if(!card) return; let P=null; try{ P=dietPhase(); }catch(e){ console.warn("fase",e); }
+  card.hidden=!P; if(!P) return;
+  const rw=$("phRow"); if(!rw._b){ rw._b=true; const set=o=>{ $("phBody").hidden=!o; rw.setAttribute("aria-expanded",String(o)); try{ localStorage.setItem("hf:phOpen",o?"1":"0"); }catch{} };
+    rw.onclick=()=>{ if(typeof editMode!=="undefined"&&editMode) return; set($("phBody").hidden); }; $("phClose").onclick=()=>set(false);
+    let o=false; try{ o=localStorage.getItem("hf:phOpen")==="1"; }catch{} $("phBody").hidden=!o; rw.setAttribute("aria-expanded",String(o)); }
+  const sg=x=>(x>0?"+":x<0?"−":"")+Math.abs(Math.round(x)).toLocaleString("it-IT"), K=x=>Math.round(x).toLocaleString("it-IT");
+  const ph=P.ph; $("phTitle").textContent="Fase: "+ph.t;
+  $("phPill").className="pill "+ph.cls; $("phPill").textContent=`${sg(P.plan.pct)}%`;
+  $("phSub").textContent=`${ph.d}: circa ${sg(P.plan.d)} kcal al giorno`+(P.real&&P.real.ph.id!==ph.id? ` · in pratica: ${P.real.ph.t.toLowerCase()}` : "");
+  // barra: deficit | normocalorica | surplus
+  const bar=$("phBar"); bar.querySelectorAll(".mk").forEach(x=>x.remove());
+  const pos=pct=>Math.max(0,Math.min(100,(pct-PH_MIN)/(PH_MAX-PH_MIN)*100));
+  const mk=(pct,cls,lab)=>{ const s=el("span","mk"+(cls?" "+cls:"")); s.style.left=pos(pct)+"%"; s.appendChild(el("i",null,lab)); bar.appendChild(s); };
+  if(P.real) mk(P.real.pct,"real","mangiato");
+  mk(P.plan.pct,"","piano");
+  const box=$("phLines"); box.innerHTML="";
+  const line=(ic,t)=>{ const d=el("div","pline"); d.append(el("span","ic",ic), el("span",null,t)); box.appendChild(d); };
+  line("📋",`Piano${P.up?" (dieta caricata)":""}: in media ${K(P.plan.k)} kcal al giorno contro un mantenimento di circa ${K(P.plan.m)} kcal (fabbisogno + allenamenti) → ${sg(P.plan.d)} kcal, ${sg(P.plan.pct)}%. Fase: ${ph.t.toLowerCase()}.`);
+  if(P.goal&&!P.up) line("🎯",`Il tuo obiettivo è «${P.goal.t}»: la dieta è impostata per questo. Si cambia dal Coach.`);
+  if(P.real) line(P.real.ph.id===ph.id?"✅":"⚠️",`Quello che hai mangiato davvero (ultimi ${P.real.n} giorni registrati): in media ${K(P.real.k)} kcal contro ${K(P.real.m)} di mantenimento → ${sg(P.real.d)} kcal, ${sg(P.real.pct)}%. `+(P.real.ph.id===ph.id? "Sei nella fase giusta." : `In pratica sei in fase ${P.real.ph.t.toLowerCase()}, non ${ph.t.toLowerCase()}.`));
+  else line("🍽️","Quando avrai registrato almeno 3 giorni completi vedrai anche in che fase sei con quello che mangi davvero.");
+  if(P.weight){ const w=P.weight, pct=w.perWeek/w.last*100, verb= w.perWeek>0.05? "sale" : w.perWeek<-0.05? "scende" : "è stabile";
+    const want= ph.id==="bulk"||ph.id==="lean"? "sale" : ph.id==="normo"? "è stabile" : "scende";
+    line(verb===want?"✅":"⚠️",`Peso: ${verb}${verb==="è stabile"?"":` di ${fmt(Math.abs(w.perWeek))} kg a settimana (${pct>0?"+":""}${fmt(pct)}%)`}. `+(verb===want? "Coerente con la fase." : `Con questa fase ci si aspetta che ${want}: il mantenimento vero potrebbe essere diverso dalla stima.`)); }
+  $("phNote").textContent="Sono stime: il mantenimento è calcolato da metabolismo, attività e allenamenti. La conferma vera è l'andamento del peso nelle settimane.";
+}
 function renderDietAI(){
+  try{ renderPhaseCard(); }catch(e){ console.warn("fase",e); }
   const tg=targets(state.profile), wt=weekTargets();
   $("dietTargets").textContent = tg? `Calcolata su di te: metabolismo basale ${r(tg.bmr)} kcal (${tg.bmrSrc})${tg.fatPct?`, grasso ${fmt(tg.fatPct)}% e massa magra ${fmt(tg.lbm)} kg`:""}. Obiettivo ${goalOf(state.profile).t.toLowerCase()}: ${r(tg.kcal)} kcal nei giorni di riposo${wt&&wt.some(d=>d.train)? `, di più nei giorni di allenamento (${wt.filter(d=>d.train).map(d=>`${d.name.toLowerCase()} ${d.kind==="run"?"🏃":"🏋️"} +${r(d.kcal-tg.kcal)}`).join(", ")})`:""}, con circa ${r(tg.prot)} g di proteine. Preparo 7 giorni sui tuoi ${mealList().length} pasti.` : "Completa prima il profilo con obiettivo e dati: la dieta si basa su quelli.";
   $("makeDiet").disabled = !tg || !sample;
@@ -9639,9 +9699,10 @@ async function refreshProgress(){
   const avgK= last7.length? last7.reduce((a,d)=>a+d.kcal,0)/last7.length : null;
   const avgT= last7.length&&tg? last7.reduce((a,d)=>a+(upDayFor(d.date)? upDayTotals(upDayFor(d.date)).kcal : tg.kcal+d.burn),0)/last7.length : null;
   const avgP= last7.length? last7.reduce((a,d)=>a+d.p,0)/last7.length : null;
+  const avgM= last7.length&&tg? last7.reduce((a,d)=>a+tg.tdee+(+d.burn||0),0)/last7.length : null;   // mantenimento stimato di quei giorni (fabbisogno + allenamenti)
   const planned=trainOf(state.profile).sessions.reduce((a,s)=>a+s.days.length,0);
   const done=hist.items.filter(w=>w.date>shiftDate(todayISO(),-7)).length;
-  progress={days,logged:logged.length,last7:last7.length,avgK,avgT,avgP,protT:tg&&tg.prot,planned,done,weight:bodyTrend("weight",35),waist:bodyTrend("waist",60),fat:bodyTrend("fat",60)};
+  progress={days,logged:logged.length,last7:last7.length,avgK,avgT,avgP,avgM,protT:tg&&tg.prot,planned,done,weight:bodyTrend("weight",35),waist:bodyTrend("waist",60),fat:bodyTrend("fat",60)};
   renderProgress();
 }
 let progT; function queueProgress(){ clearTimeout(progT); progT=setTimeout(()=>refreshProgress().catch(()=>{}),1500); }
@@ -10460,7 +10521,7 @@ function progTips(wSt,kSt,pLow,tLow,pg,rg){ const T=[], gain=rg[0]>0, loss=rg[1]
   if(tLow) T.push("Hai fatto meno allenamenti del previsto: se la settimana è piena, chiedi al coach di accorciare le sedute invece di saltarle.");
   if(T.length) T.push("Per un piano preciso tocca «Analisi completa del coach».");
   return T; }
-function renderProgress(){ try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); renderHidCard(); }catch(e){ console.warn("schede diario",e); }
+function renderProgress(){ try{ renderPhaseCard(); }catch(e){} try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); renderHidCard(); }catch(e){ console.warn("schede diario",e); }
   const card=$("progCard"); if(!card) return; card.hidden=!state.profile||!goalOf(state.profile);
   { const rw=$("pgRow"); if(rw&&!rw._b){ rw._b=true; rw.onclick=()=>{ if(typeof editMode!=="undefined"&&editMode) return; const op=$("pgBody").hidden; $("pgBody").hidden=!op; rw.setAttribute("aria-expanded",String(op)); try{ localStorage.setItem("hf:pgOpen",op?"1":"0"); }catch{} }; let o=false; try{ o=localStorage.getItem("hf:pgOpen")==="1"; }catch{} $("pgBody").hidden=!o; rw.setAttribute("aria-expanded",String(o)); } }
   const pg=progress, box=$("pgLines"); box.innerHTML=""; $("pgGo").disabled=!sample||progBusy;
