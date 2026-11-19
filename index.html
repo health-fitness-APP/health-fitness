@@ -2465,7 +2465,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.17 (in Oggi «Te lo dico io»: quando rifare le misure e se serve lo scarico)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.18 (promemoria delle misure ricalcolato dopo il recupero)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -11363,7 +11363,7 @@ async function bodyRecover(manual){ const C=window.Capacitor, F=C&&C.Plugins&&C.
     bodySetVal(k,r[k],r.date); fromChat++; tapeDates.add(r.date); }); }));
   const n=add.length+filled+fromChat, nb=found.length, bd=found.map(f=>f.n.match(/\d{4}-\d\d-\d\d/)[0]).sort();
   if(!n){ if(manual) toast(`Non ho trovato altre misure: ho guardato ${nat? (nb? nb+(nb===1?" copia automatica":" copie automatiche")+" ("+bd.map(mzShortDate).join(", ")+") e " : "le copie automatiche (nessuna sul telefono) e ") : ""}la chat del coach.`,9000); return 0; }
-  bodyLoaded=true; save("body",body); bodyDate=null; try{ syncProfileFromBody(); }catch{} try{ renderAll(); }catch{}
+  bodyLoaded=true; save("body",body); bodyDate=null; try{ syncProfileFromBody(); }catch{} try{ renderAll(); }catch{} try{ notifSchedule(); }catch{}
   const td=[...tapeDates].sort().map(mzShortDate).join(", ");
   actionToast(`Ho recuperato ${n} ${n===1?"valore":"valori"}${td? " (misure col metro del "+td+")" : ""} ${[add.length+filled? "dalle copie automatiche" : "", fromChat? "dalla chat del coach" : ""].filter(Boolean).join(" e ")}`,"Vedi",()=>{ try{ go("corpo"); openMzCmp(); }catch{} },12000);
   return n; }
