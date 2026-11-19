@@ -1952,6 +1952,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <button class="icon-btn" id="bNext" aria-label="Giorno successivo">›</button>
   </div>
   <p class="sub" id="bLastDate" style="margin:0 4px 4px">Nessuna misurazione ancora.</p>
+  <button class="btn ghost" id="bRecover" type="button" hidden style="margin:4px 0 10px">♻️ Recupera le misurazioni dalle copie automatiche</button>
   <section class="card" id="bCompCard" hidden>
     <h2>La tua composizione corporea</h2>
     <div id="bComp"></div>
@@ -2454,7 +2455,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.11 (Misure del corpo subito sotto la composizione corporea)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.12 (misurazioni protette e recupero dalle copie automatiche)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3268,7 +3269,8 @@ async function initStore(){
   }catch(e){ console.warn(e); }
 }
 const chains = {};
-function save(k, v){ const copy=JSON.parse(JSON.stringify(v)); chains[k]=(chains[k]||Promise.resolve()).then(()=>store.setDoc(k,copy)); }
+function save(k, v){ if(k==="body"&&(!bodyLoaded||!(v&&v.entries&&v.entries.length))&&!window.__bodyEmptyOk){ console.warn("salvataggio misurazioni vuote bloccato"); return; }
+  const copy=JSON.parse(JSON.stringify(v)); chains[k]=(chains[k]||Promise.resolve()).then(()=>store.setDoc(k,copy)); }
 const saveDay = () => save("day-"+state.date, state.day);
 
 /* ---------- calcoli ---------- */
@@ -6079,7 +6081,7 @@ function biaCalibrated(imp,w){ const raw=biaRaw(imp,w); if(!raw) return null; co
    con questi rapporti le stime restano entro pochi decimi dal display. Le foto successive la affinano piano. */
 const BIA_SEED={"fat":{"r":0.705,"n":3},"water":{"r":1.1282,"n":3},"muscleTot":{"r":1.0752,"n":3},"bone":{"r":1.0772,"n":3},"bmr":{"r":1.0635,"n":1},"protein":{"r":0.9148,"n":1},"subfat":{"r":0.6729,"n":1},"visceral":{"r":0.729,"n":1},"muscle":{"r":1.1816,"n":1},"sfArmL":{"r":0.3487,"n":1},"smArmL":{"r":1.0407,"n":1},"sfArmR":{"r":0.3655,"n":1},"smArmR":{"r":1.0781,"n":1},"sfTrunk":{"r":0.6827,"n":1},"smTrunk":{"r":1.008,"n":1},"sfLegL":{"r":0.676,"n":1},"smLegL":{"r":1.102,"n":1},"sfLegR":{"r":0.6738,"n":1},"smLegR":{"r":1.1381,"n":1},"bodyAge":{"d":0.4,"n":3}};
 function calReset(){ if(body.calV===4) return; body.calV=4; body.cal=JSON.parse(JSON.stringify(BIA_SEED)); body.entries.forEach(e=>{ if(e.source==="screenshot") e.calUsed=true; }); }
-function calMigrate(){ if(body.calV===4) return; calReset();
+function calMigrate(){ if(body.calV===4||!bodyLoaded||!(body.entries&&body.entries.length)) return; calReset();
   body.entries.filter(e=>e.source==="bilancia"&&e.imp&&e.imp.length>=8).forEach(e=>{ try{ biaApply(e,biaCalibrated(e.imp,e.weight)); }catch{} }); save("body",body); }
 /* screenshot della bilancia (Lepulse/FitDays) nello stesso giorno di una pesata dalla bilancia -> affino la calibrazione */
 function biaLearn(shot){ const dd=(a,b)=>Math.abs((new Date(a+"T12:00:00")-new Date(b+"T12:00:00"))/864e5);
@@ -9214,7 +9216,7 @@ const METRICS=[["weight","Peso","kg"],["bmr","Metabolismo basale","kcal"],["body
 ["sfArmL","Grasso braccio sx (% std)","%","seg"],["sfArmR","Grasso braccio dx (% std)","%","seg"],["sfTrunk","Grasso tronco (% std)","%","seg"],["sfLegL","Grasso gamba sx (% std)","%","seg"],["sfLegR","Grasso gamba dx (% std)","%","seg"],
 ["smArmL","Muscoli braccio sx (% std)","%","seg"],["smArmR","Muscoli braccio dx (% std)","%","seg"],["smTrunk","Muscoli tronco (% std)","%","seg"],["smLegL","Muscoli gamba sx (% std)","%","seg"],["smLegR","Muscoli gamba dx (% std)","%","seg"]];
 function syncProfileFromBody(){ const last=latestBody(); if(state.profile&&last.weight&&state.profile.weight!==last.weight.v){ state.profile.weight=last.weight.v; save("profile",state.profile); return true; } return false; }
-let body={entries:[]}, bMetric="weight", bSource="manuale";
+let body={entries:[]}, bodyLoaded=false, bMetric="weight", bSource="manuale";
 METRICS.filter(m=>!m[3]).forEach(([k,l,u])=>{ const lab=el("label",null,l+(u?" ("+u+")":"")); const i=el("input"); i.id="b_"+k; i.type="number"; i.inputMode="decimal"; i.step="0.1"; i.min="0"; lab.appendChild(i); $("bFields").appendChild(lab); });
 const sortedEntries=()=>[...body.entries].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
 function latestBody(){ const e=sortedEntries(); const last={}; e.forEach(x=>METRICS.forEach(([k])=>{ if(x[k]!=null) last[k]={v:x[k],date:x.date}; })); return last; }
@@ -9451,7 +9453,7 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
   $("bShotBtn").hidden=!imgLimits||!sample; $("bTapeBtn").hidden=!(localStorage.getItem("hf:tapeAddr")&&HRN());
   { const nat=!!HRN(); $("bTapeSetup").hidden=!(nat&&!localStorage.getItem("hf:tapeAddr")); }
   { const hasSc=!!localStorage.getItem("hf:scaleAddr"), nat=!!HRN(); $("bScaleBtn").hidden=!(hasSc&&nat); $("bScaleNote").hidden=!(hasSc&&nat); $("bScaleSetup").hidden=!(nat&&!hasSc); try{ renderScaleAuto(); setTimeout(scaleAutoLoop,300); }catch{} }
-  const lastE=es[es.length-1];
+  const lastE=es[es.length-1]; try{ $("bRecover").hidden=!!all.length||!NAT(); }catch{}
   { const lastAll=all[all.length-1], fd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}), src=e=>e&&e.source==="screenshot"?" · da screenshot":e&&e.source==="health"?" · da Samsung Health":e&&e.source==="bilancia"?" · dalla bilancia"+(e.fatHc?" (grasso misurato, letto da Health Connect)":"")+(e.est?((body.cal&&body.cal.fat&&body.cal.fat.n)? " (composizione stimata, calibrata su Lepulse)" : " (composizione stimata: carica uno screenshot di Lepulse dello stesso giorno per calibrarla)") : ""):"";
     const cur=es[es.length-1];
     $("bLastDate").textContent = !all.length? "Nessuna misurazione ancora."
@@ -11251,6 +11253,25 @@ $("groqDel").onclick=()=>{ ["groqKey","groqVision","groqText"].forEach(k=>{ try{
 if(localStorage.getItem("hf:groqKey")) setStatus("groqStatus",`✓ Groq attivo come riserva · foto: ${(localStorage.getItem("hf:groqVision")||"–").split("/").pop()}`);
 ["mMain","mQuick"].forEach(id=>$(id).addEventListener("change",()=>{ lsSet(id,$(id).value); markDirty("aiSettings"); schedulePush(); toast("Modello aggiornato"); }));
 $("keyGo").onclick=()=>{ go("profilo"); setTimeout(()=>{ $("settingsCard").scrollIntoView({behavior:"smooth"}); $("apiKey").focus(); },100); };
+/* recupero misurazioni: legge le copie automatiche (Documenti/HealthFit o memoria dell'app) e rimette le misurazioni che mancano.
+   Automatico una volta sola (v4.12) o quando le misurazioni sono vuote; a mano dal pulsante in Corpo. Non cancella niente. */
+async function bodyRecover(manual){ const C=window.Capacitor, F=C&&C.Plugins&&C.Plugins.Filesystem; if(!F||!(C.isNativePlatform&&C.isNativePlatform())){ if(manual) toast("Il recupero dalle copie funziona nell'app del telefono. Puoi usare Profilo → Importa backup."); return 0; }
+  const empty=!body.entries.length; let done=""; try{ done=localStorage.getItem("hf:bodyRecov")||""; }catch{}
+  if(!manual&&!empty&&done) return 0;
+  const found=[];
+  for(const dir of ["DOCUMENTS","DATA"]){ try{ const ls=await F.readdir({path:"HealthFit",directory:dir}); const fs=(ls.files||[]).map(x=>typeof x==="string"? x : x.name).filter(n=>/^healthfit-backup-\d{4}-\d\d-\d\d\.json$/.test(n));
+      for(const n of fs){ try{ const r0=await F.readFile({path:"HealthFit/"+n,directory:dir,encoding:"utf8"}); const j=JSON.parse(r0.data), raw=j&&j.data&&j.data["diario:body"]; const b=raw? JSON.parse(raw) : null;
+        if(b&&Array.isArray(b.entries)&&b.entries.length) found.push({n,b}); }catch(e){ console.warn("copia "+n,e); } } }catch{} }
+  try{ localStorage.setItem("hf:bodyRecov",todayISO()); }catch{}
+  if(!found.length){ if(manual) toast("Nessuna copia automatica con misurazioni trovata"); return 0; }
+  const have=new Set(body.entries.map(e=>e.id)), key=e=>[e.date,e.source||"",e.weight||"",MZ_CIRC.map(k=>e[k]??"").join(",")].join("|"), haveK=new Set(body.entries.map(key));
+  let add=[]; found.sort((a,b)=>a.n<b.n?-1:1).forEach(({b})=>{ b.entries.forEach(e=>{ if(e&&e.date&&!have.has(e.id)&&!haveK.has(key(e))){ have.add(e.id); haveK.add(key(e)); add.push(e); } });
+    if(b.cnames&&!body.cnames) body.cnames=b.cnames; if(b.cal&&!body.cal){ body.cal=b.cal; body.calV=b.calV; } });
+  if(!add.length){ if(manual) toast("Le misurazioni ci sono già tutte ✓"); return 0; }
+  body.entries=[...body.entries,...add]; bodyLoaded=true; save("body",body); bodyDate=null; try{ syncProfileFromBody(); }catch{} try{ renderAll(); }catch{}
+  const last=found[found.length-1].n.match(/\d{4}-\d\d-\d\d/)[0];
+  actionToast(`Ho recuperato ${add.length} ${add.length===1?"misurazione":"misurazioni"} dalla copia automatica (fino al ${dateLong(last)})`,"Vedi",()=>go("corpo"),12000);
+  return add.length; }
 function backupJSON(){ const out={app:"health-fitness",version:1,date:new Date().toISOString(),data:{}};
   try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith("diario:")) out.data[k]=localStorage.getItem(k); } }catch{}
   return out; }
@@ -11344,6 +11365,7 @@ $("syncNow").onclick=async()=>{ $("syncNow").disabled=true; setStatus("syncStatu
   try{ const n=await pull(); renderSync(); if(n) await loadAll(); setStatus("syncStatus", n?`Aggiornati ${n} elementi.`:"Tutto già aggiornato ✓"); }
   catch(e){ setStatus("syncStatus",syncErr(e),true); } finally{ $("syncNow").disabled=false; } };
 $("syncOut").onclick=async()=>{ try{ await SY.client.auth.signOut(); }catch{} SY.user=null; renderSync(); setStatus("syncStatus","Disconnesso. I dati restano anche su questo dispositivo."); };
+$("bRecover").onclick=async()=>{ const b=$("bRecover"); b.disabled=true; try{ await bodyRecover(true); }catch(e){ toast("Recupero non riuscito: "+((e&&e.message)||e)); } finally{ b.disabled=false; } };
 $("bkImport").onclick=()=>$("bkFile").click();
 $("bkFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
   try{ const j=JSON.parse(await f.text()); if(!j||j.app!=="health-fitness"||!j.data) throw 0;
@@ -12055,7 +12077,8 @@ async function loadAll(){
   const fd=await store.getDoc("foods"); foods={favs:(fd&&fd.favs)||[],recents:(fd&&fd.recents)||[],saved:(fd&&fd.saved)||[],barcodes:(fd&&fd.barcodes)||{},custom:(fd&&fd.custom)||[]};
   const [p,diet,prog,ch]=await Promise.all([store.getDoc("profile"),store.getDoc("diet"),store.getDoc("program"),store.getDoc("coach")]);
   if(ch&&Array.isArray(ch.turns)) chat=ch;
-  const bd=await store.getDoc("body"); if(bd&&Array.isArray(bd.entries)) body=bd;
+  const bd=await store.getDoc("body"); if(bd&&Array.isArray(bd.entries)) body=bd; bodyLoaded=true;
+  setTimeout(()=>{ bodyRecover(false).catch(e=>console.warn("recupero misure",e)); },1500);
   uploaded=await store.getDoc("dietUploaded");
   const hh=await store.getDoc("workoutHistory"); if(hh&&Array.isArray(hh.items)) hist=hh; else await backfillHistory();
   const pn=await store.getDoc("pantry"); if(pn&&Array.isArray(pn.items)) pantry={items:pn.items,batches:pn.batches||[],staples:pn.staples||[],outToday:pn.outToday||null};
