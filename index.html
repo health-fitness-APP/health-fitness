@@ -1305,7 +1305,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .mzhow .tx{flex:1;font-size:14px;line-height:1.4}.mzhow .tx p{margin:0}.mzhow .tx .h{font-weight:700;margin-bottom:4px}
 .mzadv{margin-top:12px;background:var(--surface2);border:1px solid var(--line);border-radius:16px;padding:12px}
 .mzadv .h{font-weight:700;margin:0 0 6px}.mzadv .r{display:flex;gap:8px;font-size:14px;line-height:1.4;margin:6px 0}.mzadv .r .i{flex:0 0 auto}.mzadv .note{margin:8px 2px 0}
-.mzhist{margin-top:16px}.mzhist .h{font-weight:700;margin:0 0 6px}.mzhrow{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:6px 0;font:inherit;color:var(--ink);cursor:pointer}.mzhrow span{font-size:13px;color:var(--muted)}
+.mzsec{font-weight:700;margin:16px 0 2px}.mzexp{margin:2px 0 4px}.mzhrow.on{border-color:var(--accent,#E8833A)}.mzhist{margin-top:16px}.mzhist .h{font-weight:700;margin:0 0 6px}.mzhrow{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:6px 0;font:inherit;color:var(--ink);cursor:pointer}.mzhrow span{font-size:13px;color:var(--muted)}
 .mzcmp{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}.mzcmp th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:4px 6px;border-bottom:1px solid var(--line)}.mzcmp th:first-child,.mzcmp td:first-child{text-align:left}
 .mzcmp td{padding:7px 6px;border-bottom:1px solid var(--line)}.mzcmp td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .binfo{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:var(--basil-soft);font-size:14px;line-height:1.45}
@@ -2458,7 +2458,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.14 (storico e confronto delle misure in cima, anche con i dati della bilancia)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.15 (confronto misure: date giuste, cm e % separati, ricerca delle misure perse)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3151,7 +3151,7 @@ const r = n => Math.round(n);
 const uid = () => Math.random().toString(36).slice(2,10);
 function actionToast(text,label,fn,ms){ const b=$("actToast"); $("actToastT").textContent=text; $("actToastB").textContent=label;
   $("actToastB").onclick=()=>{ b.hidden=true; fn(); }; $("actToastX").onclick=()=>{ b.hidden=true; }; b.hidden=false; clearTimeout(actionToast.t); actionToast.t=setTimeout(()=>{ b.hidden=true; },ms||12000); }
-function toast(t){ const el=$("toast"); el.textContent=t; el.classList.add("show"); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove("show"),2400); }
+function toast(t,ms){ const el=$("toast"); el.textContent=t; el.classList.add("show"); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove("show"),ms||2400); }
 function todayISO(d=new Date()){ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); }
 function shiftDate(iso,n){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return todayISO(d); }
 function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
@@ -9384,29 +9384,40 @@ function mzKeyLabel(k){ if(CKEYS.includes(k)) return cLabel(k); const g=MZ_SEG.f
 function mzDates(es){ es=es||sortedEntries(); return [...new Set(es.filter(x=>mzAllKeys().some(k=>x[k]!=null)).map(x=>x.date))].sort(); }
 function mzAt(es,k,iso){ let r=null; es.forEach(x=>{ if(x.date<=iso&&x[k]!=null) r={v:x[k],date:x.date}; }); return r; }
 function openMzCmp(){ const es=sortedEntries(), ds=mzDates(es); if(!ds.length){ toast("Non ci sono ancora misure: tocca una parte del corpo per inserirla"); return; }
-  const fill=(id,sel)=>{ const s0=$(id); s0.innerHTML=""; [...ds].reverse().forEach(d=>{ const o=document.createElement("option"); o.value=d; o.textContent=new Date(d+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short",year:"numeric"}); s0.appendChild(o); }); s0.value=sel; };
-  const B0=ds[ds.length-1], back=ds.filter(d=>d<=shiftDate(B0,-14)); fill("mzCmpA", back.length? back[back.length-1] : ds[0]); fill("mzCmpB",B0); renderMzCmp(); openSheet("mzCmpSheet"); }
-function renderMzCmp(){ const es=sortedEntries(), a=$("mzCmpA").value, b=$("mzCmpB").value, box=$("mzCmpBox"); box.innerHTML="";
+  const fill=id=>{ const s0=$(id); s0.innerHTML=""; [...ds].reverse().forEach(d=>{ const o=document.createElement("option"); o.value=d; o.textContent=new Date(d+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short",year:"numeric"}); s0.appendChild(o); }); };
+  fill("mzCmpA"); fill("mzCmpB");
+  // di base: Dopo = l'ultima data, Prima = la penultima
+  $("mzCmpB").value=ds[ds.length-1]; $("mzCmpA").value=ds[Math.max(0,ds.length-2)]; renderMzCmp(); openSheet("mzCmpSheet"); }
+function renderMzCmp(){ const es=sortedEntries(), ds=mzDates(es), a=$("mzCmpA").value, b=$("mzCmpB").value, box=$("mzCmpBox"); box.innerHTML="";
   const A= a<=b? a : b, B= a<=b? b : a, days=Math.round((new Date(B)-new Date(A))/864e5);
-  const rows=mzAllKeys().map(k=>({k,lab:mzKeyLabel(k),u:MZ_SEGK.includes(k)?"%":"",x:mzAt(es,k,A),y:mzAt(es,k,B)})).filter(r=>r.x||r.y);
-  if(!rows.length){ box.appendChild(el("p","note","Nessuna misura in queste date.")); return; }
-  const t=document.createElement("table"); t.className="mzcmp";
-  t.innerHTML=`<thead><tr><th>Parte</th><th>${mzShortDate(A)}</th><th>${mzShortDate(B)}</th><th>Diff.</th></tr></thead>`;
-  const tb=document.createElement("tbody"); let old=false;
-  rows.forEach(r=>{ const tr=document.createElement("tr"), cell=(o,d)=>{ if(!o) return "—"; const st=o.date!==d; if(st) old=true; return fmt(o.v)+r.u+(st?"*":""); };
-    let diff="", col="";
-    if(r.x&&r.y&&r.x.date!==r.y.date){ const d=Math.round((r.y.v-r.x.v)*10)/10; diff= d===0? "=" : (d>0?"+":"−")+fmt(Math.abs(d));
-      if(Math.abs(d)>=0.5&&!CKEYS.includes(r.k)){ const good= (MZ_DOWN_GOOD.includes(r.k)||/^sf/.test(r.k))? d<0 : d>0; col= good? "var(--good,#3BAA5C)" : "var(--warn)"; } }
-    tr.innerHTML=`<td></td><td class="n">${cell(r.x,A)}</td><td class="n">${cell(r.y,B)}</td><td class="n"><b style="${col?"color:"+col:""}">${diff}</b></td>`; tr.firstChild.textContent=r.lab; tb.appendChild(tr); });
-  t.appendChild(tb); box.appendChild(t);
-  if(A===B) box.appendChild(el("p","note","C'è una sola data con misure: quando ne prenderai altre potrai confrontarle qui."));
-  const hs=el("div","mzhist"); hs.appendChild(el("p","h","🗓 Tutte le misurazioni"));
-  [...mzDates(es)].reverse().forEach(d=>{ const x=es.filter(e=>e.date===d), n1=MZ_CIRC.concat(CKEYS).filter(k=>x.some(e=>e[k]!=null)).length, n2=MZ_SEG.filter(([k])=>x.some(e=>e["sf"+k]!=null||e["sm"+k]!=null)).length;
-    const b=el("button","mzhrow"); b.type="button"; b.append(el("b",null,new Date(d+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"long",year:"numeric"})), el("span",null,[n1? n1+(n1===1?" misura col metro":" misure col metro") : "", n2? "analisi segmentale della bilancia" : ""].filter(Boolean).join(" · ")));
-    b.onclick=()=>{ $("mzCmpB").value=d; const o=[...mzDates(es)].filter(z=>z<d); $("mzCmpA").value= o.length? o[o.length-1] : d; renderMzCmp(); $("mzCmpSheet").querySelector(".sheet-inner").scrollTop=0; };
+  const rows=mzAllKeys().map(k=>({k,lab:mzKeyLabel(k),seg:MZ_SEGK.includes(k),x:mzAt(es,k,A),y:mzAt(es,k,B)})).filter(r=>r.x||r.y);
+  if(A===B) box.appendChild(el("p","note", ds.length>1? "Prima e Dopo hanno la stessa data: scegli due date diverse qui sopra per vedere le differenze." : "C'è una sola data con misure: quando ne prenderai altre potrai confrontarle qui."));
+  let old=false;
+  const table=(list,u,title,expl)=>{ if(!list.length) return; box.appendChild(el("p","mzsec",title)); if(expl) box.appendChild(el("p","note mzexp",expl));
+    const t=document.createElement("table"); t.className="mzcmp";
+    t.innerHTML=`<thead><tr><th>Parte</th><th>${mzShortDate(A)}</th><th>${mzShortDate(B)}</th><th>Diff.</th></tr></thead>`;
+    const tb=document.createElement("tbody");
+    list.forEach(r=>{ const tr=document.createElement("tr"), cell=(o,d)=>{ if(!o) return "—"; const st=o.date!==d; if(st) old=true; return fmt(o.v)+u+(st?"*":""); };
+      let diff="", col="";
+      if(r.x&&r.y&&r.x.date!==r.y.date){ const d=Math.round((r.y.v-r.x.v)*10)/10; diff= d===0? "=" : (d>0?"+":"−")+fmt(Math.abs(d))+u;
+        if(Math.abs(d)>=0.5&&!CKEYS.includes(r.k)){ const good= (MZ_DOWN_GOOD.includes(r.k)||/^sf/.test(r.k))? d<0 : d>0; col= good? "var(--good,#3BAA5C)" : "var(--warn)"; } }
+      tr.innerHTML=`<td></td><td class="n">${cell(r.x,A)}</td><td class="n">${cell(r.y,B)}</td><td class="n"><b style="${col?"color:"+col:""}">${diff}</b></td>`; tr.firstChild.textContent=r.lab.replace(/ · /," – "); tb.appendChild(tr); });
+    t.appendChild(tb); box.appendChild(t); };
+  const tape=rows.filter(r=>!r.seg), seg=rows.filter(r=>r.seg);
+  if(!rows.length) box.appendChild(el("p","note","Nessuna misura in queste date."));
+  table(tape," cm","📏 Misure col metro (centimetri)");
+  if(!tape.length&&seg.length) box.appendChild(el("p","note mzexp","📏 Misure col metro: in queste date non ce ne sono. Toccando una parte del corpo nella pagina Corpo puoi prenderle."));
+  table(seg,"%","⚖️ Analisi segmentale della bilancia (percentuali, non centimetri)","Questi numeri non sono misure in cm: dicono quanto grasso (G) e quanto muscolo (M) hai in quella zona rispetto al valore normale per la tua altezza e il tuo peso. 100% = nella norma; per esempio muscolo 110% = 10% in più del normale, grasso 50% = metà del normale.");
+  const hs=el("div","mzhist"); hs.appendChild(el("p","h","🗓 Tutte le misurazioni (tocca una data per confrontarla con quella prima)"));
+  [...ds].reverse().forEach(d=>{ const x=es.filter(e=>e.date===d), n1=MZ_CIRC.concat(CKEYS).filter(k=>x.some(e=>e[k]!=null)).length, n2=MZ_SEG.filter(([k])=>x.some(e=>e["sf"+k]!=null||e["sm"+k]!=null)).length;
+    const b=el("button","mzhrow"+(d===A||d===B?" on":"")); b.type="button"; b.append(el("b",null,new Date(d+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"long",year:"numeric"})), el("span",null,[n1? n1+(n1===1?" misura col metro (cm)":" misure col metro (cm)") : "", n2? "analisi segmentale della bilancia (%)" : ""].filter(Boolean).join(" · ")));
+    b.onclick=()=>{ const i=ds.indexOf(d); if(i>0){ $("mzCmpB").value=d; $("mzCmpA").value=ds[i-1]; } else { $("mzCmpA").value=d; $("mzCmpB").value=ds[Math.min(ds.length-1,1)]; } renderMzCmp(); $("mzCmpSheet").querySelector(".sheet-inner").scrollTop=0; };
     hs.appendChild(b); });
   box.appendChild(hs);
-  if(A!==B) box.appendChild(el("p","note",`${days} giorni tra le due misurazioni. Verde = cambiamento buono (vita, addome, fianchi e collo che scendono; muscoli che crescono), rosso = il contrario. Sotto 0,5 cm la differenza può dipendere solo da come tieni il metro.${old?" * = misura non presa quel giorno: è l'ultima presa prima.":""}`)); }
+  if(A!==B) box.appendChild(el("p","note",`${days} giorni tra le due misurazioni. Verde = cambiamento buono (vita, addome, fianchi, collo e grasso che scendono; muscoli che crescono), rosso = il contrario. Col metro sotto 0,5 cm la differenza può dipendere solo da come lo tieni.${old?" * = valore non preso quel giorno: è l'ultimo preso prima.":""}`));
+  const rb=el("button","btn ghost","🔎 Mancano delle misure? Cercale nelle copie"); rb.type="button"; rb.style.marginTop="12px";
+  rb.onclick=async()=>{ rb.disabled=true; rb.textContent="Cerco…"; try{ const n=await bodyRecover(true); if(n) openMzCmp(); }catch(e){ toast("Ricerca non riuscita: "+((e&&e.message)||e)); } finally{ rb.disabled=false; rb.textContent="🔎 Mancano delle misure? Cercale nelle copie"; } };
+  box.appendChild(rb); }
 $("mzCmpA").onchange=renderMzCmp; $("mzCmpB").onchange=renderMzCmp; $("bMzCmp").onclick=openMzCmp;
 function renderMzAdv(es){ const box=$("bMzAdv"), tips=mzAdvice(es); box.hidden=!tips.length; box.innerHTML=""; if(!tips.length) return;
   box.appendChild(el("p","h","📋 Il parere sulle tue misure"));
@@ -9507,7 +9518,7 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
   const prevOf=k=>{ const v=es.filter(x=>x[k]!=null); return v.length>1? v[v.length-2][k] : null; };
   const zc=v=> v==null? "" : v<90? "var(--c3)" : v>110? "var(--c2)" : "var(--basil)";
   const segHtml=sk=>{ if(!sk) return ""; const f=lastOf("sf"+sk), m=lastOf("sm"+sk); if(f==null&&m==null) return ""; const sd=(last["sf"+sk]||last["sm"+sk]||{}).date;
-    return `${sd?`<div class="d">bilancia ${mzShortDate(sd)}</div>`:""}<div class="sg">${f!=null?`<span>G <b>${fmt(f)}%</b></span>`:""}${m!=null?`<span>M <b style="color:${zc(m)}">${fmt(m)}%</b></span>`:""}</div>`; };
+    return `${sd?`<div class="d">bilancia ${mzShortDate(sd)} · % sul normale</div>`:""}<div class="sg">${f!=null?`<span>G <b>${fmt(f)}%</b></span>`:""}${m!=null?`<span>M <b style="color:${zc(m)}">${fmt(m)}%</b></span>`:""}</div>`; };
   const tile=(label,k,alt,sk)=>{ const key=lastOf(k)!=null? k : (alt&&lastOf(alt)!=null? alt : k); const v=lastOf(key), pv=prevOf(key);
     const b=el("button","btile"+(v==null&&!segHtml(sk)?" empty":"")); b.type="button";
     const dd= v!=null&&pv!=null? Math.round((v-pv)*10)/10 : null, dt= v!=null&&last[key]? mzShortDate(last[key].date) : "";
@@ -9521,7 +9532,7 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
   const anyCm=cms.some(k=>lastOf(k)!=null), anySeg=segKeys.some(k=>lastOf("sf"+k)!=null||lastOf("sm"+k)!=null);
   applyCNames(); $("bCircCard").hidden=false;
   $("bSegLg").hidden=!anySeg;
-  $("bMapSub").textContent= (anySeg? "Circonferenze e analisi segmentale. " : "")+"Tocca una misura per inserirla"+(localStorage.getItem("hf:tapeAddr")&&HRN()? ", anche con il metro," : "")+" o vederne l'andamento.";
+  $("bMapSub").textContent= (anySeg? "I numeri in cm sono le misure col metro. G e M in % vengono dalla bilancia: non sono centimetri, sono il grasso e il muscolo di quella zona rispetto al normale per altezza e peso (100% = nella norma). " : "")+"Tocca una misura per inserirla"+(localStorage.getItem("hf:tapeAddr")&&HRN()? ", anche con il metro," : "")+" o vederne l'andamento.";
   {
     const map=$("bMap"); map.innerHTML="";
     const L=el("div","col"), C=el("div"), R=el("div","col");
@@ -11288,23 +11299,37 @@ if(localStorage.getItem("hf:groqKey")) setStatus("groqStatus",`✓ Groq attivo c
 $("keyGo").onclick=()=>{ go("profilo"); setTimeout(()=>{ $("settingsCard").scrollIntoView({behavior:"smooth"}); $("apiKey").focus(); },100); };
 /* recupero misurazioni: legge le copie automatiche (Documenti/HealthFit o memoria dell'app) e rimette le misurazioni che mancano.
    Automatico una volta sola (v4.12) o quando le misurazioni sono vuote; a mano dal pulsante in Corpo. Non cancella niente. */
-async function bodyRecover(manual){ const C=window.Capacitor, F=C&&C.Plugins&&C.Plugins.Filesystem; if(!F||!(C.isNativePlatform&&C.isNativePlatform())){ if(manual) toast("Il recupero dalle copie funziona nell'app del telefono. Puoi usare Profilo → Importa backup."); return 0; }
-  const empty=!body.entries.length; let done=""; try{ done=localStorage.getItem("hf:bodyRecov")||""; }catch{}
+/* misure col metro scritte nella chat del coach («Ho preso le misure del corpo con il metro: Vita 85 cm, …»): servono a recuperarle se sono sparite */
+function mzFromChat(c,cn){ const out=[], lab=k=>CKEYS.includes(k)? ((cn&&cn[k])||cLabel(k)) : mzLabel(k), pairs=MZ_CIRC.concat(CKEYS).map(k=>[k,lab(k).toLowerCase()]);
+  ((c&&c.turns)||[]).forEach(t=>{ if(!t||t.role!=="user"||!/^\d{4}-\d\d-\d\d$/.test(t.d||"")) return; const m=String(t.content||"").match(/misure del corpo con il metro:\s*([\s\S]*?)\.\s*Che ne pensi/i); if(!m) return;
+    const e={date:t.d}; let n=0; m[1].split(/,\s+(?=\D)/).forEach(part=>{ const mm=part.trim().match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*cm/i); if(!mm) return; const f=pairs.find(([,l])=>l===mm[1].trim().toLowerCase()); const v=+mm[2].replace(",",".");
+      if(f&&isFinite(v)&&v>0&&v<300){ e[f[0]]=v; n++; } }); if(n) out.push(e); });
+  return out; }
+async function bodyRecover(manual){ const C=window.Capacitor, F=C&&C.Plugins&&C.Plugins.Filesystem, nat=!!(F&&C.isNativePlatform&&C.isNativePlatform());
+  const empty=!body.entries.length; let done=""; try{ done=localStorage.getItem("hf:bodyRecov2")||""; }catch{}
   if(!manual&&!empty&&done) return 0;
-  const found=[];
-  for(const dir of ["DOCUMENTS","DATA"]){ try{ const ls=await F.readdir({path:"HealthFit",directory:dir}); const fs=(ls.files||[]).map(x=>typeof x==="string"? x : x.name).filter(n=>/^healthfit-backup-\d{4}-\d\d-\d\d\.json$/.test(n));
+  const found=[], chats=[{n:"chat",c:chat,cn:body.cnames}];
+  if(nat) for(const dir of ["DOCUMENTS","DATA"]){ try{ const ls=await F.readdir({path:"HealthFit",directory:dir}); const fs=(ls.files||[]).map(x=>typeof x==="string"? x : x.name).filter(n=>/^healthfit-backup-\d{4}-\d\d-\d\d\.json$/.test(n));
       for(const n of fs){ try{ const r0=await F.readFile({path:"HealthFit/"+n,directory:dir,encoding:"utf8"}); const j=JSON.parse(r0.data), raw=j&&j.data&&j.data["diario:body"]; const b=raw? JSON.parse(raw) : null;
-        if(b&&Array.isArray(b.entries)&&b.entries.length) found.push({n,b}); }catch(e){ console.warn("copia "+n,e); } } }catch{} }
-  try{ localStorage.setItem("hf:bodyRecov",todayISO()); }catch{}
-  if(!found.length){ if(manual) toast("Nessuna copia automatica con misurazioni trovata"); return 0; }
-  const have=new Set(body.entries.map(e=>e.id)), key=e=>[e.date,e.source||"",e.weight||"",MZ_CIRC.map(k=>e[k]??"").join(",")].join("|"), haveK=new Set(body.entries.map(key));
-  let add=[]; found.sort((a,b)=>a.n<b.n?-1:1).forEach(({b})=>{ b.entries.forEach(e=>{ if(e&&e.date&&!have.has(e.id)&&!haveK.has(key(e))){ have.add(e.id); haveK.add(key(e)); add.push(e); } });
+        if(b&&Array.isArray(b.entries)) found.push({n,b}); const rc=j&&j.data&&j.data["diario:coach"]; if(rc) try{ chats.push({n,c:JSON.parse(rc),cn:b&&b.cnames}); }catch{} }catch(e){ console.warn("copia "+n,e); } } }catch{} }
+  try{ localStorage.setItem("hf:bodyRecov",todayISO()); localStorage.setItem("hf:bodyRecov2",todayISO()); }catch{}
+  const TK=MZ_CIRC.concat(CKEYS), byId=new Map(body.entries.map(e=>[e.id,e])), key=e=>[e.date,e.source||"",e.weight||"",TK.map(k=>e[k]??"").join(",")].join("|"), haveK=new Set(body.entries.map(key));
+  let add=[], filled=0, fromChat=0; const tapeDates=new Set();
+  found.sort((a,b)=>a.n<b.n?-1:1).forEach(({b})=>{ (b.entries||[]).forEach(e=>{ if(!e||!e.date) return; const ex=byId.get(e.id);
+      if(ex){ TK.forEach(k=>{ if(e[k]!=null&&ex[k]==null){ ex[k]=e[k]; filled++; tapeDates.add(e.date); } }); return; }   // stessa misurazione: rimetto le misure col metro che mancano
+      if(!haveK.has(key(e))){ byId.set(e.id,e); haveK.add(key(e)); add.push(e); if(TK.some(k=>e[k]!=null)) tapeDates.add(e.date); } });
     if(b.cnames&&!body.cnames) body.cnames=b.cnames; if(b.cal&&!body.cal){ body.cal=b.cal; body.calV=b.calV; } });
-  if(!add.length){ if(manual) toast("Le misurazioni ci sono già tutte ✓"); return 0; }
-  body.entries=[...body.entries,...add]; bodyLoaded=true; save("body",body); bodyDate=null; try{ syncProfileFromBody(); }catch{} try{ renderAll(); }catch{}
-  const last=found[found.length-1].n.match(/\d{4}-\d\d-\d\d/)[0];
-  actionToast(`Ho recuperato ${add.length} ${add.length===1?"misurazione":"misurazioni"} dalla copia automatica (fino al ${dateLong(last)})`,"Vedi",()=>go("corpo"),12000);
-  return add.length; }
+  if(add.length) body.entries=[...body.entries,...add];
+  // dalla chat del coach: solo le parti che in quella data non hanno già un valore
+  chats.forEach(({c,cn})=>mzFromChat(c,cn).forEach(r=>{ Object.keys(r).forEach(k=>{ if(k==="date") return; if(body.entries.some(e=>e.date===r.date&&e[k]!=null)) return;
+    if(body.entries.some(e=>e[k]!=null&&Math.abs(e[k]-r[k])<0.05&&e.date<=r.date)) return;   // è la stessa misura già presente (presa prima)
+    bodySetVal(k,r[k],r.date); fromChat++; tapeDates.add(r.date); }); }));
+  const n=add.length+filled+fromChat, nb=found.length, bd=found.map(f=>f.n.match(/\d{4}-\d\d-\d\d/)[0]).sort();
+  if(!n){ if(manual) toast(`Non ho trovato altre misure: ho guardato ${nat? (nb? nb+(nb===1?" copia automatica":" copie automatiche")+" ("+bd.map(mzShortDate).join(", ")+") e " : "le copie automatiche (nessuna sul telefono) e ") : ""}la chat del coach.`,9000); return 0; }
+  bodyLoaded=true; save("body",body); bodyDate=null; try{ syncProfileFromBody(); }catch{} try{ renderAll(); }catch{}
+  const td=[...tapeDates].sort().map(mzShortDate).join(", ");
+  actionToast(`Ho recuperato ${n} ${n===1?"valore":"valori"}${td? " (misure col metro del "+td+")" : ""} ${[add.length+filled? "dalle copie automatiche" : "", fromChat? "dalla chat del coach" : ""].filter(Boolean).join(" e ")}`,"Vedi",()=>{ try{ go("corpo"); openMzCmp(); }catch{} },12000);
+  return n; }
 function backupJSON(){ const out={app:"health-fitness",version:1,date:new Date().toISOString(),data:{}};
   try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith("diario:")) out.data[k]=localStorage.getItem(k); } }catch{}
   return out; }
