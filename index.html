@@ -1305,6 +1305,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .mzhow .tx{flex:1;font-size:14px;line-height:1.4}.mzhow .tx p{margin:0}.mzhow .tx .h{font-weight:700;margin-bottom:4px}
 .mzadv{margin-top:12px;background:var(--surface2);border:1px solid var(--line);border-radius:16px;padding:12px}
 .mzadv .h{font-weight:700;margin:0 0 6px}.mzadv .r{display:flex;gap:8px;font-size:14px;line-height:1.4;margin:6px 0}.mzadv .r .i{flex:0 0 auto}.mzadv .note{margin:8px 2px 0}
+.chk-card{padding:12px 12px 4px}.chk-h{font-weight:700;margin:2px 4px 8px}.chk-row{background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:11px 12px}.chk-row .ms{display:block;font-size:13px;color:var(--muted);margin-top:2px}.chk-row.due{border-color:var(--basil);background:var(--basil-soft)}.chk-row.on{border-color:var(--basil)}
 .mdd{position:relative;margin-top:10px}.mdd-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border-radius:16px;border:1px solid var(--line);background:var(--surface-solid);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-shadow:0 2px 10px rgba(60,30,10,.06)}
 .mdd-btn .t{flex:1;min-width:0;display:flex;flex-direction:column}.mdd-btn small{font-size:12px;color:var(--muted)}.mdd-btn b{font-size:16px}.mdd-btn .v{font-weight:700;color:var(--basil);white-space:nowrap}.mdd-btn .chev{color:var(--muted);transition:transform .2s}.mdd-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
 .mdd-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;max-height:320px;overflow:auto;padding:6px;border-radius:16px;border:1px solid var(--line);background:var(--surface-solid);box-shadow:0 12px 32px rgba(40,20,10,.18)}
@@ -1379,6 +1380,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   <section class="card" id="fatigueCard" hidden></section>
   <section class="card" id="painWarnCard" hidden></section>
   <section class="card" id="deloadCard" hidden></section>
+  <section class="card chk-card" id="chkCard" hidden></section>
   <section class="card" id="suppCard" hidden></section>
   <button class="card raceRow" id="rsRow" type="button"><span class="mi">🍽</span><span class="mt"><b>I miei ristoranti e bar</b><span class="ms" id="rsRowSub"></span></span><span class="chev">›</span></button>
   <section class="card" id="nightCard" hidden></section>
@@ -2463,7 +2465,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.16 (andamento del corpo: scelta della voce con una tendina)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.17 (in Oggi «Te lo dico io»: quando rifare le misure e se serve lo scarico)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9346,7 +9348,7 @@ function renderRatios(w,h){ const box=$("bRatios"), p=state.profile||{}, f=p.sex
 const MZ_CIRC=["neck","shoulders","chest","waist","abdomen","hips","armL","armR","arm","forearm","thighL","thighR","thigh","calfL","calfR","calf"];
 const MZ_EVERY=14, MZ_AT="06:00"; // orario del promemoria scelto da Daniele
 function mzLastDate(es){ es=es||sortedEntries(); let d=null; es.forEach(x=>{ if(MZ_CIRC.some(k=>x[k]!=null)&&(!d||x.date>d)) d=x.date; }); return d; }
-function mzNext(es){ const d=mzLastDate(es); return d? shiftDate(d,MZ_EVERY) : null; }
+function mzNext(es){ const d=mzLastDate(es); return d? shiftDate(d,MZ_EVERY) : todayISO(); }   // senza misure col metro: vanno prese subito
 function mzLabel(k){ const m=METRICS.find(x=>x[0]===k); return m? m[1] : k; }
 function mzLastPrev(es,k){ const v=es.filter(x=>x[k]!=null); if(!v.length) return null; const L=v[v.length-1];
   // confronto con la misura più recente fatta almeno 14 giorni prima (al massimo ~10 settimane)
@@ -10432,6 +10434,31 @@ function deloadDue(){ const d=deloadGet(), last=d.week||d.skip||"", first=(tlog.
   const since=Math.floor((new Date(mondayOf(todayISO())+"T12:00:00")-new Date(mondayOf(last||first)+"T12:00:00"))/(7*864e5));
   if(deloadOn()) return null; const sig=deloadSignals(); if(since>=4&&sig.length) return {since,sig}; if(since>=6&&tlog.sessions.filter(s=>s.date>=shiftDate(todayISO(),-28)).length>=8) return {since,sig:["sono passate "+since+" settimane dall'ultimo scarico"]}; return null; }
 function deloadText(){ return deloadOn()? "SETTIMANA DI SCARICO IN CORSO (decisa dalla persona): palestra con una serie in meno e carichi -10%, corse più corte (circa -25%) e senza lavori duri, salvo quanto previsto dal piano gara." : ""; }
+/* «Te lo dico io»: sempre in Oggi, quando rifare le misure del corpo e se serve la settimana di scarico */
+function renderChkCard(){ const card=$("chkCard"); if(!card) return; card.hidden=true; if(view!=="diario"||state.date!==todayISO()) return; card.innerHTML="";
+  card.appendChild(el("p","chk-h","📋 Te lo dico io"));
+  const row=(ic,t,sub,cls,fn)=>{ const b=el("button","raceRow chk-row"+(cls?" "+cls:"")); b.type="button"; b.innerHTML=`<span class="mi"></span><span class="mt"><b></b><span class="ms"></span></span><span class="chev">›</span>`;
+    b.querySelector(".mi").textContent=ic; b.querySelector("b").textContent=t; b.querySelector(".ms").textContent=sub; b.onclick=fn; card.appendChild(b); };
+  // misure col metro
+  { const es=sortedEntries(), last=mzLastDate(es), nx=mzNext(es), late=Math.round((new Date(todayISO())-new Date(nx))/864e5), now=new Date(), am=now.getHours()<9;
+    const when= am? "stamattina, prima di colazione" : "domattina, prima di colazione";
+    const fdN=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+    let t, sub, cls="";
+    if(!last){ t="Misure del corpo: da prendere"; sub=`Non ho misure col metro: prendile ${when}. Poi te le ricordo ogni 2 settimane.`; cls="due"; }
+    else if(late>0){ t="Misure del corpo: da rifare"; sub=`Andavano rifatte ${late===1?"ieri":"da "+late+" giorni"}: prendile ${when}.`; cls="due"; }
+    else if(late===0){ t="Misure del corpo: oggi"; sub=`Oggi è il giorno: ${am? "adesso, prima di colazione" : "se non hai ancora mangiato, ora; se no domattina"}.`; cls="due"; }
+    else { t="Misure del corpo: prossime "+fdN(nx); sub=`Ultime il ${dateLong(last)} · ogni 2 settimane, la mattina a digiuno.`; }
+    row("📏",t,sub,cls,()=>{ go("corpo"); setTimeout(()=>{ const c=$("bCircCard"); if(c){ c.classList.remove("folded"); c.scrollIntoView({behavior:"smooth",block:"start"}); } },250); }); }
+  // settimana di scarico
+  { let t, sub, cls="";
+    if(deloadOn()){ t="Settimana di scarico: in corso"; sub="Palestra una serie in meno e carichi -10%, corse più corte e senza lavori duri."; cls="on"; }
+    else { const due=deloadDue(), d=deloadGet(), last=d.week||"";
+      const ago= last? Math.floor((new Date(mondayOf(todayISO())+"T12:00:00")-new Date(mondayOf(last)+"T12:00:00"))/(7*864e5)) : null;
+      if(due){ t="Settimana di scarico: ti serve"; sub="Ho visto: "+due.sig.join(", ")+". Tocca per decidere."; cls="due"; }
+      else { t="Settimana di scarico: non serve adesso"; const sig=deloadSignals();
+        sub=(sig.length? "Tengo d'occhio: "+sig.join(", ")+". " : "Fatica, sonno, battito e carichi sono a posto. ")+(ago!=null? `Ultimo scarico ${ago===0?"questa settimana":ago===1?"una settimana fa":ago+" settimane fa"}. ` : "")+"Ricontrollo ogni giorno."; } }
+    row("🔋",t,sub,cls,()=>{ try{ localStorage.removeItem("hf:deloadSeen"); }catch{} renderDeloadCard(); const c=$("deloadCard"); if(c&&!c.hidden) c.scrollIntoView({behavior:"smooth",block:"center"}); else toast("Per ora non serve: te lo dico io quando servirà",3500); }); }
+  card.hidden=false; }
 function renderDeloadCard(){ const card=$("deloadCard"); if(!card) return; card.hidden=true; if(view!=="diario"||state.date!==todayISO()) return; card.innerHTML="";
   if(deloadOn()){ card.hidden=false; const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"🔋 Settimana di scarico")); card.appendChild(hd);
     card.appendChild(el("p","note","Questa settimana: in palestra una serie in meno per esercizio e carichi un po' più bassi (li preparo io in seduta), corse più corte di circa un quarto e senza ripetute. La settimana dopo riparti più forte."));
@@ -10578,7 +10605,7 @@ function progTips(wSt,kSt,pLow,tLow,pg,rg){ const T=[], gain=rg[0]>0, loss=rg[1]
   if(tLow) T.push("Hai fatto meno allenamenti del previsto: se la settimana è piena, chiedi al coach di accorciare le sedute invece di saltarle.");
   if(T.length) T.push("Per un piano preciso tocca «Analisi completa del coach».");
   return T; }
-function renderProgress(){ try{ renderPhaseCard(); }catch(e){} try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); renderHidCard(); }catch(e){ console.warn("schede diario",e); }
+function renderProgress(){ try{ renderPhaseCard(); }catch(e){} try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); try{ renderChkCard(); }catch(e){ console.warn("te lo dico io",e); } renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); renderHidCard(); }catch(e){ console.warn("schede diario",e); }
   const card=$("progCard"); if(!card) return; card.hidden=!state.profile||!goalOf(state.profile);
   { const rw=$("pgRow"); if(rw&&!rw._b){ rw._b=true; rw.onclick=()=>{ if(typeof editMode!=="undefined"&&editMode) return; const op=$("pgBody").hidden; $("pgBody").hidden=!op; rw.setAttribute("aria-expanded",String(op)); try{ localStorage.setItem("hf:pgOpen",op?"1":"0"); }catch{} }; let o=false; try{ o=localStorage.getItem("hf:pgOpen")==="1"; }catch{} $("pgBody").hidden=!o; rw.setAttribute("aria-expanded",String(o)); } }
   const pg=progress, box=$("pgLines"); box.innerHTML=""; $("pgGo").disabled=!sample||progBusy;
