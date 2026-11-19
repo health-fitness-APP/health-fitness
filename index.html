@@ -779,6 +779,7 @@ html,body{overscroll-behavior-y:contain}
 .kh-c b{font-size:clamp(1.9rem,9vw,2.5rem);font-weight:500;line-height:1}
 .kh-c span{font-size:.92rem;margin-top:4px}
 .kh-goal{text-align:center;margin-top:-6px;font-size:1rem}
+.kh-why{text-align:center;font-size:.8rem;color:var(--muted);margin:4px 8px 0;line-height:1.35}
 .kh-goal b{font-size:1.15rem;font-weight:800}
 .kh-sum{text-align:center;font-size:.78rem;opacity:.85;margin-top:2px}
 .kh-macros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
@@ -2465,7 +2466,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.18 (promemoria delle misure ricalcolato dopo il recupero)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.19 (calorie del Diario e dell'attività spiegate e allineate)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3637,9 +3638,10 @@ function renderKcalSummary(dt,t){
         <circle cx="100" cy="100" r="${R}" fill="none" style="stroke:var(--line)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${L} ${CIRC}" transform="rotate(135 100 100)"/>
         <circle cx="100" cy="100" r="${R}" fill="none" style="stroke:${rem<0?"var(--warn)":"var(--basil)"}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${Math.max(0.01,L*frac)} ${CIRC}" transform="rotate(135 100 100)"/></svg>
         <div class="kh-c"><b class="num">${fmtK(Math.abs(rem))}</b><span>${rem>=0?"Rimanenti":"Sopra l'obiettivo"}</span></div></div>
-      <div class="kh-s"><b class="num">${fmtK(burn)}</b><span>Bruciato</span></div>
+      <div class="kh-s"><b class="num">${fmtK(burn)}</b><span>Movimento in più</span></div>
     </div>
     <div class="kh-goal">🎯 Obiettivo <b class="num">${fmtK(goal)}</b> kcal</div>
+    ${dt.fromDiet? "" : `<div class="kh-why">${fmtK(dt.kcal)} di base${burn? " + "+fmtK(burn)+" di movimento in più" : ""}${dt.pre? " + "+fmtK(dt.pre)+" di carico per domani" : ""}. La base conta già una giornata normale (fino a circa ${(BASE_STEPS[+(state.profile||{}).activity]||5000).toLocaleString("it-IT")} passi): qui si aggiungono solo gli allenamenti e i passi oltre quella soglia, non tutte le calorie da attività dell'orologio.</div>`}
     <div class="kh-macros">${mac("Carboidrati",t.c||0,dt.C||0,"var(--carb)")}${mac("Proteine",t.p||0,dt.P||0,"var(--pro)")}${mac("Grassi",t.f||0,dt.F||0,"var(--fat)")}</div>
   </div>`;
   // info nutrizionali
@@ -11996,11 +11998,12 @@ function renderActivity(){
   $("aSteps").textContent= m.steps!=null? r(m.steps).toLocaleString("it-IT") : "–"; $("aStepsG").textContent="/"+ag.steps.toLocaleString("it-IT");
   $("aMin").innerHTML=r(m.min)+"<small>min.</small>"; $("aMinG").textContent="/"+ag.min;
   $("aKcal").innerHTML=r(m.kcal).toLocaleString("it-IT")+"<small>kcal</small>"; $("aKcalG").textContent="/"+ag.kcal;
-  let tot=m.total; if(!tot){ const tg=targets(state.profile); tot= tg? Math.round(tg.tdee + m.kcal) : null; }
+  // totale = metabolismo a riposo di tutta la giornata + calorie da attività (prima: fabbisogno, che conta già il movimento normale, + attività = contato due volte)
+  let tot=m.total; if(!tot){ const tg=targets(state.profile); tot= tg? Math.round(tg.bmr + m.kcal) : null; }
   $("aTot").textContent= tot? r(tot).toLocaleString("it-IT")+" kcal" : "–";
   $("aDist").textContent= m.km? (Math.round(m.km*100)/100).toLocaleString("it-IT")+" km" : "–";
   const asrc=(state.day&&state.day.activity)||{};
-  $("aSrc").textContent= m.imported&&asrc.src==="health"? `Dati da ${asrc.via&&asrc.via!=="?"? asrc.via : "Samsung Health"} (Health Connect), aggiornati alle ${new Date(asrc.at||Date.now()).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}. Le calorie totali sono la stima per tutta la giornata.`+(asrc.distVia&&asrc.via&&asrc.distVia!==asrc.via? (asrc.distVia==="stima"? ` La distanza è stimata dai passi (Samsung Health non la condivide)${(+localStorage.getItem("hf:strideN")||0)? ", calibrata sui tuoi screenshot" : ": carica una volta lo screenshot di Samsung Health per renderla precisa"}.` : ` La distanza arriva ${asrc.distVia==="?"? "da un'altra fonte" : asrc.distVia==="il telefono"? "dal telefono" : "da "+asrc.distVia} perché ${asrc.via} non la condivide con Health Connect.`) : "") : m.imported? "Dati importati dallo screenshot, uniti agli allenamenti registrati." : m.stepsEst? "Passi stimati da corsa e camminata registrate (non contano quelli del resto della giornata). Per i passi esatti carica uno screenshot qui sotto." : "Valori dagli allenamenti registrati. Per passi e attività di tutta la giornata carica uno screenshot qui sotto.";
+  $("aSrc").textContent= m.imported&&asrc.src==="health"? `Dati da ${asrc.via&&asrc.via!=="?"? asrc.via : "Samsung Health"} (Health Connect), aggiornati alle ${new Date(asrc.at||Date.now()).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}. Samsung Health passa i dati a Health Connect con un po' di ritardo: se in Samsung Health vedi numeri più alti, aprilo un momento e poi torna qui. Le calorie totali sono il metabolismo a riposo di tutta la giornata più le calorie da attività (in Samsung Health il riposo si conta solo fino all'ora attuale, quindi durante il giorno il suo totale è più basso).`+(asrc.distVia&&asrc.via&&asrc.distVia!==asrc.via? (asrc.distVia==="stima"? ` La distanza è stimata dai passi (Samsung Health non la condivide)${(+localStorage.getItem("hf:strideN")||0)? ", calibrata sui tuoi screenshot" : ": carica una volta lo screenshot di Samsung Health per renderla precisa"}.` : ` La distanza arriva ${asrc.distVia==="?"? "da un'altra fonte" : asrc.distVia==="il telefono"? "dal telefono" : "da "+asrc.distVia} perché ${asrc.via} non la condivide con Health Connect.`) : "") : m.imported? "Dati importati dallo screenshot, uniti agli allenamenti registrati." : m.stepsEst? "Passi stimati da corsa e camminata registrate (non contano quelli del resto della giornata). Per i passi esatti carica uno screenshot qui sotto." : "Valori dagli allenamenti registrati. Per passi e attività di tutta la giornata carica uno screenshot qui sotto.";
   if(m.stepsEst) $("aSteps").textContent="~"+$("aSteps").textContent;
   const ul=$("aWorkouts"); ul.innerHTML="";
   const ws=[...(state.day.workouts||[])].sort((a,b)=>(b.start||"")<(a.start||"")?-1:1);
