@@ -121,6 +121,8 @@ main>*{min-width:0;max-width:100%}
 .hero.empty{background:linear-gradient(135deg,#FFA36E 0%,#F08A64 50%,#A98BF0 100%)}
 .hero .t{color:rgba(255,255,255,.92)}
 .hero .when{font-size:.82rem;opacity:.8;margin-top:2px}
+.hero.past .when{opacity:1;font-weight:600}
+.hero.past .big,.hero.past .meta{opacity:.7}
 .hero .big{font-family:"Bricolage Grotesque",sans-serif;font-size:3.4rem;font-weight:700;line-height:1;margin-top:26px;letter-spacing:-.02em}
 .hero .big small{font-size:1.1rem;font-weight:500;margin-left:6px;letter-spacing:0}
 .hero .meta{margin-top:10px;font-size:1rem;opacity:.85;display:flex;flex-wrap:wrap;gap:6px 10px}
@@ -2438,7 +2440,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.07 (integratori già nei pasti non ripetuti due volte)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.08 (la scheda grande del Diario segue il giorno scelto)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -11585,20 +11587,37 @@ function spark(vals,color){
   const L=pts[pts.length-1];
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" style="stroke:${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="${L[0]}" cy="${L[1]}" r="4" style="fill:${color}"/></svg>`;
 }
+/* v4.08: la scheda grande segue il giorno scelto (prima mostrava sempre l'ultimo allenamento in assoluto, es. «Camminata, Ieri» anche su Oggi).
+   Allenamenti del giorno → il più recente (orario d'inizio); nessuno → l'ultimo prima di quel giorno, con l'etichetta «Ultimo allenamento · …» */
+function heroPick(){
+  const sel=state.date||todayISO(), all=(hist&&hist.items)||[];
+  const key=w=>(w.date||"")+" "+(w.start||"00:00");
+  const same=all.filter(w=>w.date===sel).sort((a,b)=>key(a)<key(b)?1:key(a)>key(b)?-1:0);
+  if(same.length) return {w:same[0], sel, today:true, n:same.length};
+  const before=all.filter(w=>w.date&&w.date<sel).sort((a,b)=>key(a)<key(b)?1:key(a)>key(b)?-1:0);
+  return before.length? {w:before[0], sel, today:false, n:0} : null;
+}
+function heroWhen(pk){
+  const t=todayISO(), dayTxt=d=> d===t? "oggi" : d===shiftDate(t,-1)? "ieri" : new Date(d+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+  if(pk.today){ const w=pk.w; return whenLabel(w.date)+(w.start? " · alle "+w.start.slice(0,5) : "")+(pk.n>1? ` · ${pk.n} allenamenti` : ""); }
+  const selTxt= pk.sel===t? "Oggi" : pk.sel===shiftDate(t,-1)? "Ieri" : "Questo giorno";
+  return `${selTxt} nessun allenamento · ultimo ${dayTxt(pk.w.date)}`;
+}
 function renderDash(){
-  // ultimo allenamento
-  const items=[...((hist&&hist.items)||[])].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
-  const last=items[0], H=$("dHero");
+  // allenamento del giorno scelto (o l'ultimo prima, con etichetta chiara)
+  const pk=heroPick(), last=pk&&pk.w, H=$("dHero");
   if(last){
     const [k,emo]=wKind(last.name); H.className="dcard hero tile full "+k;
     const dist=+last.distance>0, big= dist? (Math.round(last.distance*100)/100).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) : r(last.minutes||0);
     const meta=[dist||last.minutes? hms(last.minutes):"", last.pace? last.pace.replace(":","'")+'" /km':"", last.kcal? r(last.kcal).toLocaleString("it-IT")+" kcal":"", last.avgHr? last.avgHr+" bpm":""].filter(Boolean);
     H.innerHTML=`<div class="t"></div><div class="when"></div><div class="big num">${big}<small>${dist?"km":"min"}</small></div><div class="meta">${meta.map(x=>`<span>${x}</span>`).join("")}</div><div class="art" aria-hidden="true">${emo}</div>`;
-    H.querySelector(".t").textContent=last.name||"Allenamento"; H.querySelector(".when").textContent=whenLabel(last.date);
-    H.setAttribute("aria-label","Ultimo allenamento: "+(last.name||"")+(isRun(last)? ", apri il riepilogo della corsa" : ", apri Allenamento"));
+    H.querySelector(".t").textContent=last.name||"Allenamento"; H.querySelector(".when").textContent=heroWhen(pk);
+    H.classList.toggle("past",!pk.today);
+    H.setAttribute("aria-label",(pk.today?"Allenamento del giorno: ":"Ultimo allenamento: ")+(last.name||"")+(isRun(last)? ", apri il riepilogo della corsa" : ", apri Allenamento"));
   } else {
     H.className="dcard hero tile full empty";
-    H.innerHTML=`<div class="t">Allenamento</div><div class="big" style="font-size:1.6rem;margin-top:30px">Registra il tuo primo allenamento</div><div class="meta"><span>Tocca qui</span></div><div class="art" aria-hidden="true">🏃</div>`;
+    const anyW=((hist&&hist.items)||[]).length>0;
+    H.innerHTML=`<div class="t">Allenamento</div><div class="big" style="font-size:1.6rem;margin-top:30px">${anyW? "Nessun allenamento in questo giorno" : "Registra il tuo primo allenamento"}</div><div class="meta"><span>Tocca qui</span></div><div class="art" aria-hidden="true">🏃</div>`;
   }
   // cibo
   const dt=dayTargets(), t=totals();
@@ -11825,7 +11844,7 @@ Rispondi SOLO con JSON: {"day":{"steps":number|null,"activeMin":number|null,"act
   }catch(err){ setStatus("aShotStatus",(err&&err.message)||errCopy(err),true); }
   finally{ $("aShotBtn").disabled=false; }
 };
-$("dHero").onclick=()=>{ const it=[...((hist&&hist.items)||[])].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0), last=it[0]; if(last&&isRun(last)) openRunSummary(last.id,last); else go("allenamento"); };
+$("dHero").onclick=()=>{ const pk=heroPick(), last=pk&&pk.w; if(last&&isRun(last)) openRunSummary(last.id,last); else go("allenamento"); };
 $("dFood").onclick=()=>go("cibo");
 $("dAct").onclick=()=>go("attivita");
 $("mpBack").onclick=()=>{ if(history.state&&history.state.v==="pasto") history.back(); else go("cibo"); };
