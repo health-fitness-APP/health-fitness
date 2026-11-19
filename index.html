@@ -1307,6 +1307,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .mzadv .h{font-weight:700;margin:0 0 6px}.mzadv .r{display:flex;gap:8px;font-size:14px;line-height:1.4;margin:6px 0}.mzadv .r .i{flex:0 0 auto}.mzadv .note{margin:8px 2px 0}
 .mzcmp{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}.mzcmp th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:4px 6px;border-bottom:1px solid var(--line)}.mzcmp th:first-child,.mzcmp td:first-child{text-align:left}
 .mzcmp td{padding:7px 6px;border-bottom:1px solid var(--line)}.mzcmp td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.binfo{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:var(--basil-soft);font-size:14px;line-height:1.45}
 </style>
 </head>
 <body>
@@ -2000,6 +2001,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <div class="chips" id="bMetricChips" style="margin-top:10px"></div>
     <div id="bChart"></div>
     <p class="sub" id="bTrend" style="margin:6px 0 0"></p>
+    <div class="binfo" id="bInfo" hidden></div>
   </section>
   <section class="card" id="bPhotoCard">
     <h2>📸 Foto del fisico</h2>
@@ -2455,7 +2457,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.12 (misurazioni protette e recupero dalle copie automatiche)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.13 (spiegazione semplice sotto il grafico di ogni voce del corpo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9230,6 +9232,24 @@ function derivedVal(x,k){
   if(k==="bodyAge"){ if(+x.bodyAge>0) return +x.bodyAge; if(!(x.weight&&x.fat)) return null; const a=bodyAgeOf(+x.bmr||370+21.6*x.weight*(1-x.fat/100),+x.fat,+x.weight); return a? Math.round(a) : null; }
   return x[k]!=null? +x[k] : null;
 }
+/* spiegazione semplice sotto il grafico di ogni voce */
+const BINFO={
+  weight:"Il peso totale del corpo: muscoli, grasso, ossa, acqua e anche quello che hai mangiato e bevuto. Cambia di 0,5-1 kg da un giorno all'altro per acqua e cibo: guarda la tendenza delle settimane, non il singolo giorno.",
+  fatKg:"Quanti kg del tuo peso sono grasso. Se scende mentre il peso resta uguale, stai perdendo grasso e mettendo muscolo: è il risultato migliore.",
+  muscleTot:"Tutto il muscolo del corpo: quello che muovi tu (braccia, gambe, schiena) più quello degli organi, per esempio il cuore e l'intestino. È sempre più alto del muscolo scheletrico.",
+  muscle:"Il muscolo scheletrico è quello attaccato alle ossa, che usi per muoverti, correre e sollevare pesi: è quello che cresce con la palestra. Se sale o resta stabile mentre dimagrisci, stai mangiando abbastanza proteine e ti alleni bene.",
+  fat:"La percentuale del tuo peso fatta di grasso. Per un uomo tra 20 e 40 anni circa 8-20% è nella norma; tra 10 e 15% è un ottimo valore per chi si allena. La bilancia la stima con una piccola corrente: varia di qualche decimo anche tra due pesate di fila.",
+  waterKg:"L'acqua nel corpo, in kg. Circa il 55-65% del peso di un uomo è acqua, e i muscoli ne contengono molta: se sale insieme al muscolo è un buon segno. Cambia con quanto bevi, il sale e l'allenamento del giorno prima.",
+  water:"La percentuale del peso fatta di acqua. Per un uomo circa 55-65% è nella norma. Cambia con quanto bevi, il sale e l'allenamento del giorno prima.",
+  bmi:"L'IMC (indice di massa corporea) è il peso diviso l'altezza al quadrato. Tra 18,5 e 25 è nella norma. Non distingue muscolo e grasso: con tanto muscolo può risultare alto anche se sei magro.",
+  visceral:"Il grasso viscerale è quello dentro la pancia, attorno agli organi: è il più dannoso per cuore e metabolismo. Il livello della bilancia va da 1 a 59: fino a 9 è buono, da 10 a 14 alto, da 15 in su molto alto. Scende con dieta, sonno e corsa.",
+  subfat:"Il grasso sottocutaneo è quello sotto la pelle, che puoi pizzicare con le dita. È meno dannoso di quello viscerale.",
+  bone:"Il peso stimato delle ossa. Cambia pochissimo nel tempo: piccole variazioni sono solo imprecisioni della stima.",
+  protein:"La percentuale del corpo fatta di proteine, soprattutto nei muscoli. Circa 16-20% è nella norma.",
+  bmr:"Il metabolismo basale: le calorie che il corpo brucia a riposo, solo per vivere. Più muscolo hai, più è alto.",
+  bodyAge:"Un'età stimata dalla bilancia confrontando i tuoi valori con la media delle persone. Se è più bassa della tua età vera, sei in forma."
+};
+function binfoText(k){ if(BINFO[k]) return BINFO[k]; const m=METRICS.find(x=>x[0]===k); if(m&&m[2]==="cm") return `Circonferenza in cm presa con il metro. Confrontala a distanza di 2-4 settimane, sempre la mattina a digiuno: differenze sotto 0,5 cm possono dipendere da come tieni il metro.`; return ""; }
 const DMETA={weight:["Peso","kg"],muscle:["Muscolo scheletrico","kg"],muscleTot:["Massa muscolare totale","kg"],fatKg:["Massa grassa","kg"],waterKg:["Acqua corporea","kg"],fat:["Grasso corporeo","%"],bmi:["IMC",""],water:["Acqua","%"],visceral:["Grasso viscerale",""],bodyAge:["Età corporea","anni"],bone:["Massa ossea","kg"],protein:["Proteine","%"],subfat:["Grasso sottocutaneo","%"]};
 function refRange(k,w){
   const p=state.profile||{}, m=p.sex!=="f", age=+p.age||35, h=hM();
@@ -9524,6 +9544,7 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
       $("bTrend").textContent=`${nm}: ${dv>0?"+":dv<0?"−":""}${fmt(Math.abs(dv))}${unit?" "+unit:""} nel periodo`+(days>=14? ` (${dv>=0?"+":"−"}${fmt(Math.abs(dv/days*7))}${unit?" "+unit:""} a settimana)`:"")+` · min ${fmt(Math.min(...vs))}, max ${fmt(Math.max(...vs))}`;
     }
   }
+  if(avail.length){ const it=binfoText(bMetric), bi=$("bInfo"); bi.hidden=!it; if(it){ bi.innerHTML=""; bi.append(el("b",null,"Che cos'è? "),document.createTextNode(it+(/fascia di riferimento/.test($("bChart").textContent)? " La fascia colorata nel grafico mostra i valori di riferimento." : ""))); } }
   const ul=$("bHist"); ul.innerHTML="";
   [...es].reverse().forEach(x=>{
     const li=el("li"), t=el("div","t");
