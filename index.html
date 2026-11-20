@@ -2467,7 +2467,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.23 (esercizi combinati spiegati: ripetizioni, secondi fermo, giri e recupero)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.24 (la dieta di oggi torna sempre con l'obiettivo di Cibo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -4780,12 +4780,15 @@ function cutToTarget(meals,tgtK,pre){
     const over=tot()-tgtK; if(over<=Math.max(60,tgtK*0.05)) break;
     let best=null;
     ms.forEach((m,mi)=>{ if(!m.foods.length) return;
-      const lock=m.foods.some(isSpread)||m.foods.some(f=>{ const x=fnorm(f.name); return CEREAL_RE.test(x)&&!NOT_CEREAL_RE.test(x); });   // pane+marmellata, cereali+latte: via insieme
-      const groups= lock? [m.foods.map((_,i)=>i)] : m.foods.map((_,i)=>[i]);
+      // pane+marmellata, cereali+latte: via insieme; il resto del pasto si toglie un alimento alla volta
+      const nm=m.foods.map(f=>fnorm(f.name)), isCer=x=>CEREAL_RE.test(x)&&!NOT_CEREAL_RE.test(x);
+      const spr=m.foods.some(isSpread), cer=nm.some(isCer), pair=new Set();
+      nm.forEach((x,i)=>{ if((spr&&(isSpread(m.foods[i])||SUPPORT_RE.test(x)))||(cer&&(isCer(x)||MILK_RE.test(x)||YOG_RE.test(x)))) pair.add(i); });
+      const groups=[...(pair.size? [[...pair]] : []), ...m.foods.map((_,i)=>i).filter(i=>!pair.has(i)).map(i=>[i])];
       groups.forEach(g=>{ const k=g.reduce((a,i)=>a+(+m.foods[i].kcal||0),0); if(k<=0) return;
         const left=Math.abs(over-k); if(left>=over) return;
-        const f0=m.foods[g[0]], n0=fnorm(f0.name), carb=g.length===1&&(+f0.kcal>0)&&(+f0.c||0)*4/(+f0.kcal)>0.45, prot=g.length===1&&(+f0.kcal>0)&&(+f0.p||0)*4/(+f0.kcal)>0.3;
-        const score=left+(pre&&carb? 150 : 0)+(prot? 60 : 0)+(/verdur|insalat|zucchin|pomodor|carot|broccol|finocch|spinac|minestron/.test(n0)? 40 : 0);   // prima via grassi e dolci, carboidrati se c'è il carico per domani, proteine per ultime
+        const f0=m.foods[g[0]], n0=fnorm(f0.name), gs=sumFoods(g.map(i=>m.foods[i])), carb=gs.kcal>0&&gs.c*4/gs.kcal>0.45, prot=gs.kcal>0&&gs.p*4/gs.kcal>0.3, fat=gs.kcal>0&&gs.f*9/gs.kcal>0.5;
+        const score=left+(pre&&carb? 150 : 0)+(prot? 60 : 0)-(fat? 40 : 0)+(/verdur|insalat|zucchin|pomodor|carot|broccol|finocch|spinac|minestron/.test(n0)? 40 : 0);   // prima via grassi e dolci, carboidrati se c'è il carico per domani, proteine per ultime
         if(!best||score<best.score) best={mi,g,score}; }); });
     if(!best) break;
     const m=ms[best.mi], gone=best.g.map(i=>m.foods[i]);
@@ -4900,7 +4903,7 @@ function renderDietAI(){
     days.forEach((d,i)=>{ if(i===iT0||!d.cutFor||d.cutFor===todayISO()) return; const t0=wt&&wt.find(x=>x.wd===d.weekday), ms=(d.meals||[]).map(uncut); const {cutFor,cutK,...rest}=d;
       days[i]={...rest,meals:t0? calibrateMeals(ms,{kcal:t0.kcal,p:t0.p}) : ms}; state.diet.plan={...state.diet.plan,days}; save("diet",state.diet); });
     if(iT>=0){ const td=days[iT], tot=sumMeals(mealsWithEaten(td)).kcal, eatenIds=Object.keys(state.day.meals||{}).filter(k=>(state.day.meals[k]||[]).length&&!mealOpen(k,(mealList().find(x=>x.id===k)||{}).name)), tE=totals();
-      const key=todayISO()+"|"+liveT.kcal+"|"+eatenIds.sort().join(",")+"|"+Math.round(tE.kcal/10);
+      const key="c2|"+todayISO()+"|"+liveT.kcal+"|"+eatenIds.sort().join(",")+"|"+Math.round(tE.kcal/10);
       if(Math.abs(tot-liveT.kcal)/liveT.kcal>0.02&&td.syncedFor!==key){
         // pasti aperti con qualcosa già segnato: si ricalibra solo la parte che manca, quella segnata resta com'è
         const part={}, rest=td.meals.filter(m=>!eatenIds.includes(m.id)).map(uncut).map(m=>{ const it=state.day.meals[m.id]||[]; if(!it.length) return m; const rem=planRemain(m.foods,it); part[m.id]=(m.foods||[]).filter(f=>!rem.includes(f)); return {...m,foods:rem}; }).filter(m=>(m.foods||[]).length);
