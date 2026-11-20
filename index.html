@@ -550,6 +550,7 @@ body.kb .rest-big{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .demo{margin:0 0 12px}
 .demo-img{position:relative;aspect-ratio:3/2;border-radius:18px;overflow:hidden;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
 .demo-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+.tut-part{margin:16px 0 6px}.demo + .linkbtn{display:inline-block;margin:2px 0 6px}
 .demo-img .f1{animation:demoSwap 2.6s ease-in-out infinite}
 .demo-img.paused .f1{animation-play-state:paused}
 @keyframes demoSwap{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
@@ -2466,7 +2467,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.21 (consiglio del peso giusto anche nell'allenamento già iniziato durante lo scarico)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.22 (esercizi combinati: una figura e un video per ogni esercizio)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7595,6 +7596,8 @@ Object.assign(STR_FIG,{
    return [a,{H:[102,30],N:[98,44],P:[86,90],E1:[110,58],W1:[126,58],E2:[110,58],W2:[126,58],K2:[110,104],A2:[96,126],T2:[106,127],K1:[116,114],A1:[124,138],T1:[132,139]},a]; })()},
  "Polpacci su una gamba":{props:'<rect x="102" y="127" width="44" height="14" rx="2" fill="#d9d4cf"/><rect x="150" y="8" width="9" height="133" rx="2" fill="#d9d4cf"/>'+FIG_GROUND,dur:2.6,poses:(()=>{ const a={H:[100,20],N:[100,34],P:[98,80],E1:[118,46],W1:[148,44],E2:[118,46],W2:[148,44],K2:[100,106],A2:[98,131],T2:[110,127],K1:[100,106],A1:[86,118],T1:[82,124]};
    const b={}; Object.keys(a).forEach(k=>b[k]=[a[k][0],a[k][1]-10]); b.A2=[102,118]; b.T2=[110,127]; b.W1=[148,40]; b.W2=[148,40]; return [a,b,a]; })()},
+ "Polpacci in piedi":{props:'<rect x="150" y="8" width="9" height="133" rx="2" fill="#d9d4cf"/>'+FIG_GROUND,dur:2.4,poses:(()=>{ const a={H:[100,20],N:[100,34],P:[98,80],E1:[118,46],W1:[148,44],E2:[118,46],W2:[148,44],K1:[100,110],A1:[100,136],T1:[108,140],K2:[100,110],A2:[100,136],T2:[108,140]};
+   const b={}; Object.keys(a).forEach(k=>b[k]=[a[k][0],a[k][1]-6]); b.A1=[103,131]; b.T1=[109,140]; b.A2=[103,131]; b.T2=[109,140]; b.W1=[148,40]; b.W2=[148,40]; return [a,b,a]; })()},
  "Equilibrio su una gamba":{front:1,props:FIG_GROUND,hold:1,poses:[{E1:[80,60],W1:[70,74],E2:[120,60],W2:[130,74],K1:[90,100],A1:[94,120],T1:[89,121]},{P:[102,86],H:[101,26],E1:[80,60],W1:[70,72],E2:[120,60],W2:[130,76],K1:[91,100],A1:[95,120],T1:[90,121]}]},
  "Passi laterali":{front:1,props:FIG_GROUND,dur:3.2,poses:(()=>{ const a={H:[100,34],N:[100,48],S1:[88,52],S2:[112,52],E1:[84,70],W1:[94,82],E2:[116,70],W2:[106,82],P:[100,92],Q1:[94,94],Q2:[106,94],K1:[82,116],A1:[80,138],T1:[75,139],K2:[118,116],A2:[120,138],T2:[125,139]};
    const sh=(o,dx)=>{ const q={}; Object.keys(o).forEach(k=>q[k]=[o[k][0]+dx,o[k][1]]); return q; }, n={...a,K1:[90,116],A1:[92,138],T1:[87,139],K2:[110,116],A2:[108,138],T2:[113,139]};
@@ -7901,7 +7904,7 @@ const EXRULES=[
  [/tapis|corsa|running|treadmill/,{_:"Running_Treadmill"}],
  [/vogatore|rowing|remoergometro/,{_:"Rowing_Stationary"}],
  [/cyclette|ellittic|spinning|nuoto|^camminata/,{_:null}],
- [/plank laterale|side plank|plank sul fianco/,{_:"Side_Bridge"}],
+ [/plank laterale|side plank|side bridge|plank sul fianco/,{_:"Side_Bridge"}],
  [/mountain climber|scalatore/,{_:"Mountain_Climbers"}],
  [/plank/,{_:"Plank"}],
  [/affond.*lateral|lateral lunge|side lunge/,{_:"Barbell_Side_Split_Squat"}],
@@ -7929,7 +7932,7 @@ const EXRULES=[
  [/stacc|deadlift/,{_:"Barbell_Deadlift"}],
  [/hip thrust/,{_:"Barbell_Hip_Thrust"}],
  [/(ponte|bridge).*(una gamba|monopodal|single)|single leg (glute )?bridge/,{_:"Single_Leg_Glute_Bridge"}],
- [/ponte|glute bridge|hip bridge/,{b:"Barbell_Glute_Bridge",_:"Butt_Lift_Bridge"}],
+ [/ponte|glute bridge|hip bridge|\bbridge\b/,{b:"Barbell_Glute_Bridge",_:"Butt_Lift_Bridge"}],
  [/good morning|buongiorno/,{_:"Good_Morning"}],
  [/leg extension|estension[ei] (delle )?gambe|quadricipiti alla macchina/,{_:"Leg_Extensions"}],
  [/nordic/,{_:"Natural_Glute_Ham_Raise"}],
@@ -8009,6 +8012,18 @@ const EXRULES=[
 /* sottovarianti riconosciute dal nome (quelle con "z" valgono solo se l'attrezzo non decide già) */
 const EXRULE_FLAGS=[["_seat",/sedut|seated/],["_lp",/leg press|pressa/],["_stand",/in piedi|standing/],["_ball",/fitball|palla|ball/],["_air",/air|libero|senza pesi|bodyweight|a corpo/],["_close",/stretta|close|triangolo|neutra/],["_rev",/invers|supin|underhand|reverse/],["_one",/un braccio|singol|one.?arm|manubrio\b|unilateral/],["_hang",/sbarra|appes|hanging/],["_par",/parallele|captain|sedia romana/],["_plate",/disco|plate/],["zmil",/military|lento/],["_cable",/cavi|cavo|crossover/],["_inc",/inclinat|incline/],["_bench",/panca|panche|bench|sedia/],["_chest",/petto|chest/],["_curl",/curl/],["_rope",/corda|rope/]];
 const EQ_RULE=[[/smith|multipower/,"s"],[/manubr|dumbbell/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere|barbell/,"b"],[/kettlebell/,"k"],[/cav[io]\b|cable|pulley|corda/,"c"],[/macchina|machine|pec.?deck|peck.?deck|pector|pettoral|chest press/,"m"],[/elastic|band/,"n"],[/corpo libero|bodyweight|a corpo/,"w"]];
+/* esercizi a corpo libero senza una foto giusta nel Free Exercise DB: figura animata (STR_FIG) */
+function exFig(name,x){ const n=String(name||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""), nx=n+" "+String((x&&x.equip)||"").toLowerCase();
+  if(/wall sit|sedia al muro|squat\w*( isometric\w*)? (al|contro il|a) muro|squat isometric|isometric squat/.test(n)) return "Squat al muro";
+  if(/calf|polpacc/.test(n)&&!/stretch|allungament/.test(n)){ const free=/corpo libero|a corpo|bodyweight|gradino|muro|scalino/.test(nx)||(x&&x.part&&!EQ_RULE.some(([re])=>re.test(nx))&&!/sedut|seated|pressa|leg press/.test(nx));
+    if(free) return /una gamba|monopodal|single|singol/.test(n)? "Polpacci su una gamba" : "Polpacci in piedi"; }
+  return null; }
+/* «Circuito (Bridge, Calf Raise, Squat al muro)» o «Bridge + Calf raise»: un esercizio per parte */
+function exParts(name){ const s=String(name||"").trim(); let inner=null;
+  const m=s.match(/\(([^()]*[,+;][^()]*)\)?\s*$/); if(m) inner=m[1]; else if(/\s\+\s/.test(s)) inner=s;
+  if(!inner) return [];
+  const ps=inner.split(/\s*(?:,|;|\+|\s+e\s+(?=[A-Za-zÀ-ú]{3}))\s*/).map(t=>t.replace(/^[\d.\-•)\s]+/,"").replace(/[()]/g,"").trim()).filter(t=>t.length>2);
+  return ps.length>=2&&ps.filter(t=>exFig(t,{name:t,part:1})||exdbRule(t)!==undefined).length>=2? ps : []; }   // solo se sono davvero esercizi (non «Panca (bilanciere, manubri)»)
 function exdbRule(name,x){ const n=String(name||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""), nx=(n+" "+String((x&&x.equip)||"").toLowerCase()).replace(/[_]/g," ");
   const r=EXRULES.find(([re])=>re.test(n)); if(!r) return undefined; const m=r[1];
   const fl=late=>{ for(const [k,re] of EXRULE_FLAGS) if((k[0]==="z")===late&&k in m&&re.test(nx)) return k; };
@@ -8019,7 +8034,7 @@ function exdbRule(name,x){ const n=String(name||"").toLowerCase().normalize("NFD
 /* foto leggere (WebP 480 px) ospitate insieme all'app per gli esercizi della tabella: si aprono subito e restano in cache */
 const EXLOCAL=new Set(["Calf_Stretch_Hands_Against_Wall","Kneeling_Hip_Flexor","Seated_Floor_Hamstring_Stretch","Ankle_On_The_Knee","Groin_and_Back_Stretch","Childs_Pose","Shoulder_Stretch","Triceps_Stretch","Hug_Knees_To_Chest","Side_Neck_Stretch","Arm_Circles","Incline_Push-Up","Worlds_Greatest_Stretch","Standing_Soleus_And_Achilles_Stretch","Dancers_Stretch","Ab_Crunch_Machine","Ab_Roller","Air_Bike","Arnold_Dumbbell_Press","Back_Flyes_-_With_Bands","Ball_Leg_Curl","Band_Assisted_Pull-Up","Barbell_Ab_Rollout_-_On_Knees","Barbell_Bench_Press_-_Medium_Grip","Barbell_Curl","Barbell_Deadlift","Barbell_Glute_Bridge","Barbell_Hack_Squat","Barbell_Hip_Thrust","Barbell_Incline_Bench_Press_-_Medium_Grip","Barbell_Lunge","Barbell_Shrug","Barbell_Side_Split_Squat","Barbell_Squat","Barbell_Step_Ups","Barbell_Walking_Lunge","Bench_Dips","Bent-Arm_Barbell_Pullover","Bent-Arm_Dumbbell_Pullover","Bent_Over_Barbell_Row","Bent_Over_Two-Dumbbell_Row","Bodyweight_Squat","Bodyweight_Walking_Lunge","Butt_Lift_Bridge","Butterfly","Cable_Chest_Press","Cable_Crossover","Cable_Crunch","Cable_Hammer_Curls_-_Rope_Attachment","Cable_Hip_Adduction","Cable_Rear_Delt_Fly","Cable_Reverse_Crunch","Cable_Rope_Overhead_Triceps_Extension","Cable_Shoulder_Press","Cable_Shrugs","Calf_Press_On_The_Leg_Press_Machine","Cat_Stretch","Chin-Up","Close-Grip_Barbell_Bench_Press","Close-Grip_Dumbbell_Press","Close-Grip_EZ-Bar_Press","Close-Grip_Front_Lat_Pulldown","Concentration_Curls","Crunches","Dead_Bug","Decline_Barbell_Bench_Press","Decline_Dumbbell_Bench_Press","Dip_Machine","Dips_-_Chest_Version","Dips_-_Triceps_Version","Dumbbell_Bench_Press","Dumbbell_Bicep_Curl","Dumbbell_Floor_Press","Dumbbell_Flyes","Dumbbell_Lunges","Dumbbell_Rear_Lunge","Dumbbell_Shoulder_Press","Dumbbell_Shrug","Dumbbell_Squat","Dumbbell_Step_Ups","EZ-Bar_Curl","EZ-Bar_Skullcrusher","Face_Pull","Farmers_Walk","Flat_Bench_Lying_Leg_Raise","Flutter_Kicks","Freehand_Jump_Squat","Front_Barbell_Squat","Front_Box_Jump","Front_Cable_Raise","Front_Dumbbell_Raise","Front_Plate_Raise","Front_Squats_With_Two_Kettlebells","Glute_Kickback","Goblet_Squat","Good_Morning","Hack_Squat","Hammer_Curls","Hamstring_Stretch","Hanging_Leg_Raise","Hyperextensions_Back_Extensions","Inchworm","Incline_Dumbbell_Curl","Incline_Dumbbell_Flyes","Incline_Dumbbell_Press","Inverted_Row","Jackknife_Sit-Up","Kettlebell_Arnold_Press","Kettlebell_One-Legged_Deadlift","Kettlebell_Pistol_Squat","Kettlebell_Thruster","Kettlebell_Turkish_Get-Up_Squat_style","Knee_Hip_Raise_On_Parallel_Bars","Lateral_Raise_-_With_Bands","Leg_Extensions","Leg_Press","Leverage_Chest_Press","Leverage_High_Row","Leverage_Incline_Chest_Press","Lying_Dumbbell_Tricep_Extension","Lying_Leg_Curls","Machine_Bench_Press","Machine_Bicep_Curl","Machine_Preacher_Curls","Machine_Shoulder_Military_Press","Mountain_Climbers","Natural_Glute_Ham_Raise","Oblique_Crunches_-_On_The_Floor","One-Arm_Dumbbell_Row","One-Arm_Kettlebell_Row","One-Arm_Kettlebell_Swings","One-Legged_Cable_Kickback","One_Arm_Dumbbell_Preacher_Curl","Pallof_Press","Plank","Plie_Dumbbell_Squat","Preacher_Curl","Pullups","Push-Ups_-_Close_Triceps_Position","Push-Ups_With_Feet_Elevated","Push_Press","Pushups","Quad_Stretch","Reverse_Barbell_Curl","Reverse_Crunch","Reverse_Grip_Triceps_Pushdown","Reverse_Hyperextension","Reverse_Machine_Flyes","Romanian_Deadlift","Rope_Jumping","Rope_Straight-Arm_Pulldown","Rowing_Stationary","Running_Treadmill","Russian_Twist","Scissor_Kick","Seated_Bent-Over_Rear_Delt_Raise","Seated_Cable_Rows","Seated_Calf_Raise","Seated_Leg_Curl","Shoulder_Press_-_With_Bands","Side_Bridge","Side_Lateral_Raise","Single_Leg_Glute_Bridge","Sit-Up","Smith_Machine_Behind_the_Back_Shrug","Smith_Machine_Bench_Press","Smith_Machine_Calf_Raise","Smith_Machine_Close-Grip_Bench_Press","Smith_Machine_Decline_Press","Smith_Machine_Incline_Bench_Press","Smith_Machine_Overhead_Shoulder_Press","Smith_Machine_Squat","Spider_Curl","Split_Squat_with_Dumbbells","Split_Squats","Standing_Biceps_Cable_Curl","Standing_Cable_Wood_Chop","Standing_Calf_Raises","Standing_Dumbbell_Calf_Raise","Standing_Dumbbell_Reverse_Curl","Standing_Dumbbell_Triceps_Extension","Standing_Dumbbell_Upright_Row","Standing_Front_Barbell_Raise_Over_Head","Standing_Leg_Curl","Standing_Low-Pulley_Deltoid_Raise","Standing_Military_Press","Stiff-Legged_Barbell_Deadlift","Stiff-Legged_Dumbbell_Deadlift","Straight-Arm_Pulldown","Sumo_Deadlift","Superman","T-Bar_Row_with_Handle","Thigh_Abductor","Thigh_Adductor","Trap_Bar_Deadlift","Tricep_Dumbbell_Kickback","Triceps_Pushdown","Triceps_Pushdown_-_Rope_Attachment","Two-Arm_Kettlebell_Military_Press","Underhand_Cable_Pulldowns","Upright_Barbell_Row","Upright_Cable_Row","Wide-Grip_Lat_Pulldown","Zercher_Squats","Zottman_Curl"]);
 const exImg=(id,f,remote)=> !remote&&EXLOCAL.has(id)? `ex/${id}-${f}.webp` : `${EXDB_URL}${id}/${f}.jpg`;
-function exdbPrefetch(names){ const go=()=>names.forEach(n=>{ let id=null; try{ id=localStorage.getItem("hf:exdbPick:"+exKey(n)); }catch{} if(!id) id=exdbRule(n); if(id&&EXLOCAL.has(id)) [0,1].forEach(f=>{ const im=new Image(); im.decoding="async"; im.src=exImg(id,f); }); });
+function exdbPrefetch(names){ names=names.flatMap(n=>{ const p=exParts(n); return p.length? p : [n]; }); const go=()=>names.forEach(n=>{ let id=null; try{ id=localStorage.getItem("hf:exdbPick:"+exKey(n)); }catch{} if(!id) id=exdbRule(n); if(id&&EXLOCAL.has(id)) [0,1].forEach(f=>{ const im=new Image(); im.decoding="async"; im.src=exImg(id,f); }); });
   (window.requestIdleCallback||setTimeout)(go,{timeout:1500}); }
 const tok=t=>String(t||"").toLowerCase().replace(/[_\-]/g," ").replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(w=>w.length>1&&!["the","with","on","a","to","of","and"].includes(w));
 const EXCOMMON=new Set(["Barbell_Bench_Press_-_Medium_Grip","Barbell_Squat","Barbell_Deadlift","Pullups","Pushups","Dumbbell_Bicep_Curl","Side_Lateral_Raise","Romanian_Deadlift","Bent_Over_Barbell_Row","One-Arm_Dumbbell_Row","Wide-Grip_Lat_Pulldown","Barbell_Hip_Thrust","Dumbbell_Lunges","Standing_Military_Press","Dumbbell_Shoulder_Press","Plank","Dips_-_Triceps_Version","Dumbbell_Bench_Press","Incline_Dumbbell_Press","Barbell_Incline_Bench_Press_-_Medium_Grip","Leg_Press","Leg_Extensions","Lying_Leg_Curls","Seated_Cable_Rows","Triceps_Pushdown","Hammer_Curls","Good_Morning","Goblet_Squat","Close-Grip_Barbell_Bench_Press","Front_Barbell_Squat","Chin-Up","Face_Pull","Standing_Calf_Raises","Crunches","Russian_Twist","One-Arm_Kettlebell_Swings","Farmers_Walk","Dumbbell_Flyes","Arnold_Dumbbell_Press","Front_Dumbbell_Raise","Barbell_Shrug","EZ-Bar_Skullcrusher","Mountain_Climbers","Split_Squat_with_Dumbbells","Zercher_Squats"]);
@@ -8038,6 +8053,9 @@ async function exdbFind(name,x){ const key="hf:exdb:"+exKey(name);
       if(r0&&r0.en){ en=r0.en+" "+en; const m={barbell:"b",dumbbell:"d",machine:"m",cable:"c","body only":"w",kettlebells:"k","e-z curl bar":"e",bands:"n"}[String(r0.equipment||"").toLowerCase()]; if(m) eq=m; } }catch{} }
   const cands=exdbCands(en,eq,6); if(cands.length) localStorage.setItem(key,cands[0][0]); return {id:cands[0]&&cands[0][0],cands}; }
 function exdbDemo(name,x){ const wrap=el("div","demo"); wrap.innerHTML=`<div class="demo-img"><p class="note">Cerco la dimostrazione…</p></div>`;
+  const fg=exFig(name,x); let pk=null; try{ pk=localStorage.getItem("hf:exdbPick:"+exKey(name)); }catch{}
+  if(fg&&STR_FIG[fg]&&!pk){ const box=wrap.querySelector(".demo-img"); box.classList.add("str-img"); box.innerHTML=figSVG(fg);
+    const cap=el("div","demo-cap"); { const sp=el("span",null,"Figura animata: "+fg.toLowerCase()); sp.style.textTransform="none"; cap.appendChild(sp); } wrap.appendChild(cap); return wrap; }
   (async()=>{ const f=await exdbFind(name,x), box=wrap.querySelector(".demo-img");
     if(!f.id){ box.style.aspectRatio="auto"; box.style.padding="14px"; box.innerHTML=`<p class="note">Nessuna dimostrazione trovata per questo esercizio: usa il video qui sotto.</p>`; return; }
     const show=id=>{ const r0=EXDB.find(z=>z[0]===id)||[id,"o",""];
@@ -8059,10 +8077,14 @@ async function openTutorial(name,x){
   if(eq) meta.appendChild(el("div","tut-m","🏋️ "+eq));
   { const ns=Array.isArray(x.sets)? x.sets.length : x.sets, rp=x.reps||x.repsLabel||(Array.isArray(x.sets)&&x.sets[0]&&x.sets[0].reps)||"";
     if(ns||rp) meta.appendChild(el("div","tut-m","📋 "+[ns?ns+" serie":"", rp?"× "+rp:"", x.rest?"⏱ recupero "+x.rest:""].filter(Boolean).join(" "))); }
-  box.appendChild(exdbDemo(name,x));
+  const parts=exParts(name), vq=n=>{ const fg=exFig(n,{name:n,part:1}); return "https://www.youtube.com/results?search_query="+encodeURIComponent(fg&&STR_VQ[fg]? STR_VQ[fg] : n+" esecuzione corretta tutorial"); };
+  if(parts.length){ box.appendChild(el("p","note",`Questo esercizio ne contiene ${parts.length}: ecco come si fa ognuno.`));
+    parts.forEach((pn,i)=>{ const h=el("h4","tut-part",(i+1)+". "+pn); box.appendChild(h); box.appendChild(exdbDemo(pn,{name:pn,part:1}));
+      const v=el("a","linkbtn","▶ Video: "+pn); v.href=vq(pn); v.target="_blank"; v.rel="noopener"; box.appendChild(v); }); }
+  else box.appendChild(exdbDemo(name,x));
   box.appendChild(top);
   const acts=el("div","tut-acts");
-  const yt=el("a","btn","▶ Guarda il video"); yt.href="https://www.youtube.com/results?search_query="+encodeURIComponent(name+" esecuzione corretta tutorial"); yt.target="_blank"; yt.rel="noopener";
+  const yt=el("a","btn",parts.length?"▶ Video del circuito":"▶ Guarda il video"); yt.href=parts.length? vq(name) : "https://www.youtube.com/results?search_query="+encodeURIComponent((exFig(name,x)&&STR_VQ[exFig(name,x)])||name+" esecuzione corretta tutorial"); yt.target="_blank"; yt.rel="noopener";
   const tech=el("button","btn ghost","🎥 Controlla la mia tecnica"); tech.type="button"; tech.onclick=()=>{ closeTopSheet(); setTimeout(()=>{ go("allenamento"); setW("coach"); $("cEx").value=name; window.scrollTo(0,0); },250); };
   acts.append(yt,tech); box.appendChild(acts);
   const g=el("div","tut-guide"); box.appendChild(g);
