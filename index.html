@@ -2466,7 +2466,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.20 (serie precompilate con lo stesso peso del consiglio, anche nella settimana di scarico)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.21 (consiglio del peso giusto anche nell'allenamento già iniziato durante lo scarico)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5295,7 +5295,7 @@ function progBase(x){
 }
 /* memoria dei carichi: ultima volta, consiglio di oggi (aumenta / resta / scarica) e storico */
 const e1rm=(kg,reps)=>kg&&reps? kg*(1+reps/30) : 0;
-function memBox(x){ const box=el("div","mem"); const h=exHistory(x.name,6), pg=x.prog||progFor(x);
+function memBox(x){ const box=el("div","mem"); const h=exHistory(x.name,6), pf=progFor(x), pg=(pf&&pf.deload)? pf : (x.prog||pf); if(pf&&pf.deload&&x.prog&&!x.prog.deload) x.prog=pf;
   if(!h.length){ box.classList.add("first"); box.innerHTML=`<div class="mem-l">📒 Prima volta con questo esercizio</div><div class="mem-t">Scegli un peso che ti lasci 1-2 ripetizioni di margine: dalla prossima volta te lo ricordo io e ti dico se aumentare.</div>`; return box; }
   const last=h[0], when=new Date(last.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
   const setsTxt=last.sets.map(z=>z.text? z.text : (+z.kg? fmt(z.kg)+"×" : "")+(z.reps||"?")).join(" · ");
