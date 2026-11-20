@@ -550,7 +550,7 @@ body.kb .rest-big{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .demo{margin:0 0 12px}
 .demo-img{position:relative;aspect-ratio:3/2;border-radius:18px;overflow:hidden;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
 .demo-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
-.tut-part{margin:16px 0 6px}.demo + .linkbtn{display:inline-block;margin:2px 0 6px}
+.tut-part{margin:16px 0 6px}.cmb{background:var(--card2,rgba(240,110,60,.07));border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0}.cmb-h{font-weight:700;margin-bottom:4px}.cmb-t,.cmb-p{margin:4px 0;font-size:.92rem}.cmb-l{margin:6px 0 6px 18px;padding:0}.cmb-l li{margin:4px 0}.cmb-g{flex:1;font-size:.9rem}.demo + .linkbtn{display:inline-block;margin:2px 0 6px}
 .demo-img .f1{animation:demoSwap 2.6s ease-in-out infinite}
 .demo-img.paused .f1{animation-play-state:paused}
 @keyframes demoSwap{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
@@ -2467,7 +2467,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.22 (esercizi combinati: una figura e un video per ogni esercizio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.23 (esercizi combinati spiegati: ripetizioni, secondi fermo, giri e recupero)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5269,7 +5269,9 @@ function progFor(x){ const r=progBase(x); try{
       return {kind:"down",kg,deload:true,next:r,text:`Settimana di scarico: oggi ${fmt(kg)} kg (-10% rispetto a ${fmt(top)} kg) e una serie in meno, senza arrivare al limite. Dalla settimana prossima: ${r.text.charAt(0).toLowerCase()+r.text.slice(1)}`}; } } }catch(e){}
   return r; }
 function progBase(x){
-  if(x.detail&&!x.sets||isTimed(x)) return null;
+  if(x.detail&&!x.sets) return null;
+  { const c=cmbPlan(x); if(c) return {kind:"hold",text:c.prog}; }
+  if(isTimed(x)) return null;
   const n=String(x.name||"").toLowerCase().trim(), hist2=[];
   for(let i=tlog.sessions.length-1;i>=0&&hist2.length<3;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>sameEx(e.name,x.name)); if(ex&&ex.sets&&ex.sets.length&&!ex.sets[0].text) hist2.push({date:tlog.sessions[i].date,sets:ex.sets,eff:ex.eff||""}); }
   if(!hist2.length) return {kind:"new",text:"Prima volta: scegli un peso che ti lasci 1-2 ripetizioni di margine a fine serie."};
@@ -5296,7 +5298,8 @@ function progBase(x){
 }
 /* memoria dei carichi: ultima volta, consiglio di oggi (aumenta / resta / scarica) e storico */
 const e1rm=(kg,reps)=>kg&&reps? kg*(1+reps/30) : 0;
-function memBox(x){ const box=el("div","mem"); const h=exHistory(x.name,6), pf=progFor(x), pg=(pf&&pf.deload)? pf : (x.prog||pf); if(pf&&pf.deload&&x.prog&&!x.prog.deload) x.prog=pf;
+function memBox(x){ const box=el("div","mem");
+  { const cb=cmbBox(x,n=>openTutorial(n,{name:n,part:1})); if(cb) return cb; } const h=exHistory(x.name,6), pf=progFor(x), pg=(pf&&pf.deload)? pf : (x.prog||pf); if(pf&&pf.deload&&x.prog&&!x.prog.deload) x.prog=pf;
   if(!h.length){ box.classList.add("first"); box.innerHTML=`<div class="mem-l">📒 Prima volta con questo esercizio</div><div class="mem-t">Scegli un peso che ti lasci 1-2 ripetizioni di margine: dalla prossima volta te lo ricordo io e ti dico se aumentare.</div>`; return box; }
   const last=h[0], when=new Date(last.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
   const setsTxt=last.sets.map(z=>z.text? z.text : (+z.kg? fmt(z.kg)+"×" : "")+(z.reps||"?")).join(" · ");
@@ -7386,6 +7389,7 @@ ${[doneWeekText(),COMBO_RULES].join("\n")}
 Crea ${gym? "esattamente "+gym.days.length+" giorni di palestra, uno per ogni giorno indicato" : "nessun giorno di palestra"}${runInProg? " ed esattamente "+run.days.length+" giorni di corsa, uno per ogni giorno di corsa (il lungo il "+WD[+run.longWd||0].toLowerCase()+")" : ""}. Ogni giorno ha il campo "wd" (0=domenica…6=sabato) e il titolo inizia con il nome del giorno (es. "Lunedì – Petto e dorso").
 Rendi le sedute adatte all'obiettivo del fisico (più forte: fondamentali pesanti a basse ripetizioni con progressione; massa: ipertrofia 6-12 ripetizioni con volume crescente; snello e definito: forza a ripetizioni medie e circuiti; ridurre il peso: forza + attività; salute: allenamento completo e sostenibile; prestazioni: forza, potenza e prevenzione infortuni per lo sport che fa).
 Rispondi SOLO con JSON valido, in italiano:
+Un solo esercizio per voce: mai nomi che ne uniscono più di uno (es. «Circuito (Bridge, Calf raise, Squat al muro)» o «A + B»); se vuoi un circuito elenca ogni esercizio come voce separata con le sue ripetizioni o i suoi secondi.
 {"name":"string","summary":"2 frasi su come palestra e corsa lavorano insieme","progression":"come progredire nelle prossime settimane","days":[{"wd":number,"title":"Lunedì – focus","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"es. 90 s","tip":"consiglio breve","equip":"attrezzo o corpo libero","muscles":["tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}]}]}
 ${runInProg? `Giorni di CORSA: stessi campi più "kind":"run","runType":"Jogging|Corsa lenta|Lungo|Fartlek|Ripetute|Corsa in soglia|Progressivo|Recupero attivo","distanceKm":number|null,"minutes":number,"pace":"m:ss o null","intensity":1-5,"description":"1-2 frasi","segments":[{"kind":"warmup|work|recovery|cooldown","label":"es. Jogging leggero di 5 minuti","km":number|null,"minutes":number|null,"pace":"m:ss o null","hr":"es. sotto ${hrCapOf()} bpm o vuoto"}],"exercises":[]. Corsa lenta, Jogging, Lungo e Recupero attivo sono guidati dal battito (sotto ${hrCapOf()} bpm). Progressione realistica rispetto alle corse recenti.` : ""} Circuiti a giri: "kind":"circuit","circuit":{"exercises":["nome 1","nome 2"],"rounds":[[ripetizioni giro 1],[giro 2]],"rest":"90 s"},"exercises":[]. Sedute di forza con 3-7 esercizi.`; }
 /* ===================== SCI: giornate, stagione, neve a Claviere, preparazione e consigli ===================== */
@@ -8024,6 +8028,28 @@ function exParts(name){ const s=String(name||"").trim(); let inner=null;
   if(!inner) return [];
   const ps=inner.split(/\s*(?:,|;|\+|\s+e\s+(?=[A-Za-zÀ-ú]{3}))\s*/).map(t=>t.replace(/^[\d.\-•)\s]+/,"").replace(/[()]/g,"").trim()).filter(t=>t.length>2);
   return ps.length>=2&&ps.filter(t=>exFig(t,{name:t,part:1})||exdbRule(t)!==undefined).length>=2? ps : []; }   // solo se sono davvero esercizi (non «Panca (bilanciere, manubri)»)
+/* esercizio combinato: istruzioni chiare per ogni parte (ripetizioni o secondi fermo), giri e recupero */
+function cmbHold(n){ n=String(n||"").toLowerCase(); return /muro|wall sit|isometric|plank|tenut|statico|hold|sedia/.test(n)&&!/calf|polpacc|push|piegament/.test(n); }
+function cmbPlan(x){ const parts=exParts(x&&x.name); if(!parts.length) return null;
+  const raw=String((x.rawReps!=null?x.rawReps:x.reps)||"").trim(), rs=raw.split(/\s*(?:\/|\+|,|;|\|)\s*/).filter(Boolean);
+  const isT=t=>/\d\s*(s|sec|secondi|min|')\b|:\d/i.test(t), num=t=>{ const m=String(t).match(/(\d+)(?:\s*[-–]\s*(\d+))?/); return m? (m[2]? m[1]+"-"+m[2] : m[1]) : ""; };
+  const rounds=Array.isArray(x.sets)? x.sets.length : (+x.sets||3), rest=String(x.rest||restFor({name:x.name,reps:raw})||"60-90 s").replace(/(\d)\s*s(ec)?\b/g,"$1 secondi").replace(/(\d)\s*(min|')(?![a-z])/g,"$1 minuti");
+  const one= rs.length===1&&!isT(raw)? num(raw) : "";
+  const P=parts.map((n,i)=>{ const hold=cmbHold(n), r0= rs.length===parts.length? rs[i] : "";
+    let how;
+    if(hold){ const sec= r0&&isT(r0)? num(r0) : (rs.length===1&&isT(raw)? num(raw) : "30-45"); how=`resta fermo ${sec} secondi`; }
+    else { const rp= r0&&!isT(r0)? num(r0) : one || (/calf|polpacc/i.test(n)? "15-20" : "12-15"); how=`${rp} ripetizioni`; }
+    return {n,hold,how}; });
+  const lines=P.map((q,i)=>`${i+1}. ${q.n}: ${q.how}`);
+  return {parts:P,rounds,rest,lines,
+    head:`Fai i ${P.length} esercizi uno dopo l'altro, senza pausa. Poi riposa ${rest}. Questo è 1 giro: in tutto ${rounds} ${rounds===1?"giro":"giri"}.`,
+    prog:`È a corpo libero: niente pesi da aumentare. Quando chiudi tutti i giri senza fatica, la volta dopo aggiungi 2 ripetizioni${P.some(q=>q.hold)?" e 10 secondi a quelli da fermo":""}.`}; }
+function cmbBox(x,onPart){ const c=cmbPlan(x); if(!c) return null; const b=el("div","cmb");
+  b.appendChild(el("div","cmb-h","🔁 Come si fa"));
+  b.appendChild(el("p","cmb-t",c.head));
+  const ol=el("ol","cmb-l"); c.parts.forEach(q=>{ const li=el("li"); const nb=el("b",null,q.n); li.append(nb,document.createTextNode(" · "+q.how));
+    if(onPart){ const v=el("button","linkbtn","▶ come si fa"); v.type="button"; v.onclick=e=>{ e.stopPropagation(); onPart(q.n); }; li.append(document.createTextNode(" "),v); } ol.appendChild(li); });
+  b.appendChild(ol); b.appendChild(el("p","cmb-p","📈 "+c.prog)); return b; }
 function exdbRule(name,x){ const n=String(name||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""), nx=(n+" "+String((x&&x.equip)||"").toLowerCase()).replace(/[_]/g," ");
   const r=EXRULES.find(([re])=>re.test(n)); if(!r) return undefined; const m=r[1];
   const fl=late=>{ for(const [k,re] of EXRULE_FLAGS) if((k[0]==="z")===late&&k in m&&re.test(nx)) return k; };
@@ -8075,7 +8101,8 @@ async function openTutorial(name,x){
   const meta=top.querySelector(".tut-meta");
   if(ms.length) meta.appendChild(el("div","tut-m","💪 "+ms.join(", ")));
   if(eq) meta.appendChild(el("div","tut-m","🏋️ "+eq));
-  { const ns=Array.isArray(x.sets)? x.sets.length : x.sets, rp=x.reps||x.repsLabel||(Array.isArray(x.sets)&&x.sets[0]&&x.sets[0].reps)||"";
+  const cbx=cmbBox(x); if(cbx) box.appendChild(cbx);
+  if(!cbx){ const ns=Array.isArray(x.sets)? x.sets.length : x.sets, rp=x.reps||x.repsLabel||(Array.isArray(x.sets)&&x.sets[0]&&x.sets[0].reps)||"";
     if(ns||rp) meta.appendChild(el("div","tut-m","📋 "+[ns?ns+" serie":"", rp?"× "+rp:"", x.rest?"⏱ recupero "+x.rest:""].filter(Boolean).join(" "))); }
   const parts=exParts(name), vq=n=>{ const fg=exFig(n,{name:n,part:1}); return "https://www.youtube.com/results?search_query="+encodeURIComponent(fg&&STR_VQ[fg]? STR_VQ[fg] : n+" esecuzione corretta tutorial"); };
   if(parts.length){ box.appendChild(el("p","note",`Questo esercizio ne contiene ${parts.length}: ecco come si fa ognuno.`));
@@ -8483,7 +8510,7 @@ function renderDayPage(){
     c.innerHTML=`<div class="gd-ef">${muscleSVG(exMuscles(x),78)}</div><div class="gd-et"><b></b><div class="d"></div><div class="chips2"><button type="button" class="rchip" aria-label="Cambia il tempo di riposo">⏱ recupero ${restFor(x)} ✎</button></div><div class="last"></div><div class="prog ${pg0?pg0.kind:""}"></div></div><button class="gd-help" type="button" aria-label="Tutorial: come si fa">▶</button>`;
     if(pg0) c.querySelector(".prog").textContent=(pg0.kind==="up"?"📈 ":pg0.kind==="down"?"📉 ":pg0.kind==="new"?"💡 ":"🎯 ")+pg0.text;
     const eqShow= eq && !(x.name||"").toLowerCase().includes(eq.toLowerCase().replace(/i$/,"")); c.querySelector("b").textContent=x.name+(eqShow?" · "+eq:"");
-    c.querySelector(".d").textContent=x.detail? x.detail : (x.sets? x.sets+" serie × "+(x.reps||"?") : "");
+    { const cp=cmbPlan(x); c.querySelector(".d").textContent=x.detail? x.detail : cp? `${cp.rounds} giri: `+cp.parts.map(q=>q.n+" "+q.how).join(" → ") : (x.sets? x.sets+" serie × "+(x.reps||"?") : ""); }
     const lt=lastText(x.name); c.querySelector(".last").textContent=lt||"";
     if(x.tip) c.title=x.tip;
     c.querySelector(".rchip").onclick=()=>{ const sec=askRest(restFor(x)); if(sec==null) return; x.rest=restLabel(sec); d.editedByMe=true; saveActive(a); renderProgram(); renderDayPage(); toast(`Riposo di ${x.name}: ${restLabel(sec)}`); };
@@ -8523,6 +8550,7 @@ ${(()=>{ const wd=Object.keys(pr.weekMap||{}).find(k=>pr.weekMap[k]===di); if(wd
   return `Questo giorno è il ${WD_IT[+wd]}. ${lim}${comboText()}`; })()}
 Programma: ${pr.name||""}. ${pr.summary||""}
 Profilo completo (rispetta attrezzatura disponibile, infortuni, livello e obiettivo; se c'è il gilet zavorrato usalo per progredire negli esercizi a corpo libero, indicando i kg nel campo reps o tip): ${profileSummary()}.
+Un solo esercizio per voce: mai nomi che ne uniscono più di uno (es. «Circuito (Bridge, Calf raise, Squat al muro)» o «A + B»); se vuoi un circuito elenca ogni esercizio come voce separata con le sue ripetizioni o i suoi secondi.
 Rispondi SOLO con JSON: {"title":"${String(d.title||"").replace(/"/g,"'")}","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"recupero tra le serie, es. 90 s o 2-3 min","tip":"consiglio breve","equip":"attrezzo principale o corpo libero","muscles":["muscoli principali tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}],"reply":"una frase su cosa hai cambiato"}`,{modelTier:"default"});
     const ex=(res&&Array.isArray(res.exercises)?res.exercises:[]).filter(x=>x&&x.name);
     if(!ex.length) throw {code:"bad_output"};
@@ -8568,6 +8596,8 @@ function openLogger(a,di){
         const dl=deloadOn(state.date), n=Math.max(dl? 2 : 1,Math.min(10,(+x.sets||3)-(dl&&(+x.sets||3)>2? 1 : 0))), timed=/\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||""));
         const pg=progFor(x), rr=repRange(x.reps);
         const bw=isBodyweight({name:x.name,equip:x.equip||exEquip(x)}), lv=bw? lastVest(x.name) : 0;
+        const cmb=exParts(x.name).length>0; if(cmb) return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),rawReps:x.reps||"",cmb:true,bw:false,
+          sets:Array.from({length:n},()=>({kg:"",reps:"",text:"",done:false}))};
         return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),timed,repsLabel:timed? String(x.reps).trim() : "",prog:pg,bw,vest:lv,rr,
           sets:Array.from({length:n},(_,i)=>{ const ls=last&&last.ex.sets[i]; let kg= bw? (lv||"") : pg&&pg.kg!=null&&pg.kind!=="hold"? pg.kg : (ls&&ls.kg!=null? ls.kg:""); if(dl&&!bw&&+kg>0&&!(pg&&pg.deload)) kg=r25(+(ls&&ls.kg||kg)*0.9);
             const reps= timed? String(x.reps).trim() : (pg&&pg.kind==="up"&&rr? rr[0] : (ls&&ls.reps? ls.reps : firstNum(x.reps))); return {kg, reps, done:false}; })};
@@ -8677,7 +8707,7 @@ function nextSet(){ if(logCtx.ss){ const E=logCtx.exercises;
       for(let si=0;si<n;si++){ if(x.sets[si]&&!x.sets[si].done) return {xi,si}; if(y&&y.sets[si]&&!y.sets[si].done) return {xi:x.ssp,si}; } } return null; }
   for(let xi=0;xi<logCtx.exercises.length;xi++){ const x=logCtx.exercises[xi]; for(let si=0;si<x.sets.length;si++) if(!x.sets[si].done) return {xi,si}; } return null; }
 /* serie per serie: se hai fatto molte più ripetizioni del previsto la prossima serie sale di peso, se ne hai fatte troppo poche scende */
-function adaptNextSet(x,si){ if(x.cardio||x.timed||x.bw||!x.rr) return; const st=x.sets[si], kg=+String(st.kg).replace(",","."), reps=+st.reps; if(!(kg>0)||!(reps>0)) return;
+function adaptNextSet(x,si){ if(x.cardio||x.cmb||x.timed||x.bw||!x.rr) return; const st=x.sets[si], kg=+String(st.kg).replace(",","."), reps=+st.reps; if(!(kg>0)||!(reps>0)) return;
   const nx=x.sets.find((z,i)=>i>si&&!z.done); if(!nx||(nx.kg!==""&&+nx.kg!==kg)) return; const [lo,hi]=x.rr, step=kgStep(x.name);
   if(reps>=hi+2&&!deloadOn(logCtx&&logCtx.date)){ nx.kg=r25(kg+step); toast(`💪 ${reps} ripetizioni: prossima serie ${fmt(nx.kg)} kg`); }
   else if(reps<lo-1&&kg-step>0){ nx.kg=r25(kg-step); toast(`Solo ${reps} ripetizioni: prossima serie ${fmt(nx.kg)} kg`); } }
@@ -8739,7 +8769,7 @@ function tmEnd(done,early){ clearInterval(tmStart.t); const T=TM; TM=null; try{ 
   if(T.prep<=0){ const held= early? Math.max(1,Math.floor(T.el/1000)) : T.sec; st.reps=held+" s"; }
   if(!st.done) markSet(T.xi,T.si,true); else { saveLive(); renderLogger(); } }
 function markSet(xi,si,val){ try{ const ae=document.activeElement; if(ae&&ae.closest&&ae.closest("#logBody")) ae.blur(); }catch{}
-  const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val;
+  const x=logCtx.exercises[xi], st=x.sets[si]; st.done= val==null? !st.done : val; if(x.cmb) st.text= st.done? "giro completo" : "";
   if(st.done){ try{ adaptNextSet(x,si); }catch(e){ console.warn("serie successiva",e); }
     const nx=nextSet(), pair= logCtx.ss&&nx&&x.ssp!=null&&nx.xi===x.ssp, endAll=!nx;
     restEnd= endAll? 0 : Date.now()+(pair? 15 : restSecs(x.ssp!=null&&logCtx.ss? maxRest(x,logCtx.exercises[x.ssp]) : x.rest))*1000; if(navigator.vibrate) navigator.vibrate(30); restNative(); }
@@ -8782,7 +8812,8 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
     x.sets.forEach((st,si)=>{
       const row=el("div","srow"+(st.done?" done":"")+(x.cardio?" cardio":"")), isNext=nx&&nx.xi===xi&&nx.si===si;
       const dot=el("button","dot","✓"); dot.type="button"; dot.setAttribute("aria-label",`Serie ${si+1} ${st.done?"fatta":"da fare"}`); dot.onclick=()=>markSet(xi,si);
-      if(x.cardio){ const t=el("input"); t.placeholder="Cosa hai fatto (es. 8 km in 45 min)"; t.value=st.text||""; t.oninput=()=>{ st.text=t.value; saveLive(); }; row.append(dot,el("span","no",String(si+1)),t); }
+      if(x.cmb||(!x.cardio&&cmbPlan(x)&&!st.kg&&!st.reps)){ st.text=st.done? "giro completo" : ""; const lb=el("span","cmb-g",st.done? `Giro ${si+1} fatto` : `Giro ${si+1}: tutti gli esercizi, poi riposo`); row.classList.add("cardio"); row.append(dot,el("span","no",String(si+1)),lb); }
+      else if(x.cardio){ const t=el("input"); t.placeholder="Cosa hai fatto (es. 8 km in 45 min)"; t.value=st.text||""; t.oninput=()=>{ st.text=t.value; saveLive(); }; row.append(dot,el("span","no",String(si+1)),t); }
       else{ const kg=el("input"); kg.type="number"; kg.inputMode="decimal"; kg.step="0.5"; kg.placeholder="–"; kg.value=st.kg; kg.setAttribute("aria-label","Kg serie "+(si+1)); kg.oninput=()=>{ st.kg=kg.value; saveLive(); };
         const rp=el("input"); if(x.timed){ rp.type="text"; rp.placeholder="tempo"; } else { rp.type="number"; rp.inputMode="numeric"; rp.placeholder="–"; }
         rp.value=st.reps; rp.setAttribute("aria-label",(x.timed?"Tempo":"Ripetizioni")+" serie "+(si+1)); rp.oninput=()=>{ st.reps=rp.value; saveLive(); };
@@ -8893,6 +8924,7 @@ Storico recente dei carichi: ${tlog.sessions.slice(-3).map(s=>s.title+": "+s.exe
 Allenamenti a settimana: ${days}. Disponibilità indicata nel profilo: ${trainText(p)}. Se i giorni sono indicati, assegna ogni seduta a un giorno preciso (scrivilo nel titolo) distribuendo bene i recuperi; se si allena al mattino a digiuno, adatta l'intensità e aggiungi un consiglio pratico nel summary. Dove: ${place}. Livello: ${level}. Obiettivo specifico: ${spec||"nessuno"}. Note: ${notes||"nessuna"}.
 Rendi il programma adatto agli obiettivi (più forte: fondamentali pesanti a basse ripetizioni con progressione; massa: ipertrofia 6-12 ripetizioni con volume crescente; snello e definito: forza a ripetizioni medie, circuiti e cardio; ridurre il peso: forza + cardio e attività quotidiana; salute e benessere: allenamento completo e sostenibile con mobilità e cardio moderato; prestazioni sportive: preparazione specifica per lo sport indicato con forza, potenza e condizionamento). Se l'obiettivo specifico è una gara di corsa (es. maratona) costruisci una settimana tipo da runner (lento, ripetute o tempo run, lungo, eventuale forza complementare) e spiega in "progression" come aumentare volume e lungo settimana dopo settimana, con scarico e tapering prima della gara.
 Rispondi SOLO con JSON valido, in italiano:
+Un solo esercizio per voce: mai nomi che ne uniscono più di uno (es. «Circuito (Bridge, Calf raise, Squat al muro)» o «A + B»); se vuoi un circuito elenca ogni esercizio come voce separata con le sue ripetizioni o i suoi secondi.
 {"name":"string","summary":"2 frasi sulla logica del programma","progression":"come progredire nelle prossime settimane","weeks":[{"week":1,"focus":"es. base / carico / scarico","note":"cosa cambia rispetto alla settimana prima (carichi, ripetizioni, km), una frase"},{"week":2,...},{"week":3,...},{"week":4,...}],"days":[{"title":"Giorno A – focus","minutes":number,"exercises":[{"name":"string","sets":number,"reps":"string","rest":"recupero tra le serie, es. 90 s o 2-3 min","tip":"consiglio breve","equip":"attrezzo principale o corpo libero","muscles":["muscoli principali tra: petto, dorso, spalle, bicipiti, tricipiti, avambracci, addome, lombari, trapezi, glutei, quadricipiti, femorali, polpacci"]}]}]}
 Se l'obiettivo specifico o il profilo riguardano la corsa (gara, 10 km, mezza, maratona, trail) o la persona corre regolarmente, includi le sedute di corsa necessarie con una progressione realistica rispetto alle corse recenti: ${runsRecent()}. Le sedute di CORSA vanno come giorni a sé con questi campi in più: "kind":"run","runType":"Jogging|Corsa lenta|Lungo|Fartlek|Ripetute|Corsa in soglia|Progressivo|Recupero attivo","distanceKm":number|null,"minutes":number,"pace":"m:ss ritmo medio al km o null","intensity":1-5,"description":"1-2 frasi sull'obiettivo della seduta","segments":[{"kind":"warmup|work|recovery|cooldown","label":"es. Jogging leggero di 5 minuti","km":number|null,"minutes":number|null,"pace":"m:ss o null","hr":"es. fino a 115 bpm o vuoto"}] ed "exercises":[]. Per fartlek e ripetute alterna segmenti work e recovery. Corsa lenta, Jogging, Lungo e Recupero attivo sono guidati dal battito: nei segmenti metti "hr":"sotto ${hrCapOf()} bpm" e scrivilo nella description${hrAdvice().lvl===2? "; nelle prime 2-3 settimane fai corsa-cammino (es. 4 minuti di corsa e 1 di cammino) perché il battito nelle corse facili recenti è stato troppo alto" : ""}. I CIRCUITI (esercizi fatti uno dopo l'altro a giri, es. piramidi 1-2-3…10…3-2-1) vanno come giorno a sé: "kind":"circuit","circuit":{"exercises":["nome esercizio 1","nome 2",...],"rounds":[[ripetizioni di ciascun esercizio nel giro 1],[giro 2],...],"rest":"riposo tra un giro e l'altro, es. 90 s"},"exercises":[]. Scrivi TUTTI i giri in ordine (andata e ritorno). Per brevi parti di cardio dentro una seduta di forza usa invece il campo "detail" (es. "15 minuti di tapis roulant"). Esattamente ${days} giorni; le sedute di forza con 3-7 esercizi.
 ${(()=>{ const rw=raceWeekText(); if(!rw) return COMBO_RULES; const w=race.plan.weeks[raceWeekIdx()]||{}; return rw+" Le corse le mette il piano gara in questi giorni: "+(w.runs||[]).map(r0=>WD_IT[r0.wd]+" "+(r0.runType||"corsa")+(r0.km?" "+fmt(r0.km)+" km":"")).join(", ")+". Quindi NON creare giorni di corsa: crea solo sedute di forza o circuiti e scrivi nel titolo giorni diversi da quelli delle corse.\n"+COMBO_RULES; })()}`,{modelTier:"default",pro:true});
