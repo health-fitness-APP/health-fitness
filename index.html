@@ -887,6 +887,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .ski-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 12px}
 .ski-st{background:var(--surface2);border-radius:14px;padding:10px 4px;text-align:center;display:flex;flex-direction:column;gap:2px}
 .ski-live{margin:4px 0 6px}.ski-live.on{background:var(--surface2);border-radius:16px;padding:12px}.ski-live-h{font-weight:700;margin:0 0 6px}
+.ski-del{margin-left:auto;padding:4px 8px;flex:none}
 .ski-st b{font-size:1.15rem}.ski-st span{font-size:.75rem;color:var(--muted)}
 .ski-list{margin-top:12px}.ski-ul{margin:6px 0 10px;padding-left:20px;font-size:.9rem;line-height:1.5}
 .str-ov{position:fixed;inset:0;z-index:60;background:var(--surface-solid,var(--surface));display:flex;align-items:center;justify-content:center;padding:20px}
@@ -2469,7 +2470,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.25 (giornata sugli sci registrata dal telefono in tasca)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.26 (giornate sugli sci eliminabili dall'elenco)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7443,7 +7444,7 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
     f.querySelector("#skGo").onclick=async()=>{ const m=calc(); if(!m){ toast("Indica inizio e fine"); return; } const iso=f.querySelector("#skD").value||todayISO(), int=f.querySelector("#skI").value;
       await addWorkoutOn(iso,{name:f.querySelector("#skT").value,minutes:m,intensity:int,kcal:skiKcal(m,int),start:f.querySelector("#skS").value,end:f.querySelector("#skE").value,distance:+String(f.querySelector("#skK").value).replace(",",".")||null,elevDown:+f.querySelector("#skH").value||null,details:f.querySelector("#skN").value.trim()||"",place:o.place.name});
       skiAddOpen=false; renderSci(); }; }
-  if(S.its.length){ const lst=el("div","ski-list"); S.its.slice(0,12).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic","⛷️"), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.elevDown? ` · ↓${(+w.elevDown).toLocaleString("it-IT")} m` : "")+(w.details? ` · ${w.details}` : "")+(w.src==="phone"? " · 📱" : "")));  lst.appendChild(r0); }); c1.appendChild(lst); }
+  if(S.its.length){ const lst=el("div","ski-list"); S.its.slice(0,12).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic","⛷️"), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.elevDown? ` · ↓${(+w.elevDown).toLocaleString("it-IT")} m` : "")+(w.details? ` · ${w.details}` : "")+(w.src==="phone"? " · 📱" : ""))); const xb=el("button","linkbtn ski-del","🗑"); xb.type="button"; xb.setAttribute("aria-label","Elimina questa giornata"); xb.onclick=()=>skiDel(w); r0.appendChild(xb); lst.appendChild(r0); }); c1.appendChild(lst); }
   else c1.appendChild(el("p","note","Nessuna giornata ancora. Puoi registrarla dal telefono qui sopra; se usi il Galaxy Watch arriva da sola da Samsung Health."));
   box.appendChild(c1);
   // neve e meteo
@@ -7519,6 +7520,11 @@ async function skiLiveEnd(){ const o=skiLiveGet(); if(!o) return; if(!confirm("F
   await addWorkoutOn(iso,w); if(iso===state.date) toast("Giornata sugli sci registrata ✓");
   if(st&&st.tr&&Array.isArray(st.tr.t)&&st.tr.t.length>1) try{ save("ski-"+wid,{v:1,t0:o.t0,tr:{t:st.tr.t,m:st.tr.m,a:st.tr.a,la:st.tr.la,lo:st.tr.lo}}); }catch(e){ console.warn("percorso sci",e); }
   skiAddOpen=false; renderSci(); skiRowSub(); }
+async function skiDel(w){ const d=new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+  if(!confirm(`Elimino la giornata sugli sci di ${d} (${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min)?`)) return;
+  if(w.date===state.date){ state.day.workouts=(state.day.workouts||[]).filter(x=>x.id!==w.id); saveDay(); }
+  else { const doc=await store.getDoc("day-"+w.date).catch(()=>null); if(doc&&doc.workouts){ doc.workouts=doc.workouts.filter(x=>x.id!==w.id); save("day-"+w.date,doc); } }
+  hist.items=hist.items.filter(x=>x.id!==w.id); save("workoutHistory",hist); try{ wTrashAdd({...w}); }catch{} renderAll(); renderSci(); toast("Giornata eliminata"); }
 function skiRowSub(){ const s=$("skiRowSub"); if(!s) return; const o=skiLiveGet();
   s.textContent= o? (o.pAt? "⏸ In pausa · " : "🔴 In registrazione · ")+hmTxt(skiLiveSec(o)) : "Registrala dal telefono in tasca, senza orologio"; }
 function skiLiveCard(c1){ const o=skiLiveGet(), box=el("div","ski-live");
