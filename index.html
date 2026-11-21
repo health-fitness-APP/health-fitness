@@ -1533,6 +1533,11 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
   </section>
   <button class="card raceRow" id="csRow" type="button"><span class="mi">📈</span><span class="mt"><b>Statistiche corsa</b><span class="ms" id="csRowSub">Record, forma, zone cardio, scarpe e recupero</span></span><span class="chev">›</span></button>
   <button class="card raceRow" id="skiRow" type="button"><span class="mi">⛷️</span><span class="mt"><b>Giornata sugli sci</b><span class="ms" id="skiRowSub">Registrala dal telefono in tasca, senza orologio</span></span><span class="chev">›</span></button>
+  <section class="card" id="aaCard"><h2>🤖 Rilevamento automatico</h2>
+    <p class="sub" style="margin-top:0">Il telefono riconosce da solo le attività, senza Samsung Health e senza GPS acceso.</p>
+    <label class="chk"><input type="checkbox" id="aaAct"> Camminate, corse e bici (almeno 10 minuti) e passi del telefono</label>
+    <label class="chk"><input type="checkbox" id="aaSki"> Sci: avvisami quando sono sulle piste</label>
+    <p class="note" id="aaNote"></p></section>
   <section class="card" id="sleepCard">
     <h2>😴 Sonno di stanotte</h2>
     <div class="two"><label>Ore dormite<input class="field" id="slH" inputmode="decimal" placeholder="es. 7,5"></label>
@@ -2470,7 +2475,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.26 (giornate sugli sci eliminabili dall'elenco)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.27 (rilevamento automatico sul telefono: camminate, corse, bici, passi e avvisi per lo sci)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7409,7 +7414,7 @@ function skiStats(){ const from=skiSeasonFrom(), its=((hist&&hist.items)||[]).fi
   const days=new Set(its.map(w=>w.date)); return {its, days:days.size, min:its.reduce((a,w)=>a+(+w.minutes||0),0), km:Math.round(its.reduce((a,w)=>a+(+w.distance||0),0)*10)/10, dn:its.reduce((a,w)=>a+(+w.elevDown||0),0), kcal:its.reduce((a,w)=>a+(+w.kcal||0),0)}; }
 const SKI_MET={leggera:4.3,normale:5.5,intensa:7};
 function skiKcal(min,int){ const w=+(state.profile&&state.profile.weight)||75; return Math.round((SKI_MET[int]||5.5)*w*min/60*0.8/10)*10; }   // 0,8: le risalite in seggiovia
-async function addWorkoutOn(iso,w){ if(iso===state.date){ addWorkout(w); return; }
+async function addWorkoutOn(iso,w){ try{ if(isSki(w)&&iso===todayISO()&&AAP()) AAP().skiDone({day:iso}).catch(()=>{}); }catch{} if(iso===state.date){ addWorkout(w); return; }
   const item={id:uid(),...w}, doc=(await store.getDoc("day-"+iso).catch(()=>null))||{meals:{},workouts:[]}; doc.workouts=[...(doc.workouts||[]),item]; save("day-"+iso,doc);
   hist.items=[...hist.items,{...item,date:iso}]; save("workoutHistory",hist); renderAll(); queueProgress(); toast("Giornata sugli sci registrata ✓"); }
 const SKI_TIPS=[
@@ -7540,6 +7545,46 @@ function skiLiveCard(c1){ const o=skiLiveGet(), box=el("div","ski-live");
   if(!skiLiveTmr) skiLiveTmr=setInterval(async()=>{ const o2=skiLiveGet(); if(!o2){ clearInterval(skiLiveTmr); skiLiveTmr=null; return; }
     if(o2.native){ const P=HRN(); if(P) try{ skiLiveNat=await P.state(); }catch{} }
     skiRowSub(); if(view==="allenamento"&&!$("w-sci").hidden) renderSci(); },15000); }
+/* ----- rilevamento automatico sul telefono (plugin nativo AutoAct): camminata/corsa/bici, passi, avvisi sci ----- */
+const AAP=()=>{ const C=NAT(); return C&&C.Plugins? C.Plugins.AutoAct : null; };
+const AA_T={walk:["Camminata",3.5,105],run:["Corsa",9,165],bike:["Bici",6,0]};
+function aaOn(k){ try{ return localStorage.getItem("hf:aa"+k)==="1"; }catch{ return false; } }
+async function aaConfig(ask){ const P=AAP(); if(!P) return null; const pl=skiCfg().place;
+  try{ const r0=await P.config({act:aaOn("Act"),ski:aaOn("Ski"),lat:pl.la,lon:pl.lo,km:12,silent:!ask}); aaNote(r0); return r0; }catch(e){ console.warn("auto",e); aaNote({err:String((e&&e.message)||e)}); return null; } }
+function aaNote(r0){ const n=$("aaNote"); if(!n) return; const t=[];
+  if(!AAP()) t.push("Funziona con l'app HealthFit installata sul telefono (non dal browser).");
+  else if(r0){ if(aaOn("Act")&&!r0.act) t.push("Manca il permesso «Attività fisica»: senza, il telefono non riconosce i movimenti."); if(aaOn("Ski")&&!r0.ski) t.push("Manca il permesso della posizione."); else if(aaOn("Ski")&&!r0.bg) t.push("Per gli avvisi sci serve la posizione «Consenti sempre»: Impostazioni → App → HealthFit → Autorizzazioni → Posizione."); if(r0.err) t.push("Errore: "+r0.err); }
+  if(!t.length&&(aaOn("Act")||aaOn("Ski"))) t.push("Attivo ✓"+(aaOn("Act")? " Le attività riconosciute compaiono qui quando apri l'app; se la stessa arriva anche da Samsung Health la tengo una volta sola." : ""));
+  n.textContent=t.join(" "); }
+function wSpan(w){ const m=/^(\d{1,2}):(\d{2})/.exec(w.start||""); if(!m) return null; const a=+m[1]*60+ +m[2]; return [a,a+Math.max(1,+w.minutes||0)]; }
+function aaOverlap(list,w){ const s=wSpan(w); if(!s) return false; return list.some(x=>{ if(x.id===w.id||x.auto) return false; const t=wSpan(x); return t&&t[0]<s[1]&&s[0]<t[1]; }); }
+async function aaDayDo(iso,fn){ if(iso===state.date){ const ch=fn(state.day); if(ch){ saveDay(); } return ch; }
+  const doc=(await store.getDoc("day-"+iso).catch(()=>null))||{meals:{},workouts:[]}; const ch=fn(doc); if(ch) save("day-"+iso,doc); return ch; }
+async function aaImport(acts){ const w=+(state.profile&&state.profile.weight)||75; let n=0;
+  for(const a of acts){ const T=AA_T[a.type]; if(!T) continue; const min=Math.round((a.end-a.start)/60000); if(min<10) continue; const iso=romeISO(a.start);
+    const item={id:uid(),name:T[0],minutes:min,intensity:"rilevata dal telefono",kcal:Math.round((T[1]-1)*w*min/60/5)*5,start:clockOf(a.start),end:clockOf(a.end),auto:true,src:"phone-auto",steps:T[2]? T[2]*min : null};
+    const ok=await aaDayDo(iso,d=>{ d.workouts=d.workouts||[]; if(aaOverlap(d.workouts,item)||d.workouts.some(x=>x.auto&&x.start===item.start)) return false; d.workouts.push(item); return true; });
+    if(ok){ hist.items=[...hist.items,{...item,date:iso}]; n++; } }
+  if(n){ save("workoutHistory",hist); renderAll(); toast(n===1? "🤖 1 attività riconosciuta dal telefono" : `🤖 ${n} attività riconosciute dal telefono`); } }
+/* se poi la stessa attività arriva da Samsung Health (o la registri), quella automatica si toglie */
+async function aaDedupe(){ let gone=[]; for(let k=0;k<3;k++){ const iso=romeISO(Date.now()-k*864e5);
+    await aaDayDo(iso,d=>{ const ws=d.workouts||[], keep=ws.filter(x=>!(x.auto&&aaOverlap(ws,x))); if(keep.length===ws.length) return false; gone.push(...ws.filter(x=>!keep.includes(x)).map(x=>x.id)); d.workouts=keep; return true; }); }
+  if(gone.length){ hist.items=hist.items.filter(x=>!gone.includes(x.id)); save("workoutHistory",hist); renderAll(); } }
+async function aaSteps(){ const P=AAP(); if(!P||!aaOn("Act")) return; let r0; try{ r0=await P.steps(); }catch{ return; } const days=(r0&&r0.days)||{}; let ch=false;
+  for(let k=0;k<2;k++){ const iso=romeISO(Date.now()-k*864e5), n=+days[iso]||0; if(n<1) continue;
+    if(await aaDayDo(iso,d=>{ const a=d.activity||{}; if(a.src==="health"&&+a.steps>0) return false; if(+a.steps===n) return false; d.activity={...a,steps:n,src:"phone",via:"Telefono",at:new Date().toISOString()}; return true; })) ch=true; }
+  if(ch) renderAll(); }
+let aaBusy=false;
+async function aaPull(){ const P=AAP(); if(!P||aaBusy) return; aaBusy=true;
+  try{ const r0=await P.pending(); if(r0&&r0.acts&&r0.acts.length) await aaImport(r0.acts); await aaDedupe(); await aaSteps();
+    if(r0&&r0.open){ try{ localStorage.setItem("hf:skiTab","1"); }catch{} if(r0.open==="forgot") skiAddOpen=true; go("allenamento"); try{ csTabs(); }catch{} setW("sci"); window.scrollTo({top:0}); } }
+  catch(e){ console.warn("auto pull",e); } finally{ aaBusy=false; } }
+function aaSetup(){ const a=$("aaAct"), k=$("aaSki"); if(!a) return; a.checked=aaOn("Act"); k.checked=aaOn("Ski"); aaNote(null);
+  const ch=async(key,box)=>{ if(!AAP()){ box.checked=false; aaNote(null); return; } try{ localStorage.setItem("hf:aa"+key,box.checked?"1":"0"); }catch{} const r0=await aaConfig(true); if(r0&&box.checked&&((key==="Act"&&!r0.act)||(key==="Ski"&&!r0.ski))){ box.checked=false; try{ localStorage.setItem("hf:aa"+key,"0"); }catch{} aaNote(r0); } };
+  a.onchange=()=>ch("Act",a); k.onchange=()=>ch("Ski",k);
+  if(AAP()){ if(aaOn("Act")||aaOn("Ski")) setTimeout(()=>aaConfig(false),6000); setTimeout(aaPull,9000); setTimeout(aaDedupe,25000);
+    try{ NAT().Plugins.App.addListener("resume",()=>setTimeout(aaPull,1500)); }catch{} } }
+setTimeout(aaSetup,800);
 function minsBetweenAny(a,b){ if(!a||!b) return 0; const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number); let d=(h2*60+m2)-(h1*60+m1); if(d<0) d+=1440; return d; }
 const WX_TXT={0:"☀️ sereno",1:"🌤️ poco nuvoloso",2:"⛅ nuvoloso",3:"☁️ coperto",45:"🌫️ nebbia",48:"🌫️ nebbia",51:"🌦️ pioviggine",53:"🌦️ pioviggine",55:"🌦️ pioviggine",61:"🌧️ pioggia",63:"🌧️ pioggia",65:"🌧️ pioggia forte",71:"🌨️ neve debole",73:"🌨️ neve",75:"❄️ neve forte",77:"🌨️ nevischio",80:"🌦️ rovesci",81:"🌧️ rovesci",82:"🌧️ rovesci forti",85:"🌨️ rovesci di neve",86:"❄️ rovesci di neve forti",95:"⛈️ temporale"};
 async function skiWeather(pl,box){ const key="hf:skiWx:"+pl.la+","+pl.lo; let d=null;
