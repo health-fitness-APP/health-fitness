@@ -886,6 +886,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 #view-allenamento .seg.many button{flex:0 0 auto;padding-left:12px!important;padding-right:12px!important;overflow:visible}
 .ski-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 12px}
 .ski-st{background:var(--surface2);border-radius:14px;padding:10px 4px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.ski-live{margin:4px 0 6px}.ski-live.on{background:var(--surface2);border-radius:16px;padding:12px}.ski-live-h{font-weight:700;margin:0 0 6px}
 .ski-st b{font-size:1.15rem}.ski-st span{font-size:.75rem;color:var(--muted)}
 .ski-list{margin-top:12px}.ski-ul{margin:6px 0 10px;padding-left:20px;font-size:.9rem;line-height:1.5}
 .str-ov{position:fixed;inset:0;z-index:60;background:var(--surface-solid,var(--surface));display:flex;align-items:center;justify-content:center;padding:20px}
@@ -1530,6 +1531,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <p class="note" id="aSrc" style="margin-top:12px"></p>
   </section>
   <button class="card raceRow" id="csRow" type="button"><span class="mi">📈</span><span class="mt"><b>Statistiche corsa</b><span class="ms" id="csRowSub">Record, forma, zone cardio, scarpe e recupero</span></span><span class="chev">›</span></button>
+  <button class="card raceRow" id="skiRow" type="button"><span class="mi">⛷️</span><span class="mt"><b>Giornata sugli sci</b><span class="ms" id="skiRowSub">Registrala dal telefono in tasca, senza orologio</span></span><span class="chev">›</span></button>
   <section class="card" id="sleepCard">
     <h2>😴 Sonno di stanotte</h2>
     <div class="two"><label>Ore dormite<input class="field" id="slH" inputmode="decimal" placeholder="es. 7,5"></label>
@@ -2467,7 +2469,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.24 (la dieta di oggi torna sempre con l'obiettivo di Cibo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.25 (giornata sugli sci registrata dal telefono in tasca)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6377,7 +6379,7 @@ function cdGps(on){ if(cdWatch!=null){ try{ navigator.geolocation.clearWatch(cdW
   cdWatch=navigator.geolocation.watchPosition(p=>{ if(!CD||!CD.running||CD.paused) { if(CD) CD.last=null; return; } const c=p.coords; if(c.accuracy>30) return;
     if(CD.last){ const R=6371, dLa=(c.latitude-CD.last.lat)*Math.PI/180, dLo=(c.longitude-CD.last.lon)*Math.PI/180, a=Math.sin(dLa/2)**2+Math.cos(CD.last.lat*Math.PI/180)*Math.cos(c.latitude*Math.PI/180)*Math.sin(dLo/2)**2, d=2*R*Math.asin(Math.sqrt(a));
       if(d>0.003&&d<0.2) CD.km+=d; } CD.last={lat:c.latitude,lon:c.longitude}; CD.pos={la:c.latitude,lo:c.longitude,a:c.altitude}; },()=>{},{enableHighAccuracy:true,maximumAge:1000,timeout:15000}); }
-$("cdStart").onclick=async()=>{ if(!CD) return;
+$("cdStart").onclick=async()=>{ if(!CD) return; if(!CD.t0&&skiLiveGet()&&!confirm("Stai registrando la giornata sugli sci: se avvii la corsa la registrazione dello sci si ferma. Continuo?")) return;
   if(!CD.t0&&!CD.native&&!CD.noWatch&&WBR()){ CD.noWatch=true;
     if(await askWatch({title:CD.title,runType:CD.runType,km:CD.kmPlan,pace:CD.pacePlan,from:CD.from})){ CD=null; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita"); return; } }
   const P=HRN(); if(P){ hrnListen();
@@ -6407,7 +6409,7 @@ $("cdEnd").onclick=async()=>{ if(!CD||!CD.t0) return;
   CD=null; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita");
   setTimeout(()=>openRunSummary(wid),450); };
 $("cdBack").onclick=()=>{ if(CD&&CD.running&&!confirm("La corsa con la fascia è in corso: esci lo stesso? Puoi tornarci dal Programma.")) return; if(history.state&&history.state.v==="cardio") history.back(); else go("attivita"); };
-async function hrnRestore(){ const P=HRN(); if(!P) return; try{ const st=await P.state(); if(st&&st.running){ hrnListen(); CD={title:st.title||"Corsa",runType:"",kmPlan:null,from:null,running:true,paused:!!st.paused,t0:Date.now()-(+st.seconds||0)*1000,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:null,native:true,nat:st};
+async function hrnRestore(){ const P=HRN(); if(!P) return; try{ const st=await P.state(); if(st&&st.running&&(skiLiveGet()||st.title===SKI_LIVE_T)){ skiLiveFix(st); return; } if(st&&st.running){ hrnListen(); CD={title:st.title||"Corsa",runType:"",kmPlan:null,from:null,running:true,paused:!!st.paused,t0:Date.now()-(+st.seconds||0)*1000,pausedMs:0,pAt:0,sum:0,n:0,max:0,z:[0,0,0,0,0],km:0,last:null,outSince:0,lastAlert:0,target:null,native:true,nat:st};
   $("cdTitle").textContent=CD.title; go("cardio"); renderCardio(); toast("Corsa in corso ripresa"); } }catch{} }
 $("cdWatch").onclick=()=>{ if(CD) watchSend({title:CD.title,runType:CD.runType,km:CD.kmPlan,pace:CD.pacePlan,from:CD.from}); };
 $("cdBattBtn").onclick=()=>{ const P=HRN(); if(P) P.requestBattery().then(()=>setTimeout(hrnBattery,4000)).catch(()=>{}); };
@@ -6564,6 +6566,8 @@ $("slShot").onchange=async e=>{ const f=e.target.files[0]; $("slShot").value="";
     state.day.sleep={h:Math.round(+res.h*10)/10,q,score:+res.score||null,deep:+res.deep||null,rem:+res.rem||null,src:"screenshot"}; saveDay(); renderSleep(); toast("Sonno salvato ✓"); }
   catch(err){ setStatus("slStatus",(err&&err.message)||errCopy(err),true); } };
 $("csRow").onclick=()=>{ go("corsa"); renderCorsa(); };
+$("skiRow").onclick=()=>{ try{ localStorage.setItem("hf:skiTab","1"); }catch{} go("allenamento"); try{ csTabs(); }catch{} setW("sci"); window.scrollTo({top:0}); };
+setTimeout(skiRowSub,1200);
 $("corsaBack").onclick=()=>{ if(history.state&&history.state.v==="corsa") history.back(); else go("attivita"); };
 /* ----- cestino degli allenamenti: si possono ripristinare (anche le corse eliminate prima del cestino, dai dati rimasti) ----- */
 function wTrash(){ try{ return JSON.parse(localStorage.getItem("hf:wTrash")||"[]"); }catch{ return []; } }
@@ -7262,7 +7266,7 @@ function raceFixDays(weeks,g){ if(!g||!Array.isArray(g.days)||!g.days.length||!A
       if(d!=null&&byWd[d]==null){ r.wd=d; byWd[d]=r; } });                           // le corse in più si tolgono
     w.runs=WD_ORDER.filter(x=>byWd[x]).map(x=>byWd[x]); w.km=Math.round(w.runs.reduce((a,r)=>a+(+r.km||0),0)*10)/10; });
   return weeks; }
-function csTabs(){ try{ const c=cs, hideRun= c&&c.sports.length&&!c.sports.includes("corsa"), showSki=!!(c&&c.sports.includes("sci"));
+function csTabs(){ try{ const c=cs, hideRun= c&&c.sports.length&&!c.sports.includes("corsa"), showSki=!!(c&&c.sports.includes("sci"))||skiTabOn();
   document.querySelectorAll('.seg button[data-w="sci"]').forEach(b=>b.hidden=!showSki); if(!showSki&&!$("w-sci").hidden) setW("programma");
   ["bici","nuoto","altro"].forEach(k=>{ const on=!!(c&&c.sports.includes(k)); document.querySelectorAll('.seg button[data-w="sp-'+k+'"]').forEach(b=>{ b.hidden=!on; if(!on&&b.getAttribute("aria-selected")==="true") setW("programma"); }); });
   document.querySelectorAll("#view-allenamento .seg").forEach(sg=>sg.classList.toggle("many",[...sg.children].filter(b=>!b.hidden).length>4));
@@ -7424,7 +7428,8 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
   const g=el("div","ski-grid"); [["Giornate",S.days],["Ore",fmt(Math.round(S.min/6)/10)],["Km",fmt(S.km)],["Dislivello",S.dn? S.dn.toLocaleString("it-IT")+" m" : "–"]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,String(v)),el("span",null,l)); g.appendChild(d); });
   c1.appendChild(g);
   if(S.kcal) c1.appendChild(el("p","note",`Calorie consumate sugli sci da settembre: circa ${S.kcal.toLocaleString("it-IT")} kcal.`));
-  const ab=el("button","btn",skiAddOpen? "Chiudi" : "＋ Registra una giornata sugli sci"); ab.type="button"; ab.onclick=()=>{ skiAddOpen=!skiAddOpen; renderSci(); }; c1.appendChild(ab);
+  try{ skiLiveCard(c1); }catch(e){ console.warn("sci live",e); }
+  const ab=el("button","btn ghost",skiAddOpen? "Chiudi" : "✏ Inserisci a mano una giornata già fatta"); ab.style.marginTop="10px"; ab.type="button"; ab.onclick=()=>{ skiAddOpen=!skiAddOpen; renderSci(); }; c1.appendChild(ab);
   if(skiAddOpen){ const f=el("div","form"); f.style.marginTop="10px";
     f.innerHTML=`<div class="two"><label>Giorno<input type="date" id="skD"></label><label>Tipo<select id="skT"><option>Sci alpino</option><option>Snowboard</option><option>Sci di fondo</option><option>Scialpinismo</option></select></label></div>
       <div class="two"><label>Inizio<input type="time" id="skS" value="09:00"></label><label>Fine<input type="time" id="skE" value="16:00"></label></div>
@@ -7438,8 +7443,8 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
     f.querySelector("#skGo").onclick=async()=>{ const m=calc(); if(!m){ toast("Indica inizio e fine"); return; } const iso=f.querySelector("#skD").value||todayISO(), int=f.querySelector("#skI").value;
       await addWorkoutOn(iso,{name:f.querySelector("#skT").value,minutes:m,intensity:int,kcal:skiKcal(m,int),start:f.querySelector("#skS").value,end:f.querySelector("#skE").value,distance:+String(f.querySelector("#skK").value).replace(",",".")||null,elevDown:+f.querySelector("#skH").value||null,details:f.querySelector("#skN").value.trim()||"",place:o.place.name});
       skiAddOpen=false; renderSci(); }; }
-  if(S.its.length){ const lst=el("div","ski-list"); S.its.slice(0,12).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic","⛷️"), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.elevDown? ` · ↓${(+w.elevDown).toLocaleString("it-IT")} m` : "")+(w.details? ` · ${w.details}` : ""))); lst.appendChild(r0); }); c1.appendChild(lst); }
-  else c1.appendChild(el("p","note","Nessuna giornata ancora. Se registri lo sci con il Galaxy Watch arriva da solo da Samsung Health; altrimenti aggiungila qui."));
+  if(S.its.length){ const lst=el("div","ski-list"); S.its.slice(0,12).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic","⛷️"), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.elevDown? ` · ↓${(+w.elevDown).toLocaleString("it-IT")} m` : "")+(w.details? ` · ${w.details}` : "")+(w.src==="phone"? " · 📱" : "")));  lst.appendChild(r0); }); c1.appendChild(lst); }
+  else c1.appendChild(el("p","note","Nessuna giornata ancora. Puoi registrarla dal telefono qui sopra; se usi il Galaxy Watch arriva da sola da Samsung Health."));
   box.appendChild(c1);
   // neve e meteo
   const c2=el("section","card"); c2.appendChild(el("h2",null,`❄️ Neve e meteo a ${o.place.name}`)); const wx=el("div","ski-wx"); wx.textContent="Carico le previsioni…"; c2.appendChild(wx); box.appendChild(c2); skiWeather(o.place,wx);
@@ -7456,6 +7461,79 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
   SKI_TIPS.forEach(([ic,t,d])=>{ const r0=el("div","pline"); const sp=el("span"); sp.append(el("b",null,t+". "),document.createTextNode(d)); r0.append(el("span","ic",ic),sp); c4.appendChild(r0); });
   const st=el("button","btn ghost","🧘 Stretching dopo lo sci (10 min)"); st.type="button"; st.style.marginTop="8px"; st.onclick=()=>startStretch("sci"); c4.appendChild(st);
   box.appendChild(c4); }
+/* ----- sci registrato dal telefono in tasca (APK: motore nativo GPS a schermo spento; nel browser solo il tempo) ----- */
+const SKI_LIVE_T="Sci", SKI_LK="hf:skiLive";
+function skiLiveGet(){ try{ const o=JSON.parse(localStorage.getItem(SKI_LK)||"null"); return o&&o.t0? o : null; }catch{ return null; } }
+function skiLiveSet(o){ try{ if(o) localStorage.setItem(SKI_LK,JSON.stringify(o)); else localStorage.removeItem(SKI_LK); }catch{} }
+function skiTabOn(){ try{ return !!skiLiveGet()||localStorage.getItem("hf:skiTab")==="1"; }catch{ return false; } }
+function skiLiveFix(st){ if(!skiLiveGet()) skiLiveSet({t0:+st.startedAt||Date.now(),type:"Sci alpino",native:true,pMs:0,pAt:st.paused?Date.now():0}); }
+function skiLiveSec(o){ if(!o) return 0; return Math.max(0,((o.pAt||Date.now())-o.t0-(o.pMs||0))/1000); }
+const hmTxt=s=>{ const m=Math.round(s/60); return `${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")} min`; };
+const clockOf=ms=>new Date(ms).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Rome"});
+/* dal percorso (un punto ogni 5-15 s: t secondi, m metri, a quota) ricava discese, dislivello, km di pista, velocità massima e soste lunghe */
+function skiAnalyze(tr){ const R={runs:0,down:0,up:0,kmDown:0,maxKmh:0,pauseSec:0,altMax:null,altMin:null};
+  if(!tr||!Array.isArray(tr.t)) return R; const P=[];
+  for(let i=0;i<tr.t.length;i++){ const a=+tr.a[i], la=tr.la? +tr.la[i]||0 : 0, lo=tr.lo? +tr.lo[i]||0 : 0; P.push({t:+tr.t[i],m:+tr.m[i]||0,a:(a===-9999||isNaN(a))? null : a,la,lo}); }
+  // soste lunghe (pranzo, rifugio): almeno 10 minuti nel raggio di 60 m (senza segnale GPS conta come fermo; i metri del GPS da fermo salgono lo stesso, per questo si usa la posizione)
+  const near=(p,q)=>{ if(!p.la||!q.la) return true; const dy=(p.la-q.la)*1.113, dx=(p.lo-q.lo)*1.113*Math.cos(p.la/1e5*Math.PI/180); return dx*dx+dy*dy<3600; };
+  for(let i=0;i<P.length;){ let j=i; while(j+1<P.length&&near(P[i],P[j+1])) j++; if(P[j].t-P[i].t>=600){ R.pauseSec+=P[j].t-P[i].t; i=j+1; } else i++; }
+  const Q=P.filter(p=>p.a!=null); if(Q.length<5) return R;
+  const med=Q.map((p,i)=>{ const w=Q.slice(Math.max(0,i-2),i+3).map(x=>x.a).sort((x,y)=>x-y); return w[w.length>>1]; });
+  const al=med.map((_,i)=>{ const w=med.slice(Math.max(0,i-1),i+2); return w.reduce((x,y)=>x+y,0)/w.length; });
+  R.altMax=Math.round(Math.max(...al)); R.altMin=Math.round(Math.min(...al));
+  // zig-zag della quota con soglia 30 m: ogni tratto in giù di almeno 50 m è una discesa
+  const H=30, segs=[]; let dir=0, ext=0, from=0;
+  for(let i=1;i<al.length;i++){
+    if(dir===0){ if(al[i]-al[0]>H){ dir=1; ext=i; } else if(al[0]-al[i]>H){ dir=-1; ext=i; } }
+    else if(dir===1){ if(al[i]>=al[ext]) ext=i; else if(al[ext]-al[i]>H){ segs.push([from,ext,1]); from=ext; dir=-1; ext=i; } }
+    else { if(al[i]<=al[ext]) ext=i; else if(al[i]-al[ext]>H){ segs.push([from,ext,-1]); from=ext; dir=1; ext=i; } } }
+  segs.push([from,al.length-1,dir===-1? -1 : 1]);
+  segs.forEach(([a,b,d])=>{ const dh=al[a]-al[b]; if(d===-1&&dh>=50){ R.runs++; R.down+=dh; R.kmDown+=Math.max(0,Q[b].m-Q[a].m)/1000;
+      for(let k=a+1;k<=b;k++){ const dt=Q[k].t-Q[k-1].t; if(dt>=4){ const v=(Q[k].m-Q[k-1].m)/dt*3.6; if(v<130&&v>R.maxKmh) R.maxKmh=v; } } }
+    else if(d===1&&-dh>0) R.up+=-dh; });
+  R.down=Math.round(R.down/10)*10; R.up=Math.round(R.up/10)*10; R.kmDown=Math.round(R.kmDown*10)/10; R.maxKmh=Math.round(R.maxKmh); return R; }
+let skiLiveTmr=null, skiLiveNat=null;
+async function skiLiveStart(type){ if(skiLiveGet()) return; const P=HRN();
+  if(P){ let ver=1; try{ const v=await P.isAvailable(); ver=+(v&&v.version)||1; }catch{}
+    if(ver<2&&!confirm("Con questa versione dell'app il telefono dice i chilometri ad alta voce. Per registrare in silenzio aggiorna l'app (Profilo → aggiornamento). Registro lo stesso?")) return;
+    try{ const st0=await P.state(); if(st0&&st0.running){ toast("C'è già una corsa in registrazione: finiscila prima"); return; } }catch{}
+    try{ await P.start({address:"",title:SKI_LIVE_T,lo:-1,hi:-1,hrMax:hrMaxOf(),alerts:false,gps:true,voice:false,hours:12,gpsMs:2000});
+      skiLiveSet({t0:Date.now(),type,native:true,pMs:0,pAt:0}); }
+    catch(e){ toast("Non riesco ad avviare: "+((e&&e.message)||e)); return; }
+    try{ const b=await P.batteryStatus(); if(b&&!b.unrestricted) actionToast("Perché registri tutto il giorno, togli il risparmio batteria a HealthFit","Togli",()=>P.requestBattery().catch(()=>{}),15000); }catch{} }
+  else skiLiveSet({t0:Date.now(),type,native:false,pMs:0,pAt:0});
+  try{ localStorage.setItem("hf:skiTab","1"); }catch{}
+  toast("⛷️ Giornata iniziata: metti il telefono in tasca"); renderSci(); skiRowSub(); }
+async function skiLivePause(){ const o=skiLiveGet(); if(!o) return; const P=o.native? HRN() : null;
+  if(o.pAt){ o.pMs=(o.pMs||0)+Date.now()-o.pAt; o.pAt=0; if(P) P.resume().catch(()=>{}); } else { o.pAt=Date.now(); if(P) P.pause().catch(()=>{}); }
+  skiLiveSet(o); renderSci(); skiRowSub(); }
+async function skiLiveEnd(){ const o=skiLiveGet(); if(!o) return; if(!confirm("Finisci la giornata sugli sci e la salvo?")) return;
+  if(o.pAt){ o.pMs=(o.pMs||0)+Date.now()-o.pAt; o.pAt=0; }
+  let st=null; if(o.native){ const P=HRN(); if(P){ try{ st=await P.stop({n:4000}); }catch(e){ console.warn("stop sci",e); } } }
+  const end=Date.now(), tot=Math.max(60,(end-o.t0-(o.pMs||0))/1000), A=skiAnalyze(st&&st.tr), act=Math.max(60,tot-A.pauseSec), min=Math.round(act/60);
+  const int= A.runs&&min? (A.down/(min/60)>1400||A.maxKmh>=65? "intensa" : A.down/(min/60)<500? "leggera" : "normale") : "normale";
+  const iso=new Date(o.t0).toLocaleDateString("sv-SE",{timeZone:"Europe/Rome"}), wid=uid(), place=skiCfg().place.name;
+  const det=[A.runs? `${A.runs} ${A.runs===1?"discesa":"discese"}` : "", A.maxKmh? `max ${A.maxKmh} km/h` : "", A.altMax? `quota max ${A.altMax.toLocaleString("it-IT")} m` : "", A.pauseSec>=600? `soste ${hmTxt(A.pauseSec)}` : ""].filter(Boolean).join(" · ");
+  const w={id:wid,name:o.type||"Sci alpino",minutes:min,intensity:int,kcal:skiKcal(min,int),start:clockOf(o.t0),end:clockOf(end),distance:A.kmDown||null,elevDown:A.down||null,details:det,place,src:"phone",runs:A.runs||null,maxKmh:A.maxKmh||null};
+  skiLiveSet(null); clearInterval(skiLiveTmr); skiLiveTmr=null; skiLiveNat=null;
+  await addWorkoutOn(iso,w); if(iso===state.date) toast("Giornata sugli sci registrata ✓");
+  if(st&&st.tr&&Array.isArray(st.tr.t)&&st.tr.t.length>1) try{ save("ski-"+wid,{v:1,t0:o.t0,tr:{t:st.tr.t,m:st.tr.m,a:st.tr.a,la:st.tr.la,lo:st.tr.lo}}); }catch(e){ console.warn("percorso sci",e); }
+  skiAddOpen=false; renderSci(); skiRowSub(); }
+function skiRowSub(){ const s=$("skiRowSub"); if(!s) return; const o=skiLiveGet();
+  s.textContent= o? (o.pAt? "⏸ In pausa · " : "🔴 In registrazione · ")+hmTxt(skiLiveSec(o)) : "Registrala dal telefono in tasca, senza orologio"; }
+function skiLiveCard(c1){ const o=skiLiveGet(), box=el("div","ski-live");
+  if(!o){ box.appendChild(el("p","note","📱 Senza orologio: avvia qui, metti il telefono in tasca e a fine giornata tocca «Fine». "+(HRN()? "Registro tempo, discese, dislivello e velocità anche a schermo spento." : "Nel browser registro solo il tempo: con l'app HealthFit sul telefono anche discese e dislivello.")));
+    const row=el("div","two"); const sel=el("select","field"); ["Sci alpino","Snowboard","Sci di fondo","Scialpinismo"].forEach(t=>{ const op=el("option",null,t); sel.appendChild(op); });
+    const go1=el("button","btn","▶ Inizia la giornata"); go1.type="button"; go1.onclick=()=>skiLiveStart(sel.value); row.append(sel,go1); box.appendChild(row); c1.appendChild(box); return; }
+  box.classList.add("on"); const nat=skiLiveNat;
+  box.appendChild(el("p","ski-live-h",(o.pAt? "⏸ In pausa" : "🔴 Sto registrando")+` · ${o.type||"Sci"} dalle ${clockOf(o.t0)}`));
+  const g=el("div","ski-grid"); [["Tempo",hmTxt(skiLiveSec(o))],["Km (con impianti)",nat&&nat.km? fmt(Math.round(nat.km*10)/10) : "–"]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,v),el("span",null,l)); g.appendChild(d); }); g.style.gridTemplateColumns="repeat(2,1fr)"; box.appendChild(g);
+  box.appendChild(el("p","note", o.native? "Puoi spegnere lo schermo e mettere il telefono in tasca. Le soste lunghe (pranzo) le tolgo da solo; discese e dislivello li calcolo alla fine." : "Lascia aperta l'app: a fine giornata tocca «Fine»."));
+  const row=el("div","two"); const pb=el("button","btn ghost",o.pAt? "▶ Riprendi" : "⏸ Pausa"); pb.type="button"; pb.onclick=skiLivePause; const eb=el("button","btn","■ Fine giornata"); eb.type="button"; eb.onclick=skiLiveEnd; row.append(pb,eb); box.appendChild(row);
+  c1.appendChild(box);
+  if(!skiLiveTmr) skiLiveTmr=setInterval(async()=>{ const o2=skiLiveGet(); if(!o2){ clearInterval(skiLiveTmr); skiLiveTmr=null; return; }
+    if(o2.native){ const P=HRN(); if(P) try{ skiLiveNat=await P.state(); }catch{} }
+    skiRowSub(); if(view==="allenamento"&&!$("w-sci").hidden) renderSci(); },15000); }
 function minsBetweenAny(a,b){ if(!a||!b) return 0; const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number); let d=(h2*60+m2)-(h1*60+m1); if(d<0) d+=1440; return d; }
 const WX_TXT={0:"☀️ sereno",1:"🌤️ poco nuvoloso",2:"⛅ nuvoloso",3:"☁️ coperto",45:"🌫️ nebbia",48:"🌫️ nebbia",51:"🌦️ pioviggine",53:"🌦️ pioviggine",55:"🌦️ pioviggine",61:"🌧️ pioggia",63:"🌧️ pioggia",65:"🌧️ pioggia forte",71:"🌨️ neve debole",73:"🌨️ neve",75:"❄️ neve forte",77:"🌨️ nevischio",80:"🌦️ rovesci",81:"🌧️ rovesci",82:"🌧️ rovesci forti",85:"🌨️ rovesci di neve",86:"❄️ rovesci di neve forti",95:"⛈️ temporale"};
 async function skiWeather(pl,box){ const key="hf:skiWx:"+pl.la+","+pl.lo; let d=null;
