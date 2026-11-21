@@ -1537,7 +1537,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <p class="sub" style="margin-top:0">Il telefono riconosce da solo le attività, senza Samsung Health e senza GPS acceso.</p>
     <label class="chk"><input type="checkbox" id="aaAct"> Camminate, corse e bici (almeno 10 minuti) e passi del telefono</label>
     <label class="chk"><input type="checkbox" id="aaSki"> Sci: avvisami quando sono sulle piste</label>
-    <p class="note" id="aaNote"></p></section>
+    <p class="note" id="aaNote"></p>
+    <p class="note" style="margin-top:10px">⌚ Sull'orologio: apri HealthFit e tocca «❤ Misure 24 ore» per far misurare battito, passi e sonno a HealthFit.</p>
+    <label class="chk"><input type="checkbox" id="aaNoSh"> Non leggere più i dati da Samsung Health</label>
+    <details class="aa-guide"><summary class="note">Come spegnere le misure di Samsung (per non consumare il doppio)</summary>
+      <p class="note">Fallo solo dopo qualche giorno in cui hai visto i dati di HealthFit arrivare bene. Sul telefono apri <b>Galaxy Wearable</b> → <b>Impostazioni orologio</b> → <b>Samsung Health</b>, poi:</p>
+      <ul class="note"><li>Frequenza cardiaca: da «Misura continua» a «Manuale» (o la frequenza più bassa).</li><li>Stress: spegni la misura continua.</li><li>Ossigeno nel sangue durante il sonno: spento.</li><li>Rileva automaticamente gli esercizi: spento (ora lo fa HealthFit sul telefono).</li></ul>
+      <p class="note">I nomi delle voci possono cambiare un po' con la versione dell'orologio. Samsung Health non si può disinstallare dall'orologio: resta, ma senza misure continue consuma poco.</p></details></section>
   <section class="card" id="sleepCard">
     <h2>😴 Sonno di stanotte</h2>
     <div class="two"><label>Ore dormite<input class="field" id="slH" inputmode="decimal" placeholder="es. 7,5"></label>
@@ -2475,7 +2481,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.27 (rilevamento automatico sul telefono: camminate, corse, bici, passi e avvisi per lo sci)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.28 (misure 24 ore dall'orologio con HealthFit e interruttore per staccarsi da Samsung Health)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5863,7 +5869,7 @@ function hcKcal(x,w,km,min,isRun){ // calorie dell'allenamento (attive), dalla s
   const shown=x&&x.totalKcal>0? x.totalKcal : x&&x.activeKcal>0? x.activeKcal+rest : k+rest;
   return {kcal:Math.round(k),shown:Math.round(Math.max(shown,k)),src}; }
 function fmtHMS(sec){ sec=Math.round(sec); const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),z=sec%60; return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(z).padStart(2,"0"); };
-async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getItem("hf:hcOn")!=="1") return; hcBusy=true; const msgs=[];
+async function hcSync(manual){ const H=HCP(); if(!H||hcBusy||localStorage.getItem("hf:hcOn")!=="1"||localStorage.getItem("hf:hcOff")==="1") return; hcBusy=true; const msgs=[];
   try{ const now=new Date(), last=localStorage.getItem("hf:hcLast"), from=new Date(Date.now()-(last? 10 : 30)*864e5);
     const diag={workouts:0,weight:0,bodyFat:0,sleep:0,steps:0};
     const iso=d=>d.toISOString(), dISO=d=>{ const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); };
@@ -6288,7 +6294,7 @@ async function askWatch(o){ const ns=await watchNodes(); if(!ns.length) return f
   if(!confirm(`⌚ ${ns[0].name||"Galaxy Watch"} collegato.\nContinuare sull'orologio?\n\nOK: si apre HealthFit sul polso con la corsa pronta.\nAnnulla: registri la corsa con il telefono.`)) return false;
   await watchSend(o); return true; }
 function dayTxt(iso){ const d=new Date(iso+"T12:00:00"); return ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"][d.getDay()]+" "+d.getDate(); }
-async function saveWatchResult(o){ if(o&&o.kind==="pain"){ try{ painFromWatch(o); }catch{} return false; } if(!o||!(+o.seconds>60)) return false;
+async function saveWatchResult(o){ if(o&&o.kind==="passive"){ try{ await passiveImport(o); }catch(e){ console.warn("misure orologio",e); } return false; } if(o&&o.kind==="pain"){ try{ painFromWatch(o); }catch{} return false; } if(!o||!(+o.seconds>60)) return false;
   const st=new Date(+o.startedAt||Date.now()), date=st.getFullYear()+"-"+String(st.getMonth()+1).padStart(2,"0")+"-"+String(st.getDate()).padStart(2,"0");
   const hhmm=String(st.getHours()).padStart(2,"0")+":"+String(st.getMinutes()).padStart(2,"0"), min=Math.round(+o.seconds/60), km=+o.km>0.05? Math.round(+o.km*100)/100 : null;
   const zones=(o.zoneSec||[]).length===5? o.zoneSec.map(x=>Math.round(+x/6)/10) : null;
@@ -7582,9 +7588,33 @@ async function aaPull(){ const P=AAP(); if(!P||aaBusy) return; aaBusy=true;
 function aaSetup(){ const a=$("aaAct"), k=$("aaSki"); if(!a) return; a.checked=aaOn("Act"); k.checked=aaOn("Ski"); aaNote(null);
   const ch=async(key,box)=>{ if(!AAP()){ box.checked=false; aaNote(null); return; } try{ localStorage.setItem("hf:aa"+key,box.checked?"1":"0"); }catch{} const r0=await aaConfig(true); if(r0&&box.checked&&((key==="Act"&&!r0.act)||(key==="Ski"&&!r0.ski))){ box.checked=false; try{ localStorage.setItem("hf:aa"+key,"0"); }catch{} aaNote(r0); } };
   a.onchange=()=>ch("Act",a); k.onchange=()=>ch("Ski",k);
+  const ns=$("aaNoSh"); if(ns){ ns.checked=localStorage.getItem("hf:hcOff")==="1"; ns.onchange=()=>{ if(ns.checked&&!confirm("Da adesso HealthFit non legge più allenamenti, passi, sonno e battito da Samsung Health: restano quelli misurati da HealthFit (telefono e orologio). Continuo?")){ ns.checked=false; return; } try{ localStorage.setItem("hf:hcOff",ns.checked?"1":"0"); }catch{} toast(ns.checked? "Samsung Health non viene più letto" : "Samsung Health torna a essere letto"); }; }
   if(AAP()){ if(aaOn("Act")||aaOn("Ski")) setTimeout(()=>aaConfig(false),6000); setTimeout(aaPull,9000); setTimeout(aaDedupe,25000);
     try{ NAT().Plugins.App.addListener("resume",()=>setTimeout(aaPull,1500)); }catch{} } }
 setTimeout(aaSetup,800);
+/* ----- misure di tutto il giorno dall'orologio (HealthFit sul Watch, «Misure 24 ore»): passi, battito, battito a riposo, sonno ----- */
+function pvSleepEst(prev,cur){ // nessun passo per almeno 3 ore tra le 20 del giorno prima e mezzogiorno
+  const st=[...(prev&&prev.st? prev.st.slice(240) : new Array(48).fill(null)), ...((cur&&cur.st)||[]).slice(0,144)];
+  let best=null, a=-1; for(let i=0;i<=st.length;i++){ const q= i<st.length&&st[i]!=null&&st[i]<=20; if(q&&a<0) a=i; if(!q&&a>=0){ if(!best||i-a>best[1]-best[0]) best=[a,i]; a=-1; } }
+  if(!best||best[1]-best[0]<36) return null; const tm=k=>{ const m=((k-48)*5+1440)%1440; return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
+  return {h:Math.round((best[1]-best[0])*5/6)/10,bed:tm(best[0]),wake:tm(best[1])}; }
+async function passiveImport(o){ const days=o.days||{}, ks=Object.keys(days).sort(); if(!ks.length) return; let ch=false;
+  const Dm=(()=>{ try{ return JSON.parse(localStorage.getItem("hf:rhrDay")||"{}"); }catch{ return {}; } })();
+  for(let i=0;i<ks.length;i++){ const iso=ks[i], d=days[iso], hr=(d.hr||[]).map(Number);
+    // battito a riposo: media più bassa di 30 minuti tra mezzanotte e le 9
+    let rhr=0; for(let k=0;k+5<108;k++){ const w=hr.slice(k,k+6).filter(v=>v>30); if(w.length>=4){ const m=w.reduce((x,y)=>x+y,0)/w.length; if(!rhr||m<rhr) rhr=m; } }
+    if(rhr&&!Dm[iso]) Dm[iso]=Math.round(rhr);
+    if(hr.some(v=>v>0)) save("hr-"+iso,{v:1,hr,at:o.at||Date.now()});
+    // sonno: dagli stati «addormentato» dell'orologio, altrimenti stimato dai passi
+    let sl=null; const segs=(o.sleep||[]).filter(g=>romeISO(g[1])===iso); if(segs.length){ const tot=segs.reduce((x,g)=>x+(g[1]-g[0]),0); sl={h:Math.round(tot/360000)/10,bed:clockOf(segs[0][0]),wake:clockOf(segs[segs.length-1][1])}; }
+    else if(i>0) sl=pvSleepEst(days[ks[i-1]],d);
+    if(await aaDayDo(iso,dd=>{ let c=false; const a=dd.activity||{};
+        if(+d.steps>0&&a.src!=="health"&&+a.steps!==+d.steps){ dd.activity={...a,steps:+d.steps,src:"watch",via:"Orologio (HealthFit)",at:new Date().toISOString()}; c=true; }
+        if(sl&&sl.h>=3&&sl.h<14&&!(dd.sleep&&dd.sleep.h&&dd.sleep.src!=="watch")&&!(dd.sleep&&dd.sleep.h===sl.h)){ dd.sleep={...(dd.sleep||{}),...sl,src:"watch"}; c=true; }
+        return c; })) ch=true; }
+  try{ const kk=Object.keys(Dm).sort(); while(kk.length>60) delete Dm[kk.shift()]; localStorage.setItem("hf:rhrDay",JSON.stringify(Dm)); }catch{}
+  try{ localStorage.setItem("hf:pvAt",String(o.at||Date.now())); }catch{}
+  if(ch) renderAll(); }
 function minsBetweenAny(a,b){ if(!a||!b) return 0; const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number); let d=(h2*60+m2)-(h1*60+m1); if(d<0) d+=1440; return d; }
 const WX_TXT={0:"☀️ sereno",1:"🌤️ poco nuvoloso",2:"⛅ nuvoloso",3:"☁️ coperto",45:"🌫️ nebbia",48:"🌫️ nebbia",51:"🌦️ pioviggine",53:"🌦️ pioviggine",55:"🌦️ pioviggine",61:"🌧️ pioggia",63:"🌧️ pioggia",65:"🌧️ pioggia forte",71:"🌨️ neve debole",73:"🌨️ neve",75:"❄️ neve forte",77:"🌨️ nevischio",80:"🌦️ rovesci",81:"🌧️ rovesci",82:"🌧️ rovesci forti",85:"🌨️ rovesci di neve",86:"❄️ rovesci di neve forti",95:"⛈️ temporale"};
 async function skiWeather(pl,box){ const key="hf:skiWx:"+pl.la+","+pl.lo; let d=null;
