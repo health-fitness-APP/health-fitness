@@ -2522,7 +2522,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.45 (chiave AI di famiglia solo per le email scelte)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.46 (i familiari nell'elenco possono creare il loro account)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -11850,7 +11850,14 @@ async function sbAuth(mode){
   try{
     lsSet("sbUrl",url); lsSet("sbKey",key);
     SY.client=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"hf-sb-auth"}});
-    const r= mode==="up"? await SY.client.auth.signUp({email,password:pass}) : await SY.client.auth.signInWithPassword({email,password:pass});
+    let r= mode==="up"? await SY.client.auth.signUp({email,password:pass}) : await SY.client.auth.signInWithPassword({email,password:pass});
+    // registrazioni pubbliche chiuse: l'account lo crea il server solo per le email della famiglia
+    if(mode==="up"&&r.error&&/Signups not allowed|signup.*disabled/i.test(r.error.message||"")){
+      setStatus("syncStatus","Creo l'account di famiglia…");
+      const fr=await fetch(url+"/functions/v1/hf-signup",{method:"POST",headers:{"Content-Type":"application/json","apikey":key},body:JSON.stringify({email,password:pass})});
+      const fd=await fr.json().catch(()=>({}));
+      if(!fr.ok){ setStatus("syncStatus",fd.error||"Non riesco a creare l'account.",true); renderSync(); return; }
+      r=await SY.client.auth.signInWithPassword({email,password:pass}); }
     if(r.error) throw r.error;
     if(!r.data.session) throw new Error("Email not confirmed");
     const okOwner=await ownerCheck(r.data.session.user);
