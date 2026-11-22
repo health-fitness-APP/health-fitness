@@ -1494,6 +1494,11 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
     <p class="sub">Dallo scontrino e dalle foto del frigo. Quelli che hai già tra i cibi di sempre non li ripeto.</p>
     <div class="mp-list st-list" id="recList"></div></details>
   </section>
+  <section class="card" id="fmCard" hidden>
+    <details class="stfold" id="fmFold"><summary><span>🏠 Dispensa di Family Manager <b id="fmFoldN"></b></span><span class="chev">›</span></summary>
+    <p class="sub">Presi da Family Manager e aggiornati da soli: per cambiarli usa Family Manager. ⭐ li sposta tra i cibi di sempre, × li nasconde qui.</p>
+    <div class="mp-list st-list" id="fmList"></div></details>
+  </section>
 </main>
 
 <!-- ================= VALUTA UN CIBO ================= -->
@@ -2532,7 +2537,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.54 (dispensa di Family Manager nella dieta)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.55 (dispensa di Family Manager in un elenco suo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -4213,7 +4218,7 @@ let dpPicked=[];
 $("tabPan").onclick=()=>{ setTab("pan"); dpPicked=[]; $("dpQ").value=""; renderDp(); };
 $("dpQ").addEventListener("input",()=>renderDp());
 function dpEntries(){ const st=stapleItems().map(x=>({src:"sempre",name:x.name,grams:x.grams,kcal:x.kcal,p:x.p,c:x.c,f:x.f,unit:x.unit}));
-  const rec=pantry.items.filter(i=>!st.some(z=>sameFood(z.name,i.name))).map(i=>({src:"recenti",name:i.name,qty:i.qty,brand:i.brand})); return [...st,...rec]; }
+  const rec=pantry.items.filter(i=>!st.some(z=>sameFood(z.name,i.name))).map(i=>({src:i.src==="fm"? "fm" : "recenti",name:i.name,qty:i.qty,brand:i.brand})); return [...st,...rec]; }
 function dbValues(name){ const lx=normFood(name), FD=(typeof FOODS!=="undefined"? FOODS:[]).filter(f=>Array.isArray(f)&&typeof f[0]==="string"); const d=FD.find(f=>normFood(f[0])===lx)||FD.find(f=>normFood(f[0]).startsWith(lx)||lx.startsWith(normFood(f[0])));
   return d? {grams:100,kcal:d[1],p:d[2],c:d[3],f:d[4]} : null; }
 function renderDp(){
@@ -4221,7 +4226,7 @@ function renderDp(){
   const all=dpEntries().filter(e=>foodMatch(q,e));
   if(!dpEntries().length){ box.appendChild(el("p","note","Non hai ancora cibi di casa: aggiungili in Dieta → Frigo e dispensa, oppure fotografa lo scontrino o il frigo.")); }
   else if(!all.length) box.appendChild(el("p","note","Nessun cibo di casa con questo nome."));
-  [["sempre","⭐ Di sempre"],["recenti","🧾 Comprati di recente"]].forEach(([k,t])=>{ const g=all.filter(e=>e.src===k); if(!g.length) return;
+  [["sempre","⭐ Di sempre"],["recenti","🧾 Comprati di recente"],["fm","🏠 Dispensa di Family Manager"]].forEach(([k,t])=>{ const g=all.filter(e=>e.src===k); if(!g.length) return;
     const det=el("details","stfold dpfold"); det.open= q? true : (localStorage.getItem("hf:fold:dp"+k)!=="0"); det.addEventListener("toggle",()=>{ try{ localStorage.setItem("hf:fold:dp"+k,det.open?"1":"0"); }catch{} });
     const sm=el("summary"); sm.innerHTML=`<span></span><span class="chev">›</span>`; sm.querySelector("span").textContent=`${t} (${g.length})`; det.appendChild(sm); box.appendChild(det);
     const box0=box; { const box=det;
@@ -11222,8 +11227,8 @@ function renderStaples(){
   if(st.some(x=>x.kcal==null)&&!renderStaples.tried){ renderStaples.tried=true; queueStapleValues(); }
   if(!st.length) box.appendChild(el("p","note","Ancora nessun alimento: aggiungili con il pulsante qui sopra (foto, codice a barre, ricerca, preferiti…)."));
   $("stFoldN").textContent=st.length? "("+st.length+")" : "";
-  { const n=st.length, k=st.reduce((a,x)=>a+(+x.kcal||0),0); const nr=pantry.items.filter(i=>!st.some(z=>sameFood(z.name,i.name))).length;
-    if($("stRowSub")) $("stRowSub").textContent= n||nr? `${n} di sempre${nr?` · ${nr} comprati di recente`:""} · tocca per vederli` : "Tocca per aggiungere quelli che compri di solito"; }
+  { const n=st.length, k=st.reduce((a,x)=>a+(+x.kcal||0),0); const nr=pantry.items.filter(i=>i.src!=="fm"&&!st.some(z=>sameFood(z.name,i.name))).length, nf=pantry.items.filter(i=>i.src==="fm"&&!st.some(z=>sameFood(z.name,i.name))).length;
+    if($("stRowSub")) $("stRowSub").textContent= n||nr||nf? `${n} di sempre${nr?` · ${nr} comprati di recente`:""}${nf?` · ${nf} da Family Manager`:""} · tocca per vederli` : "Tocca per aggiungere quelli che compri di solito"; }
   const sg=$("stSug"); sg.innerHTML=""; const low=st.map(x=>x.name.toLowerCase());
   void low;
   $("stFromPan").hidden=!pantry.items.length; $("stCheck").disabled=!sample||!st.length;
@@ -11251,7 +11256,8 @@ function setOut(names,update=true){ pantry.outToday={date:todayISO(),names:[...n
   if(update&&pantry.outToday.names.length){ clearTimeout(outT); setStatus("outStatus","Tra un attimo aggiorno la dieta di oggi…"); outT=setTimeout(()=>$("outGo").click(),1200); } }
 function renderRecent(){
   const box=$("recList"); if(!box) return; box.innerHTML="";
-  const st=stapleItems(), list=pantry.items.filter(i=>!st.some(z=>sameFood(z.name,i.name)));
+  const st=stapleItems(), list=pantry.items.filter(i=>i.src!=="fm"&&!st.some(z=>sameFood(z.name,i.name)));
+  try{ renderFmList(); }catch{}
   $("recentCard").hidden=false; $("recFoldN").textContent=list.length? "("+list.length+")" : "";
   if(!list.length){ box.appendChild(el("p","note","Niente per ora: fotografa uno scontrino o il frigo in Frigo e dispensa.")); return; }
   const qn=srchNorm(($("stQ")&&$("stQ").value)||""), shown=list.filter(i=>foodMatch(qn,i));
@@ -11265,6 +11271,23 @@ function renderRecent(){
     const rm=()=>{ const idx=pantry.items.findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.items.splice(idx,1)[0]; savePantry(); renderRecent();
       actionToast(`Tolto: ${was.name}`,"Annulla",()=>{ pantry.items.splice(idx,0,was); savePantry(); renderRecent(); },6000); };
     del.onclick=rm; row.append(tx,keep,el("span","mp-div"),del); box.appendChild(makeSwipe(row,rm,it.name)); });
+}
+function fmHideId(id){ const h=jget("fmHide",[]); if(!h.includes(id)){ h.push(id); jset("fmHide",h.slice(-200)); } }
+function renderFmList(){ const box=$("fmList"), card=$("fmCard"); if(!box) return; box.innerHTML="";
+  const st=stapleItems(), list=pantry.items.filter(i=>i.src==="fm"&&!st.some(z=>sameFood(z.name,i.name)));
+  card.hidden=!list.length; $("fmFoldN").textContent=list.length? "("+list.length+")" : ""; if(!list.length) return;
+  const qn=srchNorm(($("stQ")&&$("stQ").value)||""), shown=list.filter(i=>foodMatch(qn,i)); if(qn&&shown.length) $("fmFold").open=true;
+  PCATS.forEach(cat=>{ const its=shown.filter(i=>(PCATS.includes(i.cat)?i.cat:"Altro")===cat); if(!its.length) return;
+    box.appendChild(el("p","note",cat));
+    its.forEach(it=>{ const row=el("div","mp-row"), tx=el("div","mp-tx");
+      tx.innerHTML=`<span class="n"></span><span class="q"></span>`; tx.querySelector(".n").textContent=it.name;
+      tx.querySelector(".q").textContent=[it.qty, it.scad? "scade "+it.scad.split("-").reverse().join("/") : ""].filter(Boolean).join(" · ");
+      const keep=el("button","mp-pm rec-keep","⭐"); keep.type="button"; keep.title="Lo tengo sempre: spostalo nei cibi di sempre"; keep.setAttribute("aria-label",it.name+": tienilo tra i cibi di sempre");
+      keep.onclick=()=>{ pantry.items=pantry.items.filter(x=>x.id!==it.id); addStaples(it.name); toast(it.name+" spostato tra i cibi di sempre"); };
+      const del=el("button","mp-pm","×"); del.type="button"; del.setAttribute("aria-label","Nascondi "+it.name);
+      const rm=()=>{ const idx=pantry.items.findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.items.splice(idx,1)[0]; fmHideId(was.id); savePantry(); renderRecent();
+        actionToast(`Nascosto: ${was.name}`,"Annulla",()=>{ jset("fmHide",jget("fmHide",[]).filter(x=>x!==was.id)); pantry.items.splice(idx,0,was); savePantry(); renderRecent(); },6000); };
+      del.onclick=rm; row.append(tx,keep,el("span","mp-div"),del); box.appendChild(makeSwipe(row,rm,it.name)); }); });
 }
 function renderOut(){ const box=$("outChips"); if(!box) return; box.innerHTML=""; const out=outToday();
   out.forEach(n=>{ const b=el("span","chip outon stchip"); b.textContent="🚫 "+n; const x=el("button",null,"×"); x.type="button"; x.setAttribute("aria-label",n+": ce l'ho di nuovo");
@@ -11460,7 +11483,7 @@ function renderPantry(){ try{ renderStaples(); }catch(e){ console.warn("staples"
     const g=el("div","pcat"); g.appendChild(el("h3",null,cat)); const ul=el("ul","items");
     its.forEach(i=>{ const li=el("li"), tx=el("div","t"); tx.append(el("div","a",i.name), el("div","b",[i.qty||"", i.scad? "scade "+i.scad.split("-").reverse().join("/") : "", i.src==="fm"? "da Family Manager" : ""].filter(Boolean).join(" · ")));
       const del=el("button","del","×"); del.setAttribute("aria-label","Togli "+i.name);
-      del.onclick=()=>{ snapshot(); if(i.src==="fm"){ const h=jget("fmHide",[]); if(!h.includes(i.id)){ h.push(i.id); jset("fmHide",h.slice(-200)); } } pantry.items=pantry.items.filter(x=>x.id!==i.id); savePantry(); renderPantry(); };
+      del.onclick=()=>{ snapshot(); if(i.src==="fm") fmHideId(i.id); pantry.items=pantry.items.filter(x=>x.id!==i.id); savePantry(); renderPantry(); };
       li.append(tx,del); ul.appendChild(li); });
     g.appendChild(ul); box.appendChild(g);
   });
@@ -12731,7 +12754,8 @@ function fmGroup(list){ const map=new Map();
     if(!g){ g={id:"fm-"+k.replace(/[^a-z0-9]+/g,"-").slice(0,40),name,n:0,cat:fmCat({...x,nome:name}),scad:"",dal:"",open:false,src:"fm"}; map.set(k,g); }
     g.n++; const s=fmDay(x.scad); if(s&&(!g.scad||s<g.scad)) g.scad=s; const a=fmDay(x.dal); if(a&&(!g.dal||a>g.dal)) g.dal=a; if(x.aperto) g.open=true; });
   const hide=new Set(jget("fmHide",[]));
-  return [...map.values()].filter(g=>!hide.has(g.id)).map(g=>({id:g.id,name:g.name,qty:g.n===1? "1 confezione" : g.n+" confezioni",cat:g.cat,added:g.dal||todayISO(),src:"fm",...(g.scad?{scad:g.scad}:{}),...(g.open?{open:true}:{})})); }
+  const st=(()=>{ try{ return stapleItems(); }catch{ return []; } })();
+  return [...map.values()].filter(g=>!hide.has(g.id)&&!st.some(z=>sameFood(z.name,g.name))).map(g=>({id:g.id,name:g.name,qty:g.n===1? "1 confezione" : g.n+" confezioni",cat:g.cat,added:g.dal||todayISO(),src:"fm",...(g.scad?{scad:g.scad}:{}),...(g.open?{open:true}:{})})); }
 function fmApply(items){ const own=pantry.items.filter(i=>i.src!=="fm");
   const fresh=items.filter(f=>!own.some(o=>sameFood(o.name,f.name)));
   const before=pantry.items.filter(i=>i.src==="fm").map(i=>i.id+"|"+i.qty+"|"+(i.scad||"")).sort().join(",");
