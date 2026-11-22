@@ -1711,6 +1711,8 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
   </div>
   <div id="d-pantry" hidden>
     <button class="card mealrow" id="valRow" type="button"><span class="mi">🔍</span><span class="mt"><b>Valuta un cibo</b><span class="ms">Foto o codice a barre: ti dico se mangiarlo e comprarlo</span></span><span class="chev">›</span></button>
+    <button class="card mealrow" id="fmRow" type="button" hidden><span class="mi">🏠</span><span class="mt"><b>Dispensa di Family Manager</b><span class="ms" id="fmRowSub">Tocca per caricare i prodotti che hai in casa</span></span><span class="chev">›</span></button>
+    <button class="linkbtn" id="fmOffBtn" type="button" hidden style="margin:-4px 0 8px 4px">Non usare più la dispensa di Family Manager</button>
     <button class="card mealrow" id="stRow" type="button"><span class="mi">⭐</span><span class="mt"><b>I cibi che tieni in casa</b><span class="ms" id="stRowSub">Tocca per aggiungerli</span></span><span class="chev">›</span></button>
     <section class="card" id="stapleCard">
       <h2>⭐ I cibi che tieni sempre in casa</h2>
@@ -2530,7 +2532,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.53 (pasti descritti a parole stimati meglio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.54 (dispensa di Family Manager nella dieta)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -11231,6 +11233,7 @@ $("stAddTop").onclick=()=>openAdd({id:"__staples",name:"I cibi di casa"});
 $("stQ").addEventListener("input",()=>renderStaples());
 ["stFold","recFold"].forEach(id=>{ const d=$(id); try{ const v=localStorage.getItem("hf:fold:"+id); if(v!==null) d.open=v==="1"; }catch{}
   d.addEventListener("toggle",()=>{ try{ localStorage.setItem("hf:fold:"+id,d.open?"1":"0"); }catch{} }); });
+$("fmRow").onclick=()=>fmTap(); $("fmOffBtn").onclick=()=>fmStop();
 $("stRow").onclick=()=>{ stSelMode=false; stSel.clear(); $("stQ").value=""; renderStaples(); go("casa"); };
 $("valRow").onclick=()=>{ $("valOut").innerHTML=""; setStatus("valStatus",""); go("valuta"); };
 $("valBack").onclick=()=>{ if(history.state&&history.state.v==="valuta") history.back(); else go("dieta"); };
@@ -11407,7 +11410,7 @@ function renderStRes(){
 }
 function setD(t){ dTab=t; document.querySelectorAll("#dSeg button").forEach(b=>b.setAttribute("aria-selected",b.dataset.d===t)); $("d-plan").hidden=t!=="plan"; $("d-pantry").hidden=t!=="pantry"; $("d-recipes").hidden=t!=="recipes"; if(t==="pantry") renderPantry(); if(t==="recipes") renderRecipes(); }
 document.querySelectorAll("#dSeg button").forEach(b=>b.onclick=()=>setD(b.dataset.d));
-function pantryText(){ return pantry.items.map(i=>i.name+(i.qty?" ("+i.qty+")":"")).join(", "); }
+function pantryText(){ const lim=shiftDate(todayISO(),10); return pantry.items.map(i=>i.name+(i.qty||(i.scad&&i.scad<=lim)? " ("+[i.qty||"", i.scad&&i.scad<=lim? "scade il "+i.scad.split("-").reverse().slice(0,2).join("/") : ""].filter(Boolean).join(", ")+")" : "")).join(", "); }
 function savePantry(){ save("pantry",pantry); }
 function snapshot(){ panUndo=JSON.parse(JSON.stringify(pantry)); $("panUndo").hidden=false; }
 function remainingText(){ const dt=dayTargets(); if(!dt) return "obiettivi non impostati"; const t=totals();
@@ -11449,14 +11452,15 @@ function renderPantry(){ try{ renderStaples(); }catch(e){ console.warn("staples"
   ["Prossimo pasto","Stasera","Domani","Resto della settimana"].forEach(l=>{ const b=el("button","chip",l); b.onclick=()=>{ $("panAsk").value={"Prossimo pasto":"Cosa mangio al prossimo pasto?","Stasera":"Cosa mangio stasera a cena?","Domani":"Organizzami i pasti di domani","Resto della settimana":"Organizzami i pasti per il resto della settimana"}[l]; askPantry(); }; q.appendChild(b); });
   $("panGo").disabled=$("panCmdGo").disabled=!sample; $("panPick").hidden=!imgLimits||!sample;
   $("panCount").textContent = pantry.items.length? pantry.items.length+" alimenti" : "";
+  try{ renderFmRow(); if(Date.now()-(+localStorage.getItem("hf:fmAt")||0)>5*60e3) setTimeout(()=>fmImport(),300); }catch{}
   const box=$("panList"); box.innerHTML="";
   if(!pantry.items.length) box.appendChild(el("p","empty","La dispensa è vuota: carica uno scontrino o aggiungi gli alimenti che hai in casa."));
   PCATS.forEach(cat=>{
     const its=pantry.items.filter(i=>(PCATS.includes(i.cat)?i.cat:"Altro")===cat); if(!its.length) return;
     const g=el("div","pcat"); g.appendChild(el("h3",null,cat)); const ul=el("ul","items");
-    its.forEach(i=>{ const li=el("li"), tx=el("div","t"); tx.append(el("div","a",i.name), el("div","b",i.qty||""));
+    its.forEach(i=>{ const li=el("li"), tx=el("div","t"); tx.append(el("div","a",i.name), el("div","b",[i.qty||"", i.scad? "scade "+i.scad.split("-").reverse().join("/") : "", i.src==="fm"? "da Family Manager" : ""].filter(Boolean).join(" · ")));
       const del=el("button","del","×"); del.setAttribute("aria-label","Togli "+i.name);
-      del.onclick=()=>{ snapshot(); pantry.items=pantry.items.filter(x=>x.id!==i.id); savePantry(); renderPantry(); };
+      del.onclick=()=>{ snapshot(); if(i.src==="fm"){ const h=jget("fmHide",[]); if(!h.includes(i.id)){ h.push(i.id); jset("fmHide",h.slice(-200)); } } pantry.items=pantry.items.filter(x=>x.id!==i.id); savePantry(); renderPantry(); };
       li.append(tx,del); ul.appendChild(li); });
     g.appendChild(ul); box.appendChild(g);
   });
@@ -12701,6 +12705,73 @@ per100 = valori per 100 g (p proteine, c carboidrati, f grassi in grammi); i tot
   finally{ VI.busy=false; }
 }
 setInterval(()=>{ if(document.visibilityState==="visible"&&Date.now()-VI.at>85e3) voiceImport(); },30e3);
+/* ---------- v4.54: dispensa di Family Manager (altro progetto Supabase, solo lettura) ----------
+   La funzione healthfit-dispensa (progetto family-manager) verifica il login HealthFit e che l'email sia della famiglia,
+   poi restituisce i prodotti. Qui li raggruppo per nome (una riga = un prodotto, con il numero di confezioni)
+   e li metto in pantry.items con src:"fm"; a ogni lettura sostituisco quelli vecchi di Family Manager. */
+const FM_FN="https://ekqvpwxwvmgrkdrsaaer.supabase.co/functions/v1/healthfit-dispensa";
+const FM={busy:false};
+const FM_SKIP=/aptamil|mellin|plasmon|humana|neonat|omogeneizz|latte (liquido|in polvere)? ?tipo ?[123]\b|latte di crescita/i;
+function fmClean(n){ return String(n||"").replace(/^\s*\d{8,14}\s+/,"").replace(/\s+/g," ").trim().slice(0,70); }
+function fmCat(x){ const n=(x.nome||"").toLowerCase(), t=(x.tipo||"").toLowerCase(), w=(x.dove||x.cat||"").toLowerCase();
+  if(/freezer|surgel/.test(w)||/surgel/.test(t)) return "Surgelati";
+  if(/bevand/.test(t)||/(^|\s)(tea|tè|the|caffè|caffe|estath[eè]|estate zero|sanbitter|succo|acqua|birra|vino|coca|aranciata)(\s|$)/.test(n)) return "Bevande";
+  if(/rag[uù]|sugo|passata|pelati|pomodor|dado|zucchero|confettur|confiture|composta|marmellat|miele|olio|aceto|spezie|pesca, amaretti/.test(n)||/conserv|sugh/.test(t)) return "Condimenti e dispensa";
+  if(/pasta|spaghett|penne|fusilli|linguine|riso\b|riso |muesli|müesli|cereal|fiocchi|avena|gallett|farina|flour|semola|tortilla|pane|piadin|fitness|corn ?flakes|cous|gnocchi|fette/.test(n)||/pane|farin/.test(t)) return "Pane, pasta e cereali";
+  if(/dolci|snack/.test(t)||/cioccol|cacao|pringles|fonzies|tuc\b|popcorn|popz|bretzel|patatin|biscott|merendin|caramell|amaretti|pistacch|nutella|crackers?/.test(n)) return "Snack e dolci";
+  if(/pollo|tacchino|suino|maiale|salsiccia|lonz|hamburger|polpett|manzo|vitello|bresaola|prosciutto|tonno|salmone|merluzzo|pesce|bombett|tagliata|crunchies/.test(n)) return "Carne e pesce";
+  if(/latte|yogurt|formagg|mozzarell|ricotta|parmig|grana|uova|uovo|burro|skyr|kefir/.test(n)) return "Latticini e uova";
+  if(/fagiol|ceci|lentic|piselli|legum|scatola/.test(n)) return "Legumi e scatolame";
+  if(/frutta|verdur|insalat|mela|banan|aranc|zucchin|carot|spinac/.test(n)||/frutta|verdur/.test(w)) return "Frutta e verdura";
+  return "Altro"; }
+function fmDay(s){ const d=new Date(s); if(!s||isNaN(d)) return ""; return new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit"}).format(d); }
+function fmGroup(list){ const map=new Map();
+  (list||[]).forEach(x=>{ if(!x||!x.nome) return; const name=fmClean(x.nome); if(!name||FM_SKIP.test(name)) return;
+    const k=name.toLowerCase(); let g=map.get(k);
+    if(!g){ g={id:"fm-"+k.replace(/[^a-z0-9]+/g,"-").slice(0,40),name,n:0,cat:fmCat({...x,nome:name}),scad:"",dal:"",open:false,src:"fm"}; map.set(k,g); }
+    g.n++; const s=fmDay(x.scad); if(s&&(!g.scad||s<g.scad)) g.scad=s; const a=fmDay(x.dal); if(a&&(!g.dal||a>g.dal)) g.dal=a; if(x.aperto) g.open=true; });
+  const hide=new Set(jget("fmHide",[]));
+  return [...map.values()].filter(g=>!hide.has(g.id)).map(g=>({id:g.id,name:g.name,qty:g.n===1? "1 confezione" : g.n+" confezioni",cat:g.cat,added:g.dal||todayISO(),src:"fm",...(g.scad?{scad:g.scad}:{}),...(g.open?{open:true}:{})})); }
+function fmApply(items){ const own=pantry.items.filter(i=>i.src!=="fm");
+  const fresh=items.filter(f=>!own.some(o=>sameFood(o.name,f.name)));
+  const before=pantry.items.filter(i=>i.src==="fm").map(i=>i.id+"|"+i.qty+"|"+(i.scad||"")).sort().join(",");
+  pantry.items=[...own,...fresh];
+  const after=fresh.map(i=>i.id+"|"+i.qty+"|"+(i.scad||"")).sort().join(",");
+  return before!==after; }
+async function fmImport(force){
+  if(FM.busy||!SY.client||!SY.user||!navigator.onLine) return {skip:true};
+  if(!force){ if(localStorage.getItem("hf:fmOn")!=="1") return {skip:true};   // facoltativa: parte da sola solo dopo che l'hai attivata tu
+    const no=+localStorage.getItem("hf:fmNo")||0; if(Date.now()-no<7*864e5) return {skip:true};
+    if(Date.now()-(+localStorage.getItem("hf:fmAt")||0)<30*60e3) return {skip:true}; }
+  FM.busy=true;
+  try{
+    const {data}=await SY.client.auth.getSession(); const tok=data&&data.session&&data.session.access_token; if(!tok) return {err:"login"};
+    const res=await fetch(FM_FN,{headers:{Authorization:"Bearer "+tok}});
+    if(res.status===403){ lsSet("fmNo",String(Date.now())); localStorage.removeItem("hf:fmOn"); return {err:"famiglia"}; }
+    if(!res.ok) return {err:"rete"};
+    const j=await res.json(); const items=fmGroup(j&&j.items);
+    localStorage.removeItem("hf:fmNo"); lsSet("fmAt",String(Date.now())); lsSet("fmN",String(items.length));
+    const changed=fmApply(items); if(changed) savePantry();
+    try{ if(view==="dieta"&&dTab==="pantry") renderPantry(); }catch{}
+    return {ok:true,n:items.length,changed};
+  }catch(e){ console.warn("family manager",e); return {err:"rete"}; }
+  finally{ FM.busy=false; renderFmRow(); }
+}
+function renderFmRow(){ const row=$("fmRow"); if(!row) return; const sub=$("fmRowSub"); const at=+localStorage.getItem("hf:fmAt")||0, n=+localStorage.getItem("hf:fmN")||0;
+  const on=localStorage.getItem("hf:fmOn")==="1", no=+localStorage.getItem("hf:fmNo")||0;
+  row.hidden=!SY.user || (!on && (simpleOn() || Date.now()-no<30*864e5));
+  const offB=$("fmOffBtn"); if(offB) offB.hidden=row.hidden||!on;
+  const hm=t=>new Intl.DateTimeFormat("it-IT",{timeZone:"Europe/Rome",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).format(new Date(t));
+  sub.textContent= FM.busy? "Sto leggendo la dispensa…" : !on? "Facoltativa: tocca per caricare i prodotti che hai in casa" : at? `${n} prodotti · aggiornata ${hm(at)} · tocca per ricaricare` : "Tocca per caricare i prodotti che hai in casa"; }
+async function fmTap(){ const sub=$("fmRowSub"); if(!SY.user){ toast("Prima accedi al tuo account in Profilo → Dispositivi e sincronizzazione"); return; }
+  FM.busy=true; renderFmRow(); FM.busy=false;
+  const r0=await fmImport(true);
+  if(r0.ok){ lsSet("fmOn","1"); toast(r0.n? `Dispensa di Family Manager: ${r0.n} prodotti${r0.changed? " aggiornati" : ", niente di nuovo"}` : "La dispensa di Family Manager è vuota"); }
+  else if(r0.err==="famiglia") toast("La dispensa di Family Manager si può caricare solo dall'account di chi la gestisce");
+  else if(r0.err==="login") toast("Accedi di nuovo al tuo account in Profilo, poi riprova");
+  else if(!r0.skip) toast("Non riesco a leggere Family Manager ora: riprova tra poco");
+  renderFmRow(); }
+function fmStop(){ localStorage.removeItem("hf:fmOn"); localStorage.removeItem("hf:fmAt"); pantry.items=pantry.items.filter(i=>i.src!=="fm"); savePantry(); renderPantry(); toast("Dispensa di Family Manager tolta da HealthFit"); }
 async function loadAll(){
   const agd=await store.getDoc("actGoals"); if(agd&&agd.steps) actG=agd;
   const hl=await store.getDoc("homeLayout"); applyHomeOrder(hl&&hl.order);
@@ -12741,7 +12812,7 @@ async function loadAll(){
   try{ const lv=JSON.parse(localStorage.getItem("hf:live")||"null"); if(lv&&lv.live&&Date.now()-lv.startedAt<8*3600e3){ logCtx=lv; startSesTimer(); } else localStorage.removeItem("hf:live"); }catch{}
   await initSync(); renderSync(); setTimeout(()=>famAuto(),1500);
   try{ if(window.claude){ sample=await claude.use("sample"); if(sample){ const lim=await sample.limits().catch(()=>null); imgLimits=(lim&&lim.images)||null; } } }catch{}
-  await loadAll(); setTimeout(()=>voiceImport(),2500);
+  await loadAll(); setTimeout(()=>voiceImport(),2500); setTimeout(()=>fmImport(),4000);
   try{ const w=JSON.parse(sessionStorage.getItem("hf:where")||"null");
     if(w&&Date.now()-w.at<30*60e3&&w.v&&w.v!=="diario"&&w.v!=="sessione"){
       if(w.date&&w.date!==state.date&&w.date<=todayISO()){ state.date=w.date; await loadDay(); }
@@ -12779,7 +12850,7 @@ async function loadAll(){
 document.addEventListener("visibilitychange",async()=>{
   if(document.visibilityState!=="visible"||!SY.user||SY.busy) return;
   SY.busy=true; try{ const n=await pull(); renderSync(); if(n){ await loadAll(); void 0; } }catch(e){ console.warn(e); } finally{ SY.busy=false; }
-  voiceImport();
+  voiceImport(); fmImport();
 });
 window.addEventListener("online",()=>{ if(SY.user) pushDirty().catch(()=>{}); });
 })();
