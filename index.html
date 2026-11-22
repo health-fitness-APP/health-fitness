@@ -2483,7 +2483,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.34 (palestra segnata fatta anche dopo un cambio di scheda)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.35 (palestra con gilet contata una volta sola nel bilancio)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -10044,7 +10044,7 @@ let progT; function queueProgress(){ clearTimeout(progT); progT=setTimeout(()=>r
 let weekRev=null;
 function weekData(from){ const to=shiftDate(from,6), inR=d=>d>=from&&d<=to, H=(hist&&hist.items)||[];
   const runs=H.filter(w=>inR(w.date)&&isRun(w)), runKm=runs.reduce((a,w)=>a+(+w.distance||0),0);
-  const gym=tlog.sessions.filter(s=>inR(s.date)), other=H.filter(w=>inR(w.date)&&!isRun(w)&&!gym.some(s=>s.date===w.date&&s.title===w.name));
+  const gym=tlog.sessions.filter(s=>inR(s.date)), other=H.filter(w=>inR(w.date)&&!isRun(w)&&!gym.some(s=>s.date===w.date&&String(w.name||"").startsWith(s.title||"\u0000")));
   let planRuns=0, planKm=0, planGym=0;
   try{ const i=raceWeekIdx()-1, rw=race&&race.plan&&race.plan.weeks[i]; if(rw&&from===shiftDate(race.plan.start,i*7)){ planRuns=(rw.runs||[]).length; planKm=(rw.runs||[]).reduce((a,r0)=>a+(+r0.km||0),0); } }catch{}
   try{ const a=activeProg(), pr=a&&a.pr, fromRace=planRuns>0; if(pr){ [0,1,2,3,4,5,6].forEach(wd=>[(pr.weekMap||{})[wd],(pr.extraMap||{})[wd]].forEach(k=>{ const d=k!=null? pr.days[k] : null; if(!d) return; if(d.kind==="run"){ if(!fromRace){ planRuns++; planKm+=runPlan(d).km||0; } } else planGym++; })); } }catch{}
