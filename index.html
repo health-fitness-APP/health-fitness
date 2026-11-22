@@ -232,6 +232,7 @@ nav.tabbar button[aria-current="page"] .ic svg{stroke-width:2.3}
 nav.tabbar .in{grid-template-columns:repeat(5,minmax(0,1fr))!important}
 nav.tabbar button{min-width:0;white-space:nowrap}
 nav.tabbar button .ic{max-width:100%}
+nav.tabbar button .tl{display:block;max-width:100%;overflow:hidden;text-overflow:clip;text-align:center}
 nav.tabbar{background:rgba(255,255,255,.35)!important;border:0!important;-webkit-backdrop-filter:blur(18px) saturate(140%)!important;backdrop-filter:blur(18px) saturate(140%)!important;left:10px!important;right:10px!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;border-radius:26px!important;outline:1.5px solid rgba(255,255,255,.95);outline-offset:-1.5px;box-shadow:0 6px 20px rgba(0,0,0,.10)!important;padding-bottom:0!important}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) nav.tabbar{background:rgba(30,30,30,.45)!important;outline-color:rgba(255,255,255,.25)} }
 :root[data-theme="dark"] nav.tabbar{background:rgba(30,30,30,.45)!important;outline-color:rgba(255,255,255,.25)}
@@ -2513,7 +2514,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.41 (il profilo si salva anche a metà, barra in basso leggibile con caratteri grandi)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.42 (barra in basso: le scritte non si sovrappongono più)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -12473,8 +12474,12 @@ function renderHealthUi(){ document.body.classList.toggle("simple",simpleOn()); 
   if(h.ins) A.push("Prendi farmaci per il diabete: tieni con te zucchero o un succo quando ti muovi.");
   const put=(id,a)=>{ const b=$(id); if(!b) return; b.hidden=!a.length; b.textContent=a.join(" "); };
   put("hlWarnD",D); put("hlWarnA",A); try{ renderBackCard(); }catch(e){ console.warn("schiena",e); } }
-function tabFit(){ try{ document.querySelectorAll("nav.tabbar button").forEach(b=>{ b.style.fontSize=""; let f=parseFloat(getComputedStyle(b).fontSize)||12, n=0;
-  while(b.scrollWidth>b.clientWidth+1&&f>7&&n<12){ f-=0.5; n++; b.style.fontSize=f+"px"; } }); }catch{} }
+function tabFit(){ try{ document.querySelectorAll("nav.tabbar button").forEach(b=>{
+    // la scritta va in un suo contenitore che non può uscire dalla voce
+    let t=b.querySelector(".tl"); if(!t){ const tn=[...b.childNodes].find(x=>x.nodeType===3&&x.textContent.trim()); if(!tn) return; t=document.createElement("span"); t.className="tl"; t.textContent=tn.textContent.trim(); t.dataset.full=t.textContent; tn.replaceWith(t); }
+    t.textContent=t.dataset.full; t.style.fontSize=""; let f=parseFloat(getComputedStyle(t).fontSize)||12, n=0;
+    while(t.scrollWidth>t.clientWidth+1&&n<40&&f>8){ f-=0.5; n++; t.style.fontSize=f+"px"; }
+    if(t.scrollWidth>t.clientWidth+1&&t.dataset.full==="Allenamento") t.textContent="Allena"; }); }catch{} }
 window.addEventListener("resize",()=>setTimeout(tabFit,100)); setTimeout(tabFit,300); setTimeout(tabFit,1500);
 function renderAll(){ document.body.classList.toggle("home",view==="diario"); try{ renderHealthUi(); }catch(e){ console.warn("salute",e); } try{ csTabs(); }catch{} try{ if(view==="allenamento"&&!$("w-chat").hidden&&document.activeElement&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) renderCoachSetup(); }catch{} if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
  if(view==="profilo"){ try{ if(psCur) closePset(); else renderPfList(); }catch(e){ console.warn("profilo lista",e); } }
