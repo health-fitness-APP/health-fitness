@@ -2431,8 +2431,8 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <div id="famOwner" hidden style="margin:6px 0">
         <h3 style="margin:10px 0 4px;font-size:1rem">👨‍👩‍👧 Chiave di famiglia</h3>
         <p class="sub" style="margin:0 0 6px">Scrivi le email degli account dei tuoi familiari, una per riga: la loro app userà da sola la tua chiave, senza vederla (passa dal server privato dell'app). Solo queste email possono usarla. Limite: 400 richieste al giorno a persona, 2000 in tutto.</p>
-        <textarea class="field" id="famEmails" rows="3" placeholder="papa@email.it"></textarea>
-        <button class="btn ghost" id="famSave" type="button" style="margin-top:6px">Salva l'elenco</button>
+        <div id="famList"></div>
+        <div style="display:flex;gap:8px;margin-top:6px"><input class="field" id="famEmail" type="email" inputmode="email" autocomplete="off" placeholder="email del familiare" style="flex:1;min-width:0"><button class="btn" id="famAdd" type="button" style="width:auto;padding:0 18px">Aggiungi</button></div>
       </div>
       <div class="status" id="apiStatus" aria-live="polite"></div>
       <div class="note" id="aiSpend" style="margin:2px 0 6px"></div>
@@ -2522,7 +2522,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.46 (i familiari nell'elenco possono creare il loro account)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.47 (elenco dei familiari con Aggiungi e Togli)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -11676,11 +11676,15 @@ async function renderFam(){ try{
   const has=!!G.LS("apiKey"), fam=isFam();
   $("famGo").hidden=has&&!fam? true : fam; $("famUse").textContent= fam? "Usi la chiave di famiglia: non serve una chiave tua." : "";
   $("famOwner").hidden=!(has&&!fam&&SY.user);
-  if(!$("famOwner").hidden){ if(!famDoc) famDoc=(await store.getDoc("familyAi"))||{emails:[]}; if(document.activeElement!==$("famEmails")) $("famEmails").value=(famDoc.emails||[]).join("\n"); }
+  if(!$("famOwner").hidden){ if(!famDoc) famDoc=(await store.getDoc("familyAi"))||{emails:[]}; const box=$("famList"); box.innerHTML="";
+    const L=famDoc.emails||[]; if(!L.length) box.appendChild(el("p","note","Nessun familiare: nessuno oltre a te usa la tua chiave."));
+    L.forEach(em=>{ const r=el("div","pline"); r.style.alignItems="center"; r.append(el("span","ic","👤"),el("span",null,em)); const x=el("button","linkbtn","✕ Togli"); x.type="button"; x.style.marginLeft="auto";
+      x.onclick=()=>{ if(!confirm("Togliere "+em+"? Non potrà più usare la tua chiave né creare un account nuovo.")) return; famSet(L.filter(e=>e!==em)); toast("Tolto "+em); }; r.appendChild(x); box.appendChild(r); }); }
 }catch(e){ console.warn("famiglia",e); } }
 $("famGo").onclick=()=>famConnect(false);
-$("famSave").onclick=()=>{ const em=[...new Set($("famEmails").value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>/.+@.+\..+/.test(x)))].slice(0,20);
-  famDoc={emails:em}; save("familyAi",famDoc); toast(em.length? "✓ "+em.length+(em.length===1?" familiare può":" familiari possono")+" usare la tua chiave" : "Elenco vuoto: nessuno usa la tua chiave"); renderFam(); };
+function famSet(L){ famDoc={emails:[...new Set(L)].slice(0,20)}; save("familyAi",famDoc); try{ pushDirty(); }catch{} renderFam(); }
+$("famAdd").onclick=()=>{ const em=$("famEmail").value.trim().toLowerCase(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast("Scrivi un'email valida"); $("famEmail").focus(); return; }
+  const L=(famDoc&&famDoc.emails)||[]; if(L.includes(em)){ toast("C'è già"); return; } $("famEmail").value=""; famSet([...L,em]); toast("✓ Aggiunto "+em+": ora può creare l'account e usare la tua chiave"); };
 // senza chiave ma con l'account: prova da solo la chiave di famiglia (al massimo ogni 30 minuti)
 async function famAuto(){ try{ if(G.LS("apiKey")||!SY.user) return; const t=+(localStorage.getItem("hf:famTry")||0); if(Date.now()-t<30*60000) return; localStorage.setItem("hf:famTry",String(Date.now())); await famConnect(true); }catch{} }
 /* Prova chiave: dice se la chiave risponde, con quale modello e se è sul piano a pagamento */
