@@ -2530,7 +2530,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.52 (riaprendo l'app si torna sempre a oggi)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.53 (pasti descritti a parole stimati meglio)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -4443,18 +4443,44 @@ $("nfSave").onclick=async()=>{
 };
 $("confirmPicked").onclick=()=>addItems(pickedItems);
 $("photoToText").onclick=()=>{ const d=$("photoInfo").value.trim(); setTab("search"); $("q").value=d; setTimeout(()=>{ $("q").focus(); if(d) $("aiSearch").click(); else setStatus("searchStatus","Scrivi cosa hai mangiato (es. un trancio di focaccia con pomodorini e olive) e tocca “Calcola con l'AI”."); },80); };
+/* v4.53: pasto descritto a parole stimato come in una chat con Gemini: modello principale che ragiona, regole sulle porzioni
+   italiane, crudo/cotto, condimenti, i cibi dell'utente come riferimento; il modello dà i valori per 100 g e i totali li calcola l'app */
+const FOOD_EST_RULES=`Come stimare (ragiona con calma, come faresti in una chat, prima di rispondere):
+- Capisci il piatto e scomponilo negli ingredienti che pesano davvero, compresi l'olio o il burro di cottura e i condimenti probabili (pasta al pomodoro: pasta + sugo + olio + eventuale parmigiano; insalata: anche l'olio).
+- Cibi che si mangiano come un pezzo unico (pizza, panino del bar, cornetto, tramezzino, piadina, lasagna, sushi, prodotti confezionati) restano un solo alimento con il peso reale del pezzo, non scomposti.
+- Rispetta esattamente le quantità dette: numeri, "un etto" = 100 g, "mezzo", "abbondante", "poco". Per le unità usa pesi reali: uovo medio 60 g senza guscio, fetta di pane 35 g, fetta biscottata 9 g, fetta di prosciutto 15 g, cucchiaio d'olio 10 g, cucchiaino 5 g, tazza di latte 200 g, vasetto di yogurt 125 g, piatto di pasta 90-100 g a crudo, piatto di riso 80-90 g a crudo, porzione di carne 120-150 g, mela 180 g, banana 120 g senza buccia.
+- Pasta, riso, cereali e legumi: scrivi nel nome "(peso a crudo)" o "(peso cotto)" e usa i valori per 100 g dello stesso stato. Se l'utente dice i grammi della pasta senza altro, sono a crudo.
+- Prodotti di marca, piatti di ristorante o di catene: usa i valori reali di quel prodotto o del piatto come si serve di solito, non la versione leggera.
+- Se mancano dettagli scegli la stima più probabile per un adulto italiano, non la più bassa.
+- Valori per 100 g dalle tabelle CREA/BDA o dall'etichetta del prodotto. Controlla che kcal ≈ 4×proteine + 4×carboidrati + 9×grassi (alcol 7 kcal/g).`;
+function myFoodsRef(max=50){
+  const out=[], seen=new Set(); const add=(n,g,per)=>{ const k=fkey(n); if(!n||seen.has(k)||!per||!(+per.kcal>0)) return; seen.add(k);
+    out.push(`${n}: ${r(per.kcal*100)} kcal, P ${fmt(Math.round(per.p*1000)/10)}, C ${fmt(Math.round(per.c*1000)/10)}, G ${fmt(Math.round(per.f*1000)/10)} per 100 g${g? `; sua porzione ${r(g)} g` : ""}`); };
+  try{ stapleItems().forEach(x=>{ if(x&&x.name&&+x.grams>0&&x.kcal!=null) add(x.name+(x.unit?" ("+x.unit+")":""),x.grams,{kcal:x.kcal/x.grams,p:(+x.p||0)/x.grams,c:(+x.c||0)/x.grams,f:(+x.f||0)/x.grams}); }); }catch{}
+  try{ [...foods.custom,...foods.favs,...foods.recents].forEach(e=>add(e.name,e.grams,e.per)); }catch{}
+  return out.slice(0,max).join("\n"); }
+// un alimento stimato dall'AI → voce del pasto: se ci sono i valori per 100 g, i totali li calcola l'app (niente errori di conti)
+function estItem(z){ const g=Math.max(1,+z.grams||100), h=z.per100||z.per_100g;
+  if(h&&+h.kcal>=0&&(+h.kcal||+h.p||+h.c||+h.f)) return normItem({name:z.name,grams:g,kcal:(+h.kcal||0)*g/100,p:(+h.p||0)*g/100,c:(+h.c||0)*g/100,f:(+h.f||0)*g/100});
+  return normItem(z); }
+async function mealFromText(q,mealName){
+  const ref=myFoodsRef();
+  const res=await sample.json(
+`Sei un nutrizionista italiano esperto. L'utente${mealName? " (pasto: "+mealName+")" : ""} descrive cosa ha mangiato: "${q.replace(/"/g,"'")}".
+${FOOD_EST_RULES}
+${ref? "Alimenti che l'utente usa spesso (se ne nomina uno, usa questi valori e la sua porzione se non dice i grammi):\n"+ref+"\n" : ""}Rispondi SOLO con JSON: {"items":[{"name":"nome breve in italiano","grams":number,"per100":{"kcal":number,"p":number,"c":number,"f":number}}],"note":"una frase con le ipotesi principali, es. pasta 100 g a crudo, 1 cucchiaio d'olio"}
+grams = grammi mangiati; per100 = valori per 100 g (p proteine, c carboidrati, f grassi in grammi).`,{modelTier:"default",cache:false,maxTokens:3000});
+  const items=(res&&Array.isArray(res.items)?res.items:[]).filter(z=>z&&z.name&&+z.grams>0).map(estItem);
+  return {items,note:String(res&&res.note||"").slice(0,240)}; }
 $("aiSearch").onclick=async()=>{
   const q=$("q").value.trim(); if(!q){ setStatus("searchStatus","Scrivi prima cosa hai mangiato, ad esempio “un piatto di carbonara”."); return; }
-  $("aiSearch").disabled=true; setStatus("searchStatus","Calcolo i valori…");
+  $("aiSearch").disabled=true; setStatus("searchStatus","Calcolo i valori (qualche secondo: l'AI ci ragiona)…");
   try{
-    const res=await sample.json(
-`Sei un nutrizionista. L'utente ha mangiato: "${q.replace(/"/g,"'")}".
-Scomponi in alimenti, stima i grammi (se non indicati usa una porzione media italiana) e calcola i valori con le tabelle CREA.
-Rispondi SOLO con JSON: {"items":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}`,{modelTier:"quick"});
-    const items=(res&&Array.isArray(res.items))?res.items:[];
+    let mn=""; try{ mn=(mealList().find(m=>m.id===currentMeal)||{}).name||""; }catch{}
+    const {items,note}=await mealFromText(q,mn);
     if(!items.length){ setStatus("searchStatus","Non sono riuscito a interpretarlo: prova a descriverlo diversamente."); return; }
-    pickedItems.push(...items.map(normItem)); renderFound($("picked"),pickedItems); $("pickedBox").hidden=false;
-    setStatus("searchStatus","Controlla i grammi e aggiungi.");
+    pickedItems.push(...items); renderFound($("picked"),pickedItems); $("pickedBox").hidden=false;
+    setStatus("searchStatus",(note? "Ho stimato: "+note+". " : "")+"Controlla i grammi e aggiungi.");
   }catch(e){ setStatus("searchStatus",errCopy(e),true); }
   finally{ $("aiSearch").disabled=false; }
 };
@@ -12638,17 +12664,18 @@ async function voiceImport(){
 - Se nomina un prodotto che è tra i suoi cibi di casa, usa quel nome e quei valori riscalati ai grammi.
 - Se dice "come da piano", "il solito", "quello previsto" o simili, usa gli alimenti del pasto previsto (se c'è).
 - Nomi brevi in italiano, un elemento per alimento. Mai lasciare una voce vuota se parla di cibo: fai la stima più probabile.
+${FOOD_EST_RULES}
 ${casa? "Cibi di casa (valori per i grammi indicati):\n"+casa+"\n" : ""}Voci (JSON, "ora" = quando l'ha detto): ${JSON.stringify(rows.map(x=>({i:x.i,pasto:x.said? x.mealName : "non detto",ora:x.hm,detto:x.testo,...(x.plan?{pasto_previsto:x.plan}:{})})))}
 Pasti dell'utente: ${mealList().map(m=>m.id+" = "+m.name).join(", ")}.
-Rispondi SOLO con JSON: {"entries":[{"i":0,"ieri":false,"pasto":"id o null","items":[{"name":"string","grams":number,"kcal":number,"p":number,"c":number,"f":number}]}]}
+Rispondi SOLO con JSON: {"entries":[{"i":0,"ieri":false,"pasto":"id o null","items":[{"name":"string","grams":number,"per100":{"kcal":number,"p":number,"c":number,"f":number}}]}]}
 "ieri": true solo se la frase dice chiaramente che ha mangiato ieri (es. "ieri sera"). "pasto": l'id del pasto SOLO se il pasto è "non detto" e la frase lo fa capire (es. "a cena"), altrimenti null.
-p=proteine g, c=carboidrati g, f=grassi g, valori per i grammi indicati. Se una voce non parla di cibo: "items":[].`,
+per100 = valori per 100 g (p proteine, c carboidrati, f grassi in grammi); i totali li calcolo io dai grammi. Se una voce non parla di cibo: "items":[].`,
       {maxTokens:4096, cache:false});
     const ents=(res&&Array.isArray(res.entries))? res.entries : null; if(!ents) return;
     const doneKeys=jget("viDone",[]), left=[], added=[];
     for(const x of rows){ const e=ents.find(z=>+z.i===x.i);
       if(!e){ left.push(pend[x.i]); continue; }
-      const its=(Array.isArray(e.items)?e.items:[]).filter(z=>z&&z.name&&+z.grams>0).map(z=>{ const n=normItem(z); delete n.per; n.src="voce"; return n; });
+      const its=(Array.isArray(e.items)?e.items:[]).filter(z=>z&&z.name&&+z.grams>0).map(z=>{ const n=estItem(z); delete n.per; n.src="voce"; return n; });
       doneKeys.push(viKey(pend[x.i]));
       if(!its.length){ added.push({...x,kcal:0,none:true}); continue; }
       if(e.ieri===true) x.iso=shiftDate(x.iso,-1);
