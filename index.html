@@ -2530,7 +2530,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.50 (figure per gli esercizi della schiena, elenco familiari)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.51 (si salvano solo le serie fatte davvero, corsa e sci solo a chi li fa)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9238,11 +9238,11 @@ $("logSave").onclick=async()=>{
   if(NATHR.on) await gymHrStop(true);
   if(logCtx.circuit) logCtx.exercises=circuitToExercises();
   const exs=logCtx.exercises.map(x=>{
-    let sets=x.sets.filter(st=>st.done); if(!sets.length) sets=x.sets.filter(st=> x.cardio? st.text : (st.reps||st.kg));
+    let sets=x.sets.filter(st=>st.done); if(!sets.length&&x.cardio) sets=x.sets.filter(st=>st.text);   // v4.51: solo le serie segnate come fatte (ripetizioni e pesi sono già scritti in anticipo)
     sets=sets.map(st=> x.cardio? {text:String(st.text).slice(0,120)} : {kg:st.kg===""?null:+st.kg, reps:+st.reps||null, ...(x.bw&&+st.kg>0?{vest:true}:{})});
     return {name:String(x.name).trim(),sets,...(x.eff?{eff:x.eff}:{})};
   }).filter(x=>x.name&&x.sets.length);
-  if(!exs.length){ toast(logCtx.circuit? "Completa almeno un giro" : "Segna almeno una serie"); return; }
+  if(!exs.length){ if(confirm(logCtx.circuit? "Non hai completato nessun giro. Vuoi annullare l'allenamento senza salvarlo?" : "Non hai segnato nessuna serie come fatta. Vuoi annullare l'allenamento senza salvarlo?")) cancelSession(); else toast(logCtx.circuit? "Completa almeno un giro" : "Tocca ✓ sulle serie che hai fatto"); return; }
   const elapsed=Math.round(sesElapsed()/60), min= elapsed>=5&&elapsed<=300? elapsed : logCtx.plannedMin;
   const sess={id:uid(),date:state.date,minutes:min,title:logCtx.title,source:logCtx.kind,exercises:exs,notes:$("logNotes").value.trim()};
   tlog.sessions=[...tlog.sessions,sess].slice(-200); save("trainingLog",tlog);
@@ -12562,7 +12562,12 @@ $("ciboBack").onclick=()=>{ if(history.state&&history.state.v==="cibo") history.
 $("cPrev").onclick=()=>$("prev").click(); $("cNext").onclick=()=>$("next").click(); $("cDayPick").onclick=()=>$("dayPick").click();
 $("dBody").onclick=()=>go("corpo");
 function simpleOn(){ let v=null; try{ v=localStorage.getItem("hf:simple"); }catch{} return v==="1"||(v==null&&+((state.profile||{}).age)>=65); }
-function renderHealthUi(){ document.body.classList.toggle("simple",simpleOn()); const sm=$("simpleMode"); if(sm) sm.checked=simpleOn();
+/* v4.51: in Attività «Statistiche corsa» e «Giornata sugli sci» solo a chi fa quello sport (scelto nel Coach o con corse/giornate registrate) */
+function sportUsed(k){ try{ if(cs&&(cs.sports||[]).includes(k)) return true; }catch{}
+  try{ if(k==="corsa"&&(runEvals.list||[]).length) return true; }catch{}
+  try{ const re= k==="corsa"? /corsa|run|jogging|tapis/i : /\bsci\b|sciat|giornata sugli sci/i; return ((hist&&hist.items)||[]).some(x=>re.test(x.name||"")); }catch{ return false; } }
+function renderSportRows(){ try{ const a=$("csRow"), b=$("skiRow"); if(a) a.hidden=!sportUsed("corsa"); if(b) b.hidden=!sportUsed("sci"); }catch{} }
+function renderHealthUi(){ renderSportRows(); document.body.classList.toggle("simple",simpleOn()); const sm=$("simpleMode"); if(sm) sm.checked=simpleOn();
   const h=healthOf(), age=+((state.profile||{}).age)||0, D=[], A=[];
   if(h.diab){ D.push("Hai segnato il diabete: la dieta usa carboidrati lenti divisi tra i pasti e pochi zuccheri. Fatti controllare il piano dal medico o dal diabetologo, soprattutto se cambi farmaci."+(h.ins?" Con insulina o pastiglie non saltare mai i pasti: se ti senti debole, sudato o tremi, prendi subito zucchero e chiama il medico.":"")); }
   if(h.kid) D.push("Problemi ai reni: le proteine restano moderate. Le quantità giuste le decide il medico.");
