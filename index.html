@@ -1319,6 +1319,13 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .mzcmp{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}.mzcmp th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:4px 6px;border-bottom:1px solid var(--line)}.mzcmp th:first-child,.mzcmp td:first-child{text-align:left}
 .mzcmp td{padding:7px 6px;border-bottom:1px solid var(--line)}.mzcmp td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .binfo{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:var(--basil-soft);font-size:14px;line-height:1.45}
+/* modalità semplice: caratteri grandi e solo l'essenziale (persone anziane o poco pratiche) */
+body.simple{zoom:1.14}
+body.simple #fatigueCard,body.simple #deloadCard,body.simple #chalCard,body.simple #fuelCard,body.simple #raceDayCard,body.simple #monthCard,body.simple #nightCard,
+body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .seg [data-w^="sp-"],body.simple .seg [data-w="coach"]{display:none!important}
+.hl-warn{margin:0 0 12px;padding:12px 14px;border-radius:14px;background:#fff4e5;color:#7a4300;font-size:.92rem;line-height:1.4;border:1px solid #f3cf9a}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .hl-warn{background:#3a2a12;color:#ffd9a3;border-color:#6b4a1c} }
+:root[data-theme="dark"] .hl-warn{background:#3a2a12;color:#ffd9a3;border-color:#6b4a1c}
 </style>
 </head>
 <body>
@@ -1599,6 +1606,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 <!-- ================= DIETA ================= -->
 <main id="view-dieta" hidden>
   <header class="top"><h1>La tua dieta</h1></header>
+  <div class="hl-warn" id="hlWarnD" hidden></div>
   <div class="seg2" role="tablist" id="dSeg">
     <button role="tab" data-d="plan" aria-selected="true">Piano</button>
     <button role="tab" data-d="pantry" aria-selected="false">Frigo e dispensa</button>
@@ -1769,6 +1777,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 <!-- ================= ALLENAMENTO ================= -->
 <main id="view-allenamento" hidden>
   <header class="top"><h1>Allenamento</h1></header>
+  <div class="hl-warn" id="hlWarnA" hidden></div>
   <button class="live-banner" id="liveBanner" type="button" hidden></button>
   <div class="seg" role="tablist">
 
@@ -2299,6 +2308,21 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <div class="calc" id="calcBox"></div>
     </div>
   </section>
+  <section class="card" id="healthCard">
+    <h2>Salute</h2>
+    <p class="sub">Segna se hai uno di questi problemi: dieta, esercizi e coach ne terranno conto. I consigli dell'app non sostituiscono il medico.</p>
+    <div class="form" style="margin-top:6px" id="hlBox">
+      <label class="chk"><input type="checkbox" data-hl="diab"> Diabete o glicemia alta</label>
+      <label class="chk"><input type="checkbox" data-hl="ins"> Prendo insulina o pastiglie per il diabete</label>
+      <label class="chk"><input type="checkbox" data-hl="back"> Mal di schiena</label>
+      <label class="chk"><input type="checkbox" data-hl="press"> Pressione alta</label>
+      <label class="chk"><input type="checkbox" data-hl="heart"> Problemi al cuore</label>
+      <label class="chk"><input type="checkbox" data-hl="joint"> Dolori alle articolazioni (ginocchia, anche, spalle)</label>
+      <label class="chk"><input type="checkbox" data-hl="kid"> Problemi ai reni</label>
+      <label class="chk" style="margin-top:8px"><input type="checkbox" id="simpleMode"> Modalità semplice: caratteri più grandi e solo l'essenziale (su questo telefono)</label>
+      <label>Altro (farmaci, cibi da evitare, cosa ha detto il medico)<textarea id="hlNote" placeholder="Es. il medico ha detto di camminare 30 minuti al giorno; niente pollo"></textarea></label>
+    </div>
+  </section>
   <section class="card">
     <h2>I tuoi pasti</h2>
     <p class="sub">Scegli quanti pasti fai, rinominali o aggiungine, e indica dove li mangi di solito: i cibi di casa li uso soprattutto nei pasti a casa.</p>
@@ -2450,21 +2474,21 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="linkbtn" id="hcSettings" type="button">Gestisci permessi in Health Connect</button>
       <div class="status" id="hcStatus" aria-live="polite"></div>
     </div>
-    <h3 style="margin:18px 0 6px;font-size:1rem">Sincronizzazione telefono ↔ PC</h3>
+    <h3 style="margin:18px 0 6px;font-size:1rem">Il tuo account (dati salvati online)</h3>
     <div id="syncOn" hidden>
       <p class="sub" id="syncInfo"></p>
       <div class="two"><button class="btn ghost" id="syncNow">Sincronizza ora</button><button class="btn ghost" id="syncOut">Esci</button></div>
       <button class="linkbtn" id="syncPw" type="button" style="margin-top:8px">🔑 Cambia password</button>
     </div>
     <div id="syncOff" class="form">
-      <p class="sub">Con un account Supabase gratuito vedi gli stessi dati su telefono e PC.</p>
+      <p class="sub">Crea il tuo account: i tuoi dati restano salvati online e li ritrovi su telefono e PC. <b>Ognuno usa il suo account</b>: non usare quello di un'altra persona.</p>
       <div class="seg2" role="tablist" id="sbMode">
-        <button role="tab" aria-selected="true" data-m="up">Primo dispositivo</button>
+        <button role="tab" aria-selected="true" data-m="up">Nuovo account</button>
         <button role="tab" aria-selected="false" data-m="in">Ho già un account</button>
       </div>
       <p class="note" id="sbModeHint" style="margin:0"></p>
-      <label>Project URL<input class="field" id="sbUrl" placeholder="https://xxxx.supabase.co" autocomplete="off"></label>
-      <label>Chiave pubblica (publishable / anon)<input class="field" id="sbKey" placeholder="sb_publishable_… oppure eyJ…" autocomplete="off"></label>
+      <label hidden>Project URL<input class="field" id="sbUrl" placeholder="https://xxxx.supabase.co" autocomplete="off"></label>
+      <label hidden>Chiave pubblica (publishable / anon)<input class="field" id="sbKey" placeholder="sb_publishable_… oppure eyJ…" autocomplete="off"></label>
       <label>Email<input class="field" id="sbEmail" type="email" autocomplete="username"></label>
       <label>Password<input class="field" id="sbPass" type="password" autocomplete="current-password"></label>
       <button class="btn" id="sbGo">Crea il mio account</button>
@@ -2483,7 +2507,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.36 (sci e altri sport detti al coach segnati nel programma)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.37 (Salute nel profilo, modalità semplice, un account per persona)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3265,6 +3289,25 @@ async function pull(){
   jset("dirty",d);
   await pushDirty(); SY.last=new Date(); return changed;
 }
+/* un telefono = una persona: i dati di questo dispositivo appartengono a un solo account (hf:syncOwner).
+   Accedere con un altro account mescolerebbe i dati (pull + invio dei dati locali), quindi si blocca. */
+function hasLocalData(){ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith("diario:")) return true; } return false; }
+function wipeLocalData(){ const keep=new Set(["hf:sbUrl","hf:sbKey"]); const del=[];
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&(k.startsWith("diario:")||k.startsWith("hf:"))&&!keep.has(k)) del.push(k); }
+  del.forEach(k=>{ try{ localStorage.removeItem(k); }catch{} }); }
+async function ownerCheck(u){
+  const own=localStorage.getItem("hf:syncOwner")||"", em=localStorage.getItem("hf:syncOwnerEmail")||"";
+  if(own===u.id) return true;
+  if(!own){
+    if(hasLocalData()&&!confirm("Su questo telefono ci sono già dei dati.\n\nVerranno uniti all'account "+(u.email||"")+".\nFallo solo se questo telefono e questo account sono della STESSA persona.\n\nContinuare?")){ setStatus("syncStatus","Accesso annullato: i dati di questo telefono non sono stati toccati."); return false; }
+    localStorage.setItem("hf:syncOwner",u.id); localStorage.setItem("hf:syncOwnerEmail",u.email||""); return true;
+  }
+  const dirty=jget("dirty",[]);
+  if(dirty.length){ setStatus("syncStatus","Questo telefono è di "+(em||"un altro account")+". Per non mescolare i dati non posso accedere con "+(u.email||"un altro account")+". Ci sono anche dati non ancora salvati online: rientra con "+(em||"il primo account")+" per salvarli.",true); return false; }
+  if(!confirm("Questo telefono è di "+(em||"un altro account")+".\n\nPer usare "+(u.email||"il nuovo account")+" devo CANCELLARE i dati di questo telefono (restano salvati online nell'account "+(em||"precedente")+").\n\nCancello e continuo?")){
+    setStatus("syncStatus","Accesso annullato: questo telefono resta di "+(em||"chi lo usava")+". I dati non si mescolano.",true); return false; }
+  wipeLocalData(); window.__ownerWiped=true; localStorage.setItem("hf:syncOwner",u.id); localStorage.setItem("hf:syncOwnerEmail",u.email||""); return true;
+}
 /* progetto Supabase di HealthFit già impostato: basta accedere con email e password (la chiave pubblica è fatta per stare nelle app; i dati sono protetti per utente) */
 const SB_DEFAULT={url:"https://glwllwwcyguxtamoeuqb.supabase.co",key:"sb_publishable_Q_pka4c-1DIjwDMqDqUt3w_oRDqf8Ma"};
 function syncCfg(){ return {url:(localStorage.getItem("hf:sbUrl")||SB_DEFAULT.url).trim(),key:(localStorage.getItem("hf:sbKey")||SB_DEFAULT.key).trim()}; }
@@ -3275,6 +3318,9 @@ async function initSync(){
     SY.client.auth.onAuthStateChange(ev=>{ if(ev==="PASSWORD_RECOVERY") setTimeout(()=>{ go("profilo"); openSheet("pwSheet"); setTimeout(()=>$("pwNew").focus(),300); },400); });
     if(/error_code=otp_expired|error=access_denied/.test(location.hash)){ setTimeout(()=>toast("Il link per la password è scaduto: richiedine uno nuovo da “Password dimenticata?”."),1200); history.replaceState(history.state,"",location.pathname); }
     const {data}=await SY.client.auth.getSession(); SY.user=data&&data.session? data.session.user : null;
+    if(SY.user){ const own=localStorage.getItem("hf:syncOwner");
+      if(!own){ localStorage.setItem("hf:syncOwner",SY.user.id); localStorage.setItem("hf:syncOwnerEmail",SY.user.email||""); }
+      else if(own!==SY.user.id){ try{ await SY.client.auth.signOut(); }catch{} SY.user=null; return true; } }
     if(SY.user){ await Promise.race([pull(),new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),10000))]); }
     return true;
   }catch(e){ console.warn("sync",e); SY.err=e; return false; }
@@ -3316,7 +3362,10 @@ function targets(p){
   const tdee = bmr*p.activity;
   const floor = p.sex==="m"?1500:1200;
   const kcal = Math.max(floor, tdee*g.mult + (+p.kcalAdjust||0));
-  const prot = lbm? Math.min(w*g.prot, lbm*g.prot*1.15) : w*g.prot, fat = w*0.9;
+  // con molto peso in più (BMI > 30) proteine e grassi si calcolano sul peso "corretto", non su quello reale
+  const hM=p.height/100, bmi=w/(hM*hM), wRef= bmi>30? 25*hM*hM + 0.25*(w-25*hM*hM) : w, hl=(p.health)||{};
+  let gp=g.prot; if(+p.age>=65) gp=Math.min(gp,1.2); if(hl.kid) gp=Math.min(gp,0.8);
+  const prot = lbm&&bmi<=30? Math.min(w*gp, lbm*gp*1.15) : wRef*gp, fat = wRef*0.9;
   const carb = Math.max(0,(kcal-prot*4-fat*9)/4);
   return {bmr,bmrSrc,lbm,fatPct:b.fat||null,tdee,kcal,prot,fat,carb,floored:tdee*g.mult<floor};
 }
@@ -3524,6 +3573,7 @@ function profileSummary(){
     set.level? "livello "+set.level : "", set.place? "si allena in "+set.place : "",
     equipText(p)? "attrezzatura disponibile: "+equipText(p) : "",
     notes? "infortuni/note: "+notes : "",
+    (()=>{ try{ return healthText(); }catch{ return ""; } })(),
     (()=>{ try{ return painText(); }catch{ return ""; } })(),
     (()=>{ try{ return kneeText(); }catch{ return ""; } })(),
     "pasti: "+mealList().map(m=>m.name+({casa:" (a casa)",schiscetta:" (schiscetta portata da casa)",fuori:" (fuori casa: bar, mensa o ristorante)"}[m.where||"casa"]||"")).join(", "),
@@ -3532,6 +3582,21 @@ function profileSummary(){
     upActive()? "segue una dieta del nutrizionista" : "",
     ap? (ap.kind==="imported"? "segue la scheda del suo personal trainer: " : "segue il programma del coach: ")+(ap.pr.name||"") : ""
   ].filter(Boolean).join("; ");
+}
+/* sezione Salute del profilo: regole prudenti che valgono per dieta, schede e coach */
+function healthOf(p){ return (p||state.profile||{}).health||{}; }
+function healthText(){ const p=state.profile||{}, h=healthOf(p), age=+p.age||0, R=[];
+  if(h.diab) R.push("DIABETE/glicemia alta: carboidrati soprattutto integrali e a basso indice glicemico, divisi in modo regolare tra i pasti (mai un pasto con molti carboidrati da soli: sempre insieme a verdure, proteine e un po' di grassi buoni), legumi e verdure spesso, frutta intera in porzioni piccole e non succhi, niente zuccheri aggiunti, bibite dolci, miele, marmellata o dolci se non raramente e in piccola quantità; niente digiuni né pasti saltati; calo di peso lento");
+  if(h.ins) R.push("prende insulina o pastiglie per il diabete: rischio di ipoglicemia, quindi MAI tagli forti di calorie o di carboidrati e mai saltare i pasti; prima di cambiare dieta o iniziare esercizi deve sentire il medico; durante l'attività tenere a portata zucchero o succo");
+  if(h.back) R.push("MAL DI SCHIENA: solo esercizi dolci e a basso impatto (camminata, cyclette, mobilità, stretching delicato, rinforzo leggero di addome e glutei da sdraiato o seduto, tipo ponte, bird-dog, ginocchia al petto); NIENTE stacchi, squat con bilanciere, piegamenti in avanti con carico, sollevamenti pesanti, torsioni brusche, salti e corsa; se il dolore aumenta fermarsi e sentire il medico o il fisioterapista");
+  if(h.press) R.push("PRESSIONE ALTA: poco sale (niente cibi molto salati, salumi e formaggi stagionati con moderazione), niente sforzi massimali o a fiato trattenuto");
+  if(h.heart) R.push("PROBLEMI AL CUORE: attività solo leggera o moderata e approvata dal medico, niente sforzi intensi");
+  if(h.joint) R.push("DOLORI ARTICOLARI: niente salti e corsa, preferire camminata, cyclette, acqua ed esercizi senza carico");
+  if(h.kid) R.push("PROBLEMI AI RENI: proteine moderate (non alzarle oltre il normale) e poco sale; le quantità le decide il medico");
+  if(age>=65) R.push("ETÀ "+age+" ANNI: niente corsa né allenamenti intensi; esercizi semplici, sicuri, con equilibrio e mobilità; frasi brevi e semplici");
+  if(h.note) R.push("indicazioni della persona/del medico: "+h.note);
+  if(!R.length) return "";
+  return "SALUTE (regole obbligatorie, prudenza prima di tutto; ricorda in modo breve di confrontarsi col medico): "+R.join("; ");
 }
 function sessionText(s){ const d=WD_ORDER.filter(x=>s.days.includes(x)).map(x=>WD[x].slice(0,3).toLowerCase());
   return [s.sport? (CS_NAME[s.sport]||s.sport)+":" : "", d.length? d.join(", ") : "giorni non indicati", timeRange(s.start,s.end), FED[s.fed]||""].filter(Boolean).join(" ").replace(/ +/g," "); }
@@ -6224,7 +6289,7 @@ async function nativeShareGemini(file,txt){ const C=NAT(); if(!C) return false;
   catch(e){ if(!/cancel/i.test(String(e&&e.message||e))) toast("Condivisione: "+((e&&e.message)||e)); return true; } }
 /* ===== profilo in stile impostazioni: elenco a gruppi, ogni voce apre la sua pagina ===== */
 const PF_GROUPS=[
-  ["Il tuo profilo",[["Chi sei","👤","chi",true],["obiettivo","🎯","goal",true],["I tuoi dati","📏","dati",true]]],
+  ["Il tuo profilo",[["Chi sei","👤","chi",true],["obiettivo","🎯","goal",true],["I tuoi dati","📏","dati",true],["Salute","❤️","salute",true]]],
   ["Alimentazione",[["I tuoi pasti","🍽️","pasti",true]]],
   ["Allenamento",[["__eq","🏋️","eq",false]]],
   ["Dispositivi",[["Dispositivi collegati","🔌","dev",false]]],
@@ -6242,6 +6307,7 @@ const PFI={
   dev:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6l.6-2.5h4.8L15 6M9 18l.6 2.5h4.8L15 18M10 12h1.4l.8-1.6 1 3.2.8-1.6H15"/>',
   look:'<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-.8-.6-1.2-.6-2 0-.9.7-1.6 1.6-1.6h2.1a3.6 3.6 0 0 0 3.6-3.6C20.5 7 16.7 3.5 12 3.5z"/><circle cx="7.6" cy="11" r="1"/><circle cx="10.2" cy="7.3" r="1"/><circle cx="14.6" cy="7.6" r="1"/>',
   ai:'<circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"/>',
+  salute:'<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/><path d="M8 12h2l1-2 2 4 1-2h2"/>',
   chat:'<path d="M4.5 6.5a2.5 2.5 0 0 1 2.5-2.5h10a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 3.5V16H7a2.5 2.5 0 0 1-2.5-2.5z"/>'};
 const pfSvg=k=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PFI[k]||PFI.chi}</svg>`;
 function pfCardFor(title){ return [...document.querySelectorAll("#pfCards > section.card, #psBody > section.card")].find(c=>{ const h=c.querySelector(":scope > h2"); return h&&h.textContent.toLowerCase().includes(title.toLowerCase()); }); }
@@ -6255,6 +6321,7 @@ function pfSubtitle(k){ const p=state.profile||{}, d=typeof draft!=="undefined"&
     case "train": { const t=trainOf(p); const days=[...new Set(t.sessions.flatMap(x=>x.days))]; return days.length? days.map(x=>["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][x]).join(", ") : "Giorni e orari"; }
     case "eq": { const n=((p.equipment&&p.equipment.items)||[]).length; return n? n+" attrezzi" : "Nessuno selezionato"; }
     case "dev": return [localStorage.getItem("hf:hrName")||"", localStorage.getItem("hf:hcOn")==="1"? "Samsung Health" : ""].filter(Boolean).join(" · ")||"Fascia, Galaxy Watch, bilancia";
+    case "salute": { const h=p.health||{}, L={diab:"diabete",back:"schiena",press:"pressione",heart:"cuore",joint:"articolazioni",kid:"reni"}; const t=Object.keys(L).filter(x=>h[x]).map(x=>L[x]); return (t.length? t.join(", ") : "Diabete, schiena, pressione…")+(simpleOn()?" · modalità semplice":""); }
     case "look": return "Colori e tema";
     case "ai": return [localStorage.getItem("hf:apiKey")? "Gemini" : "", localStorage.getItem("hf:orKey")? "OpenRouter" : "", localStorage.getItem("hf:groqKey")? "Groq" : "", (typeof SY!=="undefined"&&SY.user)? "sincronizzato" : ""].filter(Boolean).join(" · ")||"Chiavi AI e sincronizzazione";
   } }catch{} return ""; }
@@ -8103,7 +8170,9 @@ $("cirSave").onclick=()=>{
 function spiderPresetOffer(){
   try{ if(localStorage.getItem("hf:presetSpider")==="1") return; }catch{}
   if(!state.profile) return;
-  const a=activeProg(); if(a&&a.pr.days.some(d=>d.kind==="circuit"&&/holland|spiderman/i.test(d.title||""))){ try{ localStorage.setItem("hf:presetSpider","1"); }catch{} return; }
+  // solo per chi aveva già un programma (era pensato per Daniele): mai per un account nuovo, per chi ha 60 anni o più o problemi di salute
+  const hp=state.profile.health||{}; if(+state.profile.age>=60||Object.keys(hp).some(k=>k!=="note"&&hp[k])){ try{ localStorage.setItem("hf:presetSpider","1"); }catch{} return; }
+  const a=activeProg(); if(!a) return; if(a&&a.pr.days.some(d=>d.kind==="circuit"&&/holland|spiderman/i.test(d.title||""))){ try{ localStorage.setItem("hf:presetSpider","1"); }catch{} return; }
   const prev=a? JSON.parse(JSON.stringify(a.pr)) : null, kind=a? a.kind : null;
   applySpiderPreset();
   actionToast("Ho aggiunto il circuito di Tom Holland il lunedì, mercoledì e venerdì.","Annulla",()=>{ if(prev){ if(kind==="imported"){ imported=Object.assign(imported,prev); save("programImported",imported); } else { state.program=prev; save("program",state.program); } } else { state.program=null; save("program",null); } renderProgram(); toast("Circuito tolto"); },20000);
@@ -11694,7 +11763,7 @@ function renderSync(){ try{ renderBkAuto(); renderNotifBox(); renderHiddenBox();
     $("syncInfo").textContent=`Collegato come ${SY.user.email}. `+(SY.last?`Ultima sincronizzazione alle ${SY.last.toTimeString().slice(0,5)}.`:"")+(pend?` ${pend} modifiche in attesa di invio.`:" Tutto aggiornato ✓"); }
 }
 function syncErr(e){ const m=String(e&&e.message||e||"");
-  if(/Invalid login/i.test(m)) return sbMode==="in"? "Email o password sbagliate. Se non hai ancora creato l'account, scegli \"Primo dispositivo\"." : "Email o password sbagliate.";
+  if(/Invalid login/i.test(m)) return sbMode==="in"? "Email o password sbagliate. Se non hai ancora creato l'account, scegli \"Nuovo account\"." : "Email o password sbagliate.";
   if(/already registered/i.test(m)){ setTimeout(()=>setSbMode("in"),0); return "Questa email ha già un account: ho selezionato \"Ho già un account\", rimetti la password e tocca Accedi."; }
   if(/Email not confirmed/i.test(m)) return "Email non confermata: disattiva \"Confirm email\" in Supabase (vedi istruzioni) oppure conferma dal link ricevuto.";
   if(/relation .*kv|kv.*does not exist|schema cache/i.test(m)) return "Manca la tabella: esegui il comando SQL delle istruzioni in Supabase.";
@@ -11713,9 +11782,12 @@ async function sbAuth(mode){
     const r= mode==="up"? await SY.client.auth.signUp({email,password:pass}) : await SY.client.auth.signInWithPassword({email,password:pass});
     if(r.error) throw r.error;
     if(!r.data.session) throw new Error("Email not confirmed");
+    const okOwner=await ownerCheck(r.data.session.user);
+    if(!okOwner){ try{ await SY.client.auth.signOut(); }catch{} SY.user=null; renderSync(); return; }
     SY.user=r.data.session.user; $("sbPass").value="";
     setStatus("syncStatus","Sincronizzo i dati…");
-    const n=await pull(); renderSync(); await loadAll(); go("profilo");
+    const n=await pull(); if(window.__ownerWiped){ setStatus("syncStatus","Fatto ✓ Riavvio con i dati del nuovo account…"); setTimeout(()=>location.reload(),800); return; }
+    renderSync(); await loadAll(); go("profilo");
     setStatus("syncStatus", n?`Fatto ✓ Ho scaricato ${n} elementi dall'altro dispositivo.`:"Fatto ✓ I dati di questo dispositivo sono ora online.");
   }catch(e){ SY.user=null; setStatus("syncStatus",syncErr(e),true); renderSync(); }
   finally{ $("sbGo").disabled=false; }
@@ -11784,8 +11856,9 @@ applyLook();
 let draft=null;
 function fillProfile(){
   const p=state.profile||{};
-  draft={supplements:JSON.parse(JSON.stringify(p.supplements||[])),fname:p.fname||"",lname:p.lname||"",nick:p.nick||"",photo:p.photo||"",sex:p.sex||"m",age:p.age||"",height:p.height||"",weight:p.weight||"",activity:p.activity||1.2,goal:p.goal||"",meals:JSON.parse(JSON.stringify(p.meals||PRESETS["4 pasti"])),foodPrefs:p.foodPrefs||"",train:{sessions:JSON.parse(JSON.stringify(trainOf(p).sessions))},equipment:{items:[...((p.equipment&&p.equipment.items)||[])],other:(p.equipment&&p.equipment.other)||""},customGoal:p.customGoal?JSON.parse(JSON.stringify(p.customGoal)):null};
+  draft={supplements:JSON.parse(JSON.stringify(p.supplements||[])),fname:p.fname||"",lname:p.lname||"",nick:p.nick||"",photo:p.photo||"",sex:p.sex||"m",age:p.age||"",height:p.height||"",weight:p.weight||"",activity:p.activity||1.2,goal:p.goal||"",meals:JSON.parse(JSON.stringify(p.meals||PRESETS["4 pasti"])),foodPrefs:p.foodPrefs||"",train:{sessions:JSON.parse(JSON.stringify(trainOf(p).sessions))},equipment:{items:[...((p.equipment&&p.equipment.items)||[])],other:(p.equipment&&p.equipment.other)||""},customGoal:p.customGoal?JSON.parse(JSON.stringify(p.customGoal)):null,health:JSON.parse(JSON.stringify(p.health||{}))};
   ["sex","age","height","weight","activity","fname","lname","nick"].forEach(id=>$(id).value=draft[id]);
+  try{ const h=draft.health||{}; document.querySelectorAll("#hlBox [data-hl]").forEach(c=>c.checked=!!h[c.dataset.hl]); $("hlNote").value=h.note||""; }catch(e){ console.warn("salute",e); }
   renderAvatar(); renderTrain(); renderEquip(); try{ renderSupps(); }catch(e){ console.warn("integratori",e); } fillModelSelects(); showAiOk();
   renderGoals(); renderMealRows(); updCalc();
 }
@@ -12018,7 +12091,9 @@ $("updWatchBtn").onclick=async()=>{ const P=WBR(); if(!P) return; const b=$("upd
   catch(e){ const m=String((e&&e.message)||e); setStatus("updWatchStatus", /not implemented|non implementat|is not a function/i.test(m)? "Prima aggiorna l'app del telefono (HealthFit.apk), poi riprova." : /channel|stream|closed/i.test(m)? "Il collegamento col Watch si è interrotto a metà. Fai così: sul Watch apri HealthFit e tocca AGGIORNA APP: l'orologio scarica da solo l'ultima versione (serve il Wi-Fi o il telefono vicino)." : m, true); }
   finally{ b.disabled=false; } };
 $("hello").onclick=()=>go("profilo");
-function readForm(){ return {...draft, fname:$("fname").value.trim(), lname:$("lname").value.trim(), nick:$("nick").value.trim(), sex:$("sex").value, age:+$("age").value, height:+$("height").value, weight:+$("weight").value, activity:+$("activity").value}; }
+function readForm(){ return {...draft, fname:$("fname").value.trim(), lname:$("lname").value.trim(), nick:$("nick").value.trim(), sex:$("sex").value, age:+$("age").value, height:+$("height").value, weight:+$("weight").value, activity:+$("activity").value, health:readHealth()}; }
+$("simpleMode").onchange=e=>{ try{ localStorage.setItem("hf:simple",e.target.checked?"1":"0"); }catch{} renderHealthUi(); };
+function readHealth(){ const h={}; document.querySelectorAll("#hlBox [data-hl]").forEach(c=>{ if(c.checked) h[c.dataset.hl]=true; }); const n=($("hlNote")&&$("hlNote").value.trim())||""; if(n) h.note=n.slice(0,400); if(h.ins) h.diab=true; return h; }
 ["sex","age","height","weight","activity"].forEach(id=>$(id).addEventListener("input",updCalc));
 function updCalc(){
   const p=readForm(), box=$("calcBox"); box.innerHTML="";
@@ -12360,7 +12435,18 @@ $("mpBack").onclick=()=>{ if(history.state&&history.state.v==="pasto") history.b
 $("ciboBack").onclick=()=>{ if(history.state&&history.state.v==="cibo") history.back(); else go("diario"); };
 $("cPrev").onclick=()=>$("prev").click(); $("cNext").onclick=()=>$("next").click(); $("cDayPick").onclick=()=>$("dayPick").click();
 $("dBody").onclick=()=>go("corpo");
-function renderAll(){ document.body.classList.toggle("home",view==="diario"); try{ csTabs(); }catch{} try{ if(view==="allenamento"&&!$("w-chat").hidden&&document.activeElement&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) renderCoachSetup(); }catch{} if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
+function simpleOn(){ let v=null; try{ v=localStorage.getItem("hf:simple"); }catch{} return v==="1"||(v==null&&+((state.profile||{}).age)>=65); }
+function renderHealthUi(){ document.body.classList.toggle("simple",simpleOn()); const sm=$("simpleMode"); if(sm) sm.checked=simpleOn();
+  const h=healthOf(), age=+((state.profile||{}).age)||0, D=[], A=[];
+  if(h.diab){ D.push("Hai segnato il diabete: la dieta usa carboidrati lenti divisi tra i pasti e pochi zuccheri. Fatti controllare il piano dal medico o dal diabetologo, soprattutto se cambi farmaci."+(h.ins?" Con insulina o pastiglie non saltare mai i pasti: se ti senti debole, sudato o tremi, prendi subito zucchero e chiama il medico.":"")); }
+  if(h.kid) D.push("Problemi ai reni: le proteine restano moderate. Le quantità giuste le decide il medico.");
+  if(h.back) A.push("Mal di schiena: solo esercizi dolci, lenti e senza pesi sulla schiena. Se il dolore aumenta fermati e senti il medico o il fisioterapista.");
+  if(h.heart||h.press) A.push("Cuore o pressione: prima di iniziare chiedi al medico quanta attività puoi fare. Niente sforzi forti.");
+  if(h.ins) A.push("Prendi farmaci per il diabete: tieni con te zucchero o un succo quando ti muovi.");
+  if(age>=65&&!A.length) A.push("Esercizi pensati per la tua età: tranquilli e sicuri. Se qualcosa fa male, fermati.");
+  const put=(id,a)=>{ const b=$(id); if(!b) return; b.hidden=!a.length; b.textContent=a.join(" "); };
+  put("hlWarnD",D); put("hlWarnA",A); }
+function renderAll(){ document.body.classList.toggle("home",view==="diario"); try{ renderHealthUi(); }catch(e){ console.warn("salute",e); } try{ csTabs(); }catch{} try{ if(view==="allenamento"&&!$("w-chat").hidden&&document.activeElement&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) renderCoachSetup(); }catch{} if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
  if(view==="profilo"){ try{ if(psCur) closePset(); else renderPfList(); }catch(e){ console.warn("profilo lista",e); } }
  if(view==="profilo"&&HCP()){ try{ hcRenderState(); }catch{} }
  if(view==="attivita"){ try{ renderPains(); }catch(e){ console.warn("fastidi",e); } try{ renderSleep(); const r0=recoveryNow(); $("csRowSub").textContent=`Recupero ${r0.lvl[0].toLowerCase()} (${r0.score}/100) · record, forma, zone, scarpe`; }catch(e){ console.warn("sonno",e); } }
