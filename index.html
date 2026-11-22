@@ -2530,7 +2530,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.51 (si salvano solo le serie fatte davvero, corsa e sci solo a chi li fa)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.52 (riaprendo l'app si torna sempre a oggi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -4083,6 +4083,11 @@ function renderCal(){
   const now=new Date(); $("calNext").disabled = y>now.getFullYear()||(y===now.getFullYear()&&m>=now.getMonth());
 }
 function goDate(iso){ if(iso>todayISO()) return; state.date=iso; $("coachOut").textContent=""; loadDay(); }
+/* v4.52: riaprendo l'app (dopo mezzanotte o dopo più di 30 minuti) si torna sempre a oggi: prima la colazione poteva finire sul giorno prima */
+let dayWas=todayISO(), hidAt=0;
+document.addEventListener("visibilitychange",()=>{ try{ if(document.visibilityState==="hidden"){ hidAt=Date.now(); return; }
+  const t=todayISO(), long=hidAt&&Date.now()-hidAt>30*60000; if(state.date!==t&&(state.date===dayWas||long)&&!(typeof logCtx!=="undefined"&&logCtx&&logCtx.live)){ goDate(t); } dayWas=t; }catch(e){ console.warn("oggi",e); } });
+setInterval(()=>{ try{ const t=todayISO(); if(t!==dayWas){ if(state.date===dayWas&&document.visibilityState==="visible") goDate(t); dayWas=t; } }catch{} },60000);
 $("dayPick").onclick=()=>{ calMode="day"; const d=new Date(state.date+"T12:00:00"); calYM=[d.getFullYear(),d.getMonth()]; renderCal(); openSheet("calSheet"); };
 $("calPrev").onclick=()=>{ let [y,m]=calYM; m--; if(m<0){m=11;y--;} calYM=[y,m]; renderCal(); };
 $("calNext").onclick=()=>{ let [y,m]=calYM; m++; if(m>11){m=0;y++;} calYM=[y,m]; renderCal(); };
