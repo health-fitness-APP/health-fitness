@@ -2483,7 +2483,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.35 (palestra con gilet contata una volta sola nel bilancio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.36 (sci e altri sport detti al coach segnati nel programma)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3386,18 +3386,29 @@ ${COMBO_RULES}`; }
 let dayOvr={};
 function ovrGet(iso){ return iso&&dayOvr&&dayOvr[iso]||null; }
 function ovrClean(){ const lim=shiftDate(todayISO(),-14); let ch=false; Object.keys(dayOvr||{}).forEach(k=>{ if(k<lim){ delete dayOvr[k]; ch=true; } }); return ch; }
+/* altro sport in una data (es. «martedì vado a sciare»): {sport,sMin} nel cambio del giorno; con rest l'allenamento della scheda salta (o va in «to»), con keep resta */
+const OVR_SPORT={sci:["⛷️","Sci",4.4,300],bici:["🚴","Bici",7,120],nuoto:["🏊","Nuoto",7,60],escursione:["🥾","Escursione",5,240],calcio:["⚽","Calcio",7,90],tennis:["🎾","Tennis",7,90],padel:["🎾","Padel",6,90],altro:["⚡","Sport",5,90]};
+function ovrSportKey(v){ const t=String(v||"").toLowerCase().trim(); if(!t) return ""; if(/sci|ski|snowboard|neve/.test(t)) return "sci"; if(/bici|cicl|mtb|bike/.test(t)) return "bici"; if(/nuot|piscin/.test(t)) return "nuoto"; if(/escurs|trek|camminat|montagna|ciaspol/.test(t)) return "escursione"; if(/calc/.test(t)) return "calcio"; if(/padel/.test(t)) return "padel"; if(/tennis/.test(t)) return "tennis"; return "altro"; }
+function ovrSportName(x){ const k=OVR_SPORT[x&&x.sport]||OVR_SPORT.altro; return k[0]+" "+(x&&x.sport==="altro"&&x.sName? x.sName : k[1]); }
+function ovrSportPlan(x){ const k=OVR_SPORT[x.sport]||OVR_SPORT.altro, w=+(state.profile||{}).weight||70, min=+x.sMin||k[3];
+  return {kind:"strength", label:ovrSportName(x)+" ("+(min>=120? (Math.round(min/30)/2).toLocaleString("it-IT")+" ore" : min+" min")+", deciso con il coach)", minutes:min, kcal:k[2]*w*min/60, when:"", leg:x.sport==="sci"||x.sport==="escursione"||x.sport==="calcio"? 2 : 1, sportOvr:x.sport}; }
 function ovrApply(o){ if(!o||typeof o!=="object") return ""; const iso=String(o.data||o.date||""); if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
+  const sk=ovrSportKey(o.sport), sx= sk? {sport:sk, sMin:Math.max(0,Math.min(720,Math.round(+o.minuti||+o.min||0)))||0, ...(sk==="altro"? {sName:String(o.sport).slice(0,30)} : {})} : {}, sTxt= sk? ovrSportName(sx) : "";
   const clr=k=>{ const x=dayOvr[k]; if(!x) return; if(x.to&&dayOvr[x.to]&&dayOvr[x.to].from===k) delete dayOvr[x.to]; if(x.from&&dayOvr[x.from]&&dayOvr[x.from].to===k) delete dayOvr[x.from]; delete dayOvr[k]; };
   if(o.annulla){ clr(iso); save("dayOvr",dayOvr); return `${dayTxt(iso)}: torna come da scheda`; }
   const to=String(o.sposta_a||o.sposta||"");
-  if(/^\d{4}-\d{2}-\d{2}$/.test(to)&&to!==iso){ clr(iso); clr(to); const wd=new Date(iso+"T12:00:00").getDay(), pl=dayPlanFor(wd); if(!pl||pl.kind==="rest") return "";
-    dayOvr[iso]={rest:true,to,note:String(o.nota||"")}; dayOvr[to]={wd,from:iso}; save("dayOvr",dayOvr); return `${pl.label}: da ${dayTxt(iso)} a ${dayTxt(to)}`; }
-  if(o.riposo){ clr(iso); dayOvr[iso]={rest:true,note:String(o.nota||"")}; save("dayOvr",dayOvr); return `${dayTxt(iso)}: riposo`; }
+  if(/^\d{4}-\d{2}-\d{2}$/.test(to)&&to!==iso){ clr(iso); clr(to); const wd=new Date(iso+"T12:00:00").getDay(), pl=dayPlanFor(wd); if(!pl||pl.kind==="rest"){ if(!sk) return ""; }
+    else {
+    dayOvr[iso]={rest:true,to,note:String(o.nota||""),...sx}; dayOvr[to]={wd,from:iso}; save("dayOvr",dayOvr); return (sk? `${dayTxt(iso)}: ${sTxt} · ` : "")+`${pl.label}: da ${dayTxt(iso)} a ${dayTxt(to)}`; } }
+  if(o.riposo||(sk&&!o.tieni)){ clr(iso); dayOvr[iso]={rest:true,note:String(o.nota||""),...sx}; save("dayOvr",dayOvr); return sk? `${dayTxt(iso)}: ${sTxt} al posto dell'allenamento` : `${dayTxt(iso)}: riposo`; }
+  if(sk){ clr(iso); dayOvr[iso]={keep:true,note:String(o.nota||""),...sx}; save("dayOvr",dayOvr); return `${dayTxt(iso)}: ${sTxt} in più all'allenamento`; }
   return ""; }
 function ovrText(){ const t=todayISO(), ks=Object.keys(dayOvr||{}).filter(k=>k>=t).sort(); if(!ks.length) return "";
-  return "CAMBI DI UN SOLO GIORNO già decisi (la scheda settimanale non cambia): "+ks.map(k=>{ const x=dayOvr[k]; return k+" "+(x.wd!=null? "fa l'allenamento spostato da "+x.from : x.to? "riposo (allenamento spostato al "+x.to+")" : "riposo"); }).join("; ")+"."; }
+  return "CAMBI DI UN SOLO GIORNO già decisi (la scheda settimanale non cambia): "+ks.map(k=>{ const x=dayOvr[k]; const sp= x.sport? ovrSportName(x).replace(/^\S+\s/,"").toUpperCase()+(x.sMin? " ("+x.sMin+" min)" : "") : ""; return k+" "+(x.wd!=null? "fa l'allenamento spostato da "+x.from : x.keep&&sp? sp+" in più all'allenamento della scheda" : x.to? (sp||"riposo")+" (allenamento spostato al "+x.to+")" : sp? sp+" al posto dell'allenamento" : "riposo"); }).join("; ")+"."; }
 function dayPlanFor(wd,iso){ const ov=ovrGet(iso);
   if(ov){ if(ov.wd!=null){ const p0=dayPlanForW(ov.wd); return {...p0, label:p0.label+" (spostato da "+dayTxt(ov.from)+")", moved:true}; }
+    if(ov.sport&&ov.rest) return ovrSportPlan(ov);
+    if(ov.sport&&ov.keep){ const p0=dayPlanForW(wd), s0=ovrSportPlan(ov); if(!p0||p0.kind==="rest") return s0; return {...p0, label:p0.label+" + "+s0.label, minutes:(p0.minutes||0)+s0.minutes, kcal:(p0.kcal||0)+s0.kcal, leg:Math.max(p0.leg||0,s0.leg), double:true, sportOvr:ov.sport}; }
     if(ov.rest) return {kind:"rest",label:"riposo (deciso con il coach, solo per questo giorno)",minutes:0,kcal:0,when:"",ovr:true}; }
   return dayPlanForW(wd); }
 function dayPlanForW(wd){ const p1=dayPlanFor1(wd,false); let pr=null; try{ const a=activeProg(); pr=a&&a.pr; }catch{}
@@ -4907,7 +4918,7 @@ function renderDietAI(){
   const todayWd=new Date(state.date+"T12:00:00").getDay();
   if(dietDayIdx==null||!days[dietDayIdx]){ const i=days.findIndex(d=>d.weekday===todayWd); dietDayIdx= i>=0? i : 0; }
   const curWd=new Date(todayISO()+"T12:00:00").getDay();
-  const liveT=(()=>{ if(state.date!==todayISO()) return null; try{ const dt=dayTargets(); if(!dt||dt.fromDiet) return null; const b0=wt&&wt.find(x=>x.wd===curWd), dpT=dayPlanFor(curWd,todayISO()), base=b0&&dpT&&dpT.ovr? {...b0, train:false, kind:"rest", label:dpT.label, when:""} : b0;   // riposo deciso col coach per oggi: niente «Corsa…» nel riquadro
+  const liveT=(()=>{ if(state.date!==todayISO()) return null; try{ const dt=dayTargets(); if(!dt||dt.fromDiet) return null; const b0=wt&&wt.find(x=>x.wd===curWd), dpT=dayPlanFor(curWd,todayISO()), base=b0&&dpT&&dpT.ovr? {...b0, train:false, kind:"rest", label:dpT.label, when:""} : b0&&dpT&&dpT.sportOvr? {...b0, train:true, kind:dpT.kind, label:dpT.label, when:""} : b0;   // riposo deciso col coach per oggi: niente «Corsa…» nel riquadro
     return {...(base||{}), kcal:Math.round(dt.goal), p:Math.round(dt.P), c:Math.round(dt.C), f:Math.round(dt.F), live:true, pre:dt.pre||0, preLabel:dt.preLabel||"", burnReal:Math.round(workoutKcal()), burnPlan:base? Math.round(base.kcal-tg.kcal-(base.pre||0)) : 0}; }catch{ return null; } })();
   const tgtOf=d=> (liveT&&d.weekday===curWd)? liveT : (wt&&wt.find(x=>x.wd===d.weekday) || (tg? {kcal:tg.kcal,p:tg.prot,c:tg.carb,f:tg.fat,train:false} : null));
   // giorno selezionato
@@ -5565,7 +5576,8 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
     card.querySelector(".sb").textContent= d&&d.kind==="circuit"? `🔁 Circuito · ${(d.circuit&&d.circuit.rounds.length)||0} giri · ${(d.circuit&&d.circuit.exercises.length)||0} esercizi` : d&&d.kind==="run"? `🏃 ${d.runType||"Corsa"}`+(()=>{ const p=runPlan(d); return (p.km?` · ${fmt(p.km)} km`:"")+(p.min?` | ${hms(p.min)}`:"")+(p.ps?` | ${paceTxt(p.ps)}/km`:""); })() : d? focus+(d.minutes?` · ${d.minutes} min`:"")+(d.exercises&&d.exercises.length?` · ${d.exercises.length} ${d.exercises.length===1?"esercizio":"esercizi"}`:"") : "Giorno di riposo";
     { const rr=d&&d.kind==="run"&&(pr.runResults||{})[runKey(iso,di)]; if(rr&&rr.on) card.querySelector(".sb").textContent+=" · fatta "+dayTxt(rr.on); }
     if(doneElse[iso]) card.querySelector(".sb").textContent+=" · ✓ recuperata: "+doneElse[iso].join(", ");
-    if(ov&&!ex) card.querySelector(".sb").textContent+= ov.wd!=null? " · 📅 spostato da "+dayTxt(ov.from)+" (solo questa settimana)" : ov.to? " · 📅 spostato a "+dayTxt(ov.to)+" (solo questa settimana)" : " · 📅 riposo solo questa settimana";
+    if(ov&&!ex&&ov.sport){ const sb=card.querySelector(".sb"), sn=ovrSportName(ov); sb.textContent= ov.keep? sb.textContent+" + "+sn : sn+(ov.to? " · 📅 allenamento spostato a "+dayTxt(ov.to) : " · 📅 al posto dell'allenamento"); card.querySelector(".ck").textContent=ov.keep? card.querySelector(".ck").textContent : sn.split(" ")[0]; }
+    else if(ov&&!ex) card.querySelector(".sb").textContent+= ov.wd!=null? " · 📅 spostato da "+dayTxt(ov.from)+" (solo questa settimana)" : ov.to? " · 📅 spostato a "+dayTxt(ov.to)+" (solo questa settimana)" : " · 📅 riposo solo questa settimana";
     if(d&&logCtx&&logCtx.live&&logCtx.title===(d.title||"Allenamento")) card.querySelector(".sb").textContent+= logCtx.paused? " · ⏸ in pausa" : " · ⏱ in corso";
     card.setAttribute("aria-expanded",progOpenWd===wd);
     card.onclick=()=>{ progOpenWd=owd; progOpenExtra=ex; editDay=null; go("giorno"); renderDayPage(); };
@@ -5610,17 +5622,19 @@ function buildMonth(a,pr,names,doneOn){
     const end=shiftDate(mon,6), fmtD=iso=>new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
     card.innerHTML=`<div class="mh"><b>${w===0?"Questa settimana":w===1?"Prossima settimana":"Settimana "+(w+1)}</b><span>${fmtD(mon)} – ${fmtD(end)} · settimana ${idx+1} del ciclo</span></div><span class="ph${deload?" deload":""}"></span><div class="nt"></div>`;
     card.querySelector(".ph").textContent=focus; card.querySelector(".nt").textContent=note;
-    order.forEach((wd,k)=>{ const iso=shiftDate(mon,k), di=pr.weekMap? pr.weekMap[wd] : null, d= di!=null? pr.days[di] : null;
-      const row=el("button","mdrow"+(d?"":" rest")+(iso===today?" today":"")); row.type="button";
+    order.forEach((wd,k)=>{ const iso=shiftDate(mon,k), ov=ovrGet(iso), owd= ov&&ov.wd!=null? ov.wd : wd, di= ov&&ov.rest? null : pr.weekMap? pr.weekMap[owd] : null, d= di!=null? pr.days[di] : null;
+      const row=el("button","mdrow"+(d||(ov&&ov.sport)?"":" rest")+(iso===today?" today":"")); row.type="button";
       let label="Riposo";
       if(d&&d.kind==="run"){ const p=runPlan(d); label=`🏃 ${d.runType||"Corsa"}${p.km?` ~${(Math.round(p.km*kmF*10)/10).toLocaleString("it-IT")} km`:p.min?` ~${Math.round(p.min*kmF)} min`:""}${p.ps?` · ${paceStr(p.ps)}/km`:""}`; }
       else if(d&&d.kind==="circuit") label=`🔁 ${d.title}${deload?" (meno giri)":""}`;
       else if(d) label=`🏋️ ${String(d.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"")}${deload?" · scarico":""}`;
-      { const x2=pr.extraMap&&pr.extraMap[wd]!=null? pr.days[pr.extraMap[wd]] : null; if(x2) label+=" + "+(x2.kind==="run"? "🏃 "+(x2.runType||"Corsa") : "🏋️ "+String(x2.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"")); }
+      { const x2=!(ov&&ov.rest)&&pr.extraMap&&pr.extraMap[wd]!=null? pr.days[pr.extraMap[wd]] : null; if(x2) label+=" + "+(x2.kind==="run"? "🏃 "+(x2.runType||"Corsa") : "🏋️ "+String(x2.title||"Allenamento").replace(/^(giorno|day)\s*[a-z0-9]+\s*[–:-]\s*/i,"")); }
+      if(ov){ if(ov.sport) label= ov.keep&&d? label+" + "+ovrSportName(ov) : ovrSportName(ov)+(ov.to? " · 📅 allenamento spostato a "+dayTxt(ov.to) : "");
+        else if(ov.wd!=null) label+=" · 📅 spostato da "+dayTxt(ov.from); else if(ov.rest) label="Riposo"+(ov.to? " · 📅 spostato a "+dayTxt(ov.to) : " · 📅 deciso con il coach"); }
       const done= d&&iso<=today&&doneOn(iso,d.title);
       row.innerHTML=`<span class="d">${new Date(iso+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric"})}</span><span class="w"></span><span class="s${d&&iso<today&&!done?" miss":""}">${done?"✓":d&&iso<today?"—":iso===today?"oggi":""}</span>`;
       row.querySelector(".w").textContent=label;
-      row.onclick=()=>{ progOpenWd=wd; progOpenExtra=false; editDay=null; go("giorno"); renderDayPage(); };
+      row.onclick=()=>{ progOpenWd=owd; progOpenExtra=false; editDay=null; go("giorno"); renderDayPage(); };
       card.appendChild(row); });
     wrap.appendChild(card);
   }
@@ -9318,7 +9332,8 @@ PRIMA DI TUTTO capisci cosa vuole la persona:
 - CAMBIO DI UNA VOLTA SOLA (es. "domani non posso", "oggi salto", "giovedì sono via", "questa settimana corro venerdì invece di giovedì", "oggi sono stanco") → NON toccare la scheda (vale per tutte le settimane): usa le righe GIORNO qui sotto, che cambiano solo quella data.
 - CAMBIO PER SEMPRE (es. "d'ora in poi", "da adesso", "tutte le settimane", "non voglio più fare…", "sostituisci…") → allora sì, riga SCHEDA (e GIORNI se cambiano i giorni).
 Se non è chiaro se è per una volta o per sempre, trattalo come UNA VOLTA SOLA e chiedi se vuole renderlo fisso.
-RIGHE GIORNO (date AAAA-MM-GG, prendile dal calendario sopra): riposo in una data <<GIORNO {"data":"2026-11-12","riposo":true}>>; spostare l'allenamento di una data a un'altra <<GIORNO {"data":"2026-11-12","sposta_a":"2026-11-13"}>>; tornare alla scheda in una data <<GIORNO {"data":"2026-11-12","annulla":true}>>. Una riga per ogni data.
+RIGHE GIORNO (date AAAA-MM-GG, prendile dal calendario sopra): riposo in una data <<GIORNO {"data":"2026-11-12","riposo":true}>>; spostare l'allenamento di una data a un'altra <<GIORNO {"data":"2026-11-12","sposta_a":"2026-11-13"}>>; tornare alla scheda in una data <<GIORNO {"data":"2026-11-12","annulla":true}>>; ALTRO SPORT in una data (sci, bici, nuoto, escursione, calcio, tennis, padel…, es. "martedì vado a sciare") <<GIORNO {"data":"2026-11-24","sport":"sci","minuti":300}>> (al posto dell'allenamento di quel giorno; aggiungi "sposta_a":"AAAA-MM-GG" per spostare l'allenamento in un altro giorno, oppure "tieni":true se lo fa lo stesso). Una riga per ogni data.
+ALTRO SPORT ANNUNCIATO: scrivi SEMPRE la riga GIORNO con "sport", così compare nel programma. Poi ridistribuisci il carico della settimana: una giornata di sci o un'escursione lunga stanca le gambe come un allenamento duro. Se quel giorno c'era una corsa importante (lungo, ripetute, ritmo) spostala con "sposta_a" in un giorno libero, mai il giorno prima o dopo un'altra corsa dura o una seduta pesante di gambe; una corsa facile o la palestra si possono saltare (niente "sposta_a"). Il giorno dopo lo sci alleggerisci: se c'è una corsa dura o gambe pesanti spostala o mettila a riposo con un'altra riga GIORNO. Spiega in una frase cosa hai spostato e perché.
 Gestisci la scheda così:
 A) Se l'utente ti RACCONTA cosa fa o cosa ha cambiato (es. "ora faccio la pressa al posto dello squat", "la panca la faccio 4×8 a 70 kg", "mi alleno martedì e giovedì", "il lunedì aggiungo i curl", "ho tolto il cardio"), aggiorna la scheda per rispecchiare ESATTAMENTE quello che fa, senza giudicarlo (al massimo un consiglio breve nel testo): modalità "user".
 B) Se ti CHIEDE supporto o un consiglio (es. "cosa mi consigli?", "fammi una scheda", "sono fermo con la panca", "voglio migliorare le gambe", "preparami per una mezza maratona"), costruisci TU la scheda secondo le tue indicazioni professionali, rispettando attrezzatura, giorni disponibili, infortuni e obiettivo: modalità "coach". Può essere una modifica o un programma completamente nuovo.
@@ -9367,6 +9382,11 @@ $("chatSend").onclick=async()=>{
   try{
     const res=await sample(msgs,{cache:false,...(imgs.length?{images:imgs}:{}),onText:({text})=>{ bub.textContent=splitReply(text).visible||"Sto pensando…"; $("chatLog").scrollTop=1e9; }});
     const sp=splitReply(res.text);
+    // annuncia un altro sport in un giorno («martedì vado a sciare») ma il coach non ha scritto la riga GIORNO con lo sport: gliela chiedo, così compare nel programma
+    if(!(sp.giorno||[]).some(o=>o&&o.sport)&&/\b(sci|sciare|scio|sciata|snowboard|in bici|bicicletta|nuoto|piscina|escursione|trekking|ciaspol|calcetto|partita|tennis|padel)\b/i.test(text)&&/\b(luned[iì]|marted[iì]|mercoled[iì]|gioved[iì]|venerd[iì]|sabato|domenica|domani|dopodomani|weekend|fine settimana|\d{1,2}\s*(nov|dic|gen|feb|mar|apr|mag|giu|lug|ago|set|ott)\w*)\b/i.test(text)&&!/\?\s*$/.test(text)){
+      bub.textContent=sp.visible+"\n\n⏳ Lo segno nel programma…";
+      try{ const fx=await sample([...msgs,{role:"assistant",content:res.text},{role:"user",content:"Segna nel programma lo sport che ho annunciato: scrivi ADESSO solo le righe <<GIORNO {\"data\":\"AAAA-MM-GG\",\"sport\":\"...\",\"minuti\":N}>> (data presa dal calendario, con \"sposta_a\" se l'allenamento di quel giorno va spostato, o \"tieni\":true se lo faccio lo stesso) e le eventuali altre righe GIORNO per ridistribuire il carico della settimana, nient'altro."}],{cache:false});
+        const sp2=splitReply((fx&&fx.text)||""); if(sp2.giorno&&sp2.giorno.length) sp.giorno=[...(sp.giorno||[]).filter(o=>!sp2.giorno.some(x=>x&&o&&x.data===o.data)),...sp2.giorno]; }catch(e){ console.warn("sport mancante",e); } }
     // dice di aver cambiato la scheda ma non ha scritto la riga SCHEDA: gliela chiedo subito, così la modifica si fa davvero
     if(!sp.sched&&!(sp.giorno&&sp.giorno.length)&&/\b(ho|abbiamo)\s+(gi[aà]\s+)?(aggiornato|modificato|spostato|messo|inserito|tolto|aggiunto|cambiato|sistemato|rimesso|creato|preparato|ridotto|alleggerito)\b/i.test(sp.visible)&&/scheda|programma|corsa|allenament|giorn|palestra|eserciz|lungo|ripetute|gambe/i.test(sp.visible)){
       bub.textContent=sp.visible+"\n\n⏳ Applico la modifica alla scheda…";
