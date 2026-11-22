@@ -2483,7 +2483,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.33 (sport a cerchi sull'orologio, come Samsung)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.34 (palestra segnata fatta anche dopo un cambio di scheda)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5534,7 +5534,9 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
   const order=[1,2,3,4,5,6,0], names=["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
   const now=new Date(todayISO()+"T12:00:00"), mon=new Date(now); mon.setDate(now.getDate()-((now.getDay()+6)%7));
   const isoOf=wd=>{ const d=new Date(mon); d.setDate(mon.getDate()+((wd+6)%7)); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
-  const doneOn=(iso,title)=> Object.keys(pr.runResults||{}).some(k=>k.startsWith(iso+"|")&&pr.days[+k.split("|")[1]]&&pr.days[+k.split("|")[1]].title===title) || tlog.sessions.some(x=>x.date===iso&&(!title||x.title===title)) || ((hist&&hist.items)||[]).some(x=>x.date===iso&&(!title||x.name===title));
+  // palestra: conta qualsiasi seduta salvata quel giorno (il titolo cambia quando la scheda viene rifatta dal coach)
+  const isGymTitle=title=>{ const dd=title&&pr.days.find(z=>z&&z.title===title); return !!dd&&dd.kind!=="run"; };
+  const doneOn=(iso,title)=> Object.keys(pr.runResults||{}).some(k=>k.startsWith(iso+"|")&&pr.days[+k.split("|")[1]]&&pr.days[+k.split("|")[1]].title===title) || tlog.sessions.some(x=>x.date===iso&&(!title||x.title===title||(isGymTitle(title)&&!/corsa|run/i.test(x.source||"")))) || ((hist&&hist.items)||[]).some(x=>x.date===iso&&(!title||x.name===title||(isGymTitle(title)&&/palestra|pesi|forza|weight|strength/i.test(x.name||""))));
   // corse rimandate: fatte in un giorno diverso da quello del piano
   const doneElse={}; Object.entries(pr.runResults||{}).forEach(([k,v])=>{ if(v&&v.on){ const dd=pr.days[+k.split("|")[1]]; (doneElse[v.on]=doneElse[v.on]||[]).push((dd&&dd.runType)||(dd&&dd.title)||"Corsa"); } });
   // corse della settimana (stile elenco allenamenti di corsa)
