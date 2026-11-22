@@ -2482,7 +2482,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.29 (in Attività si vede quando sono arrivati gli ultimi dati dall'orologio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.30 (sci, bici, camminata e palestra registrati con HealthFit sull'orologio)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -6295,7 +6295,7 @@ async function askWatch(o){ const ns=await watchNodes(); if(!ns.length) return f
   if(!confirm(`⌚ ${ns[0].name||"Galaxy Watch"} collegato.\nContinuare sull'orologio?\n\nOK: si apre HealthFit sul polso con la corsa pronta.\nAnnulla: registri la corsa con il telefono.`)) return false;
   await watchSend(o); return true; }
 function dayTxt(iso){ const d=new Date(iso+"T12:00:00"); return ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"][d.getDay()]+" "+d.getDate(); }
-async function saveWatchResult(o){ if(o&&o.kind==="passive"){ try{ await passiveImport(o); }catch(e){ console.warn("misure orologio",e); } return false; } if(o&&o.kind==="pain"){ try{ painFromWatch(o); }catch{} return false; } if(!o||!(+o.seconds>60)) return false;
+async function saveWatchResult(o){ if(o&&o.kind==="passive"){ try{ await passiveImport(o); }catch(e){ console.warn("misure orologio",e); } return false; } if(o&&o.kind==="pain"){ try{ painFromWatch(o); }catch{} return false; } if(o&&o.sport&&o.sport!=="run"){ try{ await saveWatchSport(o); }catch(e){ console.warn("sport orologio",e); } return false; } if(!o||!(+o.seconds>60)) return false;
   const st=new Date(+o.startedAt||Date.now()), date=st.getFullYear()+"-"+String(st.getMonth()+1).padStart(2,"0")+"-"+String(st.getDate()).padStart(2,"0");
   const hhmm=String(st.getHours()).padStart(2,"0")+":"+String(st.getMinutes()).padStart(2,"0"), min=Math.round(+o.seconds/60), km=+o.km>0.05? Math.round(+o.km*100)/100 : null;
   const zones=(o.zoneSec||[]).length===5? o.zoneSec.map(x=>Math.round(+x/6)/10) : null;
@@ -7622,6 +7622,24 @@ function pvLine(){ const n=$("pvLine"); if(!n) return; let L=null; try{ L=JSON.p
   const when=romeISO(L.at)===romeISO(Date.now())? "oggi alle "+clockOf(L.at) : new Date(L.at).toLocaleDateString("it-IT",{day:"numeric",month:"short"})+" alle "+clockOf(L.at);
   const old=Date.now()-L.at>3*3600e3;
   n.textContent=`${old? "⚠️" : "✅"} Dall'orologio: ultimi dati ${when}`+(L.steps? ` · ${L.steps.toLocaleString("it-IT")} passi oggi` : "")+(L.hrN? ` · battito misurato ${Math.round(L.hrN*5/6)/10} ore` : "")+(L.rhr? ` · a riposo ${L.rhr} bpm` : "")+(old? ". Da più di 3 ore non arriva niente: apri HealthFit sull'orologio e controlla che «Misure 24 ore» sia ATTIVE." : ""); }
+/* ----- sci, bici, camminata e palestra registrati con HealthFit sull'orologio ----- */
+const WS_NAME={ski:"Sci alpino",bike:"Bici",walk:"Camminata",gym:"Palestra (orologio)"}, WS_MET={bike:7,walk:3.5,gym:5};
+async function saveWatchSport(o){ if(!(+o.seconds>60)) return false; const t0=+o.startedAt||Date.now(), iso=romeISO(t0), min=Math.round(+o.seconds/60), sp=o.sport;
+  const start=clockOf(t0), end=clockOf(t0+(+o.totalSec||+o.seconds)*1000), wt=+(state.profile&&state.profile.weight)||75;
+  const doc= iso===state.date? state.day : await store.getDoc("day-"+iso).catch(()=>null);
+  const dup=((doc&&doc.workouts)||[]).find(x=>!x.auto&&x.start&&Math.abs(((+x.start.slice(0,2))*60+ +x.start.slice(3,5))-((+start.slice(0,2))*60+ +start.slice(3,5)))<=15&&(x.src==="watch"));
+  if(dup) return false;
+  const zones=(o.zoneSec||[]).length===5? o.zoneSec.map(x=>Math.round(+x/6)/10) : null, km=+o.km>0.05? Math.round(+o.km*100)/100 : null;
+  const w={id:uid(),name:WS_NAME[sp]||"Allenamento",minutes:min,intensity:"Galaxy Watch",start,end,avgHr:+o.avgHr||null,maxHr:+o.maxHr||null,zones,src:"watch",sport:sp};
+  if(sp==="ski"){ const A=skiAnalyze(o.tr), act=Math.max(1,min-Math.round(A.pauseSec/60)); const int= A.runs? (A.down/(act/60)>1400||A.maxKmh>=65? "intensa" : A.down/(act/60)<500? "leggera" : "normale") : "normale";
+    Object.assign(w,{minutes:act,intensity:int,kcal:Math.round(+o.kcal)||skiKcal(act,int),distance:A.kmDown||null,elevDown:A.down||(+o.elevLoss||null),runs:A.runs||null,maxKmh:A.maxKmh||null,place:skiCfg().place.name,
+      details:[A.runs? `${A.runs} ${A.runs===1?"discesa":"discese"}` : "", A.maxKmh? `max ${A.maxKmh} km/h` : "", A.pauseSec>=600? `soste ${hmTxt(A.pauseSec)}` : ""].filter(Boolean).join(" · ")});
+    try{ if(iso===todayISO()&&AAP()) AAP().skiDone({day:iso}).catch(()=>{}); }catch{}
+    if(o.tr) try{ save("ski-"+w.id,{v:1,t0,tr:{t:o.tr.t,m:o.tr.m,a:o.tr.a,la:o.tr.la,lo:o.tr.lo}}); }catch{} }
+  else Object.assign(w,{kcal:Math.round(+o.kcal)||Math.round(((WS_MET[sp]||5)-1)*wt*min/60),distance:sp==="gym"? null : km,pace: sp==="walk"&&km? paceOf(min,km) : null,steps:+o.steps||null});
+  await aaDayDo(iso,d=>{ d.workouts=[...(d.workouts||[]),w]; return true; });
+  hist.items=[...hist.items,{...w,date:iso}]; save("workoutHistory",hist); try{ await aaDedupe(); }catch{} renderAll();
+  toast(`⌚ ${w.name} salvata dall'orologio ✓`); return w.id; }
 function minsBetweenAny(a,b){ if(!a||!b) return 0; const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number); let d=(h2*60+m2)-(h1*60+m1); if(d<0) d+=1440; return d; }
 const WX_TXT={0:"☀️ sereno",1:"🌤️ poco nuvoloso",2:"⛅ nuvoloso",3:"☁️ coperto",45:"🌫️ nebbia",48:"🌫️ nebbia",51:"🌦️ pioviggine",53:"🌦️ pioviggine",55:"🌦️ pioviggine",61:"🌧️ pioggia",63:"🌧️ pioggia",65:"🌧️ pioggia forte",71:"🌨️ neve debole",73:"🌨️ neve",75:"❄️ neve forte",77:"🌨️ nevischio",80:"🌦️ rovesci",81:"🌧️ rovesci",82:"🌧️ rovesci forti",85:"🌨️ rovesci di neve",86:"❄️ rovesci di neve forti",95:"⛈️ temporale"};
 async function skiWeather(pl,box){ const key="hf:skiWx:"+pl.la+","+pl.lo; let d=null;
