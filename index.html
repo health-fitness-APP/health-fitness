@@ -2508,7 +2508,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.38 (routine guidata «Schiena dolce»)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.39 (niente limiti automatici per l'età)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3594,7 +3594,6 @@ function healthText(){ const p=state.profile||{}, h=healthOf(p), age=+p.age||0, 
   if(h.heart) R.push("PROBLEMI AL CUORE: attività solo leggera o moderata e approvata dal medico, niente sforzi intensi");
   if(h.joint) R.push("DOLORI ARTICOLARI: niente salti e corsa, preferire camminata, cyclette, acqua ed esercizi senza carico");
   if(h.kid) R.push("PROBLEMI AI RENI: proteine moderate (non alzarle oltre il normale) e poco sale; le quantità le decide il medico");
-  if(age>=65) R.push("ETÀ "+age+" ANNI: niente corsa né allenamenti intensi; esercizi semplici, sicuri, con equilibrio e mobilità; frasi brevi e semplici");
   if(h.note) R.push("indicazioni della persona/del medico: "+h.note);
   if(!R.length) return "";
   return "SALUTE (regole obbligatorie, prudenza prima di tutto; ricorda in modo breve di confrontarsi col medico): "+R.join("; ");
@@ -8187,8 +8186,8 @@ $("cirSave").onclick=()=>{
 function spiderPresetOffer(){
   try{ if(localStorage.getItem("hf:presetSpider")==="1") return; }catch{}
   if(!state.profile) return;
-  // solo per chi aveva già un programma (era pensato per Daniele): mai per un account nuovo, per chi ha 60 anni o più o problemi di salute
-  const hp=state.profile.health||{}; if(+state.profile.age>=60||Object.keys(hp).some(k=>k!=="note"&&hp[k])){ try{ localStorage.setItem("hf:presetSpider","1"); }catch{} return; }
+  // solo per chi aveva già un programma (era pensato per Daniele): mai per un account nuovo o per chi ha problemi di salute
+  const hp=state.profile.health||{}; if(Object.keys(hp).some(k=>k!=="note"&&hp[k])){ try{ localStorage.setItem("hf:presetSpider","1"); }catch{} return; }
   const a=activeProg(); if(!a) return; if(a&&a.pr.days.some(d=>d.kind==="circuit"&&/holland|spiderman/i.test(d.title||""))){ try{ localStorage.setItem("hf:presetSpider","1"); }catch{} return; }
   const prev=a? JSON.parse(JSON.stringify(a.pr)) : null, kind=a? a.kind : null;
   applySpiderPreset();
@@ -12460,7 +12459,6 @@ function renderHealthUi(){ document.body.classList.toggle("simple",simpleOn()); 
   if(h.back) A.push("Mal di schiena: solo esercizi dolci, lenti e senza pesi sulla schiena. Se il dolore aumenta fermati e senti il medico o il fisioterapista.");
   if(h.heart||h.press) A.push("Cuore o pressione: prima di iniziare chiedi al medico quanta attività puoi fare. Niente sforzi forti.");
   if(h.ins) A.push("Prendi farmaci per il diabete: tieni con te zucchero o un succo quando ti muovi.");
-  if(age>=65&&!A.length) A.push("Esercizi pensati per la tua età: tranquilli e sicuri. Se qualcosa fa male, fermati.");
   const put=(id,a)=>{ const b=$(id); if(!b) return; b.hidden=!a.length; b.textContent=a.join(" "); };
   put("hlWarnD",D); put("hlWarnA",A); try{ renderBackCard(); }catch(e){ console.warn("schiena",e); } }
 function renderAll(){ document.body.classList.toggle("home",view==="diario"); try{ renderHealthUi(); }catch(e){ console.warn("salute",e); } try{ csTabs(); }catch{} try{ if(view==="allenamento"&&!$("w-chat").hidden&&document.activeElement&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) renderCoachSetup(); }catch{} if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
