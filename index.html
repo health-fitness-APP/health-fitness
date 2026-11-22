@@ -2522,7 +2522,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.47 (elenco dei familiari con Aggiungi e Togli)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.48 (con la chiave di famiglia sparisce il blocco «AI esaurita»)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -9612,6 +9612,7 @@ function renderAiPause(){ let p=null; try{ p=JSON.parse(localStorage.getItem("hf
   const b=$("aiPauseBar"); if(!b) return; if(!p||p.until<=Date.now()){ b.hidden=true; try{ localStorage.removeItem("hf:aiPause"); }catch{} return; }
   const at=new Date(p.until), today=new Date().toDateString()===at.toDateString();
   b.hidden=false; b.textContent= p.daily? `⏸ AI ${G.paid()?"":"gratuita "}esaurita per oggi: torna ${today?"oggi":"domani"} alle ${hhmm(at)}` : `⏸ Limite al minuto raggiunto: AI di nuovo pronta alle ${hhmm(at)}:${String(at.getSeconds()).padStart(2,"0")}`; }
+try{ if(localStorage.getItem("hf:apiKey")==="__family__"&&!localStorage.getItem("hf:famPauseFix")){ localStorage.removeItem("hf:aiPause"); localStorage.setItem("hf:famPauseFix","1"); } }catch{}
 setInterval(()=>{ try{ renderAiPause(); }catch{} },15000); setTimeout(()=>{ try{ renderAiPause(); }catch{} },600);
 function errCopy(e){
   const c=e&&e.code;
@@ -11655,7 +11656,7 @@ $("apiSave").onclick=async()=>{
     if(!(await testModel(main,key))){ const alt=m.all.find(x=>x!==main); if(alt&&await testModel(alt,key)) main=alt; else throw {code:"quota",message:"il modello non risponde con questa chiave"}; }
     if(quick!==main && !(await testModel(quick,key))) quick=main;
     try{ localStorage.removeItem("hf:keyTier"); }catch{}
-    lsSet("apiKey",key); lsSet("mMain",main); lsSet("mQuick",quick); lsSet("models",m.all.join(",")); fillModelSelects(m.all);
+    try{ localStorage.removeItem("hf:aiPause"); renderAiPause(); }catch{} lsSet("apiKey",key); lsSet("mMain",main); lsSet("mQuick",quick); lsSet("models",m.all.join(",")); fillModelSelects(m.all);
     $("apiKey").value=""; $("apiKey").placeholder="Chiave salvata ✓ (incollane una nuova per cambiarla)";
     markDirty("aiSettings"); schedulePush(); setStatus("apiStatus",""); showAiOk(); renderKeyBanner(); toast("✓ AI collegata");
   }catch(e){ setStatus("apiStatus",errCopy(e)+(e&&e.message?" ("+e.message.slice(0,120)+")":""),true); }
@@ -11667,7 +11668,7 @@ async function famConnect(silent){
   if(!SY.user){ if(!silent) setStatus("apiStatus","Prima crea o apri il tuo account qui sotto («Il tuo account»), poi riprova.",true); return false; }
   if(!silent){ $("famGo").disabled=true; setStatus("apiStatus","Collego la chiave di famiglia…"); }
   try{ const m=await detectModels("__family__"); if(!m.main) throw {code:"bad_output",message:"nessun modello"};
-    lsSet("apiKey","__family__"); lsSet("mMain",m.main); lsSet("mQuick",m.quick); lsSet("models",m.all.join(",")); try{ localStorage.setItem("hf:keyTier","paid"); }catch{}
+    try{ localStorage.removeItem("hf:aiPause"); renderAiPause(); }catch{} lsSet("apiKey","__family__"); lsSet("mMain",m.main); lsSet("mQuick",m.quick); lsSet("models",m.all.join(",")); try{ localStorage.setItem("hf:keyTier","paid"); }catch{}
     fillModelSelects(m.all); markDirty("aiSettings"); schedulePush(); setStatus("apiStatus",""); showAiOk(); renderKeyBanner(); renderFam(); toast("✓ AI collegata con la chiave di famiglia"); return true; }
   catch(e){ if(!silent) setStatus("apiStatus",(e&&e.message)? e.message : "Non riesco: chiedi a chi ti ha dato l'app di aggiungere la tua email all'elenco della chiave di famiglia.",true); return false; }
   finally{ if(!silent) $("famGo").disabled=false; } }
