@@ -1540,6 +1540,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
     <p class="note" id="aaNote"></p>
     <p class="note" style="margin-top:10px">⌚ Sull'orologio: apri HealthFit e tocca «❤ Misure 24 ore» per far misurare battito, passi e sonno a HealthFit.</p>
     <p class="note" id="pvLine" style="font-weight:600"></p>
+    <p class="note">Con «Misure 24 ore» attive anche l'orologio riconosce da solo camminate, corse e bici dai passi e dal battito: se la stessa attività la vede anche il telefono (o arriva da Samsung) la tengo una volta sola.</p>
     <label class="chk"><input type="checkbox" id="aaNoSh"> Non leggere più i dati da Samsung Health</label>
     <details class="aa-guide"><summary class="note">Come spegnere le misure di Samsung (per non consumare il doppio)</summary>
       <p class="note">Fallo solo dopo qualche giorno in cui hai visto i dati di HealthFit arrivare bene. Sul telefono apri <b>Galaxy Wearable</b> → <b>Impostazioni orologio</b> → <b>Samsung Health</b>, poi:</p>
@@ -2482,7 +2483,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.30 (sci, bici, camminata e palestra registrati con HealthFit sull'orologio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.31 (camminate, corse e bici riconosciute da sole anche dall'orologio)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7599,12 +7600,34 @@ function pvSleepEst(prev,cur){ // nessun passo per almeno 3 ore tra le 20 del gi
   let best=null, a=-1; for(let i=0;i<=st.length;i++){ const q= i<st.length&&st[i]!=null&&st[i]<=20; if(q&&a<0) a=i; if(!q&&a>=0){ if(!best||i-a>best[1]-best[0]) best=[a,i]; a=-1; } }
   if(!best||best[1]-best[0]<36) return null; const tm=k=>{ const m=((k-48)*5+1440)%1440; return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
   return {h:Math.round((best[1]-best[0])*5/6)/10,bed:tm(best[0]),wake:tm(best[1])}; }
+/* camminate, corse e bici riconosciute dalle misure 24 ore dell'orologio (passi e battito a fasce di 5 minuti) */
+function pvDetect(d,rhr){ const st=(d.st||[]).map(Number), hr=(d.hr||[]).map(Number), base=Math.max(110,(rhr||60)+45); let last=-1; for(let i=0;i<288;i++) if(hr[i]>0||st[i]>0) last=i;
+  const cls=st.map((n,i)=> n>=650? "run" : n>=400? "walk" : (n<150&&hr[i]>=base)? "bike" : "");
+  const segs=[]; let cur=null; for(let i=0;i<=last;i++){ const c=cls[i];
+    if(cur&&c===cur.t){ cur.b=i; continue; } if(cur&&i+1<=last&&cls[i+1]===cur.t){ continue; }   // un buco di 5 minuti (semaforo) non spezza
+    if(cur) segs.push(cur); cur=c? {t:c,a:i,b:i} : null; }
+  if(cur) segs.push(cur);
+  return segs.filter(g=>g.b<last&&(g.b-g.a+1)>=(g.t==="bike"? 4 : 2)).map(g=>({...g,steps:st.slice(g.a,g.b+1).reduce((x,y)=>x+y,0),hr:Math.round(hr.slice(g.a,g.b+1).filter(v=>v>0).reduce((x,y,_,A)=>x+y/A.length,0))})); }
+async function pvAutoActs(iso,d,rhr){ const segs=pvDetect(d,rhr); if(!segs.length) return 0; const w=+(state.profile&&state.profile.weight)||75; let n=0;
+  const hm=k=>String(Math.floor(k*5/60)).padStart(2,"0")+":"+String(k*5%60).padStart(2,"0");
+  for(const g of segs){ const T=AA_T[g.t], min=(g.b-g.a+1)*5;
+    const item={id:uid(),name:T[0],minutes:min,intensity:"rilevata dall'orologio",kcal:Math.round((T[1]-1)*w*min/60/5)*5,start:hm(g.a),end:hm(g.b+1),auto:true,src:"watch-auto",steps:g.steps||null,avgHr:g.hr||null};
+    const ok=await aaDayDo(iso,dd=>{ dd.workouts=dd.workouts||[]; const sp=wSpan(item);
+      const ov=dd.workouts.filter(x=>{ const t=wSpan(x); return t&&t[0]<sp[1]&&sp[0]<t[1]; });
+      if(ov.some(x=>!x.auto)) return false;   // c'è già un allenamento vero (Samsung, orologio, a mano)
+      const mine=ov.find(x=>x.src==="watch-auto"&&x.name===item.name);
+      if(mine){ if(+mine.minutes>=min) return false; Object.assign(mine,{minutes:min,end:item.end,kcal:item.kcal,steps:item.steps,avgHr:item.avgHr}); const h0=hist.items.find(x=>x.id===mine.id); if(h0) Object.assign(h0,mine); return true; }
+      if(ov.length) return false;   // il telefono l'aveva già riconosciuta
+      dd.workouts.push(item); hist.items=[...hist.items,{...item,date:iso}]; return true; });
+    if(ok) n++; }
+  if(n) save("workoutHistory",hist); return n; }
 async function passiveImport(o){ const days=o.days||{}, ks=Object.keys(days).sort(); if(!ks.length) return; let ch=false;
   const Dm=(()=>{ try{ return JSON.parse(localStorage.getItem("hf:rhrDay")||"{}"); }catch{ return {}; } })();
   for(let i=0;i<ks.length;i++){ const iso=ks[i], d=days[iso], hr=(d.hr||[]).map(Number);
     // battito a riposo: media più bassa di 30 minuti tra mezzanotte e le 9
     let rhr=0; for(let k=0;k+5<108;k++){ const w=hr.slice(k,k+6).filter(v=>v>30); if(w.length>=4){ const m=w.reduce((x,y)=>x+y,0)/w.length; if(!rhr||m<rhr) rhr=m; } }
     if(rhr&&!Dm[iso]) Dm[iso]=Math.round(rhr);
+    try{ if(localStorage.getItem("hf:aaWatch")!=="0"&&await pvAutoActs(iso,d,Dm[iso]||rhr)) ch=true; }catch(e){ console.warn("attività orologio",e); }
     if(hr.some(v=>v>0)) save("hr-"+iso,{v:1,hr,at:o.at||Date.now()});
     // sonno: dagli stati «addormentato» dell'orologio, altrimenti stimato dai passi
     let sl=null; const segs=(o.sleep||[]).filter(g=>romeISO(g[1])===iso); if(segs.length){ const tot=segs.reduce((x,g)=>x+(g[1]-g[0]),0); sl={h:Math.round(tot/360000)/10,bed:clockOf(segs[0][0]),wake:clockOf(segs[segs.length-1][1])}; }
