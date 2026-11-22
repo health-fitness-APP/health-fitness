@@ -2426,6 +2426,14 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
     <div class="form">
       <label>Chiave API Gemini<input class="field" id="apiKey" type="password" autocomplete="off" placeholder="Incolla qui la chiave (inizia con AIza…)"></label>
       <button class="btn" id="apiSave">Salva e verifica</button>
+      <div id="famUse" class="note" style="margin:0"></div>
+      <button class="btn ghost" id="famGo" type="button" hidden>👨‍👩‍👧 Usa la chiave di famiglia</button>
+      <div id="famOwner" hidden style="margin:6px 0">
+        <h3 style="margin:10px 0 4px;font-size:1rem">👨‍👩‍👧 Chiave di famiglia</h3>
+        <p class="sub" style="margin:0 0 6px">Chi installa la tua app e crea il suo account usa da solo questa chiave, senza vederla: passa dal server privato dell'app. Limite: 400 richieste al giorno a persona, 2000 in tutto. Se vuoi che la usino solo alcune persone, scrivi qui le loro email (una per riga). Lasciato vuoto vale per tutti.</p>
+        <textarea class="field" id="famEmails" rows="3" placeholder="Vuoto = tutti i familiari con l'app"></textarea>
+        <button class="btn ghost" id="famSave" type="button" style="margin-top:6px">Salva l'elenco</button>
+      </div>
       <div class="status" id="apiStatus" aria-live="polite"></div>
       <div class="note" id="aiSpend" style="margin:2px 0 6px"></div>
       <button class="btn ghost" id="apiTest" type="button">🔍 Prova chiavi (Gemini e riserve)</button>
@@ -2514,7 +2522,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.43 (modalità semplice senza ingrandimento: basta quello del telefono)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.44 (chiave AI di famiglia: i familiari usano la tua chiave in automatico)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -2915,6 +2923,25 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
 <div class="toast" id="toast" role="status"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* ===== chiave di famiglia: le chiamate a Gemini con la chiave finta "__family__" passano dal server HealthFit (Supabase),
+   che usa la chiave vera di chi la condivide. La chiave vera non è mai nell'app né sul telefono del familiare. ===== */
+(function(){
+  const API="https://generativelanguage.googleapis.com/v1beta/", FN="https://glwllwwcyguxtamoeuqb.supabase.co/functions/v1/hf-ai", PUB="sb_publishable_Q_pka4c-1DIjwDMqDqUt3w_oRDqf8Ma";
+  const of=window.fetch.bind(window);
+  const hdr=(h,k)=>{ if(!h) return ""; if(typeof h.get==="function") return h.get(k)||""; return h[k]||h[k.toLowerCase()]||""; };
+  window.fetch=function(u,o){
+    try{ const url=typeof u==="string"? u : (u&&u.url)||"";
+      if(url.startsWith(API)&&hdr(o&&o.headers,"x-goog-api-key")==="__family__"){
+        let tok=""; try{ const a=JSON.parse(localStorage.getItem("hf-sb-auth")||"null"); tok=(a&&(a.access_token||(a.currentSession&&a.currentSession.access_token)))||""; }catch{}
+        if(!tok) return Promise.resolve(new Response(JSON.stringify({error:{message:"Accedi al tuo account HealthFit per usare la chiave di famiglia"}}),{status:401,headers:{"Content-Type":"application/json"}}));
+        let body=null; try{ body=o&&o.body? JSON.parse(o.body) : null; }catch{}
+        return of(FN,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok,"apikey":PUB},body:JSON.stringify({path:url.slice(API.length),body}),signal:o&&o.signal});
+      } }catch(e){}
+    return of(u,o);
+  };
+})();
+</script>
 <script>
 /* ===== Adattatore AI: Google Gemini (sostituisce l'AI di Claude) ===== */
 (function(){
@@ -11595,7 +11622,7 @@ Non inventare: includi solo ciò che vedi con ragionevole certezza.`,{images:img
 /* ================= IMPOSTAZIONI AI (Gemini) ================= */
 const G=window.HF_GEMINI;
 function lsSet(k,v){ try{ localStorage.setItem("hf:"+k,v); }catch{} }
-function showAiOk(){ const st=$("apiStatus"); if(G.LS("apiKey")){ $("apiKey").placeholder="Chiave salvata (incollane una nuova per cambiarla)"; if(!st.classList.contains("err")){ st.textContent="✓ AI collegata · modello "+(G.LS("mMain")||"Gemini"); st.classList.add("ok"); } } else st.classList.remove("ok"); }
+function showAiOk(){ try{ renderFam(); }catch{} const st=$("apiStatus"); if(G.LS("apiKey")){ $("apiKey").placeholder="Chiave salvata (incollane una nuova per cambiarla)"; if(!st.classList.contains("err")){ st.textContent="✓ AI collegata · modello "+(G.LS("mMain")||"Gemini"); st.classList.add("ok"); } } else st.classList.remove("ok"); }
 function renderKeyBanner(){ $("keyBanner").hidden=!!G.LS("apiKey"); }
 function fillModelSelects(list){
   if(!list||!list.length){ const kn=(G.LS("models")||"").split(",").filter(Boolean); if(kn.length) list=kn; }
@@ -11634,6 +11661,28 @@ $("apiSave").onclick=async()=>{
   }catch(e){ setStatus("apiStatus",errCopy(e)+(e&&e.message?" ("+e.message.slice(0,120)+")":""),true); }
   finally{ $("apiSave").disabled=false; }
 };
+/* chiave di famiglia: il familiare la usa, il proprietario sceglie chi */
+const isFam=()=>G.LS("apiKey")==="__family__";
+async function famConnect(silent){
+  if(!SY.user){ if(!silent) setStatus("apiStatus","Prima crea o apri il tuo account qui sotto («Il tuo account»), poi riprova.",true); return false; }
+  if(!silent){ $("famGo").disabled=true; setStatus("apiStatus","Collego la chiave di famiglia…"); }
+  try{ const m=await detectModels("__family__"); if(!m.main) throw {code:"bad_output",message:"nessun modello"};
+    lsSet("apiKey","__family__"); lsSet("mMain",m.main); lsSet("mQuick",m.quick); lsSet("models",m.all.join(",")); try{ localStorage.setItem("hf:keyTier","paid"); }catch{}
+    fillModelSelects(m.all); markDirty("aiSettings"); schedulePush(); setStatus("apiStatus",""); showAiOk(); renderKeyBanner(); renderFam(); toast("✓ AI collegata con la chiave di famiglia"); return true; }
+  catch(e){ if(!silent) setStatus("apiStatus",(e&&e.message)? e.message : "Non riesco: chiedi a chi ti ha dato l'app di aggiungere la tua email all'elenco della chiave di famiglia.",true); return false; }
+  finally{ if(!silent) $("famGo").disabled=false; } }
+let famDoc=null;
+async function renderFam(){ try{
+  const has=!!G.LS("apiKey"), fam=isFam();
+  $("famGo").hidden=has&&!fam? true : fam; $("famUse").textContent= fam? "Usi la chiave di famiglia: non serve una chiave tua." : "";
+  $("famOwner").hidden=!(has&&!fam&&SY.user);
+  if(!$("famOwner").hidden){ if(!famDoc) famDoc=(await store.getDoc("familyAi"))||{emails:[]}; if(document.activeElement!==$("famEmails")) $("famEmails").value=(famDoc.emails||[]).join("\n"); }
+}catch(e){ console.warn("famiglia",e); } }
+$("famGo").onclick=()=>famConnect(false);
+$("famSave").onclick=()=>{ const em=[...new Set($("famEmails").value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>/.+@.+\..+/.test(x)))].slice(0,20);
+  famDoc={emails:em}; save("familyAi",famDoc); toast(em.length? "✓ "+em.length+(em.length===1?" familiare può":" familiari possono")+" usare la tua chiave" : "Elenco vuoto: nessuno usa la tua chiave"); renderFam(); };
+// senza chiave ma con l'account: prova da solo la chiave di famiglia (al massimo ogni 30 minuti)
+async function famAuto(){ try{ if(G.LS("apiKey")||!SY.user) return; const t=+(localStorage.getItem("hf:famTry")||0); if(Date.now()-t<30*60000) return; localStorage.setItem("hf:famTry",String(Date.now())); await famConnect(true); }catch{} }
 /* Prova chiave: dice se la chiave risponde, con quale modello e se è sul piano a pagamento */
 async function geminiProbe(model,key){ const t0=Date.now();
   try{ const res=await fetch(`${G.API}/models/${model}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts:[{text:"Rispondi solo: ok"}]}],generationConfig:{maxOutputTokens:20}})});
@@ -11809,7 +11858,7 @@ async function sbAuth(mode){
     SY.user=r.data.session.user; $("sbPass").value="";
     setStatus("syncStatus","Sincronizzo i dati…");
     const n=await pull(); if(window.__ownerWiped){ setStatus("syncStatus","Fatto ✓ Riavvio con i dati del nuovo account…"); setTimeout(()=>location.reload(),800); return; }
-    renderSync(); await loadAll(); go("profilo");
+    renderSync(); await loadAll(); go("profilo"); try{ localStorage.removeItem("hf:famTry"); }catch{} setTimeout(()=>famAuto(),500);
     setStatus("syncStatus", n?`Fatto ✓ Ho scaricato ${n} elementi dall'altro dispositivo.`:"Fatto ✓ I dati di questo dispositivo sono ora online.");
   }catch(e){ SY.user=null; setStatus("syncStatus",syncErr(e),true); renderSync(); }
   finally{ $("sbGo").disabled=false; }
@@ -12605,7 +12654,7 @@ async function loadAll(){
 (async()=>{
   try{ history.replaceState({v:"diario"},""); }catch{}
   try{ const lv=JSON.parse(localStorage.getItem("hf:live")||"null"); if(lv&&lv.live&&Date.now()-lv.startedAt<8*3600e3){ logCtx=lv; startSesTimer(); } else localStorage.removeItem("hf:live"); }catch{}
-  await initSync(); renderSync();
+  await initSync(); renderSync(); setTimeout(()=>famAuto(),1500);
   try{ if(window.claude){ sample=await claude.use("sample"); if(sample){ const lim=await sample.limits().catch(()=>null); imgLimits=(lim&&lim.images)||null; } } }catch{}
   await loadAll(); setTimeout(()=>voiceImport(),2500);
   try{ const w=JSON.parse(sessionStorage.getItem("hf:where")||"null");
