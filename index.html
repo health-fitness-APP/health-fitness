@@ -228,6 +228,10 @@ nav.tabbar button[aria-current="page"]{color:#4a4a4f}
 nav.tabbar button[aria-current="page"] .ic{background:#fff;color:#4a4a4f;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 nav.tabbar button[aria-current="page"] .ic svg path,nav.tabbar button[aria-current="page"] .ic svg circle{fill:currentColor}
 nav.tabbar button[aria-current="page"] .ic svg{stroke-width:2.3}
+/* caratteri grandi del telefono: le 5 voci restano larghe uguali e la scritta si rimpicciolisce (tabFit) invece di uscire */
+nav.tabbar .in{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+nav.tabbar button{min-width:0;white-space:nowrap}
+nav.tabbar button .ic{max-width:100%}
 nav.tabbar{background:rgba(255,255,255,.35)!important;border:0!important;-webkit-backdrop-filter:blur(18px) saturate(140%)!important;backdrop-filter:blur(18px) saturate(140%)!important;left:10px!important;right:10px!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;border-radius:26px!important;outline:1.5px solid rgba(255,255,255,.95);outline-offset:-1.5px;box-shadow:0 6px 20px rgba(0,0,0,.10)!important;padding-bottom:0!important}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) nav.tabbar{background:rgba(30,30,30,.45)!important;outline-color:rgba(255,255,255,.25)} }
 :root[data-theme="dark"] nav.tabbar{background:rgba(30,30,30,.45)!important;outline-color:rgba(255,255,255,.25)}
@@ -2509,7 +2513,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.40 (il pulsante Salva non copre più i campi con la tastiera aperta)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.41 (il profilo si salva anche a metà, barra in basso leggibile con caratteri grandi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -12121,11 +12125,18 @@ function updCalc(){
 }
 $("saveProfile").onclick=()=>{
   const p=readForm();
-  if(!p.goal){ toast("Scegli il tuo obiettivo"); $("goals").scrollIntoView({behavior:"smooth",block:"center"}); return; }
-  if(!(p.age>=14&&p.height>=120&&p.weight>=35)){ toast("Completa età, altezza e peso"); return; }
+  // si salva anche un profilo a metà (le pagine Chi sei / I tuoi dati / Salute sono separate): si controllano solo i valori scritti
+  if(p.age&&!(p.age>=14&&p.age<=110)){ toast("Controlla l'età"); return; }
+  if(p.height&&!(p.height>=120&&p.height<=230)){ toast("Controlla l'altezza in cm (es. 180)"); return; }
+  if(p.weight&&!(p.weight>=35&&p.weight<=250)){ toast("Controlla il peso in kg"); return; }
+  const miss=[!p.age&&"età",!p.height&&"altezza",!p.weight&&"peso"].filter(Boolean);
   p.meals=p.meals.map(m=>({id:m.id,name:(m.name||"").trim()||"Pasto",where:m.where||"casa"}));
   p.train={sessions:(draft.train.sessions||[]).filter(s=>s.days.length||s.start)};
-  state.profile={...(state.profile||{}),...p}; save("profile",state.profile); toast("Profilo salvato"); go("diario"); queueProgress();
+  ["age","height","weight"].forEach(k=>{ if(!p[k]) delete p[k]; });
+  state.profile={...(state.profile||{}),...p}; save("profile",state.profile);
+  toast(miss.length? "Salvato ✓ Completa anche: "+miss.join(", ")+" (in Profilo → I tuoi dati)" : !p.goal? "Salvato ✓ Ora scegli l'obiettivo in Allenamento → Coach" : "Profilo salvato ✓");
+  if(miss.length||!p.goal){ try{ renderPfList(); }catch{} go("profilo"); return; }
+  go("diario"); queueProgress();
 };
 
 /* ================= avvio ================= */
@@ -12462,6 +12473,9 @@ function renderHealthUi(){ document.body.classList.toggle("simple",simpleOn()); 
   if(h.ins) A.push("Prendi farmaci per il diabete: tieni con te zucchero o un succo quando ti muovi.");
   const put=(id,a)=>{ const b=$(id); if(!b) return; b.hidden=!a.length; b.textContent=a.join(" "); };
   put("hlWarnD",D); put("hlWarnA",A); try{ renderBackCard(); }catch(e){ console.warn("schiena",e); } }
+function tabFit(){ try{ document.querySelectorAll("nav.tabbar button").forEach(b=>{ b.style.fontSize=""; let f=parseFloat(getComputedStyle(b).fontSize)||12, n=0;
+  while(b.scrollWidth>b.clientWidth+1&&f>7&&n<12){ f-=0.5; n++; b.style.fontSize=f+"px"; } }); }catch{} }
+window.addEventListener("resize",()=>setTimeout(tabFit,100)); setTimeout(tabFit,300); setTimeout(tabFit,1500);
 function renderAll(){ document.body.classList.toggle("home",view==="diario"); try{ renderHealthUi(); }catch(e){ console.warn("salute",e); } try{ csTabs(); }catch{} try{ if(view==="allenamento"&&!$("w-chat").hidden&&document.activeElement&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) renderCoachSetup(); }catch{} if(view==="pasto"){ try{ renderMealPage(); }catch(e){ console.warn("pasto",e); } } if(view==="casa"){ try{ renderStaples(); }catch(e){ console.warn("casa",e); } }
  if(view==="profilo"){ try{ if(psCur) closePset(); else renderPfList(); }catch(e){ console.warn("profilo lista",e); } }
  if(view==="profilo"&&HCP()){ try{ hcRenderState(); }catch{} }
