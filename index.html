@@ -1037,6 +1037,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .pf-foot{text-align:center;margin:20px 10px 30px}
 #psBody>section.card>h2{display:none}
 .ps-save{position:sticky;bottom:calc(82px + env(safe-area-inset-bottom,0px));padding:10px 0}
+body.kb .ps-save{position:static}
 .pf>h2{cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:0;user-select:none}
 .pf>h2::after{content:"›";color:var(--muted);font-size:1.4rem;transform:rotate(90deg);transition:transform .2s}
 .pf.collapsed>h2::after{transform:rotate(0deg)}
@@ -2508,7 +2509,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.39 (niente limiti automatici per l'età)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.40 (il pulsante Salva non copre più i campi con la tastiera aperta)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
