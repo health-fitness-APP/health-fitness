@@ -2430,8 +2430,8 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="famGo" type="button" hidden>👨‍👩‍👧 Usa la chiave di famiglia</button>
       <div id="famOwner" hidden style="margin:6px 0">
         <h3 style="margin:10px 0 4px;font-size:1rem">👨‍👩‍👧 Chiave di famiglia</h3>
-        <p class="sub" style="margin:0 0 6px">Chi installa la tua app e crea il suo account usa da solo questa chiave, senza vederla: passa dal server privato dell'app. Limite: 400 richieste al giorno a persona, 2000 in tutto. Se vuoi che la usino solo alcune persone, scrivi qui le loro email (una per riga). Lasciato vuoto vale per tutti.</p>
-        <textarea class="field" id="famEmails" rows="3" placeholder="Vuoto = tutti i familiari con l'app"></textarea>
+        <p class="sub" style="margin:0 0 6px">Scrivi le email degli account dei tuoi familiari, una per riga: la loro app userà da sola la tua chiave, senza vederla (passa dal server privato dell'app). Solo queste email possono usarla. Limite: 400 richieste al giorno a persona, 2000 in tutto.</p>
+        <textarea class="field" id="famEmails" rows="3" placeholder="papa@email.it"></textarea>
         <button class="btn ghost" id="famSave" type="button" style="margin-top:6px">Salva l'elenco</button>
       </div>
       <div class="status" id="apiStatus" aria-live="polite"></div>
@@ -2522,7 +2522,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.44 (chiave AI di famiglia: i familiari usano la tua chiave in automatico)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.45 (chiave AI di famiglia solo per le email scelte)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
