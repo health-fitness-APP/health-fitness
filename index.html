@@ -729,6 +729,14 @@ html,body{overscroll-behavior-y:contain}
 .eq .row.eqtot span,.eq .row.eqtot b{font-weight:800;color:var(--ink)}
 .eq .row.eqtot b{color:var(--basil);font-size:1.15em}
 .swipe{position:relative;overflow:hidden}
+.fam-det{margin:4px 0;border:1px solid var(--line,#e6e0da);border-radius:14px;overflow:hidden}
+.fam-det>summary{padding:12px 14px;font-weight:800;cursor:pointer;list-style:none;display:flex;align-items:center}
+.fam-det>summary::-webkit-details-marker{display:none}
+.fam-det>summary::after{content:"▾";margin-left:auto;transition:transform .2s}
+.fam-det[open]>summary::after{transform:rotate(180deg)}
+.fam-det .swipe{border-top:1px solid var(--line,#e6e0da)}
+.fam-det .fam-row{padding:12px 14px;align-items:center;margin:0}
+.fam-det>.note{padding:0 14px 10px}
 .swipe-bg{position:absolute;top:1px;right:0;bottom:2px;width:96px;border:0;background:#E5484D;color:#fff;font:inherit;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
 .swipe-bg span{font-size:1.2rem}
 .swipe-fg{position:relative;background:var(--surface-solid);touch-action:pan-y;will-change:transform}
@@ -2430,8 +2438,8 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="famGo" type="button" hidden>👨‍👩‍👧 Usa la chiave di famiglia</button>
       <div id="famOwner" hidden style="margin:6px 0">
         <h3 style="margin:10px 0 4px;font-size:1rem">👨‍👩‍👧 Chiave di famiglia</h3>
-        <p class="sub" style="margin:0 0 6px">Scrivi le email degli account dei tuoi familiari, una per riga: la loro app userà da sola la tua chiave, senza vederla (passa dal server privato dell'app). Solo queste email possono usarla. Limite: 400 richieste al giorno a persona, 2000 in tutto.</p>
-        <div id="famList"></div>
+        <p class="sub" style="margin:0 0 6px">Aggiungi le email degli account dei tuoi familiari: la loro app userà da sola la tua chiave, senza vederla (passa dal server privato dell'app). Solo queste email possono usarla. Limite: 400 richieste al giorno a persona, 2000 in tutto.</p>
+        <details id="famDet" class="fam-det"><summary id="famSum">👨‍👩‍👧 Familiari</summary><div id="famList"></div><p class="note" style="margin:6px 0 0">Scorri un'email verso sinistra per eliminarla.</p></details>
         <div style="display:flex;gap:8px;margin-top:6px"><input class="field" id="famEmail" type="email" inputmode="email" autocomplete="off" placeholder="email del familiare" style="flex:1;min-width:0"><button class="btn" id="famAdd" type="button" style="width:auto;padding:0 18px">Aggiungi</button></div>
       </div>
       <div class="status" id="apiStatus" aria-live="polite"></div>
@@ -2522,7 +2530,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.49 (modalità semplice: tutta l'app più grande in proporzione)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.50 (figure per gli esercizi della schiena, elenco familiari)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5479,7 +5487,9 @@ function kneeText(){ const c=kneeCad(), n=kneeN(14), P=kneePains(); if(!c&&!n&&!
 /* v4.03: scelta di Daniele – l'app propone la routine finché non arriva a 2 nella settimana (lun-dom): a fine palestra o dopo una corsa facile.
    Una volta al giorno (hf:kneeAskD), mai se già fatta oggi, «Non propormeli più» = hf:kneeAskOff (rimettibile da Riquadri nascosti). */
 function kneeWeek(){ const t=todayISO(), wd=(new Date(t+"T12:00:00").getDay()+6)%7, mon=shiftDate(t,-wd); return kneeLog().filter(d=>d>=mon&&d<=t).length; }
-function kneeDue(){ try{ if(localStorage.getItem("hf:kneeAskOff")==="1"||localStorage.getItem("hf:kneeAskD")===todayISO()) return false; }catch{ return false; }
+/* v4.50: regola di Daniele – la proposta degli esercizi per le ginocchia arriva SOLO a chi ha male (fastidio alle ginocchia/anche aperto o «Dolori alle articolazioni» in Salute) oppure corre (corsa nel Coach o corse negli ultimi 60 giorni): prevenzione per i runner */
+function kneeHurts(){ try{ if(kneePains().length>0||healthOf().joint) return true; }catch{} try{ if(typeof cs!=="undefined"&&cs&&(cs.sports||[]).includes("corsa")) return true; }catch{} try{ return (runEvals.list||[]).some(e=>e.d>=shiftDate(todayISO(),-60)); }catch{ return false; } }
+function kneeDue(){ if(!kneeHurts()) return false; try{ if(localStorage.getItem("hf:kneeAskOff")==="1"||localStorage.getItem("hf:kneeAskD")===todayISO()) return false; }catch{ return false; }
   return !kneeLog().includes(todayISO())&&kneeWeek()<2; }
 function kneeAsk(head,then){ const go=()=>{ try{ then&&then(); }catch(e){ console.warn("dopo ginocchia",e); } };
   try{ localStorage.setItem("hf:kneeAskD",todayISO()); }catch{}
@@ -7950,6 +7960,17 @@ Object.assign(STR_FIG,{
    return [sh(a,-24),sh(n,-12),a,sh(n,12),sh(a,24),sh(n,12),a,sh(n,-12),sh(a,-24)]; })()},
  "Plank laterale":{props:FIG_GROUND,hold:1,poses:(()=>{ const a={H:[52,96],N:[62,104],P:[106,126],E2:[62,140],W2:[82,140],E1:[82,108],W1:[100,116],K1:[132,132],A1:[158,138],T1:[162,134],K2:[132,134],A2:[158,140],T2:[162,136]}; return [a,{...a,H:[52,92],N:[62,100],P:[106,114],E1:[82,104],W1:[100,110],K1:[132,126]}]; })()}
 });
+/* v4.50: figure per la schiena e l'addome a corpo libero (esercizi del coach a casa) */
+Object.assign(STR_FIG,{
+ "Bird dog":{props:FIG_GROUND,dur:3,poses:(()=>{ const a={H:[148,90],N:[134,96],P:[86,98],E1:[134,118],W1:[134,140],E2:[134,118],W2:[134,140],K1:[86,140],A1:[58,140],T1:[52,137],K2:[86,140],A2:[58,140],T2:[52,137]};
+   return [a,{...a,E2:[156,102],W2:[180,102],K2:[62,98],A2:[36,98],T2:[30,93]},a]; })()},
+ "Dead bug":{props:FIG_GROUND,dur:3,poses:(()=>{ const a={H:[38,126],N:[52,132],P:[98,132],E1:[56,112],W1:[58,92],E2:[56,112],W2:[58,92],K1:[98,104],A1:[124,104],T1:[128,98],K2:[98,104],A2:[124,104],T2:[128,98]};
+   return [a,{...a,E2:[36,128],W2:[16,130],K2:[124,128],A2:[150,128],T2:[155,121]},a]; })()},
+ "Curl-up":{props:FIG_GROUND,hold:1,poses:[{...FIG_LIE,E1:[70,138],W1:[92,138],E2:[70,138],W2:[92,138],K1:[118,106],A1:[130,134],T1:[140,134],K2:[124,132],A2:[150,132],T2:[154,125]},
+   {...FIG_LIE,H:[42,114],N:[56,124],E1:[70,138],W1:[92,138],E2:[70,138],W2:[92,138],K1:[118,106],A1:[130,134],T1:[140,134],K2:[124,132],A2:[150,132],T2:[154,125]}]},
+ "Superman":{props:FIG_GROUND,hold:1,poses:[{H:[148,130],N:[134,134],P:[86,134],E1:[156,136],W1:[176,136],E2:[156,136],W2:[176,136],K1:[60,136],A1:[34,136],T1:[30,140],K2:[60,136],A2:[34,136],T2:[30,140]},
+   {H:[146,120],N:[132,128],P:[86,134],E1:[154,124],W1:[174,118],E2:[154,124],W2:[174,118],K1:[60,130],A1:[36,124],T1:[30,128],K2:[60,130],A2:[36,124],T2:[30,128]}]}
+});
 function figSVG(name){ const F=STR_FIG[name]; if(!F) return ""; const base=F.front? FIG_FRONT : FIG_SIDE;
   let P=F.poses.map(p=>({...base,...p})); let kt;
   if(F.hold){ P=[P[0],P[1],P[1],P[0]]; kt="0;0.3;0.75;1"; } else kt=P.map((_,i)=>(i/(P.length-1)).toFixed(3)).join(";");
@@ -8248,6 +8269,8 @@ const IT_EN=[[/panca piana|distension[ei] su panca|bench/,"bench press"],[/panca
 const EQ_IT=[[/manubr/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere/,"b"],[/macchina|machine|smith/,"m"],[/cav[io]|pulley/,"c"],[/kettlebell/,"k"],[/elastic/,"n"],[/corpo libero/,"w"]];
 /* abbinamenti verificati nome italiano → esercizio del Free Exercise DB (il primo che corrisponde vince; per attrezzo: d manubri, b bilanciere, m macchina, s smith, c cavi, k kettlebell, w corpo libero, e EZ, n elastici, _ altrimenti; null = nessuna foto adatta) */
 const EXRULES=[
+ [/curl.?up|mcgill/,{_:"Crunches"}],
+ [/dead.?bug/,{_:"Dead_Bug"}],
  [/burpee|wall sit|sedia al muro|hollow|bird.?dog|jumping.?jack|bear crawl|camminata dell.?orso|plank jack|corsa sul posto|high knees|skater|pattinator|salt\w* lateral/,{_:null}],
  [/tapis|corsa|running|treadmill/,{_:"Running_Treadmill"}],
  [/vogatore|rowing|remoergometro/,{_:"Rowing_Stationary"}],
@@ -8362,6 +8385,16 @@ const EXRULE_FLAGS=[["_seat",/sedut|seated/],["_lp",/leg press|pressa/],["_stand
 const EQ_RULE=[[/smith|multipower/,"s"],[/manubr|dumbbell/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere|barbell/,"b"],[/kettlebell/,"k"],[/cav[io]\b|cable|pulley|corda/,"c"],[/macchina|machine|pec.?deck|peck.?deck|pector|pettoral|chest press/,"m"],[/elastic|band/,"n"],[/corpo libero|bodyweight|a corpo/,"w"]];
 /* esercizi a corpo libero senza una foto giusta nel Free Exercise DB: figura animata (STR_FIG) */
 function exFig(name,x){ const n=String(name||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""), nx=n+" "+String((x&&x.equip)||"").toLowerCase();
+  if(/bird.?dog|cane.?uccello|quadrupedia|braccio e gamba oppost/.test(n)) return "Bird dog";
+  if(/dead.?bug|insetto morto|scarafaggio/.test(n)) return "Dead bug";
+  if(/curl.?up|mcgill/.test(n)) return "Curl-up";
+  if(/superman|estension\w* (della )?schiena (da )?prono|prono.*estension/.test(n)&&!EQ_RULE.some(([re])=>re.test(nx))) return "Superman";
+  if(/gatto|cat.?(cow|camel)/.test(n)) return "Gatto e mucca";
+  if(/ginocchia? al petto|knees? to chest/.test(n)) return "Ginocchia al petto";
+  if(/retroversion|antiversion|bacino (avanti|indietro)|pelvic tilt|inclinazion\w* (del )?bacino/.test(n)) return "Bacino avanti e indietro";
+  if(/respirazion\w* (diaframm|sdraiat|addominal)/.test(n)) return "Respirazione sdraiato";
+  if(/ponte|glute bridge|^bridge/.test(n)&&!/plank|lateral|side/.test(n)&&!EQ_RULE.some(([re])=>re.test(nx))) return /una gamba|single|monopodal/.test(n)? "Ponte su una gamba" : "Ponte per i glutei";
+  if(/plank laterale|side plank|plank sul fianco/.test(n)) return "Plank laterale";
   if(/wall sit|sedia al muro|squat\w*( isometric\w*)? (al|contro il|a) muro|squat isometric|isometric squat/.test(n)) return "Squat al muro";
   if(/calf|polpacc/.test(n)&&!/stretch|allungament/.test(n)){ const free=/corpo libero|a corpo|bodyweight|gradino|muro|scalino/.test(nx)||(x&&x.part&&!EQ_RULE.some(([re])=>re.test(nx))&&!/sedut|seated|pressa|leg press/.test(nx));
     if(free) return /una gamba|monopodal|single|singol/.test(n)? "Polpacci su una gamba" : "Polpacci in piedi"; }
@@ -11679,10 +11712,13 @@ async function renderFam(){ try{
   $("famOwner").hidden=!(has&&!fam&&SY.user);
   if(!$("famOwner").hidden){ if(!famDoc) famDoc=(await store.getDoc("familyAi"))||{emails:[]}; const box=$("famList"); box.innerHTML="";
     const L=famDoc.emails||[]; if(!L.length) box.appendChild(el("p","note","Nessun familiare: nessuno oltre a te usa la tua chiave."));
-    L.forEach(em=>{ const r=el("div","pline"); r.style.alignItems="center"; r.append(el("span","ic","👤"),el("span",null,em)); const x=el("button","linkbtn","✕ Togli"); x.type="button"; x.style.marginLeft="auto";
-      x.onclick=()=>{ if(!confirm("Togliere "+em+"? Non potrà più usare la tua chiave né creare un account nuovo.")) return; famSet(L.filter(e=>e!==em)); toast("Tolto "+em); }; r.appendChild(x); box.appendChild(r); }); }
+    $("famSum").textContent=`👨‍👩‍👧 Familiari (${L.length})`;
+    L.forEach(em=>{ const r=el("div","pline fam-row"); r.append(el("span","ic","👤"),el("span",null,em));
+      box.appendChild(makeSwipe(r,()=>{ famSet(L.filter(e=>e!==em)); actionToast("Tolto "+em+": non può più usare la tua chiave","Annulla",()=>famSet([...((famDoc&&famDoc.emails)||[]),em])); },em)); }); }
 }catch(e){ console.warn("famiglia",e); } }
 $("famGo").onclick=()=>famConnect(false);
+try{ $("famDet").open=localStorage.getItem("hf:famOpen")!=="0"; }catch{}
+$("famDet").addEventListener("toggle",()=>{ try{ localStorage.setItem("hf:famOpen",$("famDet").open?"1":"0"); }catch{} });
 function famSet(L){ famDoc={emails:[...new Set(L)].slice(0,20)}; save("familyAi",famDoc); try{ pushDirty(); }catch{} renderFam(); }
 $("famAdd").onclick=()=>{ const em=$("famEmail").value.trim().toLowerCase(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast("Scrivi un'email valida"); $("famEmail").focus(); return; }
   const L=(famDoc&&famDoc.emails)||[]; if(L.includes(em)){ toast("C'è già"); return; } $("famEmail").value=""; famSet([...L,em]); toast("✓ Aggiunto "+em+": ora può creare l'account e usare la tua chiave"); };
