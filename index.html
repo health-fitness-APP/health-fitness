@@ -1326,7 +1326,7 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .mzcmp td{padding:7px 6px;border-bottom:1px solid var(--line)}.mzcmp td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .binfo{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:var(--basil-soft);font-size:14px;line-height:1.45}
 /* modalità semplice: caratteri grandi e solo l'essenziale (persone anziane o poco pratiche) */
-body.simple{zoom:1.14}
+body.simple{}  /* niente zoom: i caratteri grandi li dà già l'impostazione del telefono */
 body.simple #fatigueCard,body.simple #deloadCard,body.simple #chalCard,body.simple #fuelCard,body.simple #raceDayCard,body.simple #monthCard,body.simple #nightCard,
 body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .seg [data-w^="sp-"],body.simple .seg [data-w="coach"]{display:none!important}
 .hl-warn{margin:0 0 12px;padding:12px 14px;border-radius:14px;background:#fff4e5;color:#7a4300;font-size:.92rem;line-height:1.4;border:1px solid #f3cf9a}
@@ -2514,7 +2514,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.42 (barra in basso: le scritte non si sovrappongono più)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.43 (modalità semplice senza ingrandimento: basta quello del telefono)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
