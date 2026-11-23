@@ -2545,7 +2545,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.62 (foto dell'integratore comprato: dose giusta per te e giudizio sul prodotto)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.63 (integratore: vedi cosa ha letto nelle foto)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -12343,22 +12343,33 @@ $("suppSave").onclick=()=>{ const L=(sdraft&&sdraft.supplements||[]).map(x=>({..
   state.profile={...(state.profile||{}),supplements:L}; save("profile",state.profile); if(draft) draft.supplements=JSON.parse(JSON.stringify(L));
   toast("Integratori salvati"); try{ if(suppSync()) renderDiet(); }catch{} try{ notifSchedule(); }catch{} suppClose(); };
 $("suppCancel").onclick=suppClose;
-/* v4.62: foto dell'integratore comprato → l'AI legge prodotto e contenuto per capsula/misurino, dice quanto prenderne per il suo obiettivo
+/* v4.63: prima una lettura SOLO dell'etichetta (mostrata a Daniele con le miniature delle foto), poi il calcolo della dose con il profilo.
+   v4.62: foto dell'integratore comprato → l'AI legge prodotto e contenuto per capsula/misurino, dice quanto prenderne per il suo obiettivo
    e se va bene; «Usa questa dose» aggiorna (o aggiunge) la riga in lista con dose, momento e x.product (valori per unità), che la dieta usa. */
 $("suppShotBtn").onclick=()=>{ if(!sample||!imgLimits){ setStatus("suppShotStatus","Per leggere le foto serve l'AI attiva (Profilo → Impostazioni AI).",true); return; } $("suppShot").click(); };
 $("suppShot").onchange=async e=>{ const files=[...(e.target.files||[])].slice(0,Math.min(4,(imgLimits&&imgLimits.maxCount)||3)); $("suppShot").value=""; if(!files.length) return;
-  const out=$("suppShotOut"); out.innerHTML=""; $("suppShotBtn").disabled=true; setStatus("suppShotStatus","Leggo l'etichetta e calcolo la dose per te…");
+  const out=$("suppShotOut"); out.innerHTML=""; $("suppShotBtn").disabled=true; setStatus("suppShotStatus",`Leggo ${files.length===1? "la foto" : "le "+files.length+" foto"} dell'etichetta…`);
   try{ const imgs=[]; for(const f of files) imgs.push(await shrinkFile(f,1600));
+    // v4.63: le foto che ho mandato, così si vede cosa ha ricevuto l'AI
+    const th=el("div"); th.style.cssText="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"; imgs.forEach(bl=>{ const im=el("img"); im.src=URL.createObjectURL(bl); im.alt="Foto inviata"; im.style.cssText="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"; th.appendChild(im); }); out.appendChild(th);
+    // 1) solo lettura dell'etichetta, senza altri dati: così non può «indovinare» dal profilo
+    const L=await sample.json(`Nelle foto c'è la confezione di un integratore (fronte, etichetta, tabella). Trascrivi SOLO quello che leggi davvero nelle foto, senza aggiungere niente che non vedi.
+Rispondi SOLO con JSON in italiano: {"readable":true|false,"why":"se non è leggibile, cosa manca (sfocata, tabella non inquadrata, riflesso…)","brand":"marca letta","product":"nome commerciale letto","form":"capsule|compresse|polvere|gocce|bustine|liquido","perUnit":"cosa c'è in 1 unità (1 capsula, 1 compressa, 1 misurino o 1 dose) con le quantità scritte, es. Olio di pesce 1000 mg; EPA 330 mg; DHA 220 mg","unitG":number|null,"kcalUnit":number|null,"pUnit":number|null,"cUnit":number|null,"fUnit":number|null,"labelDose":"dose consigliata scritta in etichetta","count":"quante unità nella confezione, se scritto","text":"le righe principali lette dall'etichetta, max 6 righe separate da \\n"}`,{images:imgs,modelTier:"default"});
+    if(!L||L.readable===false||!(L.product||L.brand||L.perUnit)){ setStatus("suppShotStatus","Non riesco a leggere l'etichetta"+(L&&L.why? ": "+L.why : "")+". Rifai la foto più vicina alla tabella dei valori, con buona luce e senza riflessi.",true); return; }
+    const rd=el("div","suppres"); rd.innerHTML=`<b>📄 Cosa ho letto nelle foto</b><div class="d" style="white-space:pre-line"></div>`;
+    rd.querySelector(".d").textContent=[[L.brand,L.product].filter(Boolean).join(" · "), L.perUnit? "In 1 unità: "+L.perUnit : "", L.labelDose? "Dose in etichetta: "+L.labelDose : "", L.count? "Confezione: "+L.count : "", L.text? "\n"+L.text : ""].filter(Boolean).join("\n");
+    out.appendChild(rd); out.appendChild(el("p","note","Se qui sopra c'è qualcosa di diverso dalla tua confezione, la foto non è stata letta bene: rifalla più vicina all'etichetta."));
+    setStatus("suppShotStatus","Ho letto l'etichetta, ora calcolo la dose per te…");
     const list=((sdraft&&sdraft.supplements)||[]).filter(x=>String(x.name||"").trim());
     const r=await sample.json(`${coachContext()}
 
-COMPITO ADESSO (ignora le istruzioni sulle righe SCHEDA, GIORNO, GIORNI, PROFILO e RICORDA): nelle foto c'è un integratore che questa persona ha comprato (fronte, etichetta, tabella dei valori). Come nutrizionista sportivo:
-1) leggi nome, marca, forma (capsule, compresse, polvere, gocce, bustine…) e cosa c'è in UNA unità (una capsula, una compressa, un misurino o un grammo di polvere): sostanza attiva e quantità (es. "1 capsula: 1000 mg olio di pesce, 330 mg EPA, 220 mg DHA"); grammi di una unità e kcal/proteine/carboidrati/grassi di una unità se ci sono;
+COMPITO ADESSO (ignora le istruzioni sulle righe SCHEDA, GIORNO, GIORNI, PROFILO e RICORDA): questa persona ha comprato questo integratore. Dati LETTI dall'etichetta (usa questi, non inventare valori diversi): ${JSON.stringify(L)}.
+Come nutrizionista sportivo:
+1) dai un nome breve generico all'integratore e riporta cosa c'è in UNA unità (una capsula, una compressa, un misurino o un grammo di polvere), con grammi di una unità e kcal/proteine/carboidrati/grassi di una unità se ci sono;
 2) calcola quante unità al giorno deve prendere LUI, per il suo peso, obiettivo e allenamenti (palestra e corsa), usando dosi con prove solide; se la dose dell'etichetta è diversa da quella giusta per lui, spiegalo; non superare mai i limiti di sicurezza dell'etichetta;
 3) giudica il prodotto: dose di attivo per unità, qualità (es. creatina monoidrato/Creapure, olio di pesce con EPA+DHA dichiarati, vitamina D3), additivi o dosi inutili/eccessive, se serve davvero per il suo obiettivo, doppioni con quello che già prende (${list.length? list.map(x=>x.name+(x.dose?" "+x.dose:"")).join(", ") : "niente"}) e con la sua dieta;
 4) segnala interazioni con farmaci o patologie note (es. omega 3 e anticoagulanti, vitamina K e anticoagulanti, caffeina e pressione, iperico e farmaci) e cosa evitare.
-Se nelle foto non c'è un integratore o non si legge, rispondi {"error":"motivo"}.
-Rispondi SOLO con JSON in italiano: {"name":"nome breve generico, es. Omega 3, Creatina, Vitamina D3","product":"marca e nome commerciale","form":"capsule|compresse|polvere|gocce|bustine|liquido","unit":"capsula|compressa|misurino|g|goccia|bustina|ml","per":{"txt":"cosa c'è in 1 unità, una riga","g":number|null,"kcal":number|null,"p":number|null,"c":number|null,"f":number|null},"units":number,"when":"${SUPP_WHEN.map(w=>w[0]).join('"|"')}","howTxt":"come prenderlo, una frase (es. 2 capsule a pranzo, con il pasto)","verdict":"ok"|"rivedi"|"no","why":"giudizio sul prodotto per lui, 1-2 frasi","labelDose":"dose consigliata in etichetta","warn":"interazioni o cautele, una frase, vuoto se nessuna"}`,{images:imgs,modelTier:"default"});
+Rispondi SOLO con JSON in italiano: {"name":"nome breve generico, es. Omega 3, Creatina, Vitamina D3","product":"marca e nome commerciale","form":"capsule|compresse|polvere|gocce|bustine|liquido","unit":"capsula|compressa|misurino|g|goccia|bustina|ml","per":{"txt":"cosa c'è in 1 unità, una riga","g":number|null,"kcal":number|null,"p":number|null,"c":number|null,"f":number|null},"units":number,"when":"${SUPP_WHEN.map(w=>w[0]).join('"|"')}","howTxt":"come prenderlo, una frase (es. 2 capsule a pranzo, con il pasto)","verdict":"ok"|"rivedi"|"no","why":"giudizio sul prodotto per lui, 1-2 frasi","labelDose":"dose consigliata in etichetta","warn":"interazioni o cautele, una frase, vuoto se nessuna"}`,{modelTier:"default"});
     if(!r||r.error||!r.name) throw {message:(r&&r.error)? "Non riesco a leggere il prodotto: "+r.error : "Non riesco a leggere il prodotto: prova una foto più vicina dell'etichetta."};
     setStatus("suppShotStatus","");
     const W=Object.fromEntries(SUPP_WHEN), wh=W[r.when]? r.when : "giorno", units=Math.max(0.5,Math.min(20,+r.units||1)), u=String(r.unit||"capsula").toLowerCase();
