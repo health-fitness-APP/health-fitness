@@ -2545,7 +2545,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.63 (integratore: vedi cosa ha letto nelle foto)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.64 (consiglio, gilet e serie sempre uguali: peso e ripetizioni di oggi)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5451,7 +5451,14 @@ function repRange(r){ const m=String(r||"").match(/(\d+)\s*[-–/a]\s*(\d+)/); i
 const BW_RE=/trazion|pull.?up|chin.?up|push.?up|piegament|dip|parallele|squat a corpo|air squat|affond|lunge|sit.?up|crunch|plank|burpee|pistol|step.?up|mountain|jump|muscle.?up|ponte|glute bridge|hollow|leg raise|australian|inverted row|corpo libero|bodyweight|calisthenics/i;
 function isBodyweight(x){ const eq=(x.equip||"").toLowerCase(); if(/corpo libero|bodyweight/.test(eq)) return true; if(eq&&!/gilet/.test(eq)) return false; return BW_RE.test(x.name||"")&&!/bilanciere|manubr|kettlebell|macchina|machine|cav|pulley|smith|press/i.test(x.name||""); }
 /* allenamento già aperto: se il consiglio dice di aumentare il gilet e non hai ancora fatto serie, gilet e serie prendono il peso consigliato */
-function vestSync(x){ try{ if(!x||!x.bw||x.vestAuto||!(+x.vest>0)||(x.sets||[]).some(z=>z.done)) return; const pg=x.prog||progFor(x), lv=lastVest(x.name);
+/* l'esercizio dell'allenamento in corso non ha più le ripetizioni della scheda (x.reps): le ricostruisco, altrimenti il consiglio usa 8-12 per errore */
+function liveProg(x){ if(!x) return null; const rr=x.rr, reps= x.reps || (rr? (rr[0]===rr[1]? String(rr[0]) : rr[0]+"-"+rr[1]) : x.repsLabel||"");
+  return progFor(Object.assign({},x,{reps, sets: x.planSets || (Array.isArray(x.sets)? x.sets.length : x.sets)})); }
+/* consiglio ricalcolato ad allenamento aperto: peso, gilet e ripetizioni delle serie non ancora fatte seguono il consiglio */
+function applyProg(x){ const pg=x.prog=liveProg(x); if(!pg||x.timed||x.cardio) return; const kg= pg.kg!=null&&pg.kind!=="new"? pg.kg : null;
+  const reps= pg.kind==="cap"&&pg.reps? pg.reps : pg.kind==="up"&&x.rr? x.rr[0] : null;
+  (x.sets||[]).forEach(z=>{ if(z.done) return; if(kg!=null) z.kg=kg; if(reps) z.reps=reps; }); if(x.bw&&kg!=null) x.vest=kg; x.vestAuto=1; }
+function vestSync(x){ try{ if(!x||!x.bw||x.vestAuto||!(+x.vest>0)||(x.sets||[]).some(z=>z.done)) return; const pg=x.prog||liveProg(x), lv=lastVest(x.name);
   if(pg&&pg.kind==="up"&&+pg.kg>+x.vest&&+x.vest===lv){ x.vest=+pg.kg; x.sets.forEach(z=>{ if(!z.done&&(z.kg===""||+z.kg===lv)) z.kg=x.vest; }); } x.vestAuto=1; }catch(e){} }
 function lastVest(name){ const l=lastFor(name); if(!l) return 0; const v=(l.ex.sets||[]).find(z=>z.vest&&+z.kg>0); return v? +v.kg : 0; }
 const hasVestEq=()=>{ try{ return trainOf? !!((state.profile&&state.profile.equipment&&state.profile.equipment.items)||[]).includes("Gilet zavorrato") : false; }catch{ return false; } };
@@ -5501,7 +5508,7 @@ function progBase(x){
   const target=+x.sets||last.sets.length, work=last.sets.filter(s=>(+s.kg||0)===top), reps=work.map(s=>+s.reps||0);
   const step=kgStep(x.name);
   if(top&&last.sets.some(z=>z.vest)){ const allTopV= work.length>=target && reps.every(v=>v>=hi);
-    if(allTopV&&eqMax("Gilet zavorrato")) return capProg({kind:"up",kg:r25(top+2)},x,top,"Gilet zavorrato",hi,lo,target,reps);
+    if(allTopV&&eqMax("Gilet zavorrato")) return capProg({kind:"up",kg:r25(top+2),text:`Con il gilet da ${fmt(top)} kg hai chiuso tutte le serie a ${hi}: oggi metti ${fmt(r25(top+2))} kg e fai ${target} serie da ${lo} ripetizioni.`},x,top,"Gilet zavorrato",hi,lo,target,reps);
     return allTopV? {kind:"up",kg:r25(top+2),text:`Con il gilet da ${fmt(top)} kg hai chiuso tutte le serie a ${hi}: aggiungi 2 kg al gilet (${fmt(r25(top+2))} kg) e riparti da ${lo} ripetizioni.`} : {kind:"hold",kg:top,text:`Resta con il gilet da ${fmt(top)} kg e punta a ${target}×${hi}.`}; }
   if(!top){ // corpo libero
     const all=reps.length>=target&&reps.every(v=>v>=hi);
@@ -5526,7 +5533,7 @@ function progBase(x){
 /* memoria dei carichi: ultima volta, consiglio di oggi (aumenta / resta / scarica) e storico */
 const e1rm=(kg,reps)=>kg&&reps? kg*(1+reps/30) : 0;
 function memBox(x){ const box=el("div","mem");
-  { const cb=cmbBox(x,n=>openTutorial(n,{name:n,part:1})); if(cb) return cb; } const h=exHistory(x.name,6), pf=progFor(x), pg=(pf&&pf.deload)? pf : (x.prog||pf); if(pf&&pf.deload&&x.prog&&!x.prog.deload) x.prog=pf;
+  { const cb=cmbBox(x,n=>openTutorial(n,{name:n,part:1})); if(cb) return cb; } const h=exHistory(x.name,6), pf=liveProg(x), pg=(pf&&pf.deload)? pf : (x.prog||pf); if(pf&&pf.deload&&x.prog&&!x.prog.deload) x.prog=pf;
   if(!h.length){ box.classList.add("first"); box.innerHTML=`<div class="mem-l">📒 Prima volta con questo esercizio</div><div class="mem-t">Scegli un peso che ti lasci 1-2 ripetizioni di margine: dalla prossima volta te lo ricordo io e ti dico se aumentare.</div>`; return box; }
   const last=h[0], when=new Date(last.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
   const setsTxt=last.sets.map(z=>z.text? z.text : (+z.kg? fmt(z.kg)+"×" : "")+(z.reps||"?")).join(" · ");
@@ -5537,12 +5544,12 @@ function memBox(x){ const box=el("div","mem");
   box.querySelector(".mem-s").textContent=setsTxt;
   if(box.querySelector(".mem-t")) box.querySelector(".mem-t").textContent=pg.text;
   if(pg&&pg.ask&&pg.eq){ const q=el("div","mem-buy"); q.innerHTML=`<button type="button" class="btn ghost" data-a="si">Sì, posso comprarlo</button><button type="button" class="btn ghost" data-a="no">No, adattati</button>`;
-    q.querySelectorAll("button").forEach(b=>b.onclick=e=>{ e.stopPropagation(); eqBuySet(pg.eq,b.dataset.a); x.prog=progFor(x); box.replaceWith(memBox(x)); saveLive&&logCtx&&saveLive();
+    q.querySelectorAll("button").forEach(b=>b.onclick=e=>{ e.stopPropagation(); eqBuySet(pg.eq,b.dataset.a); if(logCtx&&(logCtx.exercises||[]).includes(x)){ applyProg(x); saveLive(); renderLogger(); } else { x.prog=liveProg(x); box.replaceWith(memBox(x)); }
       toast(b.dataset.a==="si"? "Ok: quando ce l'hai, aggiorna il massimo in Profilo → Attrezzatura" : "Ok, mi adatto: più ripetizioni, discesa lenta e varianti più difficili"); });
     box.querySelector(".mem-t").after(q); }
   if(pg&&pg.kind==="cap"&&pg.eq&&!pg.ask){ const q=el("div","mem-buy"); q.innerHTML=`<span style="flex:1 1 100%;font-size:.85rem;color:var(--muted)">Hai comprato un attrezzo più pesante? Scrivi il nuovo massimo:</span><input class="field" type="number" inputmode="decimal" step="0.5" min="0" style="flex:1;min-width:80px" aria-label="Nuovo massimo in kg"><button type="button" class="btn">Salva</button>`;
     const i=q.querySelector("input"); q.querySelector("button").onclick=e=>{ e.stopPropagation(); const v=+String(i.value).replace(",",".")||0; if(!(v>pg.kg)){ toast(`Scrivi un peso più alto di ${fmt(pg.kg)} kg`); return; }
-      eqMaxSet(pg.eq,v); x.prog=progFor(x); const nk=x.prog&&x.prog.kg; if(nk) (x.sets||[]).forEach(z=>{ if(!z.done) z.kg=nk; }); if(pg.eq==="Gilet zavorrato"&&nk) x.vest=nk; if(logCtx){ saveLive(); renderLogger(); } else box.replaceWith(memBox(x)); toast(`Nuovo massimo: ${fmt(v)} kg. Riparto da qui.`); };
+      eqMaxSet(pg.eq,v); if(logCtx&&(logCtx.exercises||[]).includes(x)) applyProg(x); else x.prog=liveProg(x); if(logCtx){ saveLive(); renderLogger(); } else box.replaceWith(memBox(x)); toast(`Nuovo massimo: ${fmt(v)} kg. Riparto da qui.`); };
     box.querySelector(".mem-t").after(q); }
   const mb=box.querySelector(".mem-more");
   if(mb) mb.onclick=e=>{ e.stopPropagation(); const hh=box.querySelector(".mem-hist"); hh.hidden=!hh.hidden; mb.textContent= hh.hidden? `Storico ultime ${h.length} volte ›` : "Nascondi storico";
@@ -9074,7 +9081,7 @@ function openLogger(a,di){
         const bw=isBodyweight({name:x.name,equip:x.equip||exEquip(x)}), lv0=bw? lastVest(x.name) : 0, lv= lv0&&pg&&pg.kind==='up'&&+pg.kg>lv0? +pg.kg : lv0;
         const cmb=exParts(x.name).length>0; if(cmb) return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),rawReps:x.reps||"",cmb:true,bw:false,
           sets:Array.from({length:n},()=>({kg:"",reps:"",text:"",done:false}))};
-        return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),timed,repsLabel:timed? String(x.reps).trim() : "",prog:pg,bw,vest:lv,rr,
+        return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),timed,repsLabel:timed? String(x.reps).trim() : "",reps:x.reps||"",planSets:+x.sets||0,prog:pg,bw,vest:lv,rr,
           sets:Array.from({length:n},(_,i)=>{ const ls=last&&last.ex.sets[i]; let kg= bw? (lv||"") : pg&&pg.kg!=null&&pg.kind!=="hold"? pg.kg : (ls&&ls.kg!=null? ls.kg:""); if(dl&&!bw&&+kg>0&&!(pg&&pg.deload)) kg=r25(+(ls&&ls.kg||kg)*0.9);
             const reps= timed? String(x.reps).trim() : (pg&&pg.kind==="cap"&&pg.reps? pg.reps : pg&&pg.kind==="up"&&rr? rr[0] : (ls&&ls.reps? ls.reps : firstNum(x.reps))); return {kg, reps, done:false}; })};
       })};
@@ -11827,7 +11834,7 @@ function renderEqLim(){ const box=$("eqLim"); if(!box||box.contains(document.act
   box.innerHTML=`<h2 style="margin:0 0 4px">⚖ Pesi massimi</h2><p class="note" style="margin:0 0 10px">Se un attrezzo arriva solo fino a un certo peso, scrivilo qui. Quando sarai pronto a superarlo ti chiedo se puoi comprarne uno più pesante; se no, faccio salire ripetizioni, tempo e varianti. Vuoto = nessun limite.</p>`;
   LIM_EQ.forEach(([k,t,h])=>{ const r=el("div","vestrow"+(+mx[k]>0?" on":"")); r.innerHTML=`<span><b></b><small style="display:block;color:var(--muted);font-weight:400"></small></span><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="—"><span class="u">kg</span>`;
     r.querySelector("b").textContent=t; r.querySelector("small").textContent=h; const i=r.querySelector("input"); i.value= +mx[k]>0? mx[k] : ""; i.setAttribute("aria-label","Massimo "+t);
-    i.onchange=()=>{ const p=state.profile; if(!p) return; p.equipment=p.equipment||{items:[...draft.equipment.items],other:draft.equipment.other}; const v=Math.max(0,+String(i.value).replace(",",".")||0); eqMaxSet(k,v); r.classList.toggle("on",v>0); if(logCtx) (logCtx.exercises||[]).forEach(x=>{ if(!(x.sets||[]).some(z=>z.done)) x.prog=progFor(x); });
+    i.onchange=()=>{ const p=state.profile; if(!p) return; p.equipment=p.equipment||{items:[...draft.equipment.items],other:draft.equipment.other}; const v=Math.max(0,+String(i.value).replace(",",".")||0); eqMaxSet(k,v); r.classList.toggle("on",v>0); if(logCtx){ (logCtx.exercises||[]).forEach(x=>{ if(!x.cmb&&!(x.sets||[]).some(z=>z.done)) applyProg(x); }); saveLive(); }
       toast(v? `${t}: massimo ${fmt(v)} kg` : `${t}: nessun limite`); };
     box.appendChild(r); }); }
 $("eqOpen").onclick=()=>{ renderEquip(); go("attrezzatura"); };
