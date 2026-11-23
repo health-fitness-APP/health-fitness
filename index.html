@@ -1633,6 +1633,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
     <button role="tab" data-d="recipes" aria-selected="false">Ricette</button>
   </div>
   <div id="d-plan">
+  <section class="card" id="omegaCard" hidden></section>
   <section class="card" id="phaseCard" hidden>
     <button class="raceRow pg-row" id="phRow" type="button" aria-expanded="false"><span class="mi">⚖️</span><span class="mt"><b id="phTitle">Fase della dieta</b><span class="ms"><span class="pill na" id="phPill">…</span> <span id="phSub"></span></span></span><span class="chev">›</span></button>
     <div id="phBody" hidden>
@@ -2537,7 +2538,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.56 (prodotti di Family Manager nei pasti con i valori dell'etichetta)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.57 (omega 3 proposto nella dieta, come la creatina)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -4711,7 +4712,7 @@ function renderDiet(){
   try{ renderDietInner(); } finally {
     const has=!$("dietPlanCard").hidden||!$("upPlanCard").hidden, dp=$("d-plan");
     dp.classList.toggle("has-diet",has);
-    const order= has? ["phaseCard","upPlanCard","dietPlanCard","dietWeekCard","dietChatCard","dietMore","dietAiCard","upCard"] : ["phaseCard","upCard","upPlanCard","dietMore","dietAiCard","dietPlanCard","dietWeekCard","dietChatCard"];
+    const order= has? ["phaseCard","upPlanCard","dietPlanCard","omegaCard","dietWeekCard","dietChatCard","dietMore","dietAiCard","upCard"] : ["phaseCard","upCard","upPlanCard","dietMore","dietAiCard","dietPlanCard","dietWeekCard","dietChatCard"];
     order.forEach(id=>{ const n=$(id); if(n&&n.parentNode===dp) dp.appendChild(n); }); applyOrder(dp,"dieta");
     $("dietAiTitle").textContent= has&&!upActive()? "✨ Rifai o cambia la dieta" : "✨ Ti preparo la dieta";
   }
@@ -4719,6 +4720,7 @@ function renderDiet(){
 function renderDietInner(){
   renderUploaded();
   const on=upActive();
+  if(on&&$("omegaCard")) $("omegaCard").hidden=true;
   $("dietAiCard").hidden=on; if(on){ $("dietPlanCard").hidden=true; $("dietChatCard").hidden=true; if($("dietWeekCard")) $("dietWeekCard").hidden=true; return; }
   renderDietAI();
 }
@@ -4796,11 +4798,12 @@ function weekTargets(){
 }
 /* l'AI sbaglia spesso le somme: ricalibro io le porzioni perché ogni giorno arrivi esattamente all'obiettivo */
 function niceG(g){ return g>=40? Math.round(g/5)*5 : g>=10? Math.round(g) : Math.round(g*2)/2; }
-function scaleFood(f,k){ const g=+f.grams||0; if(!g||!isFinite(k)||k===1) return f; const g0=+f._g0||g; let ng=Math.max(g0*0.5,Math.min(g0*1.8,g*k)); ng=snapG(f,ng,0); if(ng===g) return f; const q=ng/g;   // sempre una dose vera (porzioni sotto)
+function scaleFood(f,k){ if(f&&f.supp) return f; const g=+f.grams||0; if(!g||!isFinite(k)||k===1) return f; const g0=+f._g0||g; let ng=Math.max(g0*0.5,Math.min(g0*1.8,g*k)); ng=snapG(f,ng,0); if(ng===g) return f; const q=ng/g;   // sempre una dose vera (porzioni sotto)
   return {...f, grams:ng, kcal:Math.round((+f.kcal||0)*q), p:Math.round((+f.p||0)*q*10)/10, c:Math.round((+f.c||0)*q*10)/10, f:Math.round((+f.f||0)*q*10)/10}; }
 /* porzioni vere: ogni alimento ha un minimo, un massimo e un'unità pratica (1 uovo, 1 vasetto, 5 g di olio…), niente dosi inventate */
 // [regola sul nome, min g, max g, passo g, unità (singolare, plurale) se si conta a pezzi]
 const PORTIONS=[
+  [/omega|olio di pesce|olio di krill/,1,3,1,["capsula","capsule"]],   // v4.57: capsule da 1 g
   [/albume|albumi/,60,300,30,["albume","albumi"]],
   [/\buov[oa]\b|uova sode|frittata/,50,200,50,["uovo","uova"]],
   [/proteine in polvere|whey|polvere proteica|isolat/,15,60,15,["misurino","misurini"]],
@@ -4945,7 +4948,7 @@ function calibrateMeals(meals,tgt){
     const dk=tgt.kcal-sum().kcal; if(Math.abs(dk)<=tgt.kcal*0.015) break;
     let best=null;
     ms.forEach((m,mi)=>{ const lock=m.foods.some(isSpread)||m.foods.some(f=>{ const x=fnorm(f.name); return CEREAL_RE.test(x)&&!NOT_CEREAL_RE.test(x); });   // non rompo le proporzioni pane/marmellata e cereali/latte
-      m.foods.forEach((f,fi)=>{ const g=+f.grams||0; if(!g||!(+f.kcal>0)||lock) return; const R=portionOf(f), st=R? R[3] : 5, g0=+f._g0||g;
+      m.foods.forEach((f,fi)=>{ const g=+f.grams||0; if(!g||!(+f.kcal>0)||lock||f.supp) return; const R=portionOf(f), st=R? R[3] : 5, g0=+f._g0||g;
         const ng=snapG(f,g+Math.sign(dk)*st,dk>0?1:0); if(ng===g||ng<g0*0.4||ng>g0*2.2) return;
         const dkc=(+f.kcal)*(ng/g-1), left=Math.abs(dk-dkc); if(left>=Math.abs(dk)) return;
         const score=left-(share(f,"c",4)>0.45? 15 : 0);   // a parità, meglio i carboidrati
@@ -4970,7 +4973,7 @@ function cutToTarget(meals,tgtK,pre){
       const spr=m.foods.some(isSpread), cer=nm.some(isCer), pair=new Set();
       nm.forEach((x,i)=>{ if((spr&&(isSpread(m.foods[i])||SUPPORT_RE.test(x)))||(cer&&(isCer(x)||MILK_RE.test(x)||YOG_RE.test(x)))) pair.add(i); });
       const groups=[...(pair.size? [[...pair]] : []), ...m.foods.map((_,i)=>i).filter(i=>!pair.has(i)).map(i=>[i])];
-      groups.forEach(g=>{ const k=g.reduce((a,i)=>a+(+m.foods[i].kcal||0),0); if(k<=0) return;
+      groups.forEach(g=>{ const k=g.reduce((a,i)=>a+(+m.foods[i].kcal||0),0); if(k<=0||g.some(i=>m.foods[i].supp)) return;
         const left=Math.abs(over-k); if(left>=over) return;
         const f0=m.foods[g[0]], n0=fnorm(f0.name), gs=sumFoods(g.map(i=>m.foods[i])), carb=gs.kcal>0&&gs.c*4/gs.kcal>0.45, prot=gs.kcal>0&&gs.p*4/gs.kcal>0.3, fat=gs.kcal>0&&gs.f*9/gs.kcal>0.5;
         const score=left+(pre&&carb? 150 : 0)+(prot? 60 : 0)-(fat? 40 : 0)+(/verdur|insalat|zucchin|pomodor|carot|broccol|finocch|spinac|minestron/.test(n0)? 40 : 0);   // prima via grassi e dolci, carboidrati se c'è il carico per domani, proteine per ultime
@@ -5069,9 +5072,11 @@ function renderDietAI(){
   if(document.activeElement!==$("dietPrefs") && !$("dietPrefs").value) $("dietPrefs").value = (state.diet&&state.diet.prefs) || (state.profile&&state.profile.foodPrefs) || "";
   if(state.diet&&state.diet.plan&&Array.isArray(state.diet.plan.days)&&state.diet.plan.days.length&&!state.diet.plan.calibrated){ state.diet.plan=calibratePlan(state.diet.plan); save("diet",state.diet); }
   if(state.diet&&state.diet.plan&&!(state.diet.plan.fixV>=6)){ state.diet.plan=fixSpreadPlan(state.diet.plan); save("diet",state.diet); }
+  try{ omegaSync(); }catch(e){ console.warn("omega",e); }
   const plan=state.diet&&state.diet.plan, days=planDays(plan);
   if($("dietAuto")){ $("dietAuto").value=dietAutoMode(); $("dietAuto").onchange=e=>{ try{ localStorage.setItem("hf:dietAuto",e.target.value); }catch{} toast(e.target.value==="auto"?"La dieta si adatterà da sola":e.target.value==="ask"?"Ti chiederò prima di adattare la dieta":"Adattamento automatico disattivato"); }; }
   $("dietPlanCard").hidden=!days.length; $("dietChatCard").hidden=!days.length||!sample; $("dietWeekCard").hidden=!days.length;
+  try{ renderOmegaCard(days); }catch(e){ console.warn("omega",e); }
   if(!days.length) return;
   const todayWd=new Date(state.date+"T12:00:00").getDay();
   if(dietDayIdx==null||!days[dietDayIdx]){ const i=days.findIndex(d=>d.weekday===todayWd); dietDayIdx= i>=0? i : 0; }
@@ -5224,6 +5229,7 @@ Profilo completo: ${profileSummary()}.
 Obiettivi per ciascun giorno: la SOMMA degli alimenti di ogni giorno deve arrivare a queste kcal e proteine (tolleranza ±3%); prima di rispondere controlla i totali e aggiusta le grammature:
 ${wt.map(d=>`- ${d.name} (weekday ${d.wd}) – ${d.train? d.label.toUpperCase()+(d.when?" alle "+d.when:"") : "riposo"}${d.pre?` (+${d.pre} kcal di carboidrati per preparare ${d.preLabel} del giorno dopo: mettili soprattutto a cena)`:""}: ${d.kcal} kcal, proteine ${d.p} g, carboidrati ${d.c} g, grassi ${d.f} g`).join("\n")}
 Composizione corporea e metabolismo: peso ${p.weight} kg${tg.fatPct?`, grasso ${fmt(tg.fatPct)}%, massa magra ${fmt(tg.lbm)} kg`:""}; metabolismo basale ${r(tg.bmr)} kcal (${tg.bmrSrc}); fabbisogno senza allenamenti ${r(tg.tdee)} kcal. Obiettivo: ${goalOf(p).t} → ${goalOf(p).mult<1?"deficit":"surplus"} del ${Math.round(Math.abs(1-goalOf(p).mult)*100)}% nei giorni di riposo.
+Omega 3: se le preferenze lo permettono metti pesce grasso (salmone, sgombro, sardine, alici, trota) almeno 2 volte a settimana. Se tra gli integratori c'è l'omega 3 mettilo UNA sola volta al giorno, a pranzo o a cena, con il nome esatto della lista.
 Adatta i pasti al tipo di allenamento: prima di corse lunghe o intense carboidrati facili (colazione o spuntino 1-3 ore prima) e cena precedente ricca di carboidrati; dopo la forza un pasto con almeno 30-40 g di proteine; nei giorni di riposo meno carboidrati e più verdure, proteine stabili.
 Pasti di ogni giorno, con questi id esatti: ${JSON.stringify(mealList().map(m=>({id:m.id,name:m.name,dove:m.where||"casa"})))}.
 Dove mangia: nei pasti "casa" usa soprattutto i cibi che ha in casa; nei pasti "schiscetta" piatti facili da preparare a casa e portare (freddi o da scaldare); nei pasti "fuori" scelte realistiche da bar, mensa o ristorante (es. insalatona con proteine, primo semplice, piadina, poke), senza grammature impossibili da controllare.
@@ -10323,7 +10329,7 @@ async function notifSchedule(){ const L=LN(); if(!L||localStorage.getItem("hf:no
       push(shiftDate(d,2),MZ_AT,"📏 Misure del corpo","Non le hai ancora prese: bastano 5 minuti, la mattina a digiuno."); } }catch{} }
   if(out.length) try{ await L.schedule({notifications:out}); }catch(e){ console.warn("notifiche",e); } }
 /* riquadri nascosti: dal Profilo si rimettono */
-const HIDE_KEYS=[["hf:waterOff","💧 Acqua","1"],["hf:chalOff","🎯 Sfide del mese","1"],["hf:warmOff","🔥 Proposta del riscaldamento in palestra","1"],["hf:stretchOff","🧘 Proposta dello stretching a fine seduta","1"],["hf:kneeAskOff","🦵 Proposta degli esercizi per le ginocchia","1"]];
+const HIDE_KEYS=[["hf:waterOff","💧 Acqua","1"],["hf:chalOff","🎯 Sfide del mese","1"],["hf:warmOff","🔥 Proposta del riscaldamento in palestra","1"],["hf:stretchOff","🧘 Proposta dello stretching a fine seduta","1"],["hf:kneeAskOff","🦵 Proposta degli esercizi per le ginocchia","1"],["hf:omegaOff","🐟 Proposta dell'omega 3 nella dieta","1"]];
 const SEEN_KEYS=["hf:fatSeen","hf:fuelSeen","hf:nightSeen","hf:painSeen","hf:deloadSeen","hf:weekSeen","hf:monthSeen"];
 function renderHiddenBox(id){ const box=$(id||"hiddenBox"); if(!box) return; box.innerHTML=""; const re=()=>{ renderHiddenBox(); renderHidCard(); }; const g=k=>{ try{ return localStorage.getItem(k); }catch{ return null; } };
   const h=el("h3",null,"👁 Riquadri nascosti"); h.style.cssText="margin:14px 0 4px;font-size:1rem"; box.appendChild(h);
@@ -10891,6 +10897,46 @@ function suppMealsOf(iso){ const out=[]; const ml=mealList(), nm=id=>(ml.find(m=
   if(iso===state.date) Object.keys(state.day.meals||{}).forEach(k=>(state.day.meals[k]||[]).forEach(f=>out.push({k:suppKey(f.name),meal:nm(k)})));
   return out; }
 function suppInMeal(x,iso){ const k=suppKey(x&&x.name); if(!k) return ""; const f=suppMealsOf(iso||state.date).find(y=>y.k===k); return f? f.meal : ""; }
+/* v4.57: omega 3 nella dieta, come la creatina. Se è tra i suoi integratori l'app lo mette da sola in un pasto di ogni giorno
+   (una volta sola al giorno: se c'è già, anche messo dall'AI, non lo ripete; nel pasto non si scala e non si toglie).
+   Se non lo prende, nella pagina Dieta il riquadro «Omega 3» lo propone in base al pesce grasso del piano; «No, grazie» = hf:omegaOff. */
+function omegaFishRe(){ return /salmon|sgombr|sardin|\balic[ei]\b|acciug|aring|trota|pesce spada|tonno fresco|pesce azzurro|lanzard|sugarell/; }
+function isOmegaName(n){ return suppKey(n)==="omega"||/olio di (pesce|krill)/.test(fnorm(n||"")); }
+function omegaSupp(){ return ((state.profile||{}).supplements||[]).find(x=>x&&x.name&&isOmegaName(x.name))||null; }
+function omegaFood(x){ const n=Math.max(1,Math.min(3,parseInt(String(x&&x.dose||"").match(/(\d+)\s*(caps|g\b)/i)?.[1]||"2",10)||2));
+  return {name:x.name, grams:n, kcal:9*n, p:0, c:0, f:n, supp:"omega"}; }
+function omegaMealId(x,meals){ const ids=(meals||[]).map(m=>m.id), pick=(...w)=>w.find(i=>ids.includes(i));
+  return (x.when==="mattina"? pick("colazione") : x.when==="sera"? pick("cena") : pick("pranzo","cena","colazione"))||ids[0]; }
+function omegaPlan(plan){ if(!plan||!Array.isArray(plan.days)||!plan.days.length) return plan;
+  const x=omegaSupp(); let changed=false;
+  const days=plan.days.map(d=>{ let meals=(d.meals||[]).map(m=>({...m,foods:[...(m.foods||[])]}));
+    // tolto dalla lista: via quelli che aveva messo l'app
+    if(!x){ meals.forEach(m=>{ const n=m.foods.length; m.foods=m.foods.filter(f=>f.supp!=="omega"); if(m.foods.length!==n) changed=true; }); return {...d,meals}; }
+    let train=true; if(["allenamento","pre","post"].includes(x.when)){ try{ const iso=planDayISO(d.weekday); const pl=dayPlanFor(d.weekday,iso); train=!!pl&&pl.kind!=="rest"; }catch{} }
+    const has=meals.some(m=>m.foods.some(f=>isOmegaName(f.name)));
+    meals.forEach(m=>m.foods.forEach((f,i)=>{ if(isOmegaName(f.name)&&!f.supp){ m.foods[i]={...f,supp:"omega"}; changed=true; } }));
+    if(train&&!has&&meals.length){ const id=omegaMealId(x,meals), m=meals.find(y=>y.id===id); if(m){ m.foods.push(omegaFood(x)); changed=true; } }
+    if(!train&&has){ meals.forEach(m=>{ const n=m.foods.length; m.foods=m.foods.filter(f=>f.supp!=="omega"); if(m.foods.length!==n) changed=true; }); }
+    return {...d,meals}; });
+  return changed? {...plan,days} : plan; }
+function planDayISO(wd){ const t=new Date(todayISO()+"T12:00:00"), off=(wd-t.getDay()+7)%7; return shiftDate(todayISO(),off); }
+function omegaSync(){ if(!state.diet||!state.diet.plan) return false; const np=omegaPlan(state.diet.plan); if(np===state.diet.plan) return false; state.diet.plan=np; save("diet",state.diet); return true; }
+function omegaFishWeek(days){ let n=0; (days||[]).forEach(d=>(d.meals||[]).forEach(m=>{ if((m.foods||[]).some(f=>omegaFishRe().test(fnorm(f.name||"")))) n++; })); return n; }
+function renderOmegaCard(days){ const card=$("omegaCard"); if(!card) return; let off=false; try{ off=localStorage.getItem("hf:omegaOff")==="1"; }catch{}
+  card.hidden= !days||!days.length||off||!!omegaSupp(); if(card.hidden) return; card.innerHTML="";
+  const fish=omegaFishWeek(days), hd=el("div","meal-head"); hd.appendChild(el("h2",null,"🐟 Omega 3")); card.appendChild(hd);
+  card.appendChild(el("p",null, fish>=2? `Nella tua dieta c'è pesce grasso (salmone, sgombro, sardine, alici, trota…) ${fish} volte a settimana: già così arrivi a una buona quota di omega 3. Se vuoi, puoi aggiungerli anche come integratore, come la creatina.`
+    : `Nella tua dieta c'è pesce grasso (salmone, sgombro, sardine, alici, trota…) ${fish===0? "mai" : "solo una volta"} a settimana: ne servirebbero almeno 2 per avere abbastanza omega 3 (EPA e DHA). Puoi aggiungerli come integratore: li metto io in un pasto ogni giorno, come la creatina, e li segni quando mangi quel pasto.`));
+  card.appendChild(el("p","note","Dose indicativa: 2 capsule da 1 g di olio di pesce al giorno (circa 0,6-1 g di EPA+DHA, guarda l'etichetta), a pranzo o a cena: con un pasto si assorbono meglio. È una stima, non un consiglio medico. Se prendi anticoagulanti o antiaggreganti (es. warfarin, Coumadin, eparina, aspirina tutti i giorni), hai problemi di coagulazione, devi operarti o sei allergico al pesce, chiedi prima al medico."));
+  const row=el("div"); row.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px";
+  const ad=el("button","btn","+ Aggiungilo alla dieta"); ad.type="button";
+  ad.onclick=()=>{ if(omegaSupp()) return; const L=[...(((state.profile||{}).supplements)||[]).filter(x=>x&&x.name), {name:"Omega 3",dose:"2 capsule",when:"giorno"}];
+    state.profile={...(state.profile||{}),supplements:L}; save("profile",state.profile); try{ if(typeof draft!=="undefined"&&draft) draft.supplements=JSON.parse(JSON.stringify(L)); }catch{}
+    omegaSync(); try{ notifSchedule(); }catch{} renderDiet(); try{ renderSuppCard(); }catch{}
+    toast("Omega 3 aggiunto: lo trovi a pranzo ogni giorno, lo segni insieme al pasto. Dose e momento li cambi in Cibo → Integratori",5000); };
+  const no=el("button","btn ghost","No, grazie"); no.type="button";
+  no.onclick=()=>{ try{ localStorage.setItem("hf:omegaOff","1"); }catch{} card.hidden=true; toast("Ok, non te lo propongo più. Lo rimetti da Profilo → Riquadri nascosti",4000); };
+  row.append(ad,no); card.appendChild(row); }
 function renderSuppCard(){ const card=$("suppCard"); if(!card) return; const L0=suppToday(), inM=L0.map(x=>[x,suppInMeal(x)]).filter(a=>a[1]), L=L0.filter(x=>!suppInMeal(x)), all=((state.profile||{}).supplements||[]).filter(x=>x&&x.name);
   if(typeof sdraft!=="undefined"&&sdraft&&view==="cibo"){ card.hidden=true; return; }
   card.hidden= view!=="cibo"; if(card.hidden) return; card.innerHTML="";
@@ -12204,7 +12250,7 @@ Rispondi SOLO con JSON in italiano: {"items":[{"name":"string","verdict":"ok"|"r
 };
 $("suppSave").onclick=()=>{ const L=(sdraft&&sdraft.supplements||[]).map(x=>({...x,name:String(x.name||"").trim(),dose:String(x.dose||"").trim()})).filter(x=>x.name);
   state.profile={...(state.profile||{}),supplements:L}; save("profile",state.profile); if(draft) draft.supplements=JSON.parse(JSON.stringify(L));
-  toast("Integratori salvati"); try{ notifSchedule(); }catch{} suppClose(); };
+  toast("Integratori salvati"); try{ if(omegaSync()) renderDiet(); }catch{} try{ notifSchedule(); }catch{} suppClose(); };
 $("suppCancel").onclick=suppClose;
 function renderMealRows(){
   const pres=$("presets"); pres.innerHTML="";
