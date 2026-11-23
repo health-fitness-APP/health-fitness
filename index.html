@@ -2545,7 +2545,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.65 (foto del prodotto anche per gli integratori già in lista)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.66 (dose letta dalla foto salvata subito e messa nella dieta)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -10996,8 +10996,13 @@ function suppPlan(plan){ if(!plan||!Array.isArray(plan.days)||!plan.days.length)
     // via quelli messi dall'app che non servono più (tolti dalla lista, o giorno di riposo per «solo allenamento»)
     meals.forEach(m=>{ const n=m.foods.length; m.foods=m.foods.filter(f=>!((f.suppAuto||f.supp==="omega")&&!want.some(x=>suppIs(x.name,f.name)))); if(m.foods.length!==n){ dch=true; kcalAdd=true; } });
     want.forEach(x=>{ let found=false;
-      meals.forEach(m=>m.foods.forEach((f,i)=>{ if(suppIs(x.name,f.name)){ found=true; if(!f.supp){ m.foods[i]={...f,supp:1}; dch=true; }
-        else if(f.suppAuto){ const nf=suppFood(x); if(nf.grams!==f.grams||nf.kcal!==f.kcal||nf.unit!==f.unit||nf.name!==f.name){ m.foods[i]={...nf,done:f.done}; dch=true; if(nf.kcal!==f.kcal) kcalAdd=true; } } } }));
+      const moves=[];
+      meals.forEach(m=>m.foods.forEach((f,i)=>{ if(!suppIs(x.name,f.name)) return; found=true;
+        // v4.66: la dose della lista (o letta dalla foto) vince sempre, anche su quello messo dall'AI; e va nel pasto del suo «quando»
+        const nf=suppFood(x); if(!f.suppAuto) delete nf.suppAuto;
+        if(!f.supp||nf.grams!==f.grams||nf.kcal!==f.kcal||nf.unit!==f.unit||nf.name!==f.name){ m.foods[i]={...nf,...(f.done?{done:f.done}:{})}; dch=true; if(nf.kcal!==(+f.kcal||0)) kcalAdd=true; }
+        const want=suppMealId(x,meals,pl); if(want&&want!==m.id&&x.when&&x.when!=="giorno") moves.push([m,i,want]); }));
+      moves.reverse().forEach(([m,i,want])=>{ const t=meals.find(y=>y.id===want); if(!t) return; const [f]=m.foods.splice(i,1); t.foods.push(f); dch=true; });
       if(!found&&meals.length){ const id=suppMealId(x,meals,pl), m=meals.find(y=>y.id===id)||meals[0], f=suppFood(x); m.foods.push(f); dch=true; if(f.kcal>0) kcalAdd=true; } });
     if(!dch) return d; changed=true;
     if(kcalAdd&&wt){ const tt=wt.find(t=>t.wd===d.weekday); if(tt) try{ return {...d,meals:calibrateMeals(meals,{kcal:tt.kcal,p:tt.p})}; }catch{} }
@@ -12395,13 +12400,25 @@ Rispondi SOLO con JSON in italiano: {"name":"nome breve generico, es. Omega 3, C
     out.appendChild(el("p","note","È una stima, non un consiglio medico. Se prendi farmaci (per esempio anticoagulanti), hai una malattia, sei in gravidanza o devi operarti, chiedi prima al medico o al farmacista."));
     const ex= row0&&sdraft&&sdraft.supplements.includes(row0)? row0 : ((sdraft&&sdraft.supplements)||[]).find(x=>x&&x.name&&(suppIs(x.name,r.name)||suppIs(r.name,x.name)));
     const b=el("button","btn",ex? `Usa questa dose per «${ex.name}»` : "+ Aggiungi con questa dose"); b.type="button"; b.style.marginTop="8px";
-    b.onclick=()=>{ if(!sdraft) suppOpen(); sdraft.supplements=sdraft.supplements||[];
+    const apply=auto=>{ if(!sdraft) suppOpen(); sdraft.supplements=sdraft.supplements||[]; const before=JSON.parse(JSON.stringify((state.profile&&state.profile.supplements)||[])), beforeDiet=state.diet&&state.diet.plan? JSON.parse(JSON.stringify(state.diet.plan)) : null;
       const product={name:r.product||r.name, unitTxt:per.txt||"", verdict:r.verdict||"", per:{g:+per.g>0? +per.g : (u==="g"? 1 : null), kcal:per.kcal!=null? +per.kcal : null, p:per.p!=null? +per.p : null, c:per.c!=null? +per.c : null, f:per.f!=null? +per.f : null}, d:todayISO()};
       const tgt= ex&&sdraft.supplements.includes(ex)? ex : ((sdraft.supplements)||[]).find(x=>x&&x.name&&(suppIs(x.name,r.name)||suppIs(r.name,x.name)));
       if(tgt) Object.assign(tgt,{dose,when:wh,product}); else sdraft.supplements.push({name:r.name,dose,when:wh,product});
       if(tgt&&r.name&&!suppIs(tgt.name,r.name)&&!suppIs(r.name,tgt.name)) tgt.name=r.name;   // prodotto di un altro tipo: il nome segue quello nuovo
-      renderSupps(); b.textContent="✓ Fatto: tocca Salva"; b.disabled=true; toast("Tocca Salva: la dose entra anche nella dieta",4000); };
+      // v4.66: si salva subito (prima serviva anche «Salva» e la dieta restava com'era)
+      const L2=sdraft.supplements.map(x=>({...x,name:String(x.name||"").trim(),dose:String(x.dose||"").trim()})).filter(x=>x.name);
+      state.profile={...(state.profile||{}),supplements:L2}; save("profile",state.profile); try{ if(typeof draft!=="undefined"&&draft) draft.supplements=JSON.parse(JSON.stringify(L2)); }catch{}
+      let inDiet=""; try{ suppSync(); const nm=(tgt||{}).name||r.name, wd=new Date(todayISO()+"T12:00:00").getDay(), d=planDays(state.diet&&state.diet.plan).find(z=>z.weekday===wd);
+        const m=d&&(d.meals||[]).find(mm=>(mm.foods||[]).some(f=>suppIs(nm,f.name))); if(m) inDiet=(mealList().find(q=>q.id===m.id)||{}).name||m.name||m.id; }catch{}
+      try{ renderDiet(); }catch{} try{ notifSchedule(); }catch{} renderSupps();
+      b.hidden=true; const ok=el("p","note"); ok.style.cssText="font-weight:700;color:var(--basil);margin-top:8px";
+      ok.textContent=`✓ Salvato: ${dose} ${W[wh].toLowerCase()}${inDiet? `, nella dieta a ${inDiet.toLowerCase()}` : (state.diet&&state.diet.plan? ", aggiunto alla dieta" : ". Quando crei la dieta lo metto nei pasti")}.`; out.appendChild(ok);
+      const un=el("button","link","Annulla"); un.type="button"; un.onclick=()=>{ state.profile={...(state.profile||{}),supplements:before}; save("profile",state.profile); if(beforeDiet&&state.diet){ state.diet.plan=beforeDiet; save("diet",state.diet); }
+        sdraft.supplements=JSON.parse(JSON.stringify(before)); renderSupps(); try{ renderDiet(); }catch{} ok.remove(); un.remove(); b.hidden=false; b.disabled=false; toast("Annullato"); }; out.appendChild(un);
+      if(!auto) toast("Dose salvata e dieta aggiornata",3000); };
+    b.onclick=()=>apply(false);
     out.appendChild(b);
+    if(r.verdict!=="no") apply(true); else b.textContent="Usalo comunque con questa dose";
   }catch(err){ setStatus("suppShotStatus",(err&&err.message)||errCopy(err),true); }
   finally{ $("suppShotBtn").disabled=false; try{ out.scrollIntoView({behavior:"smooth",block:"start"}); }catch{} } };
 
