@@ -2538,7 +2538,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.59 (tutti gli integratori della lista nella dieta, come la creatina)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.60 (gilet zavorrato e serie partono dal peso consigliato)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5443,6 +5443,9 @@ function lastText(name){ const l=lastFor(name); if(!l) return "";
 function repRange(r){ const m=String(r||"").match(/(\d+)\s*[-–/a]\s*(\d+)/); if(m) return [+m[1],+m[2]]; const n=+firstNum(r); return n? [n,n] : null; }
 const BW_RE=/trazion|pull.?up|chin.?up|push.?up|piegament|dip|parallele|squat a corpo|air squat|affond|lunge|sit.?up|crunch|plank|burpee|pistol|step.?up|mountain|jump|muscle.?up|ponte|glute bridge|hollow|leg raise|australian|inverted row|corpo libero|bodyweight|calisthenics/i;
 function isBodyweight(x){ const eq=(x.equip||"").toLowerCase(); if(/corpo libero|bodyweight/.test(eq)) return true; if(eq&&!/gilet/.test(eq)) return false; return BW_RE.test(x.name||"")&&!/bilanciere|manubr|kettlebell|macchina|machine|cav|pulley|smith|press/i.test(x.name||""); }
+/* allenamento già aperto: se il consiglio dice di aumentare il gilet e non hai ancora fatto serie, gilet e serie prendono il peso consigliato */
+function vestSync(x){ try{ if(!x||!x.bw||x.vestAuto||!(+x.vest>0)||(x.sets||[]).some(z=>z.done)) return; const pg=x.prog||progFor(x), lv=lastVest(x.name);
+  if(pg&&pg.kind==="up"&&+pg.kg>+x.vest&&+x.vest===lv){ x.vest=+pg.kg; x.sets.forEach(z=>{ if(!z.done&&(z.kg===""||+z.kg===lv)) z.kg=x.vest; }); } x.vestAuto=1; }catch(e){} }
 function lastVest(name){ const l=lastFor(name); if(!l) return 0; const v=(l.ex.sets||[]).find(z=>z.vest&&+z.kg>0); return v? +v.kg : 0; }
 const hasVestEq=()=>{ try{ return trainOf? !!((state.profile&&state.profile.equipment&&state.profile.equipment.items)||[]).includes("Gilet zavorrato") : false; }catch{ return false; } };
 function isTimed(x){ return /\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||"")); }
@@ -9030,7 +9033,7 @@ function openLogger(a,di){
         if(x.detail&&!x.sets) return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:x.rest||"",cardio:true,sets:[{text:last&&last.ex.sets[0]&&last.ex.sets[0].text||"",done:false}]};
         const dl=deloadOn(state.date), n=Math.max(dl? 2 : 1,Math.min(10,(+x.sets||3)-(dl&&(+x.sets||3)>2? 1 : 0))), timed=/\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||""));
         const pg=progFor(x), rr=repRange(x.reps);
-        const bw=isBodyweight({name:x.name,equip:x.equip||exEquip(x)}), lv=bw? lastVest(x.name) : 0;
+        const bw=isBodyweight({name:x.name,equip:x.equip||exEquip(x)}), lv0=bw? lastVest(x.name) : 0, lv= lv0&&pg&&pg.kind==='up'&&+pg.kg>lv0? +pg.kg : lv0;
         const cmb=exParts(x.name).length>0; if(cmb) return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),rawReps:x.reps||"",cmb:true,bw:false,
           sets:Array.from({length:n},()=>({kg:"",reps:"",text:"",done:false}))};
         return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),timed,repsLabel:timed? String(x.reps).trim() : "",prog:pg,bw,vest:lv,rr,
@@ -9238,6 +9241,7 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
     const body=el("div","sx-body");
     if(logCtx.rf&&isLegEx(x)) body.appendChild(el("div","note","🏃 Versione amica della corsa: lascia 2-3 ripetizioni di margine in ogni serie, niente cedimento, scendi controllato."));
     if(!x.custom&&!x.cardio) body.appendChild(memBox(x)); else { const lt=lastText(x.name); if(lt&&!x.custom) body.appendChild(el("div","sx-last",lt)); }
+    vestSync(x);
     if(x.bw||x.custom){ const v=el("div","vestrow"+(+x.vest>0?" on":""));
       v.innerHTML=`<span>🦺 Gilet zavorrato</span><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" aria-label="Kg del gilet"><span class="u">kg</span>`;
       const vi=v.querySelector("input"); vi.value= +x.vest>0? x.vest : "";
