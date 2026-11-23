@@ -422,6 +422,7 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .srow .no{font-weight:800;font-size:1.05rem;text-align:center}
 .srow input{width:100%;min-width:0;text-align:center;font:inherit;font-size:1.25rem;font-weight:700;padding:8px 4px;border:0;border-radius:12px;background:var(--surface-solid);color:var(--ink)}
 .srow .u{font-size:.8rem;font-weight:700;color:var(--muted)}
+.rt-box .btn{width:100%;margin:6px 0 12px}.rt-ex{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line,#eee)}.rt-fig{flex:0 0 96px;height:72px;border-radius:12px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center}.rt-fig svg,.rt-fig img{width:100%;height:100%;object-fit:cover}.rt-t{flex:1;min-width:0}
 .srow .bwlab{grid-column:span 2;font-size:.82rem;font-weight:700;color:var(--muted);text-align:center}
 .srow .tplay{width:38px;height:38px;border:0;border-radius:50%;background:var(--basil);color:var(--basil-ink);font-size:1rem;font-weight:800;cursor:pointer;padding:0}
 .srow.done input{opacity:.65}
@@ -2546,7 +2547,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.67 (plank con tocchi alle spalle: figura, guida e niente kg a corpo libero)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.68 (stretching generico = sequenza guidata, foto degli esercizi ricontrollate)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5537,7 +5538,9 @@ function progBase(x){
 /* memoria dei carichi: ultima volta, consiglio di oggi (aumenta / resta / scarica) e storico */
 const e1rm=(kg,reps)=>kg&&reps? kg*(1+reps/30) : 0;
 function memBox(x){ const box=el("div","mem");
-  { const cb=cmbBox(x,n=>openTutorial(n,{name:n,part:1})); if(cb) return cb; } const h=exHistory(x.name,6), pf=liveProg(x), pg=(pf&&pf.deload)? pf : (x.prog||pf); if(pf&&pf.deload&&x.prog&&!x.prog.deload) x.prog=pf;
+  { const cb=cmbBox(x,n=>openTutorial(n,{name:n,part:1})); if(cb) return cb; }
+  { const rk=exRoutine(x.name); if(rk&&STRETCH[rk]){ box.classList.add("first"); box.innerHTML=`<div class="mem-l">🧘 Stretching guidato</div><div class="mem-t">Tocca il pulsante: l'app ti guida esercizio per esercizio con figura, timer e bip. A fine sequenza segna la serie come fatta.</div>`;
+    const b=el("button","btn","▶ Avvia: "+STRETCH[rk].t); b.type="button"; b.style.marginTop="8px"; b.onclick=()=>startStretch(rk); box.appendChild(b); return box; } } const h=exHistory(x.name,6), pf=liveProg(x), pg=(pf&&pf.deload)? pf : (x.prog||pf); if(pf&&pf.deload&&x.prog&&!x.prog.deload) x.prog=pf;
   if(!h.length){ box.classList.add("first"); const bw=x.bw||isBodyweight({name:x.name,equip:x.equip||exEquip(x)}), tps=exGuideFor(x.name);
     box.innerHTML=`<div class="mem-l">📒 Prima volta con questo esercizio</div><div class="mem-t">${x.timed? "Esercizio a tempo: tocca ▶ nella serie, hai 5 secondi per metterti in posizione, poi tieni fino al bip." : bw? `A corpo libero, niente pesi${tps&&tps.reps? ": "+tps.reps : ""}. Fai le ripetizioni con calma e la tecnica giusta, lasciandone 1-2 di margine: dalla prossima volta ti dico quando aumentare.` : "Scegli un peso che ti lasci 1-2 ripetizioni di margine: dalla prossima volta te lo ricordo io e ti dico se aumentare."}</div>`;
     if(tps){ const b=el("button","linkbtn","Come si fa ›"); b.type="button"; b.onclick=()=>openTutorial(x.name,x); box.appendChild(b); } return box; }
@@ -8295,7 +8298,7 @@ const MUSC_RULES=[
 ];
 function exMuscles(x){ if(Array.isArray(x.muscles)&&x.muscles.length) return x.muscles.map(m=>String(m).toLowerCase());
   const n=x.name||""; const out=new Set(); MUSC_RULES.forEach(([re,ms])=>{ if(re.test(n)) ms.forEach(m=>out.add(m)); }); return [...out]; }
-function exEquip(x){ if(x.equip) return x.equip; const n=(x.name||"").toLowerCase();
+function exEquip(x){ if(x.equip) return x.equip; const n=(x.name||"").toLowerCase(); if(/military|lento avanti con bilanciere/.test(n)&&!/macchin|machine|manubr|smith/.test(n)) return "Bilanciere";
   if(/bilanciere|barbell/.test(n)) return "Bilanciere"; if(/manubri|dumbbell/.test(n)) return "Manubri"; if(/kettlebell/.test(n)) return "Kettlebell"; if(/cav|pulley|cable/.test(n)) return "Cavi";
   if(/macchin|machine|press(?!a)|leg curl|leg extension|lat/.test(n)) return "Macchina"; if(/elastic|band/.test(n)) return "Elastico"; if(/trazion|plank|piegament|push.?up|crunch|burpee|affondi(?!.*manubr)/.test(n)) return "Corpo libero"; return ""; }
 function muscleSVG(ms,size){
@@ -8383,6 +8386,10 @@ const IT_EN=[[/panca piana|distension[ei] su panca|bench/,"bench press"],[/panca
 const EQ_IT=[[/manubr/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere/,"b"],[/macchina|machine|smith/,"m"],[/cav[io]|pulley/,"c"],[/kettlebell/,"k"],[/elastic/,"n"],[/corpo libero/,"w"]];
 /* abbinamenti verificati nome italiano → esercizio del Free Exercise DB (il primo che corrisponde vince; per attrezzo: d manubri, b bilanciere, m macchina, s smith, c cavi, k kettlebell, w corpo libero, e EZ, n elastici, _ altrimenti; null = nessuna foto adatta) */
 const EXRULES=[
+ // v4.68: controllo generale degli abbinamenti (prima: australian → trazioni, flessioni laterali → alzate laterali, abduzioni con elastico → macchina)
+ [/australian|rematore invers|inverted row/,{_:"Inverted_Row"}],
+ [/flession\w* lateral\w* (del busto|con|col|al)|side bend|piegament\w* lateral\w* del busto/,{b:"Barbell_Side_Bend",c:"One-Arm_High-Pulley_Cable_Side_Bends",_:"Dumbbell_Side_Bend"}],
+ [/(abduz|abduct).*(elastic|band)|(elastic|band).*(abduz|abduct)/,{_:null}],
  [/curl.?up|mcgill/,{_:"Crunches"}],
  [/dead.?bug/,{_:"Dead_Bug"}],
  [/burpee|wall sit|sedia al muro|hollow|bird.?dog|jumping.?jack|bear crawl|camminata dell.?orso|plank jack|corsa sul posto|high knees|skater|pattinator|salt\w* lateral/,{_:null}],
@@ -8425,6 +8432,8 @@ const EXRULES=[
  [/abdu/,{_:"Thigh_Abductor"}],
  [/addu/,{c:"Cable_Hip_Adduction",_:"Thigh_Adductor"}],
  [/kickback.*tricip|tricip.*kickback/,{_:"Tricep_Dumbbell_Kickback"}],
+ [/kickback.*(glute|gamba|cav|macchin)|glute.*kickback|slanci|calci.*glute/,{c:"One-Legged_Cable_Kickback",_:"Glute_Kickback"}],
+ [/kickback/,{_:"Tricep_Dumbbell_Kickback"}],
  [/kickback|slanci|calci.*glute/,{c:"One-Legged_Cable_Kickback",_:"Glute_Kickback"}],
  [/iperestension.*invers|reverse hyper/,{_:"Reverse_Hyperextension"}],
  [/iperestension|hyperextension|back extension|estension[ei] (lombar|della schiena)/,{_:"Hyperextensions_Back_Extensions"}],
@@ -8510,6 +8519,11 @@ function exFig(name,x){ const n=String(name||"").toLowerCase().normalize("NFD").
   if(/ponte|glute bridge|^bridge/.test(n)&&!/plank|lateral|side/.test(n)&&!EQ_RULE.some(([re])=>re.test(nx))) return /una gamba|single|monopodal/.test(n)? "Ponte su una gamba" : "Ponte per i glutei";
   if(/shoulder.?tap|(plank|plancia).*(tocc|tap)|tocc\w* (alle|delle) spalle/.test(n)) return "Plank con tocchi alle spalle";
   if(/plank laterale|side plank|plank sul fianco/.test(n)) return "Plank laterale";
+  if(/(stretch|allungament)\w*.*(pettoral|petto)|(pettoral|petto).*(stretch|allungament)/.test(n)) return "Pettorali allo stipite";
+  if(/clamshell|conchiglia/.test(n)) return "Conchiglia";
+  if(/abduzion/.test(n)&&/sdraiat|sul fianco|a terra/.test(n)&&!EQ_RULE.some(([re])=>re.test(nx))) return "Abduzioni sul fianco";
+  if(/^skip|\bskip\b|high knees|ginocchia alte/.test(n)) return /bass/.test(n)? "Skip basso" : "Skip alto";
+  if(/calciat|butt.?kick/.test(n)) return "Calciata";
   if(/wall sit|sedia al muro|squat\w*( isometric\w*)? (al|contro il|a) muro|squat isometric|isometric squat/.test(n)) return "Squat al muro";
   if(/calf|polpacc/.test(n)&&!/stretch|allungament/.test(n)){ const free=/corpo libero|a corpo|bodyweight|gradino|muro|scalino/.test(nx)||(x&&x.part&&!EQ_RULE.some(([re])=>re.test(nx))&&!/sedut|seated|pressa|leg press/.test(nx));
     if(free) return /una gamba|monopodal|single|singol/.test(n)? "Polpacci su una gamba" : "Polpacci in piedi"; }
@@ -8562,7 +8576,20 @@ function exdbScore(en,eq,row){ const eqw=new Set(tok(EQW[eq]||"")), a=new Set([.
 function exdbCands(en,eq,n=6){ return EXDB.map(r0=>[exdbScore(en,eq,r0),r0]).sort((x,y)=>y[0]-x[0]).slice(0,n).filter(x=>x[0]>1).map(x=>x[1]); }
 function guessEn(name){ const n=String(name||"").toLowerCase(); const out=[]; IT_EN.forEach(([re,en])=>{ if(re.test(n)){ const last=en.split(" ").pop(); if(!out.join(" ").includes(last)) out.push(en); } }); return out.join(" ")||n; }
 function guessEq(name,x){ const n=(String(name||"")+" "+String((x&&x.equip)||"")).toLowerCase(); const m=EQ_IT.find(([re])=>re.test(n)); return m? m[1] : ""; }
-async function exdbFind(name,x){ const key="hf:exdb:"+exKey(name);
+/* v4.68: «Stretching», «Defaticamento», «Riscaldamento», «Mobilità» generici = una sequenza guidata dell'app (STRETCH), non una foto a caso */
+function exRoutine(name){ const n=String(name||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+  if(!/stretch|allungament|defaticament|cool.?down|riscaldament|warm.?up|mobilita/.test(n)) return null;
+  if(/quadric|femoral|ischio|polpacc|pettoral|tricipit|bicipit|dorsal|collo|glute|adduttor|piriform|flessor|psoas|\bcat\b|gatto|cammello|spall\w* a braccio|braccio incrociato/.test(n)) return null; // stretching di un muscolo preciso: foto sua
+  if(/riscaldament|warm.?up/.test(n)) return "riscaldamento"; if(/mobilita|mattin/.test(n)) return /schiena|lomb/.test(n)? "schiena" : "mattino";
+  if(/corsa|run/.test(n)) return "corsa"; if(/sci\b/.test(n)) return "sci"; if(/schiena|lomb/.test(n)) return "schiena"; return "palestra"; }
+function routineBox(k){ const R=STRETCH[k], w=el("div","rt-box"); if(!R) return w; const tot=R.ex.reduce((a,[,,sec,sd])=>a+sec*(sd?2:1),0);
+  w.appendChild(el("p","tut-sum",`${R.ic||"🧘"} Non è un esercizio solo: è lo stretching guidato «${R.t}», ${R.ex.length} esercizi, circa ${Math.max(1,Math.round(tot/60))} minuti. L'app ti dice quando cambiare, con timer e bip.`));
+  const go0=el("button","btn","▶ Avvia lo stretching guidato"); go0.type="button"; go0.onclick=()=>{ closeTopSheet(); setTimeout(()=>startStretch(k),250); }; w.appendChild(go0);
+  R.ex.forEach(([n,tip,sec,sd],i)=>{ const r0=el("div","rt-ex"), id=STR_IMG[n]; const fig=el("div","rt-fig");
+    if(STR_FIG[n]) fig.innerHTML=figSVG(n); else if(id){ fig.innerHTML=`<img alt="" decoding="async" src="${exImg(id,1)}">`; const im=fig.querySelector("img"); im.onerror=()=>{ if(!im.dataset.r){ im.dataset.r="1"; im.src=exImg(id,1,true); } else fig.remove(); }; }
+    const t=el("div","rt-t"); t.appendChild(el("b",null,`${i+1}. ${n}`)); t.appendChild(el("div","note",`${tip} · ${sec} s${sd?" per lato":""}`)); r0.append(fig,t); w.appendChild(r0); });
+  return w; }
+async function exdbFind(name,x){ const key="hf:exdb:"+exKey(name); if(exRoutine(name)) return {id:null,cands:null};
   let pick=null; try{ pick=localStorage.getItem("hf:exdbPick:"+exKey(name)); }catch{} if(pick) return {id:pick,cands:null};
   const rule=exdbRule(name,x); if(rule!==undefined) return {id:rule,cands:null};   // abbinamento verificato: subito, senza IA
   const saved=localStorage.getItem(key); if(saved) return {id:saved,cands:null};
@@ -8607,6 +8634,7 @@ async function openTutorial(name,x){
   const cbx=cmbBox(x); if(cbx) box.appendChild(cbx);
   if(!cbx){ const ns=Array.isArray(x.sets)? x.sets.length : x.sets, rp=x.reps||x.repsLabel||(Array.isArray(x.sets)&&x.sets[0]&&x.sets[0].reps)||"";
     if(ns||rp) meta.appendChild(el("div","tut-m","📋 "+[ns?ns+" serie":"", rp?"× "+rp:"", x.rest?"⏱ recupero "+x.rest:""].filter(Boolean).join(" "))); }
+  { const rk=exRoutine(name); if(rk&&STRETCH[rk]){ box.appendChild(routineBox(rk)); box.appendChild(top); openSheet("tutSheet"); return; } }
   const parts=exParts(name), vq=n=>{ const fg=exFig(n,{name:n,part:1}); return "https://www.youtube.com/results?search_query="+encodeURIComponent(fg&&STR_VQ[fg]? STR_VQ[fg] : n+" esecuzione corretta tutorial"); };
   if(parts.length){ box.appendChild(el("p","note",`Questo esercizio ne contiene ${parts.length}: ecco come si fa ognuno.`));
     parts.forEach((pn,i)=>{ const h=el("h4","tut-part",(i+1)+". "+pn); box.appendChild(h); box.appendChild(exdbDemo(pn,{name:pn,part:1}));
@@ -9309,7 +9337,7 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
     if(logCtx.rf&&isLegEx(x)) body.appendChild(el("div","note","🏃 Versione amica della corsa: lascia 2-3 ripetizioni di margine in ogni serie, niente cedimento, scendi controllato."));
     if(!x.custom&&!x.cardio) body.appendChild(memBox(x)); else { const lt=lastText(x.name); if(lt&&!x.custom) body.appendChild(el("div","sx-last",lt)); }
     vestSync(x);
-    if(x.bw||x.custom){ const v=el("div","vestrow"+(+x.vest>0?" on":""));
+    if((x.bw||x.custom)&&!x.timed&&!exRoutine(x.name)){ const v=el("div","vestrow"+(+x.vest>0?" on":""));
       v.innerHTML=`<span>🦺 Gilet zavorrato</span><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" aria-label="Kg del gilet"><span class="u">kg</span>`;
       const vi=v.querySelector("input"); vi.value= +x.vest>0? x.vest : "";
       vi.onchange=()=>{ x.vest=Math.max(0,+String(vi.value).replace(",",".")||0); x.bw=true; x.sets.forEach(z=>{ if(!z.done||!z.kg) z.kg= x.vest||""; }); saveLive(); renderLogger(); };
