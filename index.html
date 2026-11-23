@@ -422,6 +422,7 @@ details.pm .body .alt{font-size:.85rem;color:var(--muted);margin:-4px 0 10px}
 .srow .no{font-weight:800;font-size:1.05rem;text-align:center}
 .srow input{width:100%;min-width:0;text-align:center;font:inherit;font-size:1.25rem;font-weight:700;padding:8px 4px;border:0;border-radius:12px;background:var(--surface-solid);color:var(--ink)}
 .srow .u{font-size:.8rem;font-weight:700;color:var(--muted)}
+.srow .bwlab{grid-column:span 2;font-size:.82rem;font-weight:700;color:var(--muted);text-align:center}
 .srow .tplay{width:38px;height:38px;border:0;border-radius:50%;background:var(--basil);color:var(--basil-ink);font-size:1rem;font-weight:800;cursor:pointer;padding:0}
 .srow.done input{opacity:.65}
 .srow.cardio{grid-template-columns:36px 22px minmax(0,1fr)}
@@ -2545,7 +2546,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.66 (dose letta dalla foto salvata subito e messa nella dieta)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.67 (plank con tocchi alle spalle: figura, guida e niente kg a corpo libero)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5449,7 +5450,10 @@ function lastText(name){ const l=lastFor(name); if(!l) return "";
 /* ----- recupero consigliato e progressione dei carichi ----- */
 function repRange(r){ const m=String(r||"").match(/(\d+)\s*[-–/a]\s*(\d+)/); if(m) return [+m[1],+m[2]]; const n=+firstNum(r); return n? [n,n] : null; }
 const BW_RE=/trazion|pull.?up|chin.?up|push.?up|piegament|dip|parallele|squat a corpo|air squat|affond|lunge|sit.?up|crunch|plank|burpee|pistol|step.?up|mountain|jump|muscle.?up|ponte|glute bridge|hollow|leg raise|australian|inverted row|corpo libero|bodyweight|calisthenics/i;
-function isBodyweight(x){ const eq=(x.equip||"").toLowerCase(); if(/corpo libero|bodyweight/.test(eq)) return true; if(eq&&!/gilet/.test(eq)) return false; return BW_RE.test(x.name||"")&&!/bilanciere|manubr|kettlebell|macchina|machine|cav|pulley|smith|press/i.test(x.name||""); }
+/* v4.67: «Tappetino», «Sbarra», «Panca»… non sono pesi: decide il nome. Solo bilanciere, manubri, macchine, cavi, elastici… tolgono il corpo libero */
+const W_EQ=/bilanciere|manubr|kettlebell|macchin|machine|cav[oi]|pulley|smith|elastic|band|disch|palla medica|medicine|sacca|landmine|pressa|leg press|trx/;
+function isBodyweight(x){ const eq=(x.equip||"").toLowerCase(), nm=x.name||"", wName=/bilanciere|manubr|kettlebell|macchina|machine|cav|pulley|smith|press/i.test(nm);
+  if(/corpo libero|bodyweight|tappetin|nessun|a terra/.test(eq)&&!W_EQ.test(eq)) return !wName; if(eq&&W_EQ.test(eq)&&!/gilet/.test(eq)) return false; return BW_RE.test(nm)&&!wName; }
 /* allenamento già aperto: se il consiglio dice di aumentare il gilet e non hai ancora fatto serie, gilet e serie prendono il peso consigliato */
 /* l'esercizio dell'allenamento in corso non ha più le ripetizioni della scheda (x.reps): le ricostruisco, altrimenti il consiglio usa 8-12 per errore */
 function liveProg(x){ if(!x) return null; const rr=x.rr, reps= x.reps || (rr? (rr[0]===rr[1]? String(rr[0]) : rr[0]+"-"+rr[1]) : x.repsLabel||"");
@@ -5503,7 +5507,7 @@ function progBase(x){
   if(isTimed(x)) return null;
   const n=String(x.name||"").toLowerCase().trim(), hist2=[];
   for(let i=tlog.sessions.length-1;i>=0&&hist2.length<3;i--){ const ex=(tlog.sessions[i].exercises||[]).find(e=>sameEx(e.name,x.name)); if(ex&&ex.sets&&ex.sets.length&&!ex.sets[0].text) hist2.push({date:tlog.sessions[i].date,sets:ex.sets,eff:ex.eff||""}); }
-  if(!hist2.length) return {kind:"new",text:"Prima volta: scegli un peso che ti lasci 1-2 ripetizioni di margine a fine serie."};
+  if(!hist2.length) return {kind:"new",text: isBodyweight({name:x.name,equip:x.equip||exEquip(x)})? "Prima volta: a corpo libero, niente pesi. Fai le ripetizioni indicate con la tecnica giusta, lasciandone 1-2 di margine." : "Prima volta: scegli un peso che ti lasci 1-2 ripetizioni di margine a fine serie."};
   const rr=repRange(x.reps)||[8,12], [lo,hi]=rr, last=hist2[0], kgs=last.sets.map(s=>+s.kg||0), top=Math.max(...kgs);
   const target=+x.sets||last.sets.length, work=last.sets.filter(s=>(+s.kg||0)===top), reps=work.map(s=>+s.reps||0);
   const step=kgStep(x.name);
@@ -5534,7 +5538,9 @@ function progBase(x){
 const e1rm=(kg,reps)=>kg&&reps? kg*(1+reps/30) : 0;
 function memBox(x){ const box=el("div","mem");
   { const cb=cmbBox(x,n=>openTutorial(n,{name:n,part:1})); if(cb) return cb; } const h=exHistory(x.name,6), pf=liveProg(x), pg=(pf&&pf.deload)? pf : (x.prog||pf); if(pf&&pf.deload&&x.prog&&!x.prog.deload) x.prog=pf;
-  if(!h.length){ box.classList.add("first"); box.innerHTML=`<div class="mem-l">📒 Prima volta con questo esercizio</div><div class="mem-t">Scegli un peso che ti lasci 1-2 ripetizioni di margine: dalla prossima volta te lo ricordo io e ti dico se aumentare.</div>`; return box; }
+  if(!h.length){ box.classList.add("first"); const bw=x.bw||isBodyweight({name:x.name,equip:x.equip||exEquip(x)}), tps=exGuideFor(x.name);
+    box.innerHTML=`<div class="mem-l">📒 Prima volta con questo esercizio</div><div class="mem-t">${x.timed? "Esercizio a tempo: tocca ▶ nella serie, hai 5 secondi per metterti in posizione, poi tieni fino al bip." : bw? `A corpo libero, niente pesi${tps&&tps.reps? ": "+tps.reps : ""}. Fai le ripetizioni con calma e la tecnica giusta, lasciandone 1-2 di margine: dalla prossima volta ti dico quando aumentare.` : "Scegli un peso che ti lasci 1-2 ripetizioni di margine: dalla prossima volta te lo ricordo io e ti dico se aumentare."}</div>`;
+    if(tps){ const b=el("button","linkbtn","Come si fa ›"); b.type="button"; b.onclick=()=>openTutorial(x.name,x); box.appendChild(b); } return box; }
   const last=h[0], when=new Date(last.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
   const setsTxt=last.sets.map(z=>z.text? z.text : (+z.kg? fmt(z.kg)+"×" : "")+(z.reps||"?")).join(" · ");
   const K={up:["📈","Aumenta","up"],hold:["🎯","Resta","hold"],down:["📉",pg&&pg.deload?"Scarico":"Scarica","down"],new:["📒","",""],cap:["🎯","Al massimo","hold"]}[pg&&pg.kind||"hold"]||["🎯","Resta","hold"];
@@ -8064,6 +8070,8 @@ Object.assign(STR_FIG,{
  "Passi laterali":{front:1,props:FIG_GROUND,dur:3.2,poses:(()=>{ const a={H:[100,34],N:[100,48],S1:[88,52],S2:[112,52],E1:[84,70],W1:[94,82],E2:[116,70],W2:[106,82],P:[100,92],Q1:[94,94],Q2:[106,94],K1:[82,116],A1:[80,138],T1:[75,139],K2:[118,116],A2:[120,138],T2:[125,139]};
    const sh=(o,dx)=>{ const q={}; Object.keys(o).forEach(k=>q[k]=[o[k][0]+dx,o[k][1]]); return q; }, n={...a,K1:[90,116],A1:[92,138],T1:[87,139],K2:[110,116],A2:[108,138],T2:[113,139]};
    return [sh(a,-24),sh(n,-12),a,sh(n,12),sh(a,24),sh(n,12),a,sh(n,-12),sh(a,-24)]; })()},
+ "Plank con tocchi alle spalle":{props:FIG_GROUND,dur:3.6,poses:(()=>{ const a={H:[148,92],N:[134,99],P:[92,119],E1:[134,120],W1:[134,140],E2:[134,120],W2:[134,140],K1:[70,129],A1:[50,138],T1:[46,140],K2:[70,129],A2:[50,138],T2:[46,140]};
+   const t1={...a,E1:[153,110],W1:[138,98]}, t2={...a,E2:[153,110],W2:[138,98]}; return [a,t1,a,t2,a]; })()},
  "Plank laterale":{props:FIG_GROUND,hold:1,poses:(()=>{ const a={H:[52,96],N:[62,104],P:[106,126],E2:[62,140],W2:[82,140],E1:[82,108],W1:[100,116],K1:[132,132],A1:[158,138],T1:[162,134],K2:[132,134],A2:[158,140],T2:[162,136]}; return [a,{...a,H:[52,92],N:[62,100],P:[106,114],E1:[82,104],W1:[100,110],K1:[132,126]}]; })()}
 });
 /* v4.50: figure per la schiena e l'addome a corpo libero (esercizi del coach a casa) */
@@ -8092,7 +8100,7 @@ function figSVG(name){ const F=STR_FIG[name]; if(!F) return ""; const base=F.fro
 /* v3.86: foto degli esercizi di stretching e riscaldamento (Free Exercise DB, ospitate in ex/) + pulsante video per tutti */
 const STR_IMG={"Polpacci al muro":"Calf_Stretch_Hands_Against_Wall","Flessori dell'anca":"Kneeling_Hip_Flexor","Femorali seduto":"Seated_Floor_Hamstring_Stretch","Glutei a figura 4":"Ankle_On_The_Knee","Adduttori a farfalla":"Groin_and_Back_Stretch","Dorsali in ginocchio":"Childs_Pose","Spalle a braccio incrociato":"Shoulder_Stretch","Tricipiti dietro la testa":"Triceps_Stretch","Ginocchia al petto":"Hug_Knees_To_Chest","Collo":"Side_Neck_Stretch","Cerchi con le braccia":"Arm_Circles","Gatto e mucca":"Cat_Stretch","Squat a corpo libero":"Bodyweight_Squat","Affondi alternati":"Bodyweight_Walking_Lunge","Ponte per i glutei":"Butt_Lift_Bridge","Piegamenti facili":"Incline_Push-Up","Affondo con rotazione":"Worlds_Greatest_Stretch","Caviglie":"Standing_Soleus_And_Achilles_Stretch","Femorali sdraiato":"Hamstring_Stretch","Piriforme seduto":"Dancers_Stretch"};
 const STR_NOVID=/^(recupero|respirazione|torna camminando|cardio leggero|allungo \d)$/i;
-const STR_VQ={"Abduzioni in piedi":"abduzione anca in piedi esercizio","Ponte su una gamba":"ponte glutei su una gamba esercizio","Squat al muro":"wall sit squat al muro esercizio","Affondo indietro":"affondo indietro corpo libero esecuzione","Discesa dal gradino":"step down eccentrico ginocchio esercizio","Polpacci su una gamba":"calf raise una gamba sul gradino","Equilibrio su una gamba":"equilibrio su una gamba esercizio propriocettivo","Passi laterali":"passi laterali con elastico esercizio glutei","Plank laterale":"plank laterale esecuzione corretta"};
+const STR_VQ={"Plank con tocchi alle spalle":"plank shoulder tap tocchi alle spalle esecuzione corretta","Abduzioni in piedi":"abduzione anca in piedi esercizio","Ponte su una gamba":"ponte glutei su una gamba esercizio","Squat al muro":"wall sit squat al muro esercizio","Affondo indietro":"affondo indietro corpo libero esecuzione","Discesa dal gradino":"step down eccentrico ginocchio esercizio","Polpacci su una gamba":"calf raise una gamba sul gradino","Equilibrio su una gamba":"equilibrio su una gamba esercizio propriocettivo","Passi laterali":"passi laterali con elastico esercizio glutei","Plank laterale":"plank laterale esecuzione corretta"};
 function strVidQ(n){ if(STR_VQ[n]) return "https://www.youtube.com/results?search_query="+encodeURIComponent(STR_VQ[n]); return "https://www.youtube.com/results?search_query="+encodeURIComponent(n+" "+(STRETCH[STR.k]&&STRETCH[STR.k].warm? "riscaldamento palestra esercizio" : STR.k==="tecnica"? "andature corsa esercizio" : STR.k==="ginocchia"? "esercizio rinforzo ginocchia corsa" : "stretching come si fa")); }
 function strDraw(){ const ov=$("strOv"); if(!ov||!STR) return; const s=STR.steps[STR.i], R=STRETCH[STR.k], nx=STR.steps[STR.i+1];
   const upd=()=>{ const t=ov.querySelector(".str-t"); t.textContent= STR.prep>0? `Pronto… ${STR.prep}` : `${STR.left}`; t.classList.toggle("prep",STR.prep>0); ov.querySelector('[data-a="pause"]').textContent= STR.run? "Pausa" : "Riprendi"; };
@@ -8500,6 +8508,7 @@ function exFig(name,x){ const n=String(name||"").toLowerCase().normalize("NFD").
   if(/retroversion|antiversion|bacino (avanti|indietro)|pelvic tilt|inclinazion\w* (del )?bacino/.test(n)) return "Bacino avanti e indietro";
   if(/respirazion\w* (diaframm|sdraiat|addominal)/.test(n)) return "Respirazione sdraiato";
   if(/ponte|glute bridge|^bridge/.test(n)&&!/plank|lateral|side/.test(n)&&!EQ_RULE.some(([re])=>re.test(nx))) return /una gamba|single|monopodal/.test(n)? "Ponte su una gamba" : "Ponte per i glutei";
+  if(/shoulder.?tap|(plank|plancia).*(tocc|tap)|tocc\w* (alle|delle) spalle/.test(n)) return "Plank con tocchi alle spalle";
   if(/plank laterale|side plank|plank sul fianco/.test(n)) return "Plank laterale";
   if(/wall sit|sedia al muro|squat\w*( isometric\w*)? (al|contro il|a) muro|squat isometric|isometric squat/.test(n)) return "Squat al muro";
   if(/calf|polpacc/.test(n)&&!/stretch|allungament/.test(n)){ const free=/corpo libero|a corpo|bodyweight|gradino|muro|scalino/.test(nx)||(x&&x.part&&!EQ_RULE.some(([re])=>re.test(nx))&&!/sedut|seated|pressa|leg press/.test(nx));
@@ -8577,6 +8586,17 @@ function exdbDemo(name,x){ const wrap=el("div","demo"); wrap.innerHTML=`<div cla
       cap.appendChild(ch); };
     show(f.id); })();
   const cap=el("div","demo-cap"); wrap.appendChild(cap); wrap.appendChild(el("p","demo-cr","Foto: Free Exercise DB (pubblico dominio)")); return wrap; }
+/* v4.67: guide scritte a mano per gli esercizi con figura (l'AI li spiegava male): vincono sulla guida dell'AI */
+const EX_GUIDE={"Plank con tocchi alle spalle":{reps:"20 ripetizioni = 20 tocchi in tutto, 10 per mano",
+  summary:"Rinforza addome e spalle: il lavoro vero è NON far ruotare il bacino mentre una mano si stacca da terra.",
+  setup:["Mettiti a quattro zampe sul tappetino, poi distendi le gambe indietro: sei nella posizione alta dei piegamenti, braccia tese.","Mani sotto le spalle, piedi un po' più larghi delle anche (più larghi = più facile stare fermi).","Corpo dritto dalla testa ai talloni: pancia e glutei contratti, sguardo a terra."],
+  steps:["Sposta un po' il peso sulla mano sinistra.","Stacca la mano destra e tocca la spalla sinistra, poi rimettila a terra sotto la spalla.","Ora fai lo stesso con l'altra: la mano sinistra tocca la spalla destra e torna giù.","Continua alternando, piano (circa 1 tocco al secondo): ogni tocco conta 1.","Il bacino resta fermo e alla stessa altezza, come se avessi un bicchiere d'acqua sulla schiena."],
+  breathing:"Respira normalmente e con calma, senza trattenere il fiato.",
+  mistakes:["Bacino che dondola a destra e sinistra a ogni tocco.","Sedere troppo alto o pancia che cade verso il pavimento.","Andare veloce: conta il controllo, non la velocità.","Piedi uniti: rendono l'esercizio molto più instabile."],
+  tips:["Se il bacino si muove, allarga i piedi o rallenta.","Se senti male ai polsi, appoggia le mani su un rialzo o stringi i pugni."],
+  easier:"Con le ginocchia a terra, oppure con le mani su una panca o sul bordo del divano.",
+  harder:"Piedi più vicini, oppure fermati 2 secondi con la mano sulla spalla."}};
+function exGuideFor(name){ const fg=exFig(name,{name}); return fg&&EX_GUIDE[fg]||null; }
 async function openTutorial(name,x){
   x=x||{name}; $("tutTitle").textContent=name; const box=$("tutBody"); box.innerHTML="";
   const ms=exMuscles(x), eq=exEquip(x);
@@ -8608,6 +8628,7 @@ async function openTutorial(name,x){
     sec("Errori da evitare",t.mistakes); sec("Consigli",t.tips);
     if(t.easier||t.harder){ g.appendChild(el("h4",null,"Varianti")); if(t.easier) g.appendChild(el("p",null,"⬇️ Più facile: "+t.easier)); if(t.harder) g.appendChild(el("p",null,"⬆️ Più difficile: "+t.harder)); }
     g.appendChild(el("p","note","Guida scritta dal coach AI: se senti dolore fermati e chiedi a un professionista.")); };
+  { const fx=exGuideFor(name); if(fx&&!parts.length){ draw(fx); if(fx.reps) g.insertBefore(el("p","tut-sum","🔢 "+fx.reps),g.children[1]||null); const nt=g.querySelector("p.note:last-child"); if(nt) nt.textContent="Se senti dolore (polsi, spalle, schiena) fermati e chiedi a un professionista."; return; } }
   if(cache[k]){ draw(cache[k]); return; }
   if(!sample){ g.appendChild(el("p","note","Per la guida passo passo serve l'AI (Profilo → Impostazioni). Intanto puoi guardare il video.")); return; }
   g.appendChild(el("p","note","Il coach sta scrivendo la guida…"));
@@ -9268,6 +9289,7 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
     if(why||logCtx.rf){ const rb=el("button","btn ghost ss-tog"+(logCtx.rf?" on":""), logCtx.rf? "🏃 Gambe amiche della corsa: attive · tocca per tornare alla scheda" : `🏃 ${why.charAt(0).toUpperCase()+why.slice(1)}: fai le gambe in versione amica della corsa (una serie in meno, niente cedimento)`); rb.type="button"; rb.style.marginBottom="10px";
       rb.onclick=()=>{ rfApply(!logCtx.rf); renderLogger(); toast(logCtx.rf? "Gambe: una serie in meno e lascia 2-3 ripetizioni di margine" : "Scheda normale"); }; box.appendChild(rb); } }catch(e){ console.warn("gambe corsa",e); }
   logCtx.exercises.forEach((x,xi)=>{
+    if(!x.bw&&!x.cmb&&!x.cardio&&!x.custom&&!(x.sets||[]).some(z=>+z.kg>0)&&isBodyweight({name:x.name,equip:x.equip})) x.bw=true; // v4.67: allenamenti già aperti
     const done=x.sets.filter(z=>z.done).length, all=done===x.sets.length&&x.sets.length>0;
     const card=el("div","sx"+(x.closed?" closed":"")), h=el("div","sx-h");
     const fig=el("div","sx-fig"); fig.innerHTML=muscleSVG(x.muscles||exMuscles(x),58);
@@ -9302,7 +9324,8 @@ function renderLogger(){ try{ setTimeout(renderSesCoach,0); }catch{}
         const rp=el("input"); if(x.timed){ rp.type="text"; rp.placeholder="tempo"; } else { rp.type="number"; rp.inputMode="numeric"; rp.placeholder="–"; }
         rp.value=st.reps; rp.setAttribute("aria-label",(x.timed?"Tempo":"Ripetizioni")+" serie "+(si+1)); rp.oninput=()=>{ st.reps=rp.value; saveLive(); };
         let un=el("span","u",x.timed?"TEMPO":"RIP."); if(x.timed&&!st.done){ un=el("button","tplay","▶"); un.type="button"; un.setAttribute("aria-label","Avvia il timer della serie "+(si+1)); un.onclick=()=>tmStart(xi,si); }
-        row.append(dot,el("span","no",String(si+1)),kg,el("span","u",x.bw&&+x.vest>0?"🦺 KG":"KG"),rp,un);
+        if(x.bw&&!(+x.vest>0)&&!(+st.kg>0)){ const bl=el("span","bwlab","corpo libero"); row.append(dot,el("span","no",String(si+1)),bl,rp,un); }
+        else row.append(dot,el("span","no",String(si+1)),kg,el("span","u",x.bw&&+x.vest>0?"🦺 KG":"KG"),rp,un);
         row.addEventListener("focusin",()=>showRecent(row,x,si));
         row.addEventListener("focusout",()=>setTimeout(()=>{ if(!row.contains(document.activeElement)){ delete row.dataset.picked; const r0=(row.closest(".srow-w")||row).nextElementSibling; if(r0&&r0.classList.contains("srecent")) r0.remove(); } },0)); }
       /* scorri la serie a sinistra e tocca Elimina, come nella dieta */
