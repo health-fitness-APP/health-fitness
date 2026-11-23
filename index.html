@@ -2545,7 +2545,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.64 (consiglio, gilet e serie sempre uguali: peso e ripetizioni di oggi)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.65 (foto del prodotto anche per gli integratori già in lista)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -12308,6 +12308,8 @@ function renderSupps(){
     const wh=el("select","field"); SUPP_WHEN.forEach(([v,l])=>{ const o=el("option",null,l); o.value=v; wh.appendChild(o); }); wh.value=x.when||"giorno"; wh.setAttribute("aria-label","Quando"); wh.onchange=()=>{ x.when=wh.value; };
     const del=el("button","del","×"); del.type="button"; del.setAttribute("aria-label","Togli integratore"); del.onclick=()=>{ sdraft.supplements.splice(i,1); renderSupps(); };
     row.append(nm,ds,wh,del);
+    { const ph=el("button","link",x.product&&x.product.name? "📷 Cambia prodotto (foto)" : "📷 Foto del prodotto"); ph.type="button"; ph.style.cssText="grid-column:1/3;justify-self:start;padding:2px 0";
+      ph.onclick=()=>{ if(!String(x.name||"").trim()){ toast("Scrivi prima il nome dell'integratore"); return; } suppShotIdx=i; $("suppShotBtn").onclick(); }; row.appendChild(ph); }
     if(x.product&&x.product.name){ const pr=el("div","note"); pr.style.gridColumn="1/3"; pr.textContent=`📦 ${x.product.name}${x.product.unitTxt? " · "+x.product.unitTxt : ""}${x.product.verdict? " · "+({ok:"✅ va bene",rivedi:"⚠️ da rivedere",no:"❌ sconsigliato"}[x.product.verdict]||"") : ""}`; row.appendChild(pr); }
     box.appendChild(row); });
   if(!$("suppList")){ const dl=document.createElement("datalist"); dl.id="suppList"; SUPPS.forEach(n=>{ const o=document.createElement("option"); o.value=n; dl.appendChild(o); }); document.body.appendChild(dl); }
@@ -12353,8 +12355,10 @@ $("suppCancel").onclick=suppClose;
 /* v4.63: prima una lettura SOLO dell'etichetta (mostrata a Daniele con le miniature delle foto), poi il calcolo della dose con il profilo.
    v4.62: foto dell'integratore comprato → l'AI legge prodotto e contenuto per capsula/misurino, dice quanto prenderne per il suo obiettivo
    e se va bene; «Usa questa dose» aggiorna (o aggiunge) la riga in lista con dose, momento e x.product (valori per unità), che la dieta usa. */
-$("suppShotBtn").onclick=()=>{ if(!sample||!imgLimits){ setStatus("suppShotStatus","Per leggere le foto serve l'AI attiva (Profilo → Impostazioni AI).",true); return; } $("suppShot").click(); };
-$("suppShot").onchange=async e=>{ const files=[...(e.target.files||[])].slice(0,Math.min(4,(imgLimits&&imgLimits.maxCount)||3)); $("suppShot").value=""; if(!files.length) return;
+let suppShotIdx=null;   // v4.65: foto per una riga già in lista (cambio prodotto → la rivaluta, non ne crea un'altra)
+$("suppShotBtn").onclick=()=>{ if(!sample||!imgLimits){ suppShotIdx=null; setStatus("suppShotStatus","Per leggere le foto serve l'AI attiva (Profilo → Impostazioni AI).",true); return; } $("suppShot").click(); };
+$("suppShot").onchange=async e=>{ const files=[...(e.target.files||[])].slice(0,Math.min(4,(imgLimits&&imgLimits.maxCount)||3)); $("suppShot").value=""; if(!files.length){ suppShotIdx=null; return; }
+  const row0= suppShotIdx!=null&&sdraft&&sdraft.supplements? sdraft.supplements[suppShotIdx] : null; suppShotIdx=null;
   const out=$("suppShotOut"); out.innerHTML=""; $("suppShotBtn").disabled=true; setStatus("suppShotStatus",`Leggo ${files.length===1? "la foto" : "le "+files.length+" foto"} dell'etichetta…`);
   try{ const imgs=[]; for(const f of files) imgs.push(await shrinkFile(f,1600));
     // v4.63: le foto che ho mandato, così si vede cosa ha ricevuto l'AI
@@ -12365,12 +12369,13 @@ Rispondi SOLO con JSON in italiano: {"readable":true|false,"why":"se non è legg
     if(!L||L.readable===false||!(L.product||L.brand||L.perUnit)){ setStatus("suppShotStatus","Non riesco a leggere l'etichetta"+(L&&L.why? ": "+L.why : "")+". Rifai la foto più vicina alla tabella dei valori, con buona luce e senza riflessi.",true); return; }
     const rd=el("div","suppres"); rd.innerHTML=`<b>📄 Cosa ho letto nelle foto</b><div class="d" style="white-space:pre-line"></div>`;
     rd.querySelector(".d").textContent=[[L.brand,L.product].filter(Boolean).join(" · "), L.perUnit? "In 1 unità: "+L.perUnit : "", L.labelDose? "Dose in etichetta: "+L.labelDose : "", L.count? "Confezione: "+L.count : "", L.text? "\n"+L.text : ""].filter(Boolean).join("\n");
+    if(row0) out.insertBefore(el("p","note",`Foto per «${row0.name}» della tua lista: la rivaluto per il nuovo prodotto.`),out.firstChild);
     out.appendChild(rd); out.appendChild(el("p","note","Se qui sopra c'è qualcosa di diverso dalla tua confezione, la foto non è stata letta bene: rifalla più vicina all'etichetta."));
     setStatus("suppShotStatus","Ho letto l'etichetta, ora calcolo la dose per te…");
     const list=((sdraft&&sdraft.supplements)||[]).filter(x=>String(x.name||"").trim());
     const r=await sample.json(`${coachContext()}
 
-COMPITO ADESSO (ignora le istruzioni sulle righe SCHEDA, GIORNO, GIORNI, PROFILO e RICORDA): questa persona ha comprato questo integratore. Dati LETTI dall'etichetta (usa questi, non inventare valori diversi): ${JSON.stringify(L)}.
+COMPITO ADESSO (ignora le istruzioni sulle righe SCHEDA, GIORNO, GIORNI, PROFILO e RICORDA): questa persona ha comprato questo integratore.${row0? ` Sostituisce quello che aveva in lista come «${row0.name}»${row0.dose? " ("+row0.dose+")" : ""}${row0.product&&row0.product.name? ", prodotto precedente "+row0.product.name+(row0.product.unitTxt? " ("+row0.product.unitTxt+")" : "") : ""}: ricalcola la dose per il nuovo prodotto e nel giudizio di' in breve se è meglio o peggio del precedente.` : ""} Dati LETTI dall'etichetta (usa questi, non inventare valori diversi): ${JSON.stringify(L)}.
 Come nutrizionista sportivo:
 1) dai un nome breve generico all'integratore e riporta cosa c'è in UNA unità (una capsula, una compressa, un misurino o un grammo di polvere), con grammi di una unità e kcal/proteine/carboidrati/grassi di una unità se ci sono;
 2) calcola quante unità al giorno deve prendere LUI, per il suo peso, obiettivo e allenamenti (palestra e corsa), usando dosi con prove solide; se la dose dell'etichetta è diversa da quella giusta per lui, spiegalo; non superare mai i limiti di sicurezza dell'etichetta;
@@ -12388,16 +12393,17 @@ Rispondi SOLO con JSON in italiano: {"name":"nome breve generico, es. Omega 3, C
     c.querySelector(".d").style.whiteSpace="pre-line"; c.querySelector(".nt").textContent=r.why||""; out.appendChild(c);
     if(r.warn) out.appendChild(el("p","note","⚠️ "+r.warn));
     out.appendChild(el("p","note","È una stima, non un consiglio medico. Se prendi farmaci (per esempio anticoagulanti), hai una malattia, sei in gravidanza o devi operarti, chiedi prima al medico o al farmacista."));
-    const ex=((sdraft&&sdraft.supplements)||[]).find(x=>x&&x.name&&(suppIs(x.name,r.name)||suppIs(r.name,x.name)));
+    const ex= row0&&sdraft&&sdraft.supplements.includes(row0)? row0 : ((sdraft&&sdraft.supplements)||[]).find(x=>x&&x.name&&(suppIs(x.name,r.name)||suppIs(r.name,x.name)));
     const b=el("button","btn",ex? `Usa questa dose per «${ex.name}»` : "+ Aggiungi con questa dose"); b.type="button"; b.style.marginTop="8px";
     b.onclick=()=>{ if(!sdraft) suppOpen(); sdraft.supplements=sdraft.supplements||[];
       const product={name:r.product||r.name, unitTxt:per.txt||"", verdict:r.verdict||"", per:{g:+per.g>0? +per.g : (u==="g"? 1 : null), kcal:per.kcal!=null? +per.kcal : null, p:per.p!=null? +per.p : null, c:per.c!=null? +per.c : null, f:per.f!=null? +per.f : null}, d:todayISO()};
-      const tgt=((sdraft.supplements)||[]).find(x=>x&&x.name&&(suppIs(x.name,r.name)||suppIs(r.name,x.name)));
+      const tgt= ex&&sdraft.supplements.includes(ex)? ex : ((sdraft.supplements)||[]).find(x=>x&&x.name&&(suppIs(x.name,r.name)||suppIs(r.name,x.name)));
       if(tgt) Object.assign(tgt,{dose,when:wh,product}); else sdraft.supplements.push({name:r.name,dose,when:wh,product});
+      if(tgt&&r.name&&!suppIs(tgt.name,r.name)&&!suppIs(r.name,tgt.name)) tgt.name=r.name;   // prodotto di un altro tipo: il nome segue quello nuovo
       renderSupps(); b.textContent="✓ Fatto: tocca Salva"; b.disabled=true; toast("Tocca Salva: la dose entra anche nella dieta",4000); };
     out.appendChild(b);
   }catch(err){ setStatus("suppShotStatus",(err&&err.message)||errCopy(err),true); }
-  finally{ $("suppShotBtn").disabled=false; } };
+  finally{ $("suppShotBtn").disabled=false; try{ out.scrollIntoView({behavior:"smooth",block:"start"}); }catch{} } };
 
 function renderMealRows(){
   const pres=$("presets"); pres.innerHTML="";
