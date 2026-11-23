@@ -2359,6 +2359,11 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
     <h2>💊 I miei integratori</h2>
     <p class="sub">Segna cosa prendi e in che dose: il coach ne tiene conto nei consigli e può dirti se vanno bene per il tuo obiettivo.</p>
     <div id="suppRows"></div>
+    <button class="btn ghost" id="suppShotBtn" type="button">📷 Fotografa un integratore che hai comprato</button>
+    <p class="note" style="margin:4px 0 8px">Foto del fronte e dell'etichetta (anche 2-3 foto insieme): leggo il prodotto, ti dico quante capsule o grammi prendere per il tuo obiettivo e se va bene.</p>
+    <input type="file" id="suppShot" accept="image/*" multiple hidden>
+    <div class="status" id="suppShotStatus" aria-live="polite"></div>
+    <div id="suppShotOut"></div>
     <button class="add soft" id="suppAdd" type="button">+ Aggiungi integratore</button>
     <button class="btn ghost" id="suppAsk" type="button" style="margin-top:10px">🤖 Chiedi al coach</button>
     <div class="status" id="suppStatus" aria-live="polite"></div>
@@ -2540,7 +2545,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.61 (pesi massimi dell'attrezzatura: il coach si adatta finché non compri un attrezzo più pesante)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.62 (foto dell'integratore comprato: dose giusta per te e giudizio sul prodotto)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3629,7 +3634,7 @@ function profileSummary(){
     (()=>{ try{ return painText(); }catch{ return ""; } })(),
     (()=>{ try{ return kneeText(); }catch{ return ""; } })(),
     "pasti: "+mealList().map(m=>m.name+({casa:" (a casa)",schiscetta:" (schiscetta portata da casa)",fuori:" (fuori casa: bar, mensa o ristorante)"}[m.where||"casa"]||"")).join(", "),
-    (p.supplements||[]).filter(x=>x&&x.name).length? "integratori: "+p.supplements.filter(x=>x&&x.name).map(x=>x.name+(x.dose?" "+x.dose:"")+" ("+((SUPP_WHEN.find(w=>w[0]===x.when)||[,""])[1]||"").toLowerCase()+")").join(", ") : "",
+    (p.supplements||[]).filter(x=>x&&x.name).length? "integratori: "+p.supplements.filter(x=>x&&x.name).map(x=>x.name+(x.product&&x.product.name? " ["+x.product.name+(x.product.unitTxt? ": "+x.product.unitTxt : "")+"]" : "")+(x.dose?" "+x.dose:"")+" ("+((SUPP_WHEN.find(w=>w[0]===x.when)||[,""])[1]||"").toLowerCase()+")").join(", ") : "",
     p.foodPrefs? "preferenze alimentari: "+p.foodPrefs : "",
     upActive()? "segue una dieta del nutrizionista" : "",
     ap? (ap.kind==="imported"? "segue la scheda del suo personal trainer: " : "segue il programma del coach: ")+(ap.pr.name||"") : ""
@@ -10958,6 +10963,10 @@ function suppFood(x){ const d=fnorm(x.dose||""), m=d.match(/(\d+(?:[.,]\d+)?)\s*
   if(prot) Object.assign(f,{kcal:Math.round(grams*3.8), p:Math.round(grams*0.78*10)/10, c:Math.round(grams*0.08*10)/10, f:Math.round(grams*0.06*10)/10});
   else if(omega) Object.assign(f,{kcal:Math.round(grams*9), f:grams});
   if(unit){ f.unit=unit; f.portion= unit==="dose"? grams : grams/(n||1); }
+  // v4.62: prodotto letto dalla foto → grammi e valori veri per capsula/misurino
+  const P=x.product; if(P&&P.per){ const per=P.per, k= unit&&unit!=="dose"? n : isG&&+per.g>0? n/(+per.g) : 1;
+    if(+per.g>0&&unit&&unit!=="dose"){ f.grams=Math.max(0.5,Math.round(n*per.g*10)/10); f.portion=+per.g; }
+    ["kcal","p","c","f"].forEach(q=>{ if(per[q]!=null&&isFinite(+per[q])) f[q]=Math.round(+per[q]*k*10)/10; }); f.kcal=Math.round(f.kcal); }
   return f; }
 function suppMealId(x,meals,pl){ const ids=(meals||[]).map(m=>m.id), pick=(...w)=>w.find(i=>ids.includes(i)), first=ids[0], last=ids[ids.length-1];
   const hm=String(pl&&pl.when||"").match(/(\d{1,2})[:.](\d{2})/), th= hm? +hm[1]+ +hm[2]/60 : null, MH={colazione:8,spuntino1:10.5,pranzo:13,spuntini:16.5,spuntino2:16.5,cena:20}, H=i=>MH[i]!=null? MH[i] : 12;
@@ -10980,7 +10989,8 @@ function suppPlan(plan){ if(!plan||!Array.isArray(plan.days)||!plan.days.length)
     // via quelli messi dall'app che non servono più (tolti dalla lista, o giorno di riposo per «solo allenamento»)
     meals.forEach(m=>{ const n=m.foods.length; m.foods=m.foods.filter(f=>!((f.suppAuto||f.supp==="omega")&&!want.some(x=>suppIs(x.name,f.name)))); if(m.foods.length!==n){ dch=true; kcalAdd=true; } });
     want.forEach(x=>{ let found=false;
-      meals.forEach(m=>m.foods.forEach((f,i)=>{ if(suppIs(x.name,f.name)){ found=true; if(!f.supp){ m.foods[i]={...f,supp:1}; dch=true; } } }));
+      meals.forEach(m=>m.foods.forEach((f,i)=>{ if(suppIs(x.name,f.name)){ found=true; if(!f.supp){ m.foods[i]={...f,supp:1}; dch=true; }
+        else if(f.suppAuto){ const nf=suppFood(x); if(nf.grams!==f.grams||nf.kcal!==f.kcal||nf.unit!==f.unit||nf.name!==f.name){ m.foods[i]={...nf,done:f.done}; dch=true; if(nf.kcal!==f.kcal) kcalAdd=true; } } } }));
       if(!found&&meals.length){ const id=suppMealId(x,meals,pl), m=meals.find(y=>y.id===id)||meals[0], f=suppFood(x); m.foods.push(f); dch=true; if(f.kcal>0) kcalAdd=true; } });
     if(!dch) return d; changed=true;
     if(kcalAdd&&wt){ const tt=wt.find(t=>t.wd===d.weekday); if(tt) try{ return {...d,meals:calibrateMeals(meals,{kcal:tt.kcal,p:tt.p})}; }catch{} }
@@ -12279,7 +12289,7 @@ const SUPPS=["Creatina monoidrato","Proteine in polvere (whey)","Proteine vegeta
 const SUPP_WHEN=[["giorno","Ogni giorno"],["allenamento","Solo giorni di allenamento"],["pre","Prima dell'allenamento"],["post","Dopo l'allenamento"],["mattina","Al mattino"],["sera","La sera"]];
 let sdraft=null;
 /* integratori: si modificano nella pagina Cibo (non più nel Profilo) */
-function suppOpen(){ sdraft={supplements:JSON.parse(JSON.stringify((state.profile&&state.profile.supplements)||[]))}; $("suppOut").innerHTML=""; setStatus("suppStatus","");
+function suppOpen(){ sdraft={supplements:JSON.parse(JSON.stringify((state.profile&&state.profile.supplements)||[]))}; $("suppOut").innerHTML=""; setStatus("suppStatus",""); $("suppShotOut").innerHTML=""; setStatus("suppShotStatus","");
   $("suppEdit").hidden=false; $("suppCard").hidden=true; renderSupps(); $("suppEdit").scrollIntoView({behavior:"smooth",block:"start"}); }
 function suppClose(){ sdraft=null; $("suppEdit").hidden=true; renderSuppCard(); }
 function renderSupps(){
@@ -12290,7 +12300,9 @@ function renderSupps(){
     const ds=el("input","field"); ds.value=x.dose||""; ds.placeholder="Dose, es. 5 g"; ds.setAttribute("aria-label","Dose"); ds.oninput=()=>{ x.dose=ds.value; };
     const wh=el("select","field"); SUPP_WHEN.forEach(([v,l])=>{ const o=el("option",null,l); o.value=v; wh.appendChild(o); }); wh.value=x.when||"giorno"; wh.setAttribute("aria-label","Quando"); wh.onchange=()=>{ x.when=wh.value; };
     const del=el("button","del","×"); del.type="button"; del.setAttribute("aria-label","Togli integratore"); del.onclick=()=>{ sdraft.supplements.splice(i,1); renderSupps(); };
-    row.append(nm,ds,wh,del); box.appendChild(row); });
+    row.append(nm,ds,wh,del);
+    if(x.product&&x.product.name){ const pr=el("div","note"); pr.style.gridColumn="1/3"; pr.textContent=`📦 ${x.product.name}${x.product.unitTxt? " · "+x.product.unitTxt : ""}${x.product.verdict? " · "+({ok:"✅ va bene",rivedi:"⚠️ da rivedere",no:"❌ sconsigliato"}[x.product.verdict]||"") : ""}`; row.appendChild(pr); }
+    box.appendChild(row); });
   if(!$("suppList")){ const dl=document.createElement("datalist"); dl.id="suppList"; SUPPS.forEach(n=>{ const o=document.createElement("option"); o.value=n; dl.appendChild(o); }); document.body.appendChild(dl); }
   $("suppAsk").disabled=!sample; $("suppAsk").textContent=sdraft.supplements.some(x=>String(x.name||"").trim())? "🤖 Chiedi al coach se vanno bene e cosa aggiungere" : "🤖 Fatti consigliare dal coach";
 }
@@ -12331,6 +12343,44 @@ $("suppSave").onclick=()=>{ const L=(sdraft&&sdraft.supplements||[]).map(x=>({..
   state.profile={...(state.profile||{}),supplements:L}; save("profile",state.profile); if(draft) draft.supplements=JSON.parse(JSON.stringify(L));
   toast("Integratori salvati"); try{ if(suppSync()) renderDiet(); }catch{} try{ notifSchedule(); }catch{} suppClose(); };
 $("suppCancel").onclick=suppClose;
+/* v4.62: foto dell'integratore comprato → l'AI legge prodotto e contenuto per capsula/misurino, dice quanto prenderne per il suo obiettivo
+   e se va bene; «Usa questa dose» aggiorna (o aggiunge) la riga in lista con dose, momento e x.product (valori per unità), che la dieta usa. */
+$("suppShotBtn").onclick=()=>{ if(!sample||!imgLimits){ setStatus("suppShotStatus","Per leggere le foto serve l'AI attiva (Profilo → Impostazioni AI).",true); return; } $("suppShot").click(); };
+$("suppShot").onchange=async e=>{ const files=[...(e.target.files||[])].slice(0,Math.min(4,(imgLimits&&imgLimits.maxCount)||3)); $("suppShot").value=""; if(!files.length) return;
+  const out=$("suppShotOut"); out.innerHTML=""; $("suppShotBtn").disabled=true; setStatus("suppShotStatus","Leggo l'etichetta e calcolo la dose per te…");
+  try{ const imgs=[]; for(const f of files) imgs.push(await shrinkFile(f,1600));
+    const list=((sdraft&&sdraft.supplements)||[]).filter(x=>String(x.name||"").trim());
+    const r=await sample.json(`${coachContext()}
+
+COMPITO ADESSO (ignora le istruzioni sulle righe SCHEDA, GIORNO, GIORNI, PROFILO e RICORDA): nelle foto c'è un integratore che questa persona ha comprato (fronte, etichetta, tabella dei valori). Come nutrizionista sportivo:
+1) leggi nome, marca, forma (capsule, compresse, polvere, gocce, bustine…) e cosa c'è in UNA unità (una capsula, una compressa, un misurino o un grammo di polvere): sostanza attiva e quantità (es. "1 capsula: 1000 mg olio di pesce, 330 mg EPA, 220 mg DHA"); grammi di una unità e kcal/proteine/carboidrati/grassi di una unità se ci sono;
+2) calcola quante unità al giorno deve prendere LUI, per il suo peso, obiettivo e allenamenti (palestra e corsa), usando dosi con prove solide; se la dose dell'etichetta è diversa da quella giusta per lui, spiegalo; non superare mai i limiti di sicurezza dell'etichetta;
+3) giudica il prodotto: dose di attivo per unità, qualità (es. creatina monoidrato/Creapure, olio di pesce con EPA+DHA dichiarati, vitamina D3), additivi o dosi inutili/eccessive, se serve davvero per il suo obiettivo, doppioni con quello che già prende (${list.length? list.map(x=>x.name+(x.dose?" "+x.dose:"")).join(", ") : "niente"}) e con la sua dieta;
+4) segnala interazioni con farmaci o patologie note (es. omega 3 e anticoagulanti, vitamina K e anticoagulanti, caffeina e pressione, iperico e farmaci) e cosa evitare.
+Se nelle foto non c'è un integratore o non si legge, rispondi {"error":"motivo"}.
+Rispondi SOLO con JSON in italiano: {"name":"nome breve generico, es. Omega 3, Creatina, Vitamina D3","product":"marca e nome commerciale","form":"capsule|compresse|polvere|gocce|bustine|liquido","unit":"capsula|compressa|misurino|g|goccia|bustina|ml","per":{"txt":"cosa c'è in 1 unità, una riga","g":number|null,"kcal":number|null,"p":number|null,"c":number|null,"f":number|null},"units":number,"when":"${SUPP_WHEN.map(w=>w[0]).join('"|"')}","howTxt":"come prenderlo, una frase (es. 2 capsule a pranzo, con il pasto)","verdict":"ok"|"rivedi"|"no","why":"giudizio sul prodotto per lui, 1-2 frasi","labelDose":"dose consigliata in etichetta","warn":"interazioni o cautele, una frase, vuoto se nessuna"}`,{images:imgs,modelTier:"default"});
+    if(!r||r.error||!r.name) throw {message:(r&&r.error)? "Non riesco a leggere il prodotto: "+r.error : "Non riesco a leggere il prodotto: prova una foto più vicina dell'etichetta."};
+    setStatus("suppShotStatus","");
+    const W=Object.fromEntries(SUPP_WHEN), wh=W[r.when]? r.when : "giorno", units=Math.max(0.5,Math.min(20,+r.units||1)), u=String(r.unit||"capsula").toLowerCase();
+    const dose= u==="g"||u==="ml"? `${fmt(units)} ${u}` : `${fmt(units)} ${units===1? u : unitPl(u)}`;
+    const per=r.per||{}, V={ok:["✅","Va bene per te"],rivedi:["⚠️","Da rivedere"],no:["❌","Sconsigliato"]}[r.verdict]||["⚠️","Da rivedere"];
+    const c=el("div","suppres "+(r.verdict==="ok"?"ok":r.verdict==="no"?"inutile":"rivedi")); c.innerHTML=`<b></b><span class="vb"></span><div class="d"></div><div class="nt"></div>`;
+    c.querySelector("b").textContent=`${r.name}${r.product? " · "+r.product : ""}`; c.querySelector(".vb").textContent=V[0]+" "+V[1];
+    c.querySelector(".d").textContent=[per.txt? "In 1 "+(u==="g"?"grammo":u)+": "+per.txt : "", `Per te: ${dose} al giorno · ${W[wh].toLowerCase()}`, r.howTxt||"", r.labelDose? "Etichetta: "+r.labelDose : ""].filter(Boolean).join("\n");
+    c.querySelector(".d").style.whiteSpace="pre-line"; c.querySelector(".nt").textContent=r.why||""; out.appendChild(c);
+    if(r.warn) out.appendChild(el("p","note","⚠️ "+r.warn));
+    out.appendChild(el("p","note","È una stima, non un consiglio medico. Se prendi farmaci (per esempio anticoagulanti), hai una malattia, sei in gravidanza o devi operarti, chiedi prima al medico o al farmacista."));
+    const ex=((sdraft&&sdraft.supplements)||[]).find(x=>x&&x.name&&(suppIs(x.name,r.name)||suppIs(r.name,x.name)));
+    const b=el("button","btn",ex? `Usa questa dose per «${ex.name}»` : "+ Aggiungi con questa dose"); b.type="button"; b.style.marginTop="8px";
+    b.onclick=()=>{ if(!sdraft) suppOpen(); sdraft.supplements=sdraft.supplements||[];
+      const product={name:r.product||r.name, unitTxt:per.txt||"", verdict:r.verdict||"", per:{g:+per.g>0? +per.g : (u==="g"? 1 : null), kcal:per.kcal!=null? +per.kcal : null, p:per.p!=null? +per.p : null, c:per.c!=null? +per.c : null, f:per.f!=null? +per.f : null}, d:todayISO()};
+      const tgt=((sdraft.supplements)||[]).find(x=>x&&x.name&&(suppIs(x.name,r.name)||suppIs(r.name,x.name)));
+      if(tgt) Object.assign(tgt,{dose,when:wh,product}); else sdraft.supplements.push({name:r.name,dose,when:wh,product});
+      renderSupps(); b.textContent="✓ Fatto: tocca Salva"; b.disabled=true; toast("Tocca Salva: la dose entra anche nella dieta",4000); };
+    out.appendChild(b);
+  }catch(err){ setStatus("suppShotStatus",(err&&err.message)||errCopy(err),true); }
+  finally{ $("suppShotBtn").disabled=false; } };
+
 function renderMealRows(){
   const pres=$("presets"); pres.innerHTML="";
   Object.entries(PRESETS).forEach(([k,list])=>{
