@@ -2549,7 +2549,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.86 (sci: caduta e batteria sul telefono, velocità e discese sull'orologio)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.87 (sci: amici sulla mappa dal vivo con un codice di gruppo)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7749,6 +7749,35 @@ async function skiSendPos(kind,btn){ const lab=btn&&btn.textContent; if(btn){ bt
     else { await navigator.clipboard.writeText(msg); toast("Messaggio copiato: incollalo su WhatsApp"); } }
   catch(e){ if(!/cancel|abort/i.test(String(e&&(e.name+" "+e.message)||e))) toast("Posizione: "+((e&&e.message)||e)); }
   finally{ if(btn){ btn.disabled=false; btn.textContent=lab; } } }
+/* amici sulla mappa dal vivo: gruppo con un codice, posizioni nella tabella ski_pos di Supabase (solo chi è nel gruppo le vede, per 14 ore) */
+const SKG_K="hf:skiGroup";
+function skgCode(){ try{ return localStorage.getItem(SKG_K)||""; }catch{ return ""; } }
+function skgSet(c){ try{ if(c) localStorage.setItem(SKG_K,c); else localStorage.removeItem(SKG_K); }catch{} }
+let skgTmr=null, skgMap=null, skgLayer=null, skgLast=0;
+async function skgPush(){ const code=skgCode(); if(!code||!SY.client||!SY.user) return false;
+  let c=null; try{ c=await skiPos(); }catch{ return false; }
+  const name=displayName(state.profile)||"Io"; const r=await SY.client.from("ski_pos").upsert({code,uid:SY.user.id,name,la:c.latitude,lo:c.longitude,alt:c.altitude? Math.round(c.altitude) : null,at:new Date().toISOString()});
+  if(r.error){ console.warn("gruppo",r.error); return false; } skgLast=Date.now(); return true; }
+async function skgPull(){ const code=skgCode(); if(!code||!SY.client) return []; const r=await SY.client.from("ski_pos").select("uid,name,la,lo,alt,at").eq("code",code); return r.error? [] : (r.data||[]); }
+async function skgJoin(code){ code=String(code||"").toUpperCase().replace(/[^A-Z0-9]/g,""); if(code.length<4){ toast("Il codice ha almeno 4 caratteri"); return; }
+  if(!SY.user){ toast("Per il gruppo serve l'accesso: Profilo → Sincronizzazione"); return; } skgSet(code); const ok=await skgPush(); toast(ok? "Sei nel gruppo "+code+" ✓" : "Entrato nel gruppo: la posizione arriva appena c'è il GPS"); renderSci(); }
+async function skgLeave(){ const code=skgCode(); skgSet(""); clearInterval(skgTmr); skgTmr=null; try{ if(SY.client&&SY.user) await SY.client.from("ski_pos").delete().eq("code",code).eq("uid",SY.user.id); }catch{} renderSci(); }
+function skgBox(box){ const code=skgCode(); const w=el("div","skg"); w.appendChild(el("p","ski-fr","👥 Amici sulla mappa (con HealthFit)")); box.appendChild(w);
+  if(!SY.user){ w.appendChild(el("p","note","Serve l'accesso con l'account (Profilo → Sincronizzazione), anche per gli amici.")); return; }
+  if(!code){ const r=el("div","two"); const b1=el("button","btn ghost","Crea un gruppo"); b1.type="button"; b1.onclick=()=>{ const c=Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x%32]).join(""); skgJoin(c).then(()=>{ const C=NAT(), t=`⛷️ Sciamo insieme: in HealthFit, pagina Sci, «Entra in un gruppo» con il codice ${c}`; try{ if(C&&C.Plugins&&C.Plugins.Share) C.Plugins.Share.share({text:t,dialogTitle:"Manda il codice agli amici"}); else if(navigator.share) navigator.share({text:t}); }catch{} }); };
+    const b2=el("button","btn ghost","Entra in un gruppo"); b2.type="button"; b2.onclick=()=>{ const c=prompt("Codice del gruppo"); if(c) skgJoin(c); }; r.append(b1,b2); w.appendChild(r);
+    w.appendChild(el("p","note","Chi è nel gruppo vede la posizione degli altri per oggi. Esci quando vuoi.")); return; }
+  w.appendChild(el("p","sub",`Gruppo ${code}`)); const mb=el("div","rd-map"); w.appendChild(mb); const ls=el("div"); w.appendChild(ls);
+  const r=el("div","two"); const up=el("button","btn ghost","↻ Aggiorna"); up.type="button"; const lv=el("button","btn ghost","Esci dal gruppo"); lv.type="button"; lv.onclick=skgLeave; r.append(up,lv); w.appendChild(r);
+  const draw=async()=>{ const L=await skgPull(), now=Date.now(); ls.innerHTML="";
+    L.sort((a,b)=>a.uid===SY.user.id? -1 : 1).forEach(p=>{ const m=Math.round((now-new Date(p.at))/60000); const r0=el("div","pline"); r0.append(el("span","ic",p.uid===SY.user.id? "🟠" : "🔵"),el("span",null,`${p.uid===SY.user.id? "Tu" : esc(p.name)}${p.alt? ` · ${p.alt} m` : ""} · ${m<1? "adesso" : m+" min fa"}`));
+      if(p.uid!==SY.user.id&&p.la){ const g=el("button","linkbtn","Portami lì"); g.type="button"; g.style.marginLeft="auto"; g.onclick=()=>window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.la},${p.lo}&travelmode=walking`,"_blank"); r0.appendChild(g); } ls.appendChild(r0); });
+    try{ const Lf=await rdLeaflet(); if(!mb.isConnected) return; if(!mb.firstChild){ const d=el("div","rd-mapc"); d.style.height="240px"; mb.appendChild(d); skgMap=Lf.map(d,{zoomControl:true,scrollWheelZoom:false}); Lf.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",{maxZoom:17,attribution:"© OpenStreetMap, OpenTopoMap"}).addTo(skgMap); skgLayer=Lf.layerGroup().addTo(skgMap); }
+      skgLayer.clearLayers(); const P=L.filter(p=>p.la); P.forEach(p=>Lf.circleMarker([p.la,p.lo],{radius:9,color:"#fff",weight:2,fillColor:p.uid===SY.user.id? "#E8692E" : "#2F7FD8",fillOpacity:1}).bindTooltip(p.uid===SY.user.id? "Tu" : String(p.name),{permanent:true,direction:"top",offset:[0,-8]}).addTo(skgLayer));
+      if(P.length===1) skgMap.setView([P[0].la,P[0].lo],14); else if(P.length) skgMap.fitBounds(P.map(p=>[p.la,p.lo]),{padding:[30,30],maxZoom:15}); setTimeout(()=>skgMap.invalidateSize(),200); }catch{} };
+  up.onclick=async()=>{ up.disabled=true; await skgPush(); await draw(); up.disabled=false; };
+  draw(); clearInterval(skgTmr); skgTmr=setInterval(async()=>{ if(!skgCode()||!w.isConnected){ clearInterval(skgTmr); skgTmr=null; return; } if(document.hidden) return; if(Date.now()-skgLast>55000) await skgPush(); await draw(); },60000);
+  if(Date.now()-skgLast>55000) skgPush().then(draw); }
 function skiFriendsRow(box){ const r=el("div","chips"); [["📍 Manda dove sono","here"],["🤝 Punto di ritrovo","meet"]].forEach(([l,k])=>{ const b=el("button","chip",l); b.type="button"; b.onclick=()=>skiSendPos(k,b); r.appendChild(b); }); box.appendChild(r); }
 function skiCostBox(c1,o,S){ const ps=o.pass||{}; const box=el("details","ski-cost"); const sm=el("summary",null,"🎟️ Skipass: quanto ti costa"); box.appendChild(sm);
   const runs=S.its.reduce((a,w)=>a+(+w.runs||0),0), days=S.days, tot= +ps.season>0? +ps.season : days*(+ps.day||0);
@@ -8041,18 +8070,19 @@ function skiLiveCard(c1){ const o=skiLiveGet(), box=el("div","ski-live");
     const wb=el("button","linkbtn","🔥 Prima: 5 minuti di riscaldamento guidato"); wb.type="button"; wb.style.marginTop="6px"; wb.onclick=()=>startStretch("scirisc"); box.appendChild(wb); c1.appendChild(box); return; }
   box.classList.add("on"); const nat=skiLiveNat;
   box.appendChild(el("p","ski-live-h",(o.pAt? "⏸ In pausa" : "🔴 Sto registrando")+` · ${o.type||"Sci"} dalle ${clockOf(o.t0)}`));
-  const g=el("div","ski-grid"); [["Tempo",hmTxt(skiLiveSec(o))],["Km in tutto (con impianti)",nat&&nat.km? fmt(Math.round(nat.km*10)/10) : "–"]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,v),el("span",null,l)); g.appendChild(d); }); g.style.gridTemplateColumns="repeat(2,1fr)"; box.appendChild(g);
+  const g=el("div","ski-grid"); [["Tempo",hmTxt(skiLiveSec(o)),"skiLvT"],["Km in tutto (con impianti)",nat&&nat.km? fmt(Math.round(nat.km*10)/10) : "–","skiLvK"]].forEach(([l,v,id])=>{ const d=el("div","ski-st"); const b0=el("b",null,v); b0.id=id; d.append(b0,el("span",null,l)); g.appendChild(d); }); g.style.gridTemplateColumns="repeat(2,1fr)"; box.appendChild(g);
   const bt=el("p","ski-batt"); bt.hidden=true; box.appendChild(bt);
   try{ if(navigator.getBattery) navigator.getBattery().then(b=>{ if(b.charging||b.level>0.35) return; bt.hidden=false; bt.textContent=`🔋 Batteria al ${Math.round(b.level*100)}%: col freddo si scarica in fretta. Tieni il telefono in una tasca interna, attiva il risparmio energetico e, se puoi, collega una batteria esterna.`; }).catch(()=>{}); }catch{}
   box.appendChild(el("p","note", o.native? "Puoi spegnere lo schermo e mettere il telefono in tasca. Le soste lunghe (pranzo) le tolgo da solo; discese e dislivello li calcolo alla fine." : "Lascia aperta l'app: a fine giornata tocca «Fine»."));
   const qr=el("div","chips"); [["💧 Ho bevuto",()=>skiWater(250)],["🍫 Spuntino",skiSnack]].forEach(([l,f])=>{ const b=el("button","chip",l); b.type="button"; b.onclick=f; qr.appendChild(b); }); box.appendChild(qr);
   box.appendChild(el("p","note","Ogni 75 minuti ti ricordo di bere o mangiare qualcosa con una notifica."));
   box.appendChild(el("p","ski-fr","Con gli amici:")); skiFriendsRow(box);
+  try{ skgBox(box); }catch(e){ console.warn("gruppo",e); }
   const row=el("div","two"); const pb=el("button","btn ghost",o.pAt? "▶ Riprendi" : "⏸ Pausa"); pb.type="button"; pb.onclick=skiLivePause; const eb=el("button","btn","■ Fine giornata"); eb.type="button"; eb.onclick=skiLiveEnd; row.append(pb,eb); box.appendChild(row);
   c1.appendChild(box);
   if(!skiLiveTmr) skiLiveTmr=setInterval(async()=>{ const o2=skiLiveGet(); if(!o2){ clearInterval(skiLiveTmr); skiLiveTmr=null; return; }
     if(o2.native){ const P=HRN(); if(P) try{ skiLiveNat=await P.state(); }catch{} }
-    skiRowSub(); if(view==="allenamento"&&!$("w-sci").hidden) renderSci(); },15000); }
+    skiRowSub(); const t1=$("skiLvT"), k1=$("skiLvK"); if(t1) t1.textContent=hmTxt(skiLiveSec(o2)); if(k1&&skiLiveNat&&skiLiveNat.km) k1.textContent=fmt(Math.round(skiLiveNat.km*10)/10); },15000); }   // aggiorno solo i numeri: ridisegnare la pagina chiudeva mappe e dettagli
 /* ----- rilevamento automatico sul telefono (plugin nativo AutoAct): camminata/corsa/bici, passi, avvisi sci ----- */
 const AAP=()=>{ const C=NAT(); return C&&C.Plugins? C.Plugins.AutoAct : null; };
 const AA_T={walk:["Camminata",3.5,105],run:["Corsa",9,165],bike:["Bici",6,0]};
