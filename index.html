@@ -1406,6 +1406,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
   </section>
   <section class="card" id="nutriCard"></section>
   <section class="card" id="fatigueCard" hidden></section>
+  <section class="card" id="skiRecCard" hidden></section>
   <section class="card" id="painWarnCard" hidden></section>
   <section class="card" id="backCard" hidden></section>
   <section class="card" id="deloadCard" hidden></section>
@@ -2547,7 +2548,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.77 (sci: condividi la giornata come immagine)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.78 (sci: recupero il giorno dopo e stato delle gambe)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3584,6 +3585,10 @@ function plannedBurn(){
 }
 /* il giorno prima di una seduta impegnativa: un po' di carboidrati in più per arrivarci carichi */
 function preloadFor(iso){
+  // il giorno dopo una giornata di sci lunga: un po' di carboidrati in più per ricaricare i muscoli (si somma al carico per domani, massimo 300)
+  let sk=0; try{ const L=skiLegs(iso); if(L.y.length&&L.ym>=150) sk=L.yd>=3000||L.ym>=240? 200 : 120; }catch{}
+  const p0=preloadFor0(iso); if(!sk) return p0; return {kcal:Math.min(300,p0.kcal+sk), label:p0.label? p0.label+" e recupero dopo lo sci" : "recupero dopo lo sci"}; }
+function preloadFor0(iso){
   try{ const nx=shiftDate(iso,1), wd=new Date(nx+"T12:00:00").getDay(), dp=dayPlanFor(wd,nx);
     if(!dp||dp.kind==="rest"||dp.kcal<400) return {kcal:0,label:""};
     return {kcal:Math.round(Math.min(300,dp.kcal*0.25)/10)*10, label:dp.label}; }catch{ return {kcal:0,label:""}; } }
@@ -3716,7 +3721,7 @@ function renderDiary(){
   $("eqEaten").textContent = r(t.kcal);
   $("eqGoal").textContent = dt? r(dt.goal) : "–";
   try{ renderKcalSummary(dt,t); }catch(e){ console.warn("riepilogo",e); }
-  { const pre=dt&&!dt.fromDiet? dt.pre||0 : 0; $("eqPreRow").hidden=!pre; if(pre){ $("eqPre").textContent="+"+r(pre); $("eqPreLbl").textContent="Carico per domani"; $("eqPreRow").title="Carboidrati in più per arrivare carico a: "+(dt.preLabel||"l'allenamento di domani"); } }
+  { const pre=dt&&!dt.fromDiet? dt.pre||0 : 0; $("eqPreRow").hidden=!pre; if(pre){ $("eqPre").textContent="+"+r(pre); $("eqPreLbl").textContent=dt.preLabel==="recupero dopo lo sci"? "Recupero dopo lo sci" : "Carico per domani"; $("eqPreRow").title="Carboidrati in più per arrivare carico a: "+(dt.preLabel||"l'allenamento di domani"); } }
   const remain = dt? dt.goal-t.kcal : 0;
   $("remain").textContent = dt? r(Math.abs(remain)) : "–";
   $("remainLbl").textContent = !dt? "completa il profilo" : remain>=0? "kcal rimanenti":"kcal oltre l'obiettivo";
@@ -5132,7 +5137,7 @@ function renderDietAI(){
       if(allEaten&&!ok) return `<div class="dgoal ${Math.abs(gap)/tt.kcal<=0.1?"ok":"off"}">🎯 Obiettivo di oggi: <b>${r(tt.kcal).toLocaleString("it-IT")} kcal</b> · ${gap>0? `hai mangiato ${r(gap)} kcal in meno` : `hai mangiato ${r(-gap)} kcal in più`}</div><div class="dnote">${gap>0? `Il piano non è sbagliato: hai già fatto tutti i pasti, ma l'obiettivo durante la giornata è salito con i passi, l'allenamento e il carico per domani. ${gap>=150? `Se hai ancora fame, uno spuntino da circa ${r(Math.min(gap,350)/50)*50} kcal va bene (yogurt greco con miele, pane e marmellata o una banana con frutta secca).` : "Va bene così, la differenza è piccola."}` : "Nessun problema per un giorno: domani resta sul piano."}</div>`;
       return `<div class="dgoal ${ok?"ok":"off"}">🎯 Obiettivo ${tt.live?"di oggi":"del giorno"}: <b>${r(tt.kcal).toLocaleString("it-IT")} kcal</b>${ok? " ✓" : ` · ${t.kcal>tt.kcal?"il piano è sopra di":"al piano mancano"} ${r(Math.abs(gap))} kcal`}</div>`; })() : ""}
     ${tt&&tt.live&&tt.burnReal&&Math.abs(tt.burnReal-tt.burnPlan)>=50? `<div class="dnote">Porzioni adattate all'allenamento che hai registrato oggi: +${tt.burnReal} kcal invece dei +${tt.burnPlan} previsti. Lo stesso obiettivo che vedi in Cibo.</div>` : ""}
-    ${tt&&tt.pre? `<div class="dnote">🍝 +${tt.pre} kcal di carboidrati per arrivare carico domani (${String(tt.preLabel||"").replace(/</g,"")}): meglio a cena.</div>` : ""}
+    ${tt&&tt.pre? (tt.preLabel==="recupero dopo lo sci"? `<div class="dnote">🍝 +${tt.pre} kcal di carboidrati per ricaricare le gambe dopo lo sci di ieri: a pranzo e a cena.</div>` : `<div class="dnote">🍝 +${tt.pre} kcal di carboidrati per arrivare carico domani (${String(tt.preLabel||"").replace(/</g,"")}): meglio a cena.</div>`) : ""}
     ${tt&&tt.live&&!(d.cutFor===todayISO()&&t.kcal-eatenK<1)&&eatenK<tt.kcal*0.97&&Math.abs(t.kcal-tt.kcal)/tt.kcal>0.03&&sample? `<button class="btn ghost adtoday" type="button">Adatta i pasti di oggi all'obiettivo</button>` : ""}
     ${tt&&tt.live&&d.cutFor===todayISO()&&d.cutK? `<div class="dnote">✂ Pasti adattati da soli: con quello che hai già mangiato ho tolto dal piano ${(()=>{ const ns=(d.meals||[]).filter(m=>m.cut&&m.cut.length).map(m=>{ const mn=((mealList().find(x=>x.id===m.id)||{}).name||m.name||"pasto").toLowerCase(); return (m.foods||[]).length? m.cut.map(f=>String(f.name).toLowerCase()).join(", ")+" ("+mn+")" : mn+" (tutto)"; }); return ns.join("; ").replace(/</g,""); })()}, circa ${r(d.cutK)} kcal. Se l'obiettivo risale (allenamento o passi) li rimetto io.</div>` : ""}
     <div class="mac">
@@ -9412,6 +9417,7 @@ function ssEst(d){ const exs=d.exercises||[], pairs=ssPairs(exs), inP=new Set(pa
   return {min:Math.round(7+sec/60+6), pairs:pairs.length}; }
 /* gambe "amiche della corsa": nelle settimane con tanti km o il giorno prima di una corsa dura, una serie in meno sugli esercizi di gambe e niente cedimento */
 function rfReason(){ const iso=(logCtx&&logCtx.date)||state.date, nx=shiftDate(iso,1); let why="";
+  try{ const L=skiLegs(iso); if(L.level>=1) return L.streak>=2? `hai sciato ${L.streak} giorni di fila` : "ieri hai sciato"; }catch{}
   try{ const p=dayPlanFor(new Date(nx+"T12:00:00").getDay(),nx); if(p&&p.key) why="domani c'è "+p.label.replace(/^Corsa – /,""); }catch{}
   if(!why) try{ const a=activeProg(), pr=a&&a.pr; let km=0; if(pr&&pr.weekMap) [0,1,2,3,4,5,6].forEach(wd=>{ const d=pr.days[(pr.weekMap||{})[wd]]; if(d&&d.kind==="run") km+=runPlan(d).km||0; });
     if(km>=30) why=`questa settimana corri circa ${Math.round(km)} km`; }catch{}
@@ -9765,7 +9771,7 @@ function dateCtx(){
     if(i<=0){ const done=dayDoneText(iso); bits.push("allenamenti registrati: "+(done||"nessuno")); const ea=dayEatenText(iso); if(ea) bits.push(ea); }
     rows.push(`- ${NAMES[i]? NAMES[i]+" = " : ""}${dateLong(iso)} (${iso}): ${bits.join(" · ")}`); }
   const viewed= state.date&&state.date!==today? `\nATTENZIONE: nell'app la persona sta guardando la pagina del ${dateLong(state.date)} (${state.date}), non quella di oggi. I dati "della giornata" qui sotto si riferiscono a quel giorno; se chiede di "oggi" usa comunque la data reale di oggi.` : "";
-  const fz=[fatigueText(),deloadText(),nightText(),loadText()].filter(Boolean).join("\n"), th=thrText(); const ev=runEvalText(21), evT=(fz? "\n"+fz : "")+(th? "\n"+th : "")+(ev? `\nESITO DELLE ULTIME CORSE DEL PIANO (previsto → fatto, ultime 3 settimane; usalo per giudicare la forma e per consigliare ritmi e volumi dei prossimi giorni: se le fasi sono spesso più lente con FC alta segnala fatica e alleggerisci, se le corse facili sono troppo veloci dillo, se va tutto bene conferma o proponi un piccolo aumento):\n${ev}` : "");
+  const fz=[fatigueText(),skiLegsText(),deloadText(),nightText(),loadText()].filter(Boolean).join("\n"), th=thrText(); const ev=runEvalText(21), evT=(fz? "\n"+fz : "")+(th? "\n"+th : "")+(ev? `\nESITO DELLE ULTIME CORSE DEL PIANO (previsto → fatto, ultime 3 settimane; usalo per giudicare la forma e per consigliare ritmi e volumi dei prossimi giorni: se le fasi sono spesso più lente con FC alta segnala fatica e alleggerisci, se le corse facili sono troppo veloci dillo, se va tutto bene conferma o proponi un piccolo aumento):\n${ev}` : "");
   return `DATA E ORA ATTUALI (ora italiana, Europe/Rome): ${now.text}, ore ${now.time}. Oggi è ${now.text.split(" ")[0]} ${today}.
 CALENDARIO (fonte unica per i giorni; il piano si ripete uguale ogni settimana in base al giorno della settimana):
 ${rows.join("\n")}${viewed}${evT}
@@ -11311,6 +11317,14 @@ function renderDeloadCard(){ const card=$("deloadCard"); if(!card) return; card.
   try{ if(race&&race.plan) card.appendChild(el("p","note","Hai il piano gara: lo scarico vale per la palestra, le corse seguono il piano (che ha già le sue settimane leggere).")); }catch{}
   const b=el("button","btn ghost","Sì, fai lo scarico questa settimana"); b.type="button"; b.onclick=()=>{ localStorage.setItem("hf:deload",JSON.stringify({week:mondayOf(todayISO())})); renderDeloadCard(); toast("Settimana di scarico attiva 🔋"); }; card.appendChild(b); }
 /* ===== controllo della fatica: battito a riposo del mattino sopra il solito e sonno scarso ===== */
+/* sci e gambe: giornate di sci recenti (dal diario degli allenamenti) */
+function skiRecent(iso,days){ const from=shiftDate(iso,-days); return ((hist&&hist.items)||[]).filter(w=>isSki(w)&&w.date>=from&&w.date<iso&&(+w.minutes||0)>=60); }
+function skiLegs(iso){ iso=iso||todayISO(); const R=skiRecent(iso,4), y=R.filter(w=>w.date===shiftDate(iso,-1)), days=[...new Set(R.map(w=>w.date))].sort();
+  let streak=0; for(let k=1;k<=4;k++){ if(R.some(w=>w.date===shiftDate(iso,-k))) streak++; else break; }
+  const dn=R.reduce((a,w)=>a+(+w.elevDown||0),0), yd=y.reduce((a,w)=>a+(+w.elevDown||0),0), ym=y.reduce((a,w)=>a+(+w.minutes||0),0);
+  const level= streak>=3||dn>=12000? 3 : streak>=2||yd>=4000? 2 : y.length? 1 : 0; return {level,streak,y,ym,yd,dn,days}; }
+function skiLegsText(iso){ const L=skiLegs(iso); if(!L.level) return "";
+  return `GAMBE DOPO LO SCI: ${L.y.length? `ieri ${hmTxt(L.ym*60)} sugli sci${L.yd? ` (${L.yd.toLocaleString("it-IT")} m di dislivello in discesa)` : ""}` : ""}${L.streak>=2? `, ${L.streak} giornate di fila` : ""}. Quadricipiti e ginocchia affaticati: oggi niente gambe pesanti né corse dure${L.level>=3? ", meglio riposo attivo" : ""}; più carboidrati e proteine per recuperare e bere di più (il freddo e la quota disidratano).`; }
 function fatigueNow(){ const out={signs:[],level:0}; const today=todayISO();
   try{ const Dm=JSON.parse(localStorage.getItem("hf:rhrDay")||"{}"), ks=Object.keys(Dm).sort();
     const base=ks.filter(d=>d>=shiftDate(today,-30)&&d<=shiftDate(today,-3)).map(d=>Dm[d]).sort((a,b)=>a-b);
@@ -11322,9 +11336,22 @@ function fatigueNow(){ const out={signs:[],level:0}; const today=todayISO();
   try{ const sl=sleepRecent(3).filter(x=>x.d>=shiftDate(today,-2)); const bad=sl.filter(x=>+x.h<6);
     if(sl.length>=2&&bad.length>=2){ out.signs.push(`sonno scarso (${sl.map(x=>fmt(Math.round(x.h*10)/10)+" h").join(", ")} le ultime notti)`); out.level+=1; }
     else if(sl.length&&+sl[0].h<5){ out.signs.push(`stanotte solo ${fmt(Math.round(sl[0].h*10)/10)} h di sonno`); out.level+=1; } }catch{}
+  try{ const L=skiLegs(today); if(L.level>=2){ out.signs.push(L.streak>=2? `${L.streak} giornate di sci di fila` : `ieri giornata di sci pesante (${L.yd.toLocaleString("it-IT")} m in discesa)`); out.level+=L.level>=3? 2 : 1; } }catch{}
   try{ const r0=recoveryNow(); if(r0.score<40){ out.signs.push(`recupero basso (${r0.score}/100)`); out.level+=1; } }catch{}
   return out; }
 function fatigueText(){ const f=fatigueNow(); return f.signs.length? `SEGNALI DI FATICA OGGI (${f.level>=2? "forti" : "leggeri"}): ${f.signs.join("; ")}. Se oggi è previsto un allenamento duro, proponi una versione più leggera.` : ""; }
+/* il giorno dopo lo sci: recupero (cibo, acqua, stretching, gambe) */
+function renderSkiRecCard(){ const card=$("skiRecCard"); if(!card) return; const today=todayISO(), L=skiLegs(today); let seen=""; try{ seen=localStorage.getItem("hf:skiRecSeen")||""; }catch{}
+  const show= state.date===today&&view==="diario"&&L.level>=1&&seen!==today; card.hidden=!show; if(!show) return;
+  card.innerHTML=""; const hd=el("div","meal-head"); hd.appendChild(el("h2",null,L.level>=3? "🦵 Gambe cariche dopo lo sci" : "🎿 Recupero dopo lo sci"));
+  const x=el("button","link","Chiudi"); x.type="button"; x.onclick=()=>{ try{ localStorage.setItem("hf:skiRecSeen",today); }catch{} card.hidden=true; }; hd.appendChild(x); card.appendChild(hd);
+  card.appendChild(el("p","sub",(L.y.length? `Ieri ${hmTxt(L.ym*60)} sugli sci${L.yd? `, ${L.yd.toLocaleString("it-IT")} m di dislivello in discesa` : ""}` : "Hai sciato nei giorni scorsi")+(L.streak>=2? ` · ${L.streak} giornate di fila (${L.dn.toLocaleString("it-IT")} m in tutto)` : "")+"."));
+  let pl=null; try{ pl=dayPlanFor(new Date(today+"T12:00:00").getDay(),today); }catch{}
+  const T=[["🍝","Carboidrati a ogni pasto per ricaricare i muscoli e proteine (circa 25-30 g) a colazione, pranzo e cena."],["💧","Bevi di più del solito: freddo e quota disidratano anche se non hai sete."],["🧘","10 minuti di stretching per quadricipiti, polpacci e anche."],
+    [pl&&pl.kind==="run"? "🏃" : pl&&pl.kind&&pl.kind!=="rest"? "🏋️" : "🚶", pl&&pl.kind==="run"? `Oggi c'è ${pl.label}: ${L.level>=2? "fai solo una corsa facile e corta, o rimandala" : "tienila facile, senza ripetute"}.` : pl&&pl.kind&&pl.kind!=="rest"? `Oggi c'è palestra: ${L.level>=2? "parte alta del corpo e core, gambe leggere o niente" : "nelle gambe ti propongo una serie in meno"}.` : "Una camminata tranquilla di 20-30 minuti aiuta le gambe a sciogliersi."]];
+  if(L.level>=3) T.push(["🛑","Tre o più giornate di fila: se senti dolore alle ginocchia o le gambe non rispondono, oggi fai riposo vero."]);
+  T.forEach(([i,t])=>{ const r0=el("div","pline"); r0.append(el("span","ic",i),el("span",null,t)); card.appendChild(r0); });
+  const b=el("button","btn ghost","🧘 Stretching dopo lo sci"); b.type="button"; b.style.marginTop="8px"; b.onclick=()=>startStretch("sci"); card.appendChild(b); }
 function renderFatigueCard(){ const card=$("fatigueCard"); if(!card) return; const today=todayISO();
   let pl=null; try{ pl=dayPlanFor(new Date(today+"T12:00:00").getDay(),today); }catch{}
   const f=fatigueNow(); let seen=""; try{ seen=localStorage.getItem("hf:fatSeen")||""; }catch{}
@@ -11447,7 +11474,7 @@ function progTips(wSt,kSt,pLow,tLow,pg,rg){ const T=[], gain=rg[0]>0, loss=rg[1]
   if(tLow) T.push("Hai fatto meno allenamenti del previsto: se la settimana è piena, chiedi al coach di accorciare le sedute invece di saltarle.");
   if(T.length) T.push("Per un piano preciso tocca «Analisi completa del coach».");
   return T; }
-function renderProgress(){ try{ renderPhaseCard(); }catch(e){} try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); try{ renderChkCard(); }catch(e){ console.warn("te lo dico io",e); } renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); renderHidCard(); }catch(e){ console.warn("schede diario",e); }
+function renderProgress(){ try{ renderPhaseCard(); }catch(e){} try{ renderWeekCard(); }catch(e){ console.warn("settimana",e); } try{ renderFatigueCard(); }catch(e){ console.warn("fatica",e); } try{ renderSkiRecCard(); }catch(e){ console.warn("recupero sci",e); } try{ renderFuelCard(); }catch(e){ console.warn("carburante",e); } try{ renderPainWarn(); renderDeloadCard(); try{ renderChkCard(); }catch(e){ console.warn("te lo dico io",e); } renderSuppCard(); renderNightCard(); renderWaterCard(); renderMonthCard(); renderRaceDayCard(); renderChalCard(); renderHidCard(); }catch(e){ console.warn("schede diario",e); }
   const card=$("progCard"); if(!card) return; card.hidden=!state.profile||!goalOf(state.profile);
   { const rw=$("pgRow"); if(rw&&!rw._b){ rw._b=true; rw.onclick=()=>{ if(typeof editMode!=="undefined"&&editMode) return; const op=$("pgBody").hidden; $("pgBody").hidden=!op; rw.setAttribute("aria-expanded",String(op)); try{ localStorage.setItem("hf:pgOpen",op?"1":"0"); }catch{} }; let o=false; try{ o=localStorage.getItem("hf:pgOpen")==="1"; }catch{} $("pgBody").hidden=!o; rw.setAttribute("aria-expanded",String(o)); } }
   const pg=progress, box=$("pgLines"); box.innerHTML=""; $("pgGo").disabled=!sample||progBusy;
