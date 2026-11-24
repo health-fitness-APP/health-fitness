@@ -2547,7 +2547,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.76 (sci: meteo in quota dove scii, neve fresca, consigli per freddo e batteria)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.77 (sci: condividi la giornata come immagine)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7160,7 +7160,7 @@ async function rsCanvas(x,t0,o={}){ const {P,st,sec,km}=x, W=1080, H=1920, K=2.7
         try{ g.getImageData(0,0,1,1); maps=tpl.includes("carto")? "© OpenStreetMap · © CARTO" : "© OpenStreetMap"; break; }   // le tile senza CORS "sporcano" il disegno: riparto senza
         catch{ g.fillStyle="#E9E7E2"; g.fillRect(0,0,W,H); } } }
     // traccia
-    const cols= o.pace!==false? rdColors(P) : null; g.lineCap="round"; g.lineJoin="round";
+    const cols= o.cols || (o.pace!==false? rdColors(P) : null); g.lineCap="round"; g.lineJoin="round";
     const path=()=>{ g.beginPath(); let on=false; P.forEach(p=>{ if(p.la==null){ on=false; return; } on? g.lineTo(X(p),Y(p)) : g.moveTo(X(p),Y(p)); on=true; }); };
     path(); g.strokeStyle="rgba(255,255,255,.9)"; g.lineWidth=15; g.stroke();
     if(cols){ g.lineWidth=9; for(let i=1;i<P.length;i++){ const a=P[i-1], b=P[i]; if(a.la==null||b.la==null) continue; g.beginPath(); g.moveTo(X(a),Y(a)); g.lineTo(X(b),Y(b)); g.strokeStyle=cols[i]; g.stroke(); } }
@@ -7174,13 +7174,19 @@ async function rsCanvas(x,t0,o={}){ const {P,st,sec,km}=x, W=1080, H=1920, K=2.7
   g.shadowColor="rgba(0,0,0,.28)"; g.shadowBlur=14;
   const logo=await rsImg("icon-192.png",3000); if(logo){ g.save(); g.beginPath(); g.roundRect? g.roundRect(LX,1010,104,104,26) : g.rect(LX,1010,104,104); g.clip(); g.drawImage(logo,LX,1010,104,104); g.restore(); }
   txt("HealthFit",W-LX,1088,`800 66px ${FB}`,"#fff","right");
-  txt(rsName(t0),LX,1240,`800 76px ${FB}`);
+  txt(o.title||rsName(t0),LX,1240,`800 76px ${FB}`);
   txt(t0.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+" · "+t0.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),LX,1300,`500 34px ${FS}`,"rgba(255,255,255,.88)");
   const pace= km>0.05? sec/km : 0, S=[]; if(st&&st.gain!=null&&G.length>=5) S.push(["Dislivello positivo",Math.round(st.gain)+" m"]);
   S.push(["Tempo",rsTime(sec)]); S.push(["Distanza",rdKm(km)+" km"]); if(pace) S.push(["Ritmo medio",`${Math.floor(pace/60)}:${String(Math.round(pace%60)).padStart(2,"0")} /km`.replace(/(\d+):60/,(a,m0)=>(+m0+1)+":00")]);
-  S.slice(0,4).forEach(([l,v],i)=>{ const cx0=LX+(i%2)*420, cy0=1420+Math.floor(i/2)*200; txt(l,cx0,cy0,`500 38px ${FS}`,"rgba(255,255,255,.92)"); txt(v,cx0,cy0+92,`700 84px ${FB}`); });
+  (o.stats||S).slice(0,4).forEach(([l,v],i)=>{ const cx0=LX+(i%2)*420, cy0=1420+Math.floor(i/2)*200; txt(l,cx0,cy0,`500 38px ${FS}`,"rgba(255,255,255,.92)"); txt(v,cx0,cy0+92,`700 84px ${FB}`); });
   g.shadowBlur=0; if(maps) txt(maps,W-28,H-28,`500 22px ${FS}`,"rgba(255,255,255,.7)","right");
   return cv; }
+async function shareCanvas(cv,name,title,dlg){ const blob=await new Promise(r=>cv.toBlob(r,"image/png")), C=NAT();
+  if(C&&C.Plugins.Share&&C.Plugins.Filesystem){ const b64=await new Promise((res,rej)=>{ const r0=new FileReader(); r0.onload=()=>res(String(r0.result).split(",")[1]); r0.onerror=rej; r0.readAsDataURL(blob); });
+    const f=await C.Plugins.Filesystem.writeFile({path:name,data:b64,directory:"CACHE"}); await C.Plugins.Share.share({title,files:[f.uri],dialogTitle:dlg}); return; }
+  const file=new File([blob],name,{type:"image/png"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})) await navigator.share({files:[file],title});
+  else { const a=el("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); toast("Immagine salvata nei download"); } }
 async function rsShare(btn){ if(!rdCur) return; const x=rdCtx(), {w,D}=x, t0=D.t0? new Date(D.t0) : new Date((w.date||state.date)+"T"+(w.start||"12:00")+":00");
   const lab=btn&&btn.textContent; if(btn){ btn.disabled=true; btn.textContent="Preparo l'immagine…"; }
   try{ const cv=await rsCanvas(x,t0), blob=await new Promise(r=>cv.toBlob(r,"image/png")), name=`corsa-${todayISO(t0)}.png`, C=NAT();
@@ -7883,6 +7889,14 @@ async function skiDetail(w,row){ const nx=row.nextElementSibling; if(nx&&nx.clas
   const sum=el("div","ski-grid"); sum.style.gridTemplateColumns="repeat(3,1fr)"; sum.style.margin="10px 0 4px";
   [["🔥 kcal",w.kcal? Math.round(+w.kcal).toLocaleString("it-IT") : "–"],["In discesa",hmTxt(A.movSec||0)],["Soste",A.pauseSec? hmTxt(A.pauseSec) : "–"],["Max",A.maxKmh+" km/h"],["Media discese",avgAll+" km/h"],["Discese",`${fmt(A.kmDown)} km`]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,String(v)),el("span",null,l)); sum.appendChild(d); });
   box.appendChild(sum);
+  const shb=el("button","btn ghost","📤 Condividi la giornata"); shb.type="button"; shb.style.marginTop="8px"; box.appendChild(shb);
+  shb.onclick=async()=>{ const lab=shb.textContent; shb.disabled=true; shb.textContent="Preparo l'immagine…";
+    try{ const t0=doc.t0? new Date(doc.t0) : new Date(w.date+"T"+(w.start||"10:00")+":00"), cols=P.map((p,i)=>runOf(p.t)? skiVc(sp[i]) : "#9AA5B1");
+      const cv=await rsCanvas({P,st:null,sec:A.movSec||0,km:A.kmDown},t0,{cols,title:(w.name||"Sci alpino")+(w.place&&w.place!==skiCfg().place.name? "" : ""),
+        stats:[["Discese",String(A.runs)],["Dislivello",`${(A.down||0).toLocaleString("it-IT")} m`],["Velocità max",`${A.maxKmh} km/h`],["Km di discesa",`${fmt(A.kmDown)} km`]]});
+      await shareCanvas(cv,`sci-${w.date}.png`,"Giornata sugli sci","Condividi la giornata"); }
+    catch(e){ if(!/cancel|abort/i.test(String(e&&(e.name+" "+e.message)||e))) toast("Condivisione: "+((e&&e.message)||e)); }
+    finally{ shb.disabled=false; shb.textContent=lab; } };
   skiRecords().then(R=>{ if(!box.isConnected) return; const b=[[R.max,"velocità massima"],[R.long,"discesa più lunga"],[R.fast,"discesa più veloce"],[R.down,"dislivello"],[R.runs,"numero di discese"],[R.km,"km di discese"]].filter(([x])=>x&&x.id===w.id).map(x=>x[1]);
     if(b.length&&R.S.length>1){ const p0=el("p","ski-rec","🏆 Record personale: "+b.join(", ")); sum.after(p0); } }).catch(()=>{});
   // dove è andata la giornata: le quattro parti sommano a tutto il tempo registrato
