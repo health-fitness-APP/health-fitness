@@ -903,7 +903,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .ski-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 12px}
 .ski-st{background:var(--surface2);border-radius:14px;padding:10px 4px;text-align:center;display:flex;flex-direction:column;gap:2px}
 .ski-live{margin:4px 0 6px}.ski-live.on{background:var(--surface2);border-radius:16px;padding:12px}.ski-live-h{font-weight:700;margin:0 0 6px}
-.ski-del{margin-left:auto;padding:4px 8px;flex:none}.ski-det{margin:6px 0 12px}.ski-nrow td{text-align:left!important;border-bottom:none!important;padding:8px 3px 0!important;font-size:12px;color:var(--muted,#777)}.ski-nrow span{display:inline-flex;align-items:center;gap:4px;margin-right:10px}.ski-pn{color:var(--text,#222);font-weight:600}.ski-pn i{width:9px;height:9px;border-radius:50%;display:inline-block}.ski-split{margin:10px 0;padding:10px 12px;border-radius:14px;background:var(--surface2,#f4f1ec)}.ski-split-h{margin:0 0 8px;font-weight:700;font-size:14px}.ski-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:8px}.ski-bar i{display:block;height:100%}.ski-split-r{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0}.ski-split-r i{width:10px;height:10px;border-radius:50%;flex:none}.ski-split-r b{margin-left:auto;font-weight:600}.ski-prow td{color:var(--muted,#888);font-style:italic;text-align:left!important}.ski-tab small{color:var(--muted,#888);font-size:11px;display:block}.ski-pmk{font-size:18px;line-height:24px;text-align:center;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0005}.ski-tab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.ski-tab th,.ski-tab td{padding:5px 3px;text-align:right;border-bottom:1px solid var(--line,#ddd)}.ski-tab th:first-child,.ski-tab td:first-child{text-align:left}
+.ski-del{margin-left:auto;padding:4px 8px;flex:none}.ski-det{margin:6px 0 12px}.ski-rec{margin:6px 0;padding:8px 12px;border-radius:12px;background:#FFF3D6;color:#7A4B00;font-weight:600;font-size:13px}.ski-nrow td{text-align:left!important;border-bottom:none!important;padding:8px 3px 0!important;font-size:12px;color:var(--muted,#777)}.ski-nrow span{display:inline-flex;align-items:center;gap:4px;margin-right:10px}.ski-pn{color:var(--text,#222);font-weight:600}.ski-pn i{width:9px;height:9px;border-radius:50%;display:inline-block}.ski-split{margin:10px 0;padding:10px 12px;border-radius:14px;background:var(--surface2,#f4f1ec)}.ski-split-h{margin:0 0 8px;font-weight:700;font-size:14px}.ski-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:8px}.ski-bar i{display:block;height:100%}.ski-split-r{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0}.ski-split-r i{width:10px;height:10px;border-radius:50%;flex:none}.ski-split-r b{margin-left:auto;font-weight:600}.ski-prow td{color:var(--muted,#888);font-style:italic;text-align:left!important}.ski-tab small{color:var(--muted,#888);font-size:11px;display:block}.ski-pmk{font-size:18px;line-height:24px;text-align:center;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0005}.ski-tab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.ski-tab th,.ski-tab td{padding:5px 3px;text-align:right;border-bottom:1px solid var(--line,#ddd)}.ski-tab th:first-child,.ski-tab td:first-child{text-align:left}
 .ski-st b{font-size:1.15rem}.ski-st span{font-size:.75rem;color:var(--muted)}
 .ski-list{margin-top:12px}.ski-ul{margin:6px 0 10px;padding-left:20px;font-size:.9rem;line-height:1.5}
 .str-ov{position:fixed;inset:0;z-index:60;background:var(--surface-solid,var(--surface));display:flex;align-items:center;justify-content:center;padding:20px}
@@ -2547,7 +2547,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.74 (sci: nomi di piste e impianti)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.75 (sci: record personali e confronto tra le giornate)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7710,6 +7710,7 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
   if(S.its.length){ const lst=el("div","ski-list"); S.its.slice(0,12).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic","⛷️"), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.elevDown? ` · ↓${(+w.elevDown).toLocaleString("it-IT")} m` : "")+(w.kcal? ` · ${Math.round(+w.kcal)} kcal` : "")+(w.details? ` · ${w.details}` : "")+(w.src==="phone"? " · 📱" : ""))); const xb=el("button","linkbtn ski-del","🗑"); xb.type="button"; xb.setAttribute("aria-label","Elimina questa giornata"); xb.onclick=e=>{ e.stopPropagation(); skiDel(w); }; r0.appendChild(xb); if(w.src==="phone"||w.src==="watch"){ r0.style.cursor="pointer"; r0.title="Mappa e velocità"; r0.onclick=()=>skiDetail(w,r0); } lst.appendChild(r0); }); c1.appendChild(lst); }
   else c1.appendChild(el("p","note","Nessuna giornata ancora. Puoi registrarla dal telefono qui sopra; se usi il Galaxy Watch arriva da sola da Samsung Health."));
   box.appendChild(c1);
+  try{ skiRecCard(box).catch(e=>console.warn("record sci",e)); }catch{}
   // neve e meteo
   const c2=el("section","card"); c2.appendChild(el("h2",null,`❄️ Neve e meteo a ${o.place.name}`)); const wx=el("div","ski-wx"); wx.textContent="Carico le previsioni…"; c2.appendChild(wx); box.appendChild(c2); skiWeather(o.place,wx);
   // preparazione
@@ -7832,7 +7833,30 @@ async function skiOsm(id,doc,P,A){ if(doc.osm&&doc.osm.v===1) return doc.osm;
   const inP=t=>A.pauses.some(z=>t>z.t0&&t<=z.t1);
   const runs=A.list.map(r=>{ const pts=G.filter((p,i)=>p.t>=r.t0&&p.t<=r.t1&&i%2===0); const o=vote(pts,false,45); return {t0:r.t0,name:o&&o.name||"",diff:o&&o.diff||""}; });
   const lifts=A.list.map((r,k)=>{ const a=k? A.list[k-1].t1 : (G[0].t); const pts=G.filter((p,i)=>p.t>a&&p.t<r.t0&&!inP(p.t)&&i%2===0); const o=pts.length>=3? vote(pts,true,60) : null; return {t0:r.t0,name:o&&o.name||""}; });
-  doc.osm={v:1,runs,lifts}; try{ save("ski-"+id,doc); }catch{} return doc.osm; }
+  doc.osm={v:1,runs,lifts}; try{ save("ski-"+id,doc); localStorage.removeItem("hf:skiSum:"+id); }catch{} return doc.osm; }
+/* record personali e confronto tra le giornate (tutte le stagioni) */
+const SKI_SUMV=2;
+async function skiDaySum(w){ const K="hf:skiSum:"+w.id; try{ const c=JSON.parse(localStorage.getItem(K)||"null"); if(c&&c.v===SKI_SUMV) return c; }catch{}
+  const o={v:SKI_SUMV,date:w.date,id:w.id,km:+w.distance||0,down:+w.elevDown||0,runs:+w.runs||0,max:+w.maxKmh||0,kcal:+w.kcal||0,min:+w.minutes||0,long:null,fast:null};
+  const doc=await store.getDoc("ski-"+w.id).catch(()=>null);
+  if(doc&&doc.tr&&Array.isArray(doc.tr.t)&&doc.tr.t.length>=5){ const A=skiAnalyze(doc.tr), nm=k=>doc.osm&&doc.osm.runs&&doc.osm.runs[k]? doc.osm.runs[k].name : "";
+    A.list.forEach((r,k)=>{ if(!o.long||r.km>o.long.km) o.long={km:r.km,down:r.down,name:nm(k)}; if(r.km>=0.8&&(!o.fast||r.avg>o.fast.avg)) o.fast={avg:r.avg,km:r.km,name:nm(k)}; });
+    o.max=Math.max(o.max,A.maxKmh||0); o.runs=o.runs||A.runs; o.down=o.down||A.down; o.km=o.km||A.kmDown;
+    try{ localStorage.setItem(K,JSON.stringify(o)); }catch{} }
+  return o; }
+async function skiRecords(){ const its=((hist&&hist.items)||[]).filter(isSki); const S=[]; for(const w of its) S.push(await skiDaySum(w));
+  const best=(f,g)=>S.filter(x=>f(x)>0).sort((a,b)=>f(b)-f(a))[0]||null;
+  return {S,max:best(x=>x.max),long:best(x=>x.long? x.long.km : 0),fast:best(x=>x.fast? x.fast.avg : 0),down:best(x=>x.down),runs:best(x=>x.runs),km:best(x=>x.km)}; }
+const skiDd=d=>new Date(d+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short",year:"2-digit"});
+async function skiRecCard(box){ const c=el("section","card"); c.appendChild(el("h2",null,"🏆 I tuoi record")); const body=el("div"); body.appendChild(el("p","note","Calcolo i record…")); c.appendChild(body); box.appendChild(c);
+  const R=await skiRecords(); body.innerHTML=""; if(!R.S.length){ body.appendChild(el("p","note","I record compaiono dopo la prima giornata registrata.")); return; }
+  const L=[["⚡","Velocità massima",R.max,x=>`${x.max} km/h`],["📏","Discesa più lunga",R.long,x=>`${fmt(x.long.km)} km${x.long.name? " · "+x.long.name : ""}`],["🚀","Discesa più veloce (media)",R.fast,x=>`${x.fast.avg} km/h su ${fmt(x.fast.km)} km${x.fast.name? " · "+x.fast.name : ""}`],
+    ["⛰️","Più dislivello in un giorno",R.down,x=>`${x.down.toLocaleString("it-IT")} m`],["🔁","Più discese in un giorno",R.runs,x=>`${x.runs}`],["🎿","Più km di discese in un giorno",R.km,x=>`${fmt(x.km)} km`]].filter(r=>r[2]);
+  L.forEach(([ic,t,x,f])=>{ const r0=el("div","pline"); const sp=el("span"); sp.append(el("b",null,t+": "),document.createTextNode(f(x)+" · "+skiDd(x.date))); r0.append(el("span","ic",ic),sp); body.appendChild(r0); });
+  if(R.S.length>=2){ const D=[...R.S].sort((a,b)=>a.date<b.date?1:-1).slice(0,10), top=k=>Math.max(...D.map(x=>+x[k]||0));
+    const cols=[["km","km",x=>fmt(x.km)],["down","↓ m",x=>x.down? x.down.toLocaleString("it-IT") : "–"],["runs","Disc.",x=>x.runs||"–"],["max","Max",x=>x.max||"–"],["kcal","kcal",x=>x.kcal||"–"]];
+    const tb=el("table","ski-tab"); tb.innerHTML=`<tr><th>Giornata</th>${cols.map(c0=>`<th>${c0[1]}</th>`).join("")}</tr>`+D.map(x=>`<tr><td>${skiDd(x.date)}</td>${cols.map(([k,,f])=>{ const b=(+x[k]||0)>0&&(+x[k]||0)===top(k); return `<td>${b? `<b style="color:var(--accent,#E8692E)">${f(x)}</b>` : f(x)}</td>`; }).join("")}</tr>`).join("");
+    body.appendChild(el("h3",null,"Confronto tra le giornate")); body.appendChild(tb); body.appendChild(el("p","note","In arancione il valore migliore. Ultime 10 giornate.")); } }
 async function skiDetail(w,row){ const nx=row.nextElementSibling; if(nx&&nx.classList.contains("ski-det")){ nx.remove(); return; }
   document.querySelectorAll(".ski-det").forEach(x=>x.remove());
   const box=el("div","ski-det"); row.after(box); box.appendChild(el("p","note","Carico il percorso…"));
@@ -7859,6 +7883,8 @@ async function skiDetail(w,row){ const nx=row.nextElementSibling; if(nx&&nx.clas
   const sum=el("div","ski-grid"); sum.style.gridTemplateColumns="repeat(3,1fr)"; sum.style.margin="10px 0 4px";
   [["🔥 kcal",w.kcal? Math.round(+w.kcal).toLocaleString("it-IT") : "–"],["In discesa",hmTxt(A.movSec||0)],["Soste",A.pauseSec? hmTxt(A.pauseSec) : "–"],["Max",A.maxKmh+" km/h"],["Media discese",avgAll+" km/h"],["Discese",`${fmt(A.kmDown)} km`]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,String(v)),el("span",null,l)); sum.appendChild(d); });
   box.appendChild(sum);
+  skiRecords().then(R=>{ if(!box.isConnected) return; const b=[[R.max,"velocità massima"],[R.long,"discesa più lunga"],[R.fast,"discesa più veloce"],[R.down,"dislivello"],[R.runs,"numero di discese"],[R.km,"km di discese"]].filter(([x])=>x&&x.id===w.id).map(x=>x[1]);
+    if(b.length&&R.S.length>1){ const p0=el("p","ski-rec","🏆 Record personale: "+b.join(", ")); sum.after(p0); } }).catch(()=>{});
   // dove è andata la giornata: le quattro parti sommano a tutto il tempo registrato
   { const tot=Math.max(1,(+tr.t[tr.t.length-1])-(+tr.t[0]||0)), stop=A.list.reduce((x,r)=>x+(r.stop||0),0), mv=A.movSec||0, ps=A.pauseSec||0, lift=Math.max(0,tot-mv-stop-ps);
     const parts=[["Discese (in movimento)",mv,"#E5484D"],["Fermate brevi in pista",stop,"#E9A21E"],["Impianti e code",lift,"#9AA5B1"],["Soste lunghe",ps,"#8B5E3C"]].filter(x=>x[1]>=30);
