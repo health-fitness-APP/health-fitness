@@ -2549,7 +2549,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.88 (sci: elenco degli skipass con località, data e dove li hai pagati)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.89 (sci: contatto di sicurezza dalla rubrica)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7891,6 +7891,8 @@ async function skiSosCard(box){ const c=el("section","card"); c.appendChild(el("
   c.appendChild(el("p","note","Mentre registri la giornata dal telefono controllo la batteria e le cadute: dopo un colpo forte, se resti fermo per mezzo minuto il telefono suona e chiede «Stai bene?». Se non rispondi entro 60 secondi manda un SMS con la tua posizione al contatto che scegli qui."));
   if(!P||!P.sos){ c.appendChild(el("p","note","Serve l'app HealthFit aggiornata sul telefono.")); return; }
   let cur={}; try{ cur=await P.sosGet(); }catch{}
+  if(P.pickContact){ const pk=el("button","btn ghost","📇 Scegli dalla rubrica"); pk.type="button"; pk.style.marginBottom="8px"; c.appendChild(pk);
+    pk.onclick=async()=>{ try{ const r=await P.pickContact(); if(r&&r.num){ nu.value=r.num; if(r.name) nm.value=r.name; sb.click(); } }catch(e){ toast("Rubrica: "+((e&&e.message)||e)); } }; }
   const f=el("div","two"); const nm=el("input","field"); nm.placeholder="Nome (es. Giulia)"; nm.value=cur.name||""; const nu=el("input","field"); nu.type="tel"; nu.placeholder="Numero di telefono"; nu.value=cur.num||""; f.append(nm,nu); c.appendChild(f);
   const lab=el("label","chk"); const fc=el("input"); fc.type="checkbox"; fc.checked=cur.fall!==false; lab.append(fc,document.createTextNode(" Controllo delle cadute attivo")); c.appendChild(lab);
   const msg=el("p","note"); const show=r=>{ msg.textContent= !r? "" : r.num? (r.sms? `✓ In caso di caduta avviso ${nm.value||r.num}.` : "Manca il permesso degli SMS: senza, ti avviso solo con il suono.") : "Nessun contatto: in caso di caduta suono e vibro soltanto."; }; show(cur.num!==undefined? cur : null);
