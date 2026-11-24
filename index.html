@@ -2547,7 +2547,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.68 (stretching generico = sequenza guidata, foto degli esercizi ricontrollate)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.69 (sci dal telefono: tempo e calorie giusti, soste corrette, km con gli impianti)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7739,8 +7739,10 @@ function skiAnalyze(tr){ const R={runs:0,down:0,up:0,kmDown:0,maxKmh:0,pauseSec:
   if(!tr||!Array.isArray(tr.t)) return R; const P=[];
   for(let i=0;i<tr.t.length;i++){ const a=+tr.a[i], la=tr.la? +tr.la[i]||0 : 0, lo=tr.lo? +tr.lo[i]||0 : 0; P.push({t:+tr.t[i],m:+tr.m[i]||0,a:(a===-9999||isNaN(a))? null : a,la,lo}); }
   // soste lunghe (pranzo, rifugio): almeno 10 minuti nel raggio di 60 m (senza segnale GPS conta come fermo; i metri del GPS da fermo salgono lo stesso, per questo si usa la posizione)
-  const near=(p,q)=>{ if(!p.la||!q.la) return true; const dy=(p.la-q.la)*1.113, dx=(p.lo-q.lo)*1.113*Math.cos(p.la/1e5*Math.PI/180); return dx*dx+dy*dy<3600; };
-  for(let i=0;i<P.length;){ let j=i; while(j+1<P.length&&near(P[i],P[j+1])) j++; if(P[j].t-P[i].t>=600){ R.pauseSec+=P[j].t-P[i].t; i=j+1; } else i++; }
+  const near=(p,q)=>{ if(!q.la) return true; const dy=(p.la-q.la)*1.113, dx=(p.lo-q.lo)*1.113*Math.cos(p.la/1e5*Math.PI/180); return dx*dx+dy*dy<3600; };
+  // un punto senza posizione (prima del primo segnale GPS) non può fare da centro della sosta: prima prendeva tutta la giornata
+  for(let i=0;i<P.length;){ if(!P[i].la){ i++; continue; } let j=i; while(j+1<P.length&&near(P[i],P[j+1])) j++; if(P[j].t-P[i].t>=600){ R.pauseSec+=P[j].t-P[i].t; i=j+1; } else i++; }
+  R.kmAll=P.length? Math.round(Math.max(0,P[P.length-1].m-P[0].m)/100)/10 : 0;
   const Q=P.filter(p=>p.a!=null); if(Q.length<5) return R;
   const med=Q.map((p,i)=>{ const w=Q.slice(Math.max(0,i-2),i+3).map(x=>x.a).sort((x,y)=>x-y); return w[w.length>>1]; });
   const al=med.map((_,i)=>{ const w=med.slice(Math.max(0,i-1),i+2); return w.reduce((x,y)=>x+y,0)/w.length; });
@@ -7777,12 +7779,24 @@ async function skiLiveEnd(){ const o=skiLiveGet(); if(!o) return; if(!confirm("F
   const end=Date.now(), tot=Math.max(60,(end-o.t0-(o.pMs||0))/1000), A=skiAnalyze(st&&st.tr), act=Math.max(60,tot-A.pauseSec), min=Math.round(act/60);
   const int= A.runs&&min? (A.down/(min/60)>1400||A.maxKmh>=65? "intensa" : A.down/(min/60)<500? "leggera" : "normale") : "normale";
   const iso=new Date(o.t0).toLocaleDateString("sv-SE",{timeZone:"Europe/Rome"}), wid=uid(), place=skiCfg().place.name;
-  const det=[A.runs? `${A.runs} ${A.runs===1?"discesa":"discese"}` : "", A.maxKmh? `max ${A.maxKmh} km/h` : "", A.altMax? `quota max ${A.altMax.toLocaleString("it-IT")} m` : "", A.pauseSec>=600? `soste ${hmTxt(A.pauseSec)}` : ""].filter(Boolean).join(" · ");
-  const w={id:wid,name:o.type||"Sci alpino",minutes:min,intensity:int,kcal:skiKcal(min,int),start:clockOf(o.t0),end:clockOf(end),distance:A.kmDown||null,elevDown:A.down||null,details:det,place,src:"phone",runs:A.runs||null,maxKmh:A.maxKmh||null};
+  const det=[A.runs? `${A.runs} ${A.runs===1?"discesa":"discese"}` : "", A.maxKmh? `max ${A.maxKmh} km/h` : "", A.altMax? `quota max ${A.altMax.toLocaleString("it-IT")} m` : "", A.pauseSec>=600? `soste ${hmTxt(A.pauseSec)}` : "", A.kmAll>A.kmDown? `${fmt(A.kmAll)} km in tutto con gli impianti` : ""].filter(Boolean).join(" · ");
+  const w={id:wid,name:o.type||"Sci alpino",minutes:min,intensity:int,kcal:skiKcal(min,int),start:clockOf(o.t0),end:clockOf(end),distance:A.kmDown||null,elevDown:A.down||null,details:det,place,src:"phone",runs:A.runs||null,maxKmh:A.maxKmh||null,kmAll:A.kmAll||null,fx:2};
   skiLiveSet(null); clearInterval(skiLiveTmr); skiLiveTmr=null; skiLiveNat=null;
   await addWorkoutOn(iso,w); if(iso===state.date) toast("Giornata sugli sci registrata ✓");
   if(st&&st.tr&&Array.isArray(st.tr.t)&&st.tr.t.length>1) try{ save("ski-"+wid,{v:1,t0:o.t0,tr:{t:st.tr.t,m:st.tr.m,a:st.tr.a,la:st.tr.la,lo:st.tr.lo}}); }catch(e){ console.warn("percorso sci",e); }
   skiAddOpen=false; renderSci(); skiRowSub(); }
+/* giornate salvate prima della correzione delle soste (v4.59): le ricalcolo una volta dal percorso salvato */
+let skiFixDone=false;
+async function skiRefix(){ if(skiFixDone) return; skiFixDone=true; const lim=romeISO(Date.now()-45*864e5); let n=0;
+  for(const w of hist.items.filter(x=>x.src==="phone"&&!x.fx&&x.date>=lim&&/sci|snowboard/i.test(x.name||""))){
+    const doc=await store.getDoc("ski-"+w.id).catch(()=>null); if(!doc||!doc.tr||!Array.isArray(doc.tr.t)||doc.tr.t.length<5) continue;
+    const A=skiAnalyze(doc.tr), tot=+doc.tr.t[doc.tr.t.length-1]-(+doc.tr.t[0]||0), min=Math.max(1,Math.round(Math.max(60,tot-A.pauseSec)/60));
+    const int= A.runs? (A.down/(min/60)>1400||A.maxKmh>=65? "intensa" : A.down/(min/60)<500? "leggera" : "normale") : "normale";
+    const det=[A.runs? `${A.runs} ${A.runs===1?"discesa":"discese"}` : "", A.maxKmh? `max ${A.maxKmh} km/h` : "", A.altMax? `quota max ${A.altMax.toLocaleString("it-IT")} m` : "", A.pauseSec>=600? `soste ${hmTxt(A.pauseSec)}` : "", A.kmAll>A.kmDown? `${fmt(A.kmAll)} km in tutto con gli impianti` : ""].filter(Boolean).join(" · ");
+    const upd={minutes:min,intensity:int,kcal:skiKcal(min,int),distance:A.kmDown||null,elevDown:A.down||null,runs:A.runs||null,maxKmh:A.maxKmh||null,kmAll:A.kmAll||null,details:det,fx:2};
+    await aaDayDo(w.date,d=>{ const x=(d.workouts||[]).find(y=>y.id===w.id); if(!x) return false; Object.assign(x,upd); return true; });
+    Object.assign(w,upd); n++; }
+  if(n){ save("workoutHistory",hist); renderAll(); try{ renderSci(); }catch{} toast(n===1? "⛷️ Giornata sugli sci ricalcolata" : `⛷️ ${n} giornate sugli sci ricalcolate`); } }
 async function skiDel(w){ const d=new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
   if(!confirm(`Elimino la giornata sugli sci di ${d} (${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min)?`)) return;
   if(w.date===state.date){ state.day.workouts=(state.day.workouts||[]).filter(x=>x.id!==w.id); saveDay(); }
@@ -7796,7 +7810,7 @@ function skiLiveCard(c1){ const o=skiLiveGet(), box=el("div","ski-live");
     const go1=el("button","btn","▶ Inizia la giornata"); go1.type="button"; go1.onclick=()=>skiLiveStart(sel.value); row.append(sel,go1); box.appendChild(row); c1.appendChild(box); return; }
   box.classList.add("on"); const nat=skiLiveNat;
   box.appendChild(el("p","ski-live-h",(o.pAt? "⏸ In pausa" : "🔴 Sto registrando")+` · ${o.type||"Sci"} dalle ${clockOf(o.t0)}`));
-  const g=el("div","ski-grid"); [["Tempo",hmTxt(skiLiveSec(o))],["Km (con impianti)",nat&&nat.km? fmt(Math.round(nat.km*10)/10) : "–"]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,v),el("span",null,l)); g.appendChild(d); }); g.style.gridTemplateColumns="repeat(2,1fr)"; box.appendChild(g);
+  const g=el("div","ski-grid"); [["Tempo",hmTxt(skiLiveSec(o))],["Km in tutto (con impianti)",nat&&nat.km? fmt(Math.round(nat.km*10)/10) : "–"]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,v),el("span",null,l)); g.appendChild(d); }); g.style.gridTemplateColumns="repeat(2,1fr)"; box.appendChild(g);
   box.appendChild(el("p","note", o.native? "Puoi spegnere lo schermo e mettere il telefono in tasca. Le soste lunghe (pranzo) le tolgo da solo; discese e dislivello li calcolo alla fine." : "Lascia aperta l'app: a fine giornata tocca «Fine»."));
   const row=el("div","two"); const pb=el("button","btn ghost",o.pAt? "▶ Riprendi" : "⏸ Pausa"); pb.type="button"; pb.onclick=skiLivePause; const eb=el("button","btn","■ Fine giornata"); eb.type="button"; eb.onclick=skiLiveEnd; row.append(pb,eb); box.appendChild(row);
   c1.appendChild(box);
@@ -7837,7 +7851,7 @@ async function aaPull(){ const P=AAP(); if(!P||aaBusy) return; aaBusy=true;
   try{ const r0=await P.pending(); if(r0&&r0.acts&&r0.acts.length) await aaImport(r0.acts); await aaDedupe(); await aaSteps();
     if(r0&&r0.open){ try{ localStorage.setItem("hf:skiTab","1"); }catch{} if(r0.open==="forgot") skiAddOpen=true; go("allenamento"); try{ csTabs(); }catch{} setW("sci"); window.scrollTo({top:0}); } }
   catch(e){ console.warn("auto pull",e); } finally{ aaBusy=false; } }
-function aaSetup(){ const a=$("aaAct"), k=$("aaSki"); if(!a) return; try{ pvLine(); }catch{} a.checked=aaOn("Act"); k.checked=aaOn("Ski"); aaNote(null);
+function aaSetup(){ setTimeout(()=>skiRefix().catch(e=>console.warn("skiRefix",e)),1500); const a=$("aaAct"), k=$("aaSki"); if(!a) return; try{ pvLine(); }catch{} a.checked=aaOn("Act"); k.checked=aaOn("Ski"); aaNote(null);
   const ch=async(key,box)=>{ if(!AAP()){ box.checked=false; aaNote(null); return; } try{ localStorage.setItem("hf:aa"+key,box.checked?"1":"0"); }catch{} const r0=await aaConfig(true); if(r0&&box.checked&&((key==="Act"&&!r0.act)||(key==="Ski"&&!r0.ski))){ box.checked=false; try{ localStorage.setItem("hf:aa"+key,"0"); }catch{} aaNote(r0); } };
   a.onchange=()=>ch("Act",a); k.onchange=()=>ch("Ski",k);
   const ns=$("aaNoSh"); if(ns){ ns.checked=localStorage.getItem("hf:hcOff")==="1"; ns.onchange=()=>{ if(ns.checked&&!confirm("Da adesso HealthFit non legge più allenamenti, passi, sonno e battito da Samsung Health: restano quelli misurati da HealthFit (telefono e orologio). Continuo?")){ ns.checked=false; return; } try{ localStorage.setItem("hf:hcOff",ns.checked?"1":"0"); }catch{} toast(ns.checked? "Samsung Health non viene più letto" : "Samsung Health torna a essere letto"); }; }
