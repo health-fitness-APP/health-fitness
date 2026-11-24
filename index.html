@@ -2548,7 +2548,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.82 (sci: costo dello skipass per giornata e per discesa)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.83 (sci: riepilogo della stagione da condividere e mappa delle località)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7698,6 +7698,44 @@ const SKI_TIPS=[
 const SKI_PREP=["Squat lento in discesa (3-4 s) per i quadricipiti","Sedia al muro (isometria) 30-60 s","Affondi laterali e affondi indietro","Equilibrio su una gamba, anche a occhi chiusi o su cuscino","Salti laterali a destra e sinistra (pliometria leggera)","Ponte glutei e lavoro per il gluteo medio con elastico","Plank e anti-rotazione (Pallof press) per il tronco","Corsa o bici per il fiato"];
 let skiAddOpen=false;
 /* quanto costa sciare: skipass stagionale o giornaliero, diviso per giornate, discese e dislivello */
+/* località dove hai sciato: punto di partenza di ogni giornata registrata, raggruppato entro 15 km, nome dal geocoder di OpenStreetMap */
+async function skiPlaceName(la,lo){ const k=`hf:skiGeo:${la.toFixed(2)},${lo.toFixed(2)}`; try{ const c=localStorage.getItem(k); if(c) return c; }catch{}
+  try{ const j=await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=12&accept-language=it&lat=${la}&lon=${lo}`)).json(), a=(j&&j.address)||{};
+    const n=a.village||a.town||a.hamlet||a.city||a.municipality||a.county||""; if(n) try{ localStorage.setItem(k,n); }catch{} return n; }catch{ return ""; } }
+async function skiPlaces(from){ const its=((hist&&hist.items)||[]).filter(w=>isSki(w)&&(!from||w.date>=from)), G=[];
+  for(const w of its){ const doc=await store.getDoc("ski-"+w.id).catch(()=>null), tr=doc&&doc.tr; if(!tr||!tr.la) continue; const i=tr.la.findIndex(v=>+v); if(i<0) continue;
+    const la=tr.la[i]/1e5, lo=tr.lo[i]/1e5; let g=G.find(x=>Math.hypot((x.la-la)*111,(x.lo-lo)*111*Math.cos(la*Math.PI/180))<15);
+    if(!g){ g={la,lo,days:new Set(),down:0,km:0,name:""}; G.push(g); } g.days.add(w.date); g.down+=+w.elevDown||0; g.km+=+w.distance||0; }
+  for(const g of G){ g.name=await skiPlaceName(g.la,g.lo)||"Località sconosciuta"; g.n=g.days.size; } return G.sort((a,b)=>b.n-a.n); }
+async function skiPlacesCard(box){ const c=el("section","card"); c.appendChild(el("h2",null,"🗺️ Le tue località")); const body=el("div"); body.appendChild(el("p","note","Cerco dove hai sciato…")); c.appendChild(body); box.appendChild(c);
+  const G=await skiPlaces(); body.innerHTML=""; if(!G.length){ body.appendChild(el("p","note","Le località compaiono dopo la prima giornata registrata con il telefono o l'orologio.")); return; }
+  const mb=el("div","rd-map"); body.appendChild(mb);
+  G.forEach(g=>{ const r0=el("div","pline"); r0.append(el("span","ic","📍"),el("span",null,`${g.name} · ${g.n} ${g.n===1?"giornata":"giornate"}${g.down? ` · ↓${Math.round(g.down).toLocaleString("it-IT")} m` : ""}${g.km? ` · ${fmt(Math.round(g.km*10)/10)} km` : ""}`)); body.appendChild(r0); });
+  try{ const Lf=await rdLeaflet(); const div=el("div","rd-mapc"); div.style.height="220px"; mb.appendChild(div); const map=Lf.map(div,{zoomControl:false,scrollWheelZoom:false});
+    Lf.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",{maxZoom:15,attribution:"© OpenStreetMap, OpenTopoMap"}).addTo(map);
+    G.forEach(g=>Lf.circleMarker([g.la,g.lo],{radius:7+Math.min(10,g.n*2),color:"#fff",weight:2,fillColor:"#E8692E",fillOpacity:.9}).bindPopup(`${esc(g.name)}: ${g.n} ${g.n===1?"giornata":"giornate"}`).addTo(map));
+    if(G.length===1) map.setView([G[0].la,G[0].lo],10); else map.fitBounds(G.map(g=>[g.la,g.lo]),{padding:[30,30],maxZoom:10}); setTimeout(()=>map.invalidateSize(),200); }
+  catch{ mb.remove(); } }
+/* riepilogo della stagione da condividere (immagine 9:16) */
+async function skiSeasonShare(btn){ const lab=btn.textContent; btn.disabled=true; btn.textContent="Preparo l'immagine…";
+  try{ const S=skiStats(), from=skiSeasonFrom(), y=+from.slice(0,4), R=await skiRecords(), Ss=R.S.filter(x=>x.date>=from), G=await skiPlaces(from).catch(()=>[]);
+    const runs=Ss.reduce((a,x)=>a+(+x.runs||0),0), vmax=Math.max(0,...Ss.map(x=>+x.max||0));
+    const W=1080,H=1920,cv=document.createElement("canvas"); cv.width=W; cv.height=H; const g=cv.getContext("2d"), FB="'Bricolage Grotesque',sans-serif", FS="'Instrument Sans',sans-serif";
+    try{ await Promise.all(["800 76px 'Bricolage Grotesque'","700 84px 'Bricolage Grotesque'","500 36px 'Instrument Sans'"].map(f=>document.fonts.load(f))); }catch{}
+    const gr=g.createLinearGradient(0,0,0,H); gr.addColorStop(0,"#1E3A5F"); gr.addColorStop(.55,"#3C6E9E"); gr.addColorStop(1,"#C9DCEB"); g.fillStyle=gr; g.fillRect(0,0,W,H);
+    // montagne stilizzate
+    const mt=(pts,c)=>{ g.beginPath(); g.moveTo(0,H); pts.forEach(([x,y0])=>g.lineTo(x,y0)); g.lineTo(W,H); g.closePath(); g.fillStyle=c; g.fill(); };
+    mt([[0,1500],[180,1260],[330,1380],[540,1120],[720,1330],[880,1200],[1080,1400]],"rgba(255,255,255,.55)"); mt([[0,1650],[220,1450],[420,1580],[640,1400],[860,1560],[1080,1470]],"rgba(255,255,255,.85)");
+    const txt=(t,x,y0,f,c,al)=>{ g.font=f; g.fillStyle=c||"#fff"; g.textAlign=al||"left"; g.fillText(t,x,y0); }, LX=110;
+    const logo=await rsImg("icon-192.png",3000); if(logo){ g.save(); g.beginPath(); g.roundRect? g.roundRect(LX,120,96,96,24) : g.rect(LX,120,96,96); g.clip(); g.drawImage(logo,LX,120,96,96); g.restore(); }
+    txt("HealthFit",W-LX,190,`800 60px ${FB}`,"#fff","right");
+    txt("La mia stagione",LX,360,`800 92px ${FB}`); txt(`sugli sci ${y}/${String(y+1).slice(2)}`,LX,450,`700 64px ${FB}`,"rgba(255,255,255,.9)");
+    const st=[["Giornate",String(S.days)],["Ore",fmt(Math.round(S.min/6)/10)],["Km di discesa",fmt(S.km)],["Dislivello",`${S.dn.toLocaleString("it-IT")} m`],["Discese",String(runs||"–")],["Velocità max",vmax? `${vmax} km/h` : "–"]];
+    st.forEach(([l,v],i)=>{ const x=LX+(i%2)*440, y0=600+Math.floor(i/2)*190; txt(l,x,y0,`500 38px ${FS}`,"rgba(255,255,255,.85)"); txt(v,x,y0+86,`700 80px ${FB}`); });
+    const GN=G.filter(x=>x.name&&x.name!=="Località sconosciuta"); if(GN.length) txt("📍 "+GN.slice(0,3).map(x=>x.name).join(" · "),LX,1210,`600 40px ${FS}`,"#fff");
+    await shareCanvas(cv,`stagione-sci-${y}.png`,"La mia stagione sugli sci","Condividi la stagione"); }
+  catch(e){ if(!/cancel|abort/i.test(String(e&&(e.name+" "+e.message)||e))) toast("Condivisione: "+((e&&e.message)||e)); }
+  finally{ btn.disabled=false; btn.textContent=lab; } }
 function skiCostBox(c1,o,S){ const ps=o.pass||{}; const box=el("details","ski-cost"); const sm=el("summary",null,"🎟️ Skipass: quanto ti costa"); box.appendChild(sm);
   const runs=S.its.reduce((a,w)=>a+(+w.runs||0),0), days=S.days, tot= +ps.season>0? +ps.season : days*(+ps.day||0);
   const res=el("div","ski-grid"); res.style.gridTemplateColumns="repeat(2,1fr)";
@@ -7716,6 +7754,7 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
   c1.appendChild(g);
   if(S.kcal) c1.appendChild(el("p","note",`Calorie consumate sugli sci da settembre: circa ${S.kcal.toLocaleString("it-IT")} kcal.`));
   try{ skiCostBox(c1,o,S); }catch(e){ console.warn("skipass",e); }
+  if(S.days){ const sb=el("button","btn ghost","📤 Condividi la stagione"); sb.type="button"; sb.style.marginTop="8px"; sb.onclick=()=>skiSeasonShare(sb); c1.appendChild(sb); }
   try{ skiLiveCard(c1); }catch(e){ console.warn("sci live",e); }
   const ab=el("button","btn ghost",skiAddOpen? "Chiudi" : "✏ Inserisci a mano una giornata già fatta"); ab.style.marginTop="10px"; ab.type="button"; ab.onclick=()=>{ skiAddOpen=!skiAddOpen; renderSci(); }; c1.appendChild(ab);
   if(skiAddOpen){ const f=el("div","form"); f.style.marginTop="10px";
@@ -7735,6 +7774,7 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
   else c1.appendChild(el("p","note","Nessuna giornata ancora. Puoi registrarla dal telefono qui sopra; se usi il Galaxy Watch arriva da sola da Samsung Health."));
   box.appendChild(c1);
   try{ skiRecCard(box).catch(e=>console.warn("record sci",e)); }catch{}
+  try{ skiPlacesCard(box).catch(e=>console.warn("località sci",e)); }catch{}
   // neve e meteo
   const c2=el("section","card"); const h2w=el("h2",null,`❄️ Neve e meteo · ${o.place.name}`); c2.appendChild(h2w); const wx=el("div","ski-wx"); wx.textContent="Carico le previsioni…"; c2.appendChild(wx); box.appendChild(c2); skiWeather(o.place,wx,h2w).catch(e=>{ console.warn("meteo sci",e); wx.textContent="Previsioni non disponibili adesso."; });
   // preparazione
