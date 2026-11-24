@@ -742,6 +742,13 @@ html,body{overscroll-behavior-y:contain}
 .fam-det>.note{padding:0 14px 10px}
 .swipe-bg{position:absolute;top:1px;right:0;bottom:2px;width:96px;border:0;background:#E5484D;color:#fff;font:inherit;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
 .swipe-bg span{font-size:1.2rem}
+.swipe:not(.sw-act)>.swipe-bg{visibility:hidden}
+.swipe>.mealrow,.swipe>.supprow{margin-bottom:0}.swipe:has(>.mealrow),.swipe:has(>.supprow){margin-bottom:8px}
+.sw-li .swipe-bg{width:96px!important;background:#E5484D!important;color:#fff!important;border:0!important;padding:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;text-align:center!important}
+.sw-li{list-style:none;display:block!important;padding:0!important;margin:0!important;border:0!important}
+.items .sw-in{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.results .sw-in{display:flex;align-items:center;gap:4px}
+.swipe-fg{-webkit-user-select:none;user-select:none}.swipe-fg input,.swipe-fg select,.swipe-fg textarea{-webkit-user-select:text;user-select:text}
 .swipe-fg{position:relative;background:var(--surface-solid);touch-action:pan-y;will-change:transform}
 .mp-list .swipe{margin:0 -16px}
 .mp-list .swipe-fg{padding-left:16px;padding-right:16px}
@@ -844,7 +851,7 @@ html,body{overscroll-behavior-y:contain}
 .rec-keep{font-size:1rem}
 #recentCard{margin-top:14px}
 .mealrow .mwhere{flex:none;width:auto;max-width:44%;padding-right:26px}
-.supprow{display:grid;grid-template-columns:1.4fr 1fr auto;gap:6px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.supprow{display:grid;grid-template-columns:1.4fr 1fr;gap:6px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .supprow select{grid-column:1/3}
 .supprow .del{grid-row:1/3;grid-column:3}
 .suppres{border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:8px}
@@ -1309,7 +1316,8 @@ input.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-ra
 .setrow input,.edrow input{padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--ink);width:100%;text-align:center}
 .tick{width:44px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);font-size:1.1rem}
 .tick[aria-pressed="true"]{background:var(--basil);color:var(--basil-ink);border-color:var(--basil)}
-.edrow{display:grid;grid-template-columns:1fr 3.4em 4.5em 4.5em 32px;gap:6px;align-items:center;margin-top:8px}
+.edrow{display:grid;grid-template-columns:1fr 3.4em 4.5em 4.5em;gap:6px;align-items:center;margin-top:8px}
+.swipe>.edrow{margin-top:0;padding:4px 0}.swipe:has(>.edrow){margin-top:4px}
 .edrow input:first-child{text-align:left}
 .last{font-size:.8rem;color:var(--basil);margin-top:2px}
 .micwrap{position:relative;display:block;width:100%}
@@ -2549,7 +2557,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.92 (sci: tasto 📤 per condividere ogni giornata, elenco «Le tue giornate» più chiaro)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.93 (elimina scorrendo a sinistra in tutte le liste, anche col mouse)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3759,26 +3767,46 @@ let mealPageId=null;
 function mealIcon(m){ const n=(m.name||m.id||"").toLowerCase(); return /colaz/.test(n)?"☕":/pranzo/.test(n)?"🍝":/cena/.test(n)?"🍽️":/spunt|merend/.test(n)?"🍎":/pre/.test(n)?"⚡":/post/.test(n)?"🥤":"🍴"; }
 /* scorri a sinistra per far comparire "Elimina" (con Annulla) */
 let swipeOpen=null;
+/* REGOLA di Daniele (24/11/2026): in TUTTE le liste dell'app (anche quelle future) si elimina scorrendo la riga a sinistra,
+   mai con un'icona cestino/×. Usare sempre makeSwipe (righe <div>) o swipeItem (righe <li>) + delUndo per l'Annulla.
+   Telefono: dito. PC: trascina col mouse verso sinistra, oppure tasto destro sulla riga. Se onDelete restituisce false la riga torna a posto. */
 function makeSwipe(row,onDelete,label){
   const wrap=el("div","swipe"), bg=el("button","swipe-bg"); bg.type="button"; bg.innerHTML=`<span>🗑</span><b>Elimina</b>`; bg.setAttribute("aria-label","Elimina "+(label||""));
   row.classList.add("swipe-fg"); wrap.append(bg,row);
-  let x0=0,y0=0,dx=0,drag=false,lock=null; const W=96;
-  const setX=x=>{ row.style.transform=`translateX(${x}px)`; };
-  const close=()=>{ row.style.transition="transform .2s"; setX(0); wrap.classList.remove("open"); if(swipeOpen===wrap) swipeOpen=null; };
-  const open=()=>{ row.style.transition="transform .2s"; setX(-W); wrap.classList.add("open"); if(swipeOpen&&swipeOpen!==wrap) swipeOpen._close(); swipeOpen=wrap; };
+  let x0=0,y0=0,dx=0,drag=false,lock=null,moved=false; const W=96;
+  const setX=x=>{ row.style.transform= x? `translateX(${x}px)` : ""; };
+  const close=()=>{ row.style.transition="transform .2s"; setX(0); wrap.classList.remove("open"); if(swipeOpen===wrap) swipeOpen=null; setTimeout(()=>{ if(!wrap.classList.contains("open")&&!drag) wrap.classList.remove("sw-act"); },260); };
+  const open=()=>{ wrap.classList.add("sw-act"); row.style.transition="transform .2s"; setX(-W); wrap.classList.add("open"); if(swipeOpen&&swipeOpen!==wrap) swipeOpen._close(); swipeOpen=wrap; };
+  const del=()=>{ let res; try{ res=onDelete(); }catch(e){ console.warn("elimina",e); } if(res===false) close(); else if(swipeOpen===wrap) swipeOpen=null; };
   wrap._close=close;
-  row.addEventListener("touchstart",e=>{ const t=e.touches[0]; x0=t.clientX; y0=t.clientY; dx=0; drag=true; lock=null; row.style.transition="none"; },{passive:true});
-  row.addEventListener("touchmove",e=>{ if(!drag) return; const t=e.touches[0]; const ddx=t.clientX-x0, ddy=t.clientY-y0;
+  const start=(x,y)=>{ x0=x; y0=y; dx=0; drag=true; lock=null; moved=false; row.style.transition="none"; };
+  row.addEventListener("transitionend",()=>{ if(!wrap.classList.contains("open")&&!drag) wrap.classList.remove("sw-act"); });
+  const move=(x,y)=>{ if(!drag) return false; const ddx=x-x0, ddy=y-y0;
     if(lock==null&&(Math.abs(ddx)>8||Math.abs(ddy)>8)) lock= Math.abs(ddx)>Math.abs(ddy)? "x" : "y";
-    if(lock!=="x") return; dx=ddx+(wrap.classList.contains("open")?-W:0); setX(Math.max(-W*2.4,Math.min(0,dx))); },{passive:true});
-  row.addEventListener("touchend",()=>{ if(!drag) return; drag=false; if(lock!=="x"){ return; }
-    if(dx<-W*2) { row.style.transition="transform .15s"; setX(-wrap.offsetWidth); setTimeout(()=>onDelete(),150); }
-    else if(dx<-W/2) open(); else close(); });
-  row.addEventListener("click",e=>{ if(wrap.classList.contains("open")){ e.preventDefault(); e.stopPropagation(); close(); } },true);
-  bg.onclick=()=>onDelete();
+    if(lock!=="x") return false; moved=true; wrap.classList.add("sw-act"); dx=ddx+(wrap.classList.contains("open")?-W:0); setX(Math.max(-W*2.4,Math.min(0,dx))); return true; };
+  const end=()=>{ if(!drag) return; drag=false; if(lock!=="x"){ return; } setTimeout(()=>{ moved=false; },60);
+    if(dx<-W*2) { row.style.transition="transform .15s"; setX(-wrap.offsetWidth); setTimeout(del,150); }
+    else if(dx<-W/2) open(); else close(); };
+  row.addEventListener("touchstart",e=>{ const t=e.touches[0]; start(t.clientX,t.clientY); },{passive:true});
+  row.addEventListener("touchmove",e=>{ const t=e.touches[0]; move(t.clientX,t.clientY); },{passive:true});
+  row.addEventListener("touchend",end);
+  // PC: trascinamento col mouse (anche partendo da una casella, ma non se ci stai già scrivendo: lì il mouse seleziona il testo)
+  row.addEventListener("mousedown",e=>{ const tg=e.target; if(e.button!==0||/^(SELECT|TEXTAREA)$/.test(tg.tagName)||(tg.tagName==="INPUT"&&document.activeElement===tg)) return; start(e.clientX,e.clientY);
+    const mm=ev=>{ if(move(ev.clientX,ev.clientY)) ev.preventDefault(); }, mu=()=>{ document.removeEventListener("mousemove",mm); document.removeEventListener("mouseup",mu); end(); };
+    document.addEventListener("mousemove",mm); document.addEventListener("mouseup",mu); });
+  // PC: tasto destro sulla riga = mostra «Elimina» (nelle caselle di testo resta il menù normale: copia/incolla)
+  row.addEventListener("contextmenu",e=>{ if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return; e.preventDefault(); wrap.classList.contains("open")? close() : open(); });
+  row.addEventListener("click",e=>{ if(moved){ e.preventDefault(); e.stopPropagation(); moved=false; return; } if(wrap.classList.contains("open")){ e.preventDefault(); e.stopPropagation(); close(); } },true);
+  bg.onclick=e=>{ e.stopPropagation(); wrap.classList.add("sw-act"); row.style.transition="transform .15s"; setX(-wrap.offsetWidth); setTimeout(del,150); };
   return wrap;
 }
+/* righe <li>: la riga diventa un <div class="sw-in …"> dentro un <li class="sw-li">, così la lista resta valida */
+function swipeItem(li,onDelete,label){ const out=el("li","sw-li"), inn=el("div","sw-in "+(li.className||"")); inn.style.cssText=li.style.cssText;
+  while(li.firstChild) inn.appendChild(li.firstChild); out.appendChild(makeSwipe(inn,onDelete,label)); return out; }
+/* elimina subito e propone «Annulla» per qualche secondo (al posto della domanda di conferma) */
+function delUndo(msg,remove,restore,ms){ remove(); actionToast(msg,"Annulla",restore,ms||7000); }
 document.addEventListener("touchstart",e=>{ if(swipeOpen&&!swipeOpen.contains(e.target)) swipeOpen._close(); },{passive:true});
+document.addEventListener("mousedown",e=>{ if(swipeOpen&&!swipeOpen.contains(e.target)) swipeOpen._close(); });
 /* riepilogo calorie e info nutrizionali (stile app salute) */
 function renderKcalSummary(dt,t){
   const box=$("ks"), nb=$("nutriCard"); if(!box) return;
@@ -3833,7 +3861,7 @@ function renderRecipes(){ const box=$("rcpList"); if(!box) return; box.innerHTML
   list.forEach(rc=>{ const p=rcpPortion(rc), row=el("div","rcprow"), b=el("button","dprow"); b.type="button"; b.innerHTML=`<span class="n"></span><span class="q"></span><span class="pl">›</span>`;
     b.querySelector(".n").textContent=rc.name; b.querySelector(".q").textContent=`${r(p.kcal)} kcal a porzione (${p.g} g) · P ${r(p.p)} · C ${r(p.c)} · G ${r(p.f)} · ${rc.servings} porz.`;
     b.onclick=()=>openRecipe(rc.id); const add=el("button","rcp-add","＋"); add.type="button"; add.setAttribute("aria-label","Aggiungi "+rc.name+" a un pasto"); add.onclick=()=>openRecipeQuick(rc);
-    row.append(b,add); box.appendChild(row); }); }
+    row.append(b,add); box.appendChild(makeSwipe(row,()=>{ const idx=recipes.list.indexOf(rc); if(idx<0) return; delUndo("Ricetta eliminata: "+rc.name,()=>{ recipes.list.splice(idx,1); saveRecipes(); renderRecipes(); },()=>{ recipes.list.splice(idx,0,rc); saveRecipes(); renderRecipes(); }); },rc.name)); }); }
 /* porzioni ⇄ grammi collegati: chi ha scritto per ultimo decide */
 const numIt=v=>+String(v||"").replace(",",".")||0;
 function linkPG(pid,gid,pg){ $(pid).addEventListener("input",()=>{ $(pid).dataset.last="p"; syncPG(pid,gid,pg); });
@@ -3867,8 +3895,7 @@ function renderRecipe(){ if(!rcpCur) return; syncPG("rcpPortions","rcpGrams",rcp
     tx.querySelector(".n").textContent=it.name; tx.querySelector(".q").textContent= it.kcal!=null? `${fmt(it.grams)} g · ${r(it.kcal)} kcal · P ${r(it.p)} · C ${r(it.c)} · G ${r(it.f)}` : `${fmt(it.grams)} g · calcolo i valori…`;
     addLongPress(tx,()=>openFoodEdit({...it},nv=>{ rcpCur.ingredients[i]={...it,...nv}; renderRecipe(); }));
     tx.onclick=()=>{ if(tx._lp) return; const v=prompt("Quanti grammi?",fmt(it.grams)); const g=+String(v||"").replace(",","."); if(g>0){ const k=g/(+it.grams||g); rcpCur.ingredients[i]={...it,grams:g,kcal:(+it.kcal||0)*k,p:(+it.p||0)*k,c:(+it.c||0)*k,f:(+it.f||0)*k}; renderRecipe(); } };
-    const del=el("button","mp-pm","×"); del.type="button"; del.setAttribute("aria-label","Togli "+it.name); del.onclick=()=>{ rcpCur.ingredients.splice(i,1); renderRecipe(); };
-    row.append(tx,el("span","mp-div"),del); box.appendChild(row); });
+    row.append(tx); box.appendChild(makeSwipe(row,()=>{ const cur=rcpCur; delUndo("Tolto: "+it.name,()=>{ cur.ingredients.splice(i,1); renderRecipe(); },()=>{ cur.ingredients.splice(i,0,it); if(rcpCur===cur) renderRecipe(); }); },it.name)); });
   const t=rcpTot(rcpCur), n=Math.max(1,+$("rcpServ").value||1), pg=(+$("rcpCooked").value||t.g)/n;
   $("rcpNutr").innerHTML=`<h2>📊 Valori nutrizionali</h2><div class="cs-tiles"><div><b>${r(t.kcal/n)}</b><span>kcal a porzione</span></div><div><b>${Math.round(pg)} g</b><span>peso di una porzione${$("rcpCooked").value?"":" (crudo)"}</span></div></div>
     <div class="vmac" style="margin-top:8px"><div><b>${r(t.p/n)}</b><span>proteine g</span></div><div><b>${r(t.c/n)}</b><span>carbo g</span></div><div><b>${r(t.f/n)}</b><span>grassi g</span></div><div><b>${r(t.kcal)}</b><span>kcal totali</span></div></div>
@@ -4569,18 +4596,16 @@ function renderQuick(){
     ul.appendChild(quickRow(yi.map(x=>x.name).join(", "), r(yi.reduce((a,b)=>a+b.kcal,0))+" kcal", ()=>pushQuick(yi.map(x=>normItem(x))))); box.appendChild(ul); }
   if(foods.saved.length){ box.appendChild(el("p","rq-h","Pasti salvati")); const ul=el("ul","results");
     const sorted=[...foods.saved].sort((a,b)=>(b.mealId===currentMeal)-(a.mealId===currentMeal));
-    sorted.forEach(sm=>{ const del=el("button","star","×"); del.setAttribute("aria-label","Elimina "+sm.name); del.style.color="var(--muted)";
-      del.onclick=()=>{ if(!confirm("Eliminare il pasto “"+sm.name+"”?")) return; foods.saved=foods.saved.filter(x=>x.id!==sm.id); saveFoods(); renderQuick(); };
-      ul.appendChild(quickRow(sm.name, r(sm.items.reduce((a,b)=>a+b.kcal,0))+" kcal · "+sm.items.length+" alimenti", ()=>pushQuick(sm.items.map(x=>normItem(x))), del)); });
+    sorted.forEach(sm=>{ const rm=()=>{ const idx=foods.saved.indexOf(sm); if(idx<0) return; delUndo("Pasto eliminato: "+sm.name,()=>{ foods.saved.splice(idx,1); saveFoods(); renderQuick(); },()=>{ foods.saved.splice(idx,0,sm); saveFoods(); renderQuick(); }); };
+      ul.appendChild(swipeItem(quickRow(sm.name, r(sm.items.reduce((a,b)=>a+b.kcal,0))+" kcal · "+sm.items.length+" alimenti", ()=>pushQuick(sm.items.map(x=>normItem(x)))),rm,sm.name)); });
     box.appendChild(ul); }
   if(foods.favs.length){ box.appendChild(el("p","rq-h","Alimenti preferiti")); const ul=el("ul","results");
     foods.favs.forEach(f=>{ const it=itemFromEntry(f); ul.appendChild(quickRow(f.name, f.grams+" g · "+r(it.kcal)+" kcal", ()=>pushQuick([itemFromEntry(f)]), starBtn(it))); });
     box.appendChild(ul); }
   const cus=foods.custom.filter(x=>!isFav(x.name));
   if(cus.length){ box.appendChild(el("p","rq-h","I tuoi alimenti")); const ul=el("ul","results");
-    cus.forEach(f=>{ const it=itemFromEntry(f), del=el("button","star","×"); del.style.color="var(--muted)"; del.setAttribute("aria-label","Elimina "+f.name);
-      del.onclick=()=>{ if(!confirm("Eliminare “"+f.name+"” dai tuoi alimenti?")) return; foods.custom=foods.custom.filter(x=>x.key!==f.key); saveFoods(); renderQuick(); };
-      ul.appendChild(quickRow(f.name, f.grams+" g · "+r(it.kcal)+" kcal", ()=>pushQuick([itemFromEntry(f)]), del)); });
+    cus.forEach(f=>{ const it=itemFromEntry(f), rm=()=>{ const idx=foods.custom.indexOf(f); if(idx<0) return; delUndo("Eliminato dai tuoi alimenti: "+f.name,()=>{ foods.custom.splice(idx,1); saveFoods(); renderQuick(); },()=>{ foods.custom.splice(idx,0,f); saveFoods(); renderQuick(); }); };
+      ul.appendChild(swipeItem(quickRow(f.name, f.grams+" g · "+r(it.kcal)+" kcal", ()=>pushQuick([itemFromEntry(f)])),rm,f.name)); });
     box.appendChild(ul); }
   const rec=foods.recents.filter(x=>!isFav(x.name)&&!foods.custom.some(c=>c.key===x.key)).slice(0,12);
   if(rec.length){ box.appendChild(el("p","rq-h","Usati di recente")); const ul=el("ul","results");
@@ -5386,9 +5411,8 @@ Se ci sono calorie totali e attive, usa le calorie dell'allenamento (totali). Co
 function renderTrain(){
   const t=draft.train, box=$("trSessions"); box.innerHTML="";
   t.sessions.forEach((s,i)=>{
-    const c=el("div","sess"), hd=el("div","sess-head"), del=el("button","del","×");
-    del.setAttribute("aria-label","Rimuovi sessione "+(i+1)); del.onclick=()=>{ t.sessions.splice(i,1); renderTrain(); };
-    hd.append(el("span",null,"Sessione "+(i+1)), del); c.appendChild(hd);
+    const c=el("div","sess"), hd=el("div","sess-head");
+    hd.append(el("span",null,"Sessione "+(i+1))); c.appendChild(hd);
     const ch=el("div","rchips");
     WD_ORDER.forEach(d=>{ const b=el("button","chip",WD[d].slice(0,3)); b.setAttribute("aria-pressed",s.days.includes(d)); b.setAttribute("aria-label",WD[d]);
       b.onclick=()=>{ s.days = s.days.includes(d)? s.days.filter(x=>x!==d) : [...s.days,d]; renderTrain(); }; ch.appendChild(b); });
@@ -5401,7 +5425,7 @@ function renderTrain(){
     if(s.fed==="pasto") s.fed="leggero";
     fd.value=s.fed; fd.onchange=()=>{ s.fed=fd.value; summary(); };
     row.append(mk("Inizio",st), mk("Fine",en), mk("Pasto prima dell'allenamento",fd)); c.appendChild(row);
-    box.appendChild(c);
+    const sw=makeSwipe(c,()=>{ delUndo("Sessione "+(i+1)+" eliminata",()=>{ t.sessions.splice(i,1); renderTrain(); },()=>{ t.sessions.splice(i,0,s); renderTrain(); }); },"sessione "+(i+1)); sw.style.cssText="border-radius:16px;margin-bottom:10px"; c.style.marginBottom="0"; box.appendChild(sw);
   });
   summary();
   function summary(){ const days=[...new Set(t.sessions.flatMap(s=>s.days))];
@@ -5753,12 +5777,12 @@ function renderProgram(){ try{ renderRaceRow(); }catch(e){ console.warn("gara",e
     c.appendChild(el("p","sub",`Circa ${d.minutes||60} minuti`));
     d.exercises=d.exercises||[];
     if(editDay===di){
-      const head=el("div","edrow"); ["Esercizio","Serie","Rip.","Rec."].forEach(t=>head.appendChild(el("span","note",t))); head.appendChild(el("span")); c.appendChild(head);
+      const head=el("div","edrow"); ["Esercizio","Serie","Rip.","Rec."].forEach(t=>head.appendChild(el("span","note",t))); c.appendChild(head);
       d.exercises.forEach((x,xi)=>{
         const row=el("div","edrow");
         const mk=(k,ph)=>{ const i=el("input"); i.value=x[k]==null?"":x[k]; i.placeholder=ph; i.setAttribute("aria-label",ph+" "+(xi+1)); i.oninput=()=>{ x[k]= k==="sets"? (+i.value||"") : i.value; }; return i; };
-        const del=el("button","del","×"); del.setAttribute("aria-label","Rimuovi esercizio"); del.onclick=()=>{ d.exercises.splice(xi,1); renderProgram(); };
-        row.append(mk("name","Esercizio"),mk("sets","Serie"),mk("reps","Rip."),mk("rest","Rec."),del); c.appendChild(row);
+        row.append(mk("name","Esercizio"),mk("sets","Serie"),mk("reps","Rip."),mk("rest","Rec."));
+        c.appendChild(makeSwipe(row,()=>{ delUndo("Tolto: "+(x.name||"esercizio"),()=>{ d.exercises.splice(xi,1); renderProgram(); },()=>{ d.exercises.splice(xi,0,x); renderProgram(); }); },x.name));
       });
       const st=el("div","stack"); st.style.marginTop="10px";
       const add=el("button","add soft","+ Esercizio"); add.onclick=()=>{ d.exercises.push({name:"",sets:3,reps:"10",rest:"90s"}); renderProgram(); };
@@ -6702,7 +6726,7 @@ function renderShoes(){ const box=$("csShoes"); box.innerHTML=""; const act=shoe
     if(!sh.retired&&shoes.def!==sh.id){ const b=el("button","linkbtn","Usa queste"); b.type="button"; b.onclick=()=>{ shoes.def=sh.id; save("shoes",shoes); renderShoes(); }; a.appendChild(b); }
     if(!sh.retired){ const lb=el("button","linkbtn","Limite "+lim+" km"); lb.type="button"; lb.title="Tocca per cambiare: 600, 700 o 800 km"; lb.onclick=()=>{ sh.limit= lim>=800? 600 : lim+100; try{ localStorage.removeItem("hf:shoeW:"+sh.id); }catch{} save("shoes",shoes); renderShoes(); }; a.appendChild(lb); }
     const rt=el("button","linkbtn",sh.retired?"Rimetti in uso":"Metti in pensione"); rt.type="button"; rt.onclick=()=>{ sh.retired=!sh.retired; if(sh.retired&&shoes.def===sh.id) shoes.def=(shoes.list.find(x=>!x.retired&&x.id!==sh.id)||{}).id||null; save("shoes",shoes); renderShoes(); }; a.appendChild(rt);
-    box.appendChild(d); }); void act; }
+    box.appendChild(makeSwipe(d,()=>{ const idx=shoes.list.indexOf(sh), wasDef=shoes.def; if(idx<0) return; delUndo("Scarpe eliminate: "+sh.name,()=>{ shoes.list.splice(idx,1); if(shoes.def===sh.id) shoes.def=(shoes.list.find(x=>!x.retired)||{}).id||null; save("shoes",shoes); renderShoes(); },()=>{ shoes.list.splice(idx,0,sh); shoes.def=wasDef; save("shoes",shoes); renderShoes(); }); },sh.name)); }); void act; }
 $("shAdd").onclick=()=>{ const n=$("shName").value.trim(); if(!n){ toast("Scrivi il nome delle scarpe"); return; }
   const sh={id:uid(),name:n.slice(0,40),start:+$("shKm").value||0,limit:700,added:todayISO()}; shoes.list.push(sh); if(!shoes.def||!shoes.list.find(x=>x.id===shoes.def&&!x.retired)) shoes.def=sh.id; save("shoes",shoes); $("shName").value=""; $("shKm").value=""; renderShoes(); toast("Scarpe aggiunte ✓"); };
 
@@ -6720,11 +6744,11 @@ function renderGelList(){ const box=$("gelList"); box.innerHTML="";
   gels.list.forEach(g=>{ const r0=el("div","gel-row"), n=el("div","n"), st=el("button","icon-btn",g.fav?"⭐":"☆"); st.type="button"; st.style.cssText="background:none;border:0;font-size:1.3rem;padding:0 2px;cursor:pointer";
     st.setAttribute("aria-label",g.fav?"Togli dai preferiti":"Segna come preferito"); st.onclick=()=>{ const on=!g.fav; gels.list.forEach(y=>delete y.fav); if(on) g.fav=true; gelSave(); toast(on? `⭐ ${g.name} è il tuo gel preferito` : "Nessun gel preferito"); }; r0.appendChild(st);
     n.append(el("b",null,g.name), el("small",null,gelTxt(g))); n.style.cursor="pointer"; n.title="Modifica"; n.onclick=()=>gelFill(g);
-    const q=el("div","gel-q"), mi=el("button",null,"−"), v=el("span",null,String(+g.qty||0)), pl=el("button",null,"＋"), x=el("button",null,"✕");
-    [mi,pl,x].forEach(b=>b.type="button"); mi.setAttribute("aria-label","Uno in meno"); pl.setAttribute("aria-label","Uno in più"); x.setAttribute("aria-label","Elimina "+g.name);
+    const q=el("div","gel-q"), mi=el("button",null,"−"), v=el("span",null,String(+g.qty||0)), pl=el("button",null,"＋"), x=null;
+    [mi,pl].forEach(b=>b.type="button"); mi.setAttribute("aria-label","Uno in meno"); pl.setAttribute("aria-label","Uno in più");
     mi.onclick=()=>{ g.qty=Math.max(0,(+g.qty||0)-1); gelSave(); }; pl.onclick=()=>{ g.qty=(+g.qty||0)+1; gelSave(); };
-    x.onclick=()=>{ if(!confirm(`Elimino ${g.name}?`)) return; gels.list=gels.list.filter(y=>y.id!==g.id); if(gelEdit===g.id) gelFill(null); gelSave(); };
-    q.append(mi,v,pl,x); r0.append(n,q); box.appendChild(r0); }); }
+    q.append(mi,v,pl); r0.append(n,q); void x;
+    box.appendChild(makeSwipe(r0,()=>{ const idx=gels.list.indexOf(g); if(idx<0) return; delUndo("Gel eliminato: "+g.name,()=>{ gels.list.splice(idx,1); if(gelEdit===g.id) gelFill(null); gelSave(); },()=>{ gels.list.splice(idx,0,g); gelSave(); }); },g.name)); }); }
 function gelFill(g){ gelEdit=g? g.id : null; $("gelName").value=g? g.name : ""; $("gelCarbs").value=g? (g.carbs||"") : ""; $("gelQty").value=g? (g.qty??"") : ""; $("gelCaf").checked=!!(g&&g.caf);
   $("gelFormT").innerHTML= g? "<b>Modifica gel</b>" : "<b>Nuovo gel</b>"; $("gelSave").textContent= g? "Salva modifiche" : "Aggiungi gel"; $("gelCancel").hidden=!g; setStatus("gelStatus",""); }
 function openGels(){ gelScanStop(); gelCodeNow=""; gelFill(null); renderGelList(); $("gelShotBtn").hidden=!imgLimits||!sample; openSheet("gelSheet"); }
@@ -7626,8 +7650,8 @@ function renderCsMem(){ const m=(chat&&chat.mem)||[], box=$("csMem"), row=$("csM
     $("csMemSub").textContent= m.length? `${m.length} ${m.length===1?"cosa":"cose"} · ${m.slice(0,3).map(x=>x.t.length>28? x.t.slice(0,26)+"…" : x.t).join(" · ")}` : "";
     if(!row._b){ row._b=true; row.onclick=()=>{ csMemOpen=!csMemOpen; renderCsMem(); }; } }
   $("csMemCard").hidden=!m.length||!csMemOpen; box.innerHTML="";
-  m.forEach((x,i)=>{ const r0=el("div","cs-mem"); r0.appendChild(el("span",null,x.t)); const b=el("button",null,"✕"); b.type="button"; b.setAttribute("aria-label","Dimentica");
-    b.onclick=()=>{ chat.mem.splice(i,1); save("coach",chat); renderCsMem(); }; r0.appendChild(b); box.appendChild(r0); }); }
+  m.forEach((x,i)=>{ const r0=el("div","cs-mem"); r0.appendChild(el("span",null,x.t));
+    box.appendChild(makeSwipe(r0,()=>{ delUndo("Il coach l'ha dimenticato",()=>{ chat.mem.splice(i,1); save("coach",chat); renderCsMem(); },()=>{ chat.mem.splice(i,0,x); save("coach",chat); renderCsMem(); }); },"dalla memoria")); }); }
 /* ultimi consigli sugli integratori dati dal coach (pagina Cibo): in chat deve restare coerente */
 function suppAdvText(){ let a=null; try{ a=JSON.parse(localStorage.getItem("hf:suppAdv")||"null"); }catch{} if(!a) return "";
   return `CONSIGLI SUGLI INTEGRATORI CHE GLI HAI GIÀ DATO il ${dateLong(a.d)} (pagina Cibo): ${a.summary||""}${a.items&&a.items.length? " Valutazione di quelli che prende: "+a.items.join("; ")+"." : ""}${a.suggest&&a.suggest.length? " Da aggiungere: "+a.suggest.join("; ")+"." : ""} Sono consigli tuoi: restaci coerente. Cambiali solo se la persona ti dà informazioni nuove, e in quel caso spiega chiaramente cosa è cambiato e perché.`; }
@@ -7815,8 +7839,7 @@ function skiCostBox(c1,o,S){ const L=skpList(o); const box=el("details","ski-cos
     const sub=[p.type==="day"&&!p.std&&(p.from||p.bought)? "per il "+dd(p.from||p.bought) : "", p.type!=="day"&&(p.from||p.to)? `valido ${p.from? "dal "+dd(p.from) : ""}${p.to? " al "+dd(p.to) : ""}` : "", p.bought? "pagato il "+dd(p.bought) : "", p.where? "a "+p.where : "", n? `usato ${n} ${n===1?"giorno":"giorni"}` : "non ancora usato"].filter(Boolean).join(" · ");
     const sp=el("span"); sp.append(el("b",null,t),el("br"),el("small",null,sub)); r0.append(el("span","ic","🎟️"),sp);
     const eb=el("button","linkbtn","✏"); eb.type="button"; eb.setAttribute("aria-label","Modifica"); eb.onclick=()=>{ skpEdit={...p}; renderSci(); };
-    const xb=el("button","linkbtn ski-del","🗑"); xb.type="button"; xb.setAttribute("aria-label","Elimina"); xb.onclick=()=>{ if(!confirm("Elimino questo skipass?")) return; o.passes=o.passes.filter(x=>x.id!==p.id); csSave(); renderSci(); toast("Skipass eliminato"); };
-    r0.append(eb,xb); box.appendChild(r0); });
+    r0.append(eb); box.appendChild(makeSwipe(r0,()=>{ const idx=o.passes.indexOf(p); if(idx<0) return; delUndo("Skipass eliminato",()=>{ o.passes.splice(idx,1); csSave(); renderSci(); },()=>{ o.passes.splice(idx,0,p); csSave(); renderSci(); }); },"skipass")); });
   if(!L.length) box.appendChild(el("p","note","Aggiungi i tuoi skipass: giornalieri, di più giorni o stagionali, anche di località diverse. Calcolo quanto ti costa davvero ogni giornata e ogni discesa."));
   // modulo
   if(skpEdit){ const e=skpEdit, f=el("div","form skp-form");
@@ -7862,7 +7885,7 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
     f.querySelector("#skGo").onclick=async()=>{ const m=calc(); if(!m){ toast("Indica inizio e fine"); return; } const iso=f.querySelector("#skD").value||todayISO(), int=f.querySelector("#skI").value;
       await addWorkoutOn(iso,{name:f.querySelector("#skT").value,minutes:m,intensity:int,kcal:skiKcal(m,int),start:f.querySelector("#skS").value,end:f.querySelector("#skE").value,distance:+String(f.querySelector("#skK").value).replace(",",".")||null,elevDown:+f.querySelector("#skH").value||null,details:f.querySelector("#skN").value.trim()||"",place:o.place.name});
       skiAddOpen=false; renderSci(); }; }
-  if(S.its.length){ c1.appendChild(el("p","ski-fr","📅 Le tue giornate")); c1.appendChild(el("p","note","Tocca una giornata per vedere mappa, velocità e piste. Con 📤 la condividi come immagine.")); const lst=el("div","ski-list"); S.its.slice(0,12).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic","⛷️"), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.elevDown? ` · ↓${(+w.elevDown).toLocaleString("it-IT")} m` : "")+(w.kcal? ` · ${Math.round(+w.kcal)} kcal` : "")+(w.details? ` · ${w.details}` : "")+(w.src==="phone"? " · 📱" : ""))); const xb=el("button","linkbtn ski-del","🗑"); xb.type="button"; xb.setAttribute("aria-label","Elimina questa giornata"); xb.onclick=e=>{ e.stopPropagation(); skiDel(w); }; r0.appendChild(xb); if(w.src==="phone"||w.src==="watch"){ r0.style.cursor="pointer"; r0.title="Mappa e velocità"; r0.onclick=()=>skiDetail(w,r0); const sh=el("button","linkbtn ski-del","📤"); sh.type="button"; sh.setAttribute("aria-label","Condividi questa giornata"); sh.onclick=async e=>{ e.stopPropagation(); const nx=r0.nextElementSibling; if(!(nx&&nx.classList.contains("ski-det"))) await skiDetail(w,r0); const d=r0.nextElementSibling, bt=d&&d.querySelector(".ski-shb"); if(bt) bt.click(); else toast("Per questa giornata non ho il percorso da condividere"); }; xb.style.marginLeft="0"; r0.insertBefore(sh,xb); } lst.appendChild(r0); }); c1.appendChild(lst); }
+  if(S.its.length){ c1.appendChild(el("p","ski-fr","📅 Le tue giornate")); c1.appendChild(el("p","note","Tocca una giornata per vedere mappa, velocità e piste. Con 📤 la condividi come immagine.")); const lst=el("div","ski-list"); S.its.slice(0,12).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic","⛷️"), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.elevDown? ` · ↓${(+w.elevDown).toLocaleString("it-IT")} m` : "")+(w.kcal? ` · ${Math.round(+w.kcal)} kcal` : "")+(w.details? ` · ${w.details}` : "")+(w.src==="phone"? " · 📱" : ""))); if(w.src==="phone"||w.src==="watch"){ r0.style.cursor="pointer"; r0.title="Mappa e velocità"; r0.onclick=()=>skiDetail(w,r0.parentNode); const sh=el("button","linkbtn ski-del","📤"); sh.type="button"; sh.setAttribute("aria-label","Condividi questa giornata"); sh.onclick=async e=>{ e.stopPropagation(); const hw=r0.parentNode, nx=hw.nextElementSibling; if(!(nx&&nx.classList.contains("ski-det"))) await skiDetail(w,hw); const d=hw.nextElementSibling, bt=d&&d.querySelector(".ski-shb"); if(bt) bt.click(); else toast("Per questa giornata non ho il percorso da condividere"); }; r0.appendChild(sh); } lst.appendChild(makeSwipe(r0,()=>{ skiDel(w); },"giornata di sci")); }); c1.appendChild(lst); }
   else c1.appendChild(el("p","note","Nessuna giornata ancora. Puoi registrarla dal telefono qui sopra; se usi il Galaxy Watch arriva da sola da Samsung Health."));
   box.appendChild(c1);
   { const cf=el("section","card"); cf.id="skiFrCard"; cf.appendChild(el("h2",null,"👥 Amici sulle piste"));
@@ -8111,10 +8134,14 @@ async function skiDetail(w,row){ const nx=row.nextElementSibling; if(nx&&nx.clas
   if(!(doc.osm&&doc.osm.v===1)){ nt.textContent="Cerco i nomi di piste e impianti… · Tempo = in movimento sulla pista; velocità in km/h.";
     skiOsm(w.id,doc,P,A).then(o=>{ if(!box.isConnected) return; if(o) draw(o); nt.textContent=(o? "Nomi da OpenStreetMap. " : "Nomi di piste e impianti non disponibili (serve internet). ")+"Tempo = in movimento sulla pista; velocità in km/h."; }).catch(()=>{}); } }
 async function skiDel(w){ const d=new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
-  if(!confirm(`Elimino la giornata sugli sci di ${d} (${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min)?`)) return;
   if(w.date===state.date){ state.day.workouts=(state.day.workouts||[]).filter(x=>x.id!==w.id); saveDay(); }
   else { const doc=await store.getDoc("day-"+w.date).catch(()=>null); if(doc&&doc.workouts){ doc.workouts=doc.workouts.filter(x=>x.id!==w.id); save("day-"+w.date,doc); } }
-  hist.items=hist.items.filter(x=>x.id!==w.id); save("workoutHistory",hist); try{ wTrashAdd({...w}); }catch{} renderAll(); renderSci(); toast("Giornata eliminata"); }
+  const hIdx=hist.items.findIndex(x=>x.id===w.id), hItem=hist.items[hIdx];
+  hist.items=hist.items.filter(x=>x.id!==w.id); save("workoutHistory",hist); try{ wTrashAdd({...w}); }catch{} renderAll(); renderSci();
+  actionToast("Giornata di sci eliminata ("+d+")","Annulla",async()=>{ const it={...w}; delete it.delAt;
+    if(w.date===state.date){ state.day.workouts=[...(state.day.workouts||[]),it]; saveDay(); }
+    else { const doc=(await store.getDoc("day-"+w.date).catch(()=>null))||{meals:{},workouts:[]}; doc.workouts=[...(doc.workouts||[]).filter(x=>x.id!==w.id),it]; save("day-"+w.date,doc); }
+    if(hItem&&!hist.items.some(x=>x.id===w.id)) hist.items.splice(Math.max(0,hIdx),0,hItem); save("workoutHistory",hist); try{ wTrashDrop(w.id); }catch{} renderAll(); renderSci(); },7000); }
 function skiRowSub(){ const s=$("skiRowSub"); if(!s) return; const o=skiLiveGet();
   s.textContent= o? (o.pAt? "⏸ In pausa · " : "🔴 In registrazione · ")+hmTxt(skiLiveSec(o)) : "Registrala dal telefono in tasca, senza orologio"; }
 function skiLiveCard(c1){ const o=skiLiveGet(), box=el("div","ski-live");
@@ -10431,10 +10458,10 @@ function renderMzHist(){ const k=mzKey, ul=$("mzHist"); ul.innerHTML=""; const e
   $("mzHistT").hidden=!es.length; $("mzTrend").hidden=es.length<2;
   [...es].reverse().slice(0,20).forEach((x,i,a)=>{ const li=el("li"), t=el("div","t"), nx=a[i+1], dd= nx? Math.round((x[k]-nx[k])*10)/10 : null;
     t.append(el("div","a",new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})), el("div","b",fmt(x[k])+" cm"+(dd? "  ("+(dd>0?"+":"−")+fmt(Math.abs(dd))+")" : "")));
-    const del=el("button","del","×"); del.setAttribute("aria-label","Elimina questo valore");
-    del.onclick=()=>{ if(!confirm("Eliminare il valore del "+new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"long"})+"?")) return;
-      delete x[k]; if(!METRICS.some(([m])=>x[m]!=null)) body.entries=body.entries.filter(e=>e!==x); save("body",body); bodyDate=null; renderAll(); renderMzHist(); };
-    li.append(t,del); ul.appendChild(li); }); }
+    const rm=()=>{ const v=x[k], had=body.entries.includes(x);
+      delUndo("Valore del "+new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"long"})+" eliminato",()=>{ delete x[k]; if(!METRICS.some(([m])=>x[m]!=null)) body.entries=body.entries.filter(e=>e!==x); save("body",body); bodyDate=null; renderAll(); renderMzHist(); },
+        ()=>{ x[k]=v; if(had&&!body.entries.includes(x)) body.entries.push(x); save("body",body); bodyDate=null; renderAll(); renderMzHist(); }); };
+    li.append(t); ul.appendChild(swipeItem(li,rm,"valore")); }); }
 /* salva una misura singola nella misurazione di quel giorno (o in una nuova) */
 function bodySetVal(k,v,d){ const same=body.entries.filter(e=>e.date===d), e= same.length? same[same.length-1] : null;
   if(e) e[k]=Math.round(v*10)/10; else body.entries=[...body.entries,{id:uid(),date:d,source:"manuale",[k]:Math.round(v*10)/10}]; }
@@ -10547,9 +10574,7 @@ function renderBody(){ try{ calMigrate(); }catch(e){ console.warn("taratura",e);
     const parts=METRICS.filter(m=>!m[3]&&x[m[0]]!=null).map(([k,l,u])=>(CKEYS.includes(k)? l : l.split(" ")[0]+(/L$/.test(k)?" sx":/R$/.test(k)?" dx":""))+" "+fmt(x[k])+(u?" "+u:"")); if(METRICS.some(m=>m[3]&&x[m[0]]!=null)) parts.push("analisi segmentale");
     t.append(el("div","a",new Date(x.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+(x.source==="health"?" · da Samsung Health":x.source==="bilancia"?" · dalla bilancia":x.source&&x.source!=="manuale"?" · da screenshot":"")), el("div","b",parts.join(" · ")));
     t.querySelector(".b").style.whiteSpace="normal";
-    const del=el("button","del","×"); del.setAttribute("aria-label","Elimina misurazione");
-    del.onclick=()=>deleteBodyEntries([x.id]);
-    li.append(t,del); ul.appendChild(li);
+    li.append(t); ul.appendChild(swipeItem(li,()=>deleteBodyEntries([x.id]),"misurazione"));
   });
   if(!es.length) ul.appendChild(el("li","empty","Ancora nessun dato."));
 }
@@ -10877,8 +10902,8 @@ function renderRoutes(target){ const box=$("csRoutes"); if(!box) return; box.inn
   if(target) L.sort((a,b)=>Math.abs(a.km-target)-Math.abs(b.km-target)); else L.sort((a,b)=>a.km-b.km);
   L.forEach(r0=>{ const row=el("div","cs-shoe"), h=el("div","h"); h.append(el("b",null,r0.name), el("span",null,`${fmt(r0.km)} km${r0.gain? " · ↗ "+r0.gain+" m" : ""}`)); row.appendChild(h);
     const a=el("div","a"); const sh=el("button","linkbtn","Mappa"); sh.type="button"; const mp=el("div"); sh.onclick=()=>{ if(mp.innerHTML){ mp.innerHTML=""; return; } try{ rdMapBox(mp,routeP(r0)); }catch(e){ console.warn("mappa",e); } };
-    const del=el("button","linkbtn","Elimina"); del.type="button"; del.onclick=()=>{ if(!confirm("Eliminare il percorso «"+r0.name+"»?")) return; routes.list=routes.list.filter(y=>y.id!==r0.id); save("routes",routes); renderRoutes(target); };
-    a.append(sh,del); row.append(a,mp); box.appendChild(row); }); }
+    a.append(sh); row.append(a,mp);
+    box.appendChild(makeSwipe(row,()=>{ const idx=routes.list.indexOf(r0); if(idx<0) return; delUndo("Percorso eliminato: "+r0.name,()=>{ routes.list.splice(idx,1); save("routes",routes); renderRoutes(target); },()=>{ routes.list.splice(idx,0,r0); save("routes",routes); renderRoutes(target); }); },r0.name)); }); }
 function routesFor(km){ return (routes.list||[]).filter(r0=>km&&Math.abs(r0.km-km)<=Math.max(1,km*0.15)).sort((a,b)=>Math.abs(a.km-km)-Math.abs(b.km-km)).slice(0,3); }
 /* percorso migliore per la corsa del giorno: distanza (anche facendo più giri), salita adatta al tipo di corsa */
 function runDayKm(d){ const rp=runPlan(d), sk=(d.segments||[]).reduce((a,g)=>a+(+g.km||0),0); return Math.round(Math.max(rp.km||0,sk)*10)/10; }
@@ -11109,7 +11134,7 @@ function rsRenderArch(){
     t.append(el("span","nm",rs.name), el("span","note",[rs.kind,rs.city,(rs.dishes||[]).length+" piatti"].filter(Boolean).join(" · ")));
     t.onclick=()=>{ rsSel=rs.id; $("rsQ").value=""; rsRenderArch(); $("rsGo").scrollIntoView({behavior:"smooth",block:"center"}); };
     const ed=el("button","linkbtn","Modifica"); ed.type="button"; ed.onclick=()=>rsEdOpen(rs.id);
-    li.append(t,ed); ul.appendChild(li); });
+    li.append(t,ed); ul.appendChild(swipeItem(li,()=>{ const idx=rests.list.indexOf(rs); if(idx<0) return; delUndo("Eliminato: "+rs.name,()=>{ rests.list.splice(idx,1); if(rsSel===rs.id) rsSel=null; saveRests(); rsRenderArch(); },()=>{ rests.list.splice(idx,0,rs); saveRests(); rsRenderArch(); }); },rs.name)); });
   d.appendChild(ul);
   const add=el("button","btn ghost","+ Aggiungi un ristorante o bar"); add.type="button"; add.onclick=()=>rsEdOpen(null); d.appendChild(add);
   box.appendChild(d);
@@ -11135,8 +11160,8 @@ function rsEdRenderMenu(rs){ const b=$("rsEdMenu"); b.innerHTML=""; if(!rs||!(rs
   const ul=el("ul"); ul.style.cssText="margin:0;padding-left:0;list-style:none;font-size:.88rem";
   rs.dishes.forEach((x,i)=>{ const li=el("li"); li.style.cssText="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)";
     li.appendChild(el("span",null,x.n+(x.price? " · "+x.price : "")+(x.k? " · ~"+r(x.k)+" kcal" : "")));
-    const del=el("button","linkbtn","×"); del.type="button"; del.setAttribute("aria-label","Togli "+x.n); del.onclick=()=>{ rs.dishes.splice(i,1); saveRests(); rsEdRenderMenu(rs); rsRenderArch(); };
-    li.appendChild(del); ul.appendChild(li); });
+    const upd=()=>{ saveRests(); rsEdRenderMenu(rs); rsRenderArch(); };
+    ul.appendChild(swipeItem(li,()=>{ delUndo("Tolto: "+x.n,()=>{ rs.dishes.splice(i,1); upd(); },()=>{ rs.dishes.splice(i,0,x); upd(); }); },x.n)); });
   d.appendChild(ul); b.appendChild(d); }
 function rsMenuPrompt(name,city,kind,url,hasPics){
   return `Devi trascrivere il menù di un locale per un'app di nutrizione. Rispondi in italiano.
@@ -11838,10 +11863,9 @@ function renderStaples(){
     tx.innerHTML=`<span class="n"></span><span class="q"></span>`; tx.querySelector(".n").textContent=it.name+(outLow.includes(it.name.toLowerCase())?"  · 🚫 finito oggi":"");
     tx.querySelector(".q").textContent= it.kcal!=null&&it.grams? `${r(it.kcal)} kcal per ${it.unit? "1 "+it.unit+" ("+fmt(it.grams)+" g)" : fmt(it.grams)+" g"} · P ${r(it.p)} · C ${r(it.c)} · G ${r(it.f)}` : (sample? "calcolo i valori…" : "valori non disponibili");
     const st0=starBtn({name:it.name,grams:it.grams||100,kcal:it.kcal||0,p:it.p||0,c:it.c||0,f:it.f||0});
-    const del=el("button","mp-pm","×"); del.type="button"; del.setAttribute("aria-label","Togli "+it.name);
     const rm=()=>{ const idx=stapleItems().findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.staples.splice(idx,1)[0]; saveStaples(); renderStaples();
       actionToast(`Tolto: ${was.name}`,"Annulla",()=>{ pantry.staples.splice(idx,0,was); saveStaples(); renderStaples(); },6000); };
-    del.onclick=rm; row.append(tx,st0,el("span","mp-div"),del); addLongPress(tx,()=>openStMenu(it)); tx.onclick=()=>{ if(tx._lp){ tx._lp=false; return; } openStMenu(it); }; tx.style.cursor="pointer"; box.appendChild(makeSwipe(row,rm,it.name)); });
+    row.append(tx,st0); addLongPress(tx,()=>openStMenu(it)); tx.onclick=()=>{ if(tx._lp){ tx._lp=false; return; } openStMenu(it); }; tx.style.cursor="pointer"; box.appendChild(makeSwipe(row,rm,it.name)); });
   try{ renderOut(); }catch{} try{ renderRecent(); }catch{}
   if(st.some(x=>x.kcal==null)&&!renderStaples.tried){ renderStaples.tried=true; queueStapleValues(); }
   if(!st.length) box.appendChild(el("p","note","Ancora nessun alimento: aggiungili con il pulsante qui sopra (foto, codice a barre, ricerca, preferiti…)."));
@@ -11886,10 +11910,9 @@ function renderRecent(){
     tx.querySelector(".q").textContent=[it.qty, it.added? "dal "+new Date(it.added+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"}) : ""].filter(Boolean).join(" · ");
     const keep=el("button","mp-pm rec-keep","⭐"); keep.type="button"; keep.title="Lo tengo sempre: spostalo nei cibi di sempre"; keep.setAttribute("aria-label",it.name+": tienilo tra i cibi di sempre");
     keep.onclick=()=>{ pantry.items=pantry.items.filter(x=>x.id!==it.id); addStaples(it.name); toast(it.name+" spostato tra i cibi di sempre"); };
-    const del=el("button","mp-pm","×"); del.type="button"; del.setAttribute("aria-label","Finito: togli "+it.name);
     const rm=()=>{ const idx=pantry.items.findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.items.splice(idx,1)[0]; savePantry(); renderRecent();
       actionToast(`Tolto: ${was.name}`,"Annulla",()=>{ pantry.items.splice(idx,0,was); savePantry(); renderRecent(); },6000); };
-    del.onclick=rm; row.append(tx,keep,el("span","mp-div"),del); box.appendChild(makeSwipe(row,rm,it.name)); });
+    row.append(tx,keep); box.appendChild(makeSwipe(row,rm,it.name)); });
 }
 function fmHideId(id){ const h=jget("fmHide",[]); if(!h.includes(id)){ h.push(id); jset("fmHide",h.slice(-200)); } }
 function renderFmList(){ const box=$("fmList"), card=$("fmCard"); if(!box) return; box.innerHTML="";
@@ -11903,10 +11926,9 @@ function renderFmList(){ const box=$("fmList"), card=$("fmCard"); if(!box) retur
       tx.querySelector(".q").textContent=[it.qty, it.scad? "scade "+it.scad.split("-").reverse().join("/") : ""].filter(Boolean).join(" · ");
       const keep=el("button","mp-pm rec-keep","⭐"); keep.type="button"; keep.title="Lo tengo sempre: spostalo nei cibi di sempre"; keep.setAttribute("aria-label",it.name+": tienilo tra i cibi di sempre");
       keep.onclick=()=>{ pantry.items=pantry.items.filter(x=>x.id!==it.id); addStaples(it.name); toast(it.name+" spostato tra i cibi di sempre"); };
-      const del=el("button","mp-pm","×"); del.type="button"; del.setAttribute("aria-label","Nascondi "+it.name);
       const rm=()=>{ const idx=pantry.items.findIndex(x=>x.id===it.id); if(idx<0) return; const was=pantry.items.splice(idx,1)[0]; fmHideId(was.id); savePantry(); renderRecent();
         actionToast(`Nascosto: ${was.name}`,"Annulla",()=>{ jset("fmHide",jget("fmHide",[]).filter(x=>x!==was.id)); pantry.items.splice(idx,0,was); savePantry(); renderRecent(); },6000); };
-      del.onclick=rm; row.append(tx,keep,el("span","mp-div"),del); box.appendChild(makeSwipe(row,rm,it.name)); }); });
+      row.append(tx,keep); box.appendChild(makeSwipe(row,rm,it.name)); }); });
 }
 function renderOut(){ const box=$("outChips"); if(!box) return; box.innerHTML=""; const out=outToday();
   out.forEach(n=>{ const b=el("span","chip outon stchip"); b.textContent="🚫 "+n; const x=el("button",null,"×"); x.type="button"; x.setAttribute("aria-label",n+": ce l'ho di nuovo");
@@ -12128,9 +12150,9 @@ function renderPantry(){ try{ renderStaples(); }catch(e){ console.warn("staples"
     const its=pantry.items.filter(i=>(PCATS.includes(i.cat)?i.cat:"Altro")===cat); if(!its.length) return;
     const g=el("div","pcat"); g.appendChild(el("h3",null,cat)); const ul=el("ul","items");
     its.forEach(i=>{ const li=el("li"), tx=el("div","t"); tx.append(el("div","a",i.name), el("div","b",[i.qty||"", i.scad? "scade "+i.scad.split("-").reverse().join("/") : "", i.src==="fm"? "da Family Manager" : ""].filter(Boolean).join(" · ")));
-      const del=el("button","del","×"); del.setAttribute("aria-label","Togli "+i.name);
-      del.onclick=()=>{ snapshot(); if(i.src==="fm") fmHideId(i.id); pantry.items=pantry.items.filter(x=>x.id!==i.id); savePantry(); renderPantry(); };
-      li.append(tx,del); ul.appendChild(li); });
+      const rm=()=>{ const idx=pantry.items.indexOf(i); if(idx<0) return; delUndo("Tolto dalla dispensa: "+i.name,()=>{ snapshot(); if(i.src==="fm") fmHideId(i.id); pantry.items.splice(idx,1); savePantry(); renderPantry(); },
+        ()=>{ if(i.src==="fm") jset("fmHide",jget("fmHide",[]).filter(x=>x!==i.id)); pantry.items.splice(idx,0,i); savePantry(); renderPantry(); }); };
+      li.append(tx); ul.appendChild(swipeItem(li,rm,i.name)); });
     g.appendChild(ul); box.appendChild(g);
   });
   const bs=pantry.batches.filter(b=>pantry.items.some(i=>i.batch===b.id));
@@ -12822,12 +12844,11 @@ function renderSupps(){
     const nm=el("input","field"); nm.setAttribute("list","suppList"); nm.value=x.name||""; nm.placeholder="Integratore"; nm.setAttribute("aria-label","Nome integratore "+(i+1)); nm.oninput=()=>{ x.name=nm.value; };
     const ds=el("input","field"); ds.value=x.dose||""; ds.placeholder="Dose, es. 5 g"; ds.setAttribute("aria-label","Dose"); ds.oninput=()=>{ x.dose=ds.value; };
     const wh=el("select","field"); SUPP_WHEN.forEach(([v,l])=>{ const o=el("option",null,l); o.value=v; wh.appendChild(o); }); wh.value=x.when||"giorno"; wh.setAttribute("aria-label","Quando"); wh.onchange=()=>{ x.when=wh.value; };
-    const del=el("button","del","×"); del.type="button"; del.setAttribute("aria-label","Togli integratore"); del.onclick=()=>{ sdraft.supplements.splice(i,1); renderSupps(); };
-    row.append(nm,ds,wh,del);
+    row.append(nm,ds,wh);
     { const ph=el("button","link",x.product&&x.product.name? "📷 Cambia prodotto (foto)" : "📷 Foto del prodotto"); ph.type="button"; ph.style.cssText="grid-column:1/3;justify-self:start;padding:2px 0";
       ph.onclick=()=>{ if(!String(x.name||"").trim()){ toast("Scrivi prima il nome dell'integratore"); return; } suppShotIdx=i; $("suppShotBtn").onclick(); }; row.appendChild(ph); }
     if(x.product&&x.product.name){ const pr=el("div","note"); pr.style.gridColumn="1/3"; pr.textContent=`📦 ${x.product.name}${x.product.unitTxt? " · "+x.product.unitTxt : ""}${x.product.verdict? " · "+({ok:"✅ va bene",rivedi:"⚠️ da rivedere",no:"❌ sconsigliato"}[x.product.verdict]||"") : ""}`; row.appendChild(pr); }
-    box.appendChild(row); });
+    box.appendChild(makeSwipe(row,()=>{ delUndo("Tolto: "+(x.name||"integratore"),()=>{ sdraft.supplements.splice(i,1); renderSupps(); },()=>{ sdraft.supplements.splice(i,0,x); renderSupps(); }); },x.name||"integratore")); });
   if(!$("suppList")){ const dl=document.createElement("datalist"); dl.id="suppList"; SUPPS.forEach(n=>{ const o=document.createElement("option"); o.value=n; dl.appendChild(o); }); document.body.appendChild(dl); }
   $("suppAsk").disabled=!sample; $("suppAsk").textContent=sdraft.supplements.some(x=>String(x.name||"").trim())? "🤖 Chiedi al coach se vanno bene e cosa aggiungere" : "🤖 Fatti consigliare dal coach";
 }
@@ -12944,11 +12965,10 @@ function renderMealRows(){
   draft.meals.forEach((m,i)=>{
     const row=el("div","mealrow"); const inp=el("input","field"); inp.value=m.name; inp.setAttribute("aria-label","Nome pasto "+(i+1));
     inp.oninput=()=>{ m.name=inp.value; };
-    const del=el("button","del","×"); del.setAttribute("aria-label","Rimuovi "+m.name); del.disabled=draft.meals.length<=1;
-    del.onclick=()=>{ draft.meals.splice(i,1); renderMealRows(); };
     const wh=el("select","field mwhere"); [["casa","🏠 A casa"],["schiscetta","🥡 Schiscetta"],["fuori","🍽️ Fuori"]].forEach(([v,l])=>{ const o=el("option",null,l); o.value=v; wh.appendChild(o); });
     wh.value=m.where||"casa"; wh.setAttribute("aria-label","Dove mangi "+m.name); wh.onchange=()=>{ m.where=wh.value; };
-    row.append(inp,wh,del); rows.appendChild(row);
+    row.append(inp,wh);
+    rows.appendChild(makeSwipe(row,()=>{ if(draft.meals.length<=1){ toast("Serve almeno un pasto"); return false; } delUndo("Pasto tolto: "+(m.name||""),()=>{ draft.meals.splice(i,1); renderMealRows(); },()=>{ draft.meals.splice(i,0,m); renderMealRows(); }); },m.name));
   });
 }
 $("addMealRow").onclick=()=>{ draft.meals.push({id:"pasto-"+uid(),name:"Nuovo pasto"}); renderMealRows(); };
