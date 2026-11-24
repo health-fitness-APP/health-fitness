@@ -2557,7 +2557,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.94 (mappe: si vedono intere anche dentro i riquadri che si aprono, es. «Le tue località»)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.95 (sport tolti dal Coach: spariscono anche le loro voci, rimettendoli tornano)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7575,7 +7575,7 @@ function raceFixDays(weeks,g){ if(!g||!Array.isArray(g.days)||!g.days.length||!A
       if(d!=null&&byWd[d]==null){ r.wd=d; byWd[d]=r; } });                           // le corse in più si tolgono
     w.runs=WD_ORDER.filter(x=>byWd[x]).map(x=>byWd[x]); w.km=Math.round(w.runs.reduce((a,r)=>a+(+r.km||0),0)*10)/10; });
   return weeks; }
-function csTabs(){ try{ const c=cs, hideRun= c&&c.sports.length&&!c.sports.includes("corsa"), showSki=!!(c&&c.sports.includes("sci"))||skiTabOn();
+function csTabs(){ try{ const c=cs, hideRun= c&&c.sports.length&&!c.sports.includes("corsa"), showSki= c&&c.sports.length? (c.sports.includes("sci")||skiLiveOn()) : skiTabOn();
   document.querySelectorAll('.seg button[data-w="sci"]').forEach(b=>b.hidden=!showSki); if(!showSki&&!$("w-sci").hidden) setW("programma");
   ["bici","nuoto","altro"].forEach(k=>{ const on=!!(c&&c.sports.includes(k)); document.querySelectorAll('.seg button[data-w="sp-'+k+'"]').forEach(b=>{ b.hidden=!on; if(!on&&b.getAttribute("aria-selected")==="true") setW("programma"); }); });
   document.querySelectorAll("#view-allenamento .seg").forEach(sg=>sg.classList.toggle("many",[...sg.children].filter(b=>!b.hidden).length>4));
@@ -7639,7 +7639,7 @@ function renderCoachSetup(){ if(!$("csSports")) return; csGet();
   CS_SPORTS.filter(([k])=>CS_MAIN.includes(k)||csMore||cs.sports.includes(k)).forEach(([k,l])=>{ const b=el("button",null); b.type="button"; const on=cs.sports.includes(k); b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
     const [ic,...nm]=l.split(" "); b.style.setProperty("--sc",CS_COL[k]); b.append(el("span","ci",ic), el("span","cl",nm.join(" ")));
     b.onclick=()=>{ if(cs.sports.includes(k)) cs.sports=cs.sports.filter(x=>x!==k); else { cs.sports.push(k); cs.sp[k]=cs.sp[k]||{days:[],start:"",end:"",fed:""}; }
-      cs.sports=CS_SPORTS.map(x=>x[0]).filter(x=>cs.sports.includes(x)); csSave(); renderCoachSetup(); csTabs(); };
+      cs.sports=CS_SPORTS.map(x=>x[0]).filter(x=>cs.sports.includes(x)); csSave(); renderCoachSetup(); csTabs(); try{ renderSportRows(); }catch{} };
     sb.appendChild(b); });
   { const m=el("button","more"); m.type="button"; m.setAttribute("aria-expanded",csMore); m.append(el("span","ci",csMore?"✕":"☰"), el("span","cl",csMore?"Chiudi":"Altro"));
     m.onclick=()=>{ csMore=!csMore; renderCoachSetup(); }; sb.appendChild(m); }
@@ -7941,6 +7941,7 @@ async function skiSosCard(box){ const c=el("section","card"); c.appendChild(el("
 const SKI_LIVE_T="Sci", SKI_LK="hf:skiLive";
 function skiLiveGet(){ try{ const o=JSON.parse(localStorage.getItem(SKI_LK)||"null"); return o&&o.t0? o : null; }catch{ return null; } }
 function skiLiveSet(o){ try{ if(o) localStorage.setItem(SKI_LK,JSON.stringify(o)); else localStorage.removeItem(SKI_LK); }catch{} }
+function skiLiveOn(){ try{ return !!skiLiveGet(); }catch{ return false; } }
 function skiTabOn(){ try{ return !!skiLiveGet()||localStorage.getItem("hf:skiTab")==="1"; }catch{ return false; } }
 function skiLiveFix(st){ if(!skiLiveGet()) skiLiveSet({t0:+st.startedAt||Date.now(),type:"Sci alpino",native:true,pMs:0,pAt:st.paused?Date.now():0}); }
 function skiLiveSec(o){ if(!o) return 0; return Math.max(0,((o.pAt||Date.now())-o.t0-(o.pMs||0))/1000); }
@@ -13393,7 +13394,9 @@ function simpleOn(){ let v=null; try{ v=localStorage.getItem("hf:simple"); }catc
 function sportUsed(k){ try{ if(cs&&(cs.sports||[]).includes(k)) return true; }catch{}
   try{ if(k==="corsa"&&(runEvals.list||[]).length) return true; }catch{}
   try{ const re= k==="corsa"? /corsa|run|jogging|tapis/i : /\bsci\b|sciat|giornata sugli sci/i; return ((hist&&hist.items)||[]).some(x=>re.test(x.name||"")); }catch{ return false; } }
-function renderSportRows(){ try{ const a=$("csRow"), b=$("skiRow"); if(a) a.hidden=!sportUsed("corsa"); if(b) b.hidden=!sportUsed("sci"); }catch{} }
+// con gli sport scelti nel Coach decide quella scelta (i dati restano salvati); senza scelta conta quello che hai già fatto
+function sportShown(k){ try{ if(cs&&(cs.sports||[]).length) return cs.sports.includes(k)||(k==="sci"&&skiLiveOn()); }catch{} return sportUsed(k); }
+function renderSportRows(){ try{ const a=$("csRow"), b=$("skiRow"); if(a) a.hidden=!sportShown("corsa"); if(b) b.hidden=!sportShown("sci"); }catch{} }
 function renderHealthUi(){ renderSportRows(); document.body.classList.toggle("simple",simpleOn()); const sm=$("simpleMode"); if(sm) sm.checked=simpleOn();
   const h=healthOf(), age=+((state.profile||{}).age)||0, D=[], A=[];
   if(h.diab){ D.push("Hai segnato il diabete: la dieta usa carboidrati lenti divisi tra i pasti e pochi zuccheri. Fatti controllare il piano dal medico o dal diabetologo, soprattutto se cambi farmaci."+(h.ins?" Con insulina o pastiglie non saltare mai i pasti: se ti senti debole, sudato o tremi, prendi subito zucchero e chiama il medico.":"")); }
