@@ -7808,7 +7808,21 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
   SKI_TIPS.forEach(([ic,t,d])=>{ const r0=el("div","pline"); const sp=el("span"); sp.append(el("b",null,t+". "),document.createTextNode(d)); r0.append(el("span","ic",ic),sp); c4.appendChild(r0); });
   const wu=el("button","btn ghost","🔥 Riscaldamento prima di sciare (5 min)"); wu.type="button"; wu.style.marginTop="8px"; wu.onclick=()=>startStretch("scirisc"); c4.appendChild(wu);
   const st=el("button","btn ghost","🧘 Stretching dopo lo sci (10 min)"); st.type="button"; st.style.marginTop="8px"; st.onclick=()=>startStretch("sci"); c4.appendChild(st);
-  box.appendChild(c4); }
+  box.appendChild(c4);
+  try{ skiSosCard(box); }catch(e){ console.warn("sicurezza sci",e); } }
+/* sicurezza: caduta (colpo forte + immobile) → "Stai bene?" per 60 s, poi SMS con la posizione al contatto scelto */
+async function skiSosCard(box){ const c=el("section","card"); c.appendChild(el("h2",null,"🆘 Sicurezza sulle piste")); box.appendChild(c); const P=AAP();
+  c.appendChild(el("p","note","Mentre registri la giornata dal telefono controllo la batteria e le cadute: dopo un colpo forte, se resti fermo per mezzo minuto il telefono suona e chiede «Stai bene?». Se non rispondi entro 60 secondi manda un SMS con la tua posizione al contatto che scegli qui."));
+  if(!P||!P.sos){ c.appendChild(el("p","note","Serve l'app HealthFit aggiornata sul telefono.")); return; }
+  let cur={}; try{ cur=await P.sosGet(); }catch{}
+  const f=el("div","two"); const nm=el("input","field"); nm.placeholder="Nome (es. Giulia)"; nm.value=cur.name||""; const nu=el("input","field"); nu.type="tel"; nu.placeholder="Numero di telefono"; nu.value=cur.num||""; f.append(nm,nu); c.appendChild(f);
+  const lab=el("label","chk"); const fc=el("input"); fc.type="checkbox"; fc.checked=cur.fall!==false; lab.append(fc,document.createTextNode(" Controllo delle cadute attivo")); c.appendChild(lab);
+  const msg=el("p","note"); const show=r=>{ msg.textContent= !r? "" : r.num? (r.sms? `✓ In caso di caduta avviso ${nm.value||r.num}.` : "Manca il permesso degli SMS: senza, ti avviso solo con il suono.") : "Nessun contatto: in caso di caduta suono e vibro soltanto."; }; show(cur.num!==undefined? cur : null);
+  const row=el("div","two"); const sb=el("button","btn","Salva"); sb.type="button"; sb.onclick=async()=>{ try{ const r=await P.sos({num:nu.value.trim(),name:nm.value.trim(),fall:fc.checked}); show({...r,name:nm.value}); toast("Sicurezza salvata ✓"); }catch(e){ toast("Errore: "+((e&&e.message)||e)); } };
+  const tb=el("button","btn ghost","Prova l'allarme"); tb.type="button"; tb.onclick=async()=>{ try{ await P.sosTest(); toast("Tra un attimo suona: tocca «Sto bene» nella notifica"); }catch(e){ toast("Errore: "+((e&&e.message)||e)); } };
+  row.append(tb,sb); c.appendChild(row); c.appendChild(msg);
+  c.appendChild(el("p","note","La prova non manda SMS. Funziona con il telefono in tasca e lo schermo spento; non sostituisce il 112.")); }
+
 /* ----- sci registrato dal telefono in tasca (APK: motore nativo GPS a schermo spento; nel browser solo il tempo) ----- */
 const SKI_LIVE_T="Sci", SKI_LK="hf:skiLive";
 function skiLiveGet(){ try{ const o=JSON.parse(localStorage.getItem(SKI_LK)||"null"); return o&&o.t0? o : null; }catch{ return null; } }
@@ -7980,7 +7994,9 @@ async function skiDetail(w,row){ const nx=row.nextElementSibling; if(nx&&nx.clas
   if(!A.list.length){ box.appendChild(el("p","note","Non trovo discese in questo percorso.")); return; }
   const avgAll=A.movSec? Math.round(A.kmDown/(A.movSec/3600)) : 0;
   const sum=el("div","ski-grid"); sum.style.gridTemplateColumns="repeat(3,1fr)"; sum.style.margin="10px 0 4px";
-  [["🔥 kcal",w.kcal? Math.round(+w.kcal).toLocaleString("it-IT") : "–"],["In discesa",hmTxt(A.movSec||0)],["Soste",A.pauseSec? hmTxt(A.pauseSec) : "–"],["Max",A.maxKmh+" km/h"],["Media discese",avgAll+" km/h"],["Discese",`${fmt(A.kmDown)} km`]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,String(v)),el("span",null,l)); sum.appendChild(d); });
+  const hrRun=(()=>{ if(!Array.isArray(tr.h)) return 0; let n=0,sum=0; tr.t.forEach((t,i)=>{ const v=+tr.h[i]; if(v>30&&runOf(+t)){ n++; sum+=v; } }); return n>=10? Math.round(sum/n) : 0; })();
+  if(hrRun) A.list.forEach(r=>{ let n=0,sum=0; tr.t.forEach((t,i)=>{ const v=+tr.h[i]; if(v>30&&+t>r.t0&&+t<=r.t1){ n++; sum+=v; } }); r.hr=n? Math.round(sum/n) : 0; });
+  [["🔥 kcal",w.kcal? Math.round(+w.kcal).toLocaleString("it-IT") : "–"],["In discesa",hmTxt(A.movSec||0)],["Soste",A.pauseSec? hmTxt(A.pauseSec) : "–"],["Max",A.maxKmh+" km/h"],["Media discese",avgAll+" km/h"],["Discese",`${fmt(A.kmDown)} km`],...(hrRun? [["♥ in discesa",`${hrRun} bpm`]] : [])].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,String(v)),el("span",null,l)); sum.appendChild(d); });
   box.appendChild(sum);
   const shb=el("button","btn ghost","📤 Condividi la giornata"); shb.type="button"; shb.style.marginTop="8px"; box.appendChild(shb);
   shb.onclick=async()=>{ const lab=shb.textContent; shb.disabled=true; shb.textContent="Preparo l'immagine…";
@@ -8006,7 +8022,8 @@ async function skiDetail(w,row){ const nx=row.nextElementSibling; if(nx&&nx.clas
   const draw=osm=>{ tb.innerHTML=`<tr><th>#</th><th>Ora</th><th>↓ m</th><th>km</th><th>Tempo</th><th>Media</th><th>Max</th></tr>`+rows.map(r=>{ if(r.p) return `<tr class="ski-prow"><td>☕</td><td>${doc.t0? clockOf(doc.t0+r.t0*1000) : "–"}</td><td colspan="5">Sosta ${hmTxt(r.t1-r.t0)}</td></tr>`;
       const rn=osm&&osm.runs[r.k-1], ln=osm&&osm.lifts[r.k-1], df=rn&&SKI_DIFF[rn.diff];
       const nm=(ln&&ln.name? `<span class="ski-lift">🚡 ${esc(ln.name)}</span>` : "")+(rn&&rn.name? `<span class="ski-pn">${df? `<i style="background:${df[1]}"></i>` : ""}${esc(rn.name)}${df? ` · ${df[0]}` : ""}</span>` : "");
-      return (nm? `<tr class="ski-nrow"><td colspan="7">${nm}</td></tr>` : "")+`<tr><td>${r.k}</td><td>${doc.t0? clockOf(doc.t0+r.t0*1000) : "–"}</td><td>${r.down}</td><td>${fmt(r.km)}</td><td>${mmss(r.mov)}${r.stop>=60? `<small> +${Math.round(r.stop/60)}′ fermo</small>` : ""}</td><td>${r.avg}</td><td><b style="color:${skiVc(r.max)}">${r.max}</b></td></tr>`; }).join(""); };
+      const nm2=nm+(r.hr? `<span>♥ ${r.hr}</span>` : "");
+      return (nm2? `<tr class="ski-nrow"><td colspan="7">${nm2}</td></tr>` : "")+`<tr><td>${r.k}</td><td>${doc.t0? clockOf(doc.t0+r.t0*1000) : "–"}</td><td>${r.down}</td><td>${fmt(r.km)}</td><td>${mmss(r.mov)}${r.stop>=60? `<small> +${Math.round(r.stop/60)}′ fermo</small>` : ""}</td><td>${r.avg}</td><td><b style="color:${skiVc(r.max)}">${r.max}</b></td></tr>`; }).join(""); };
   draw(doc.osm&&doc.osm.v===1? doc.osm : null);
   if(!(doc.osm&&doc.osm.v===1)){ nt.textContent="Cerco i nomi di piste e impianti… · Tempo = in movimento sulla pista; velocità in km/h.";
     skiOsm(w.id,doc,P,A).then(o=>{ if(!box.isConnected) return; if(o) draw(o); nt.textContent=(o? "Nomi da OpenStreetMap. " : "Nomi di piste e impianti non disponibili (serve internet). ")+"Tempo = in movimento sulla pista; velocità in km/h."; }).catch(()=>{}); } }
@@ -8141,7 +8158,7 @@ async function saveWatchSport(o){ if(!(+o.seconds>60)) return false; const t0=+o
     Object.assign(w,{minutes:act,intensity:int,kcal:Math.round(+o.kcal)||skiKcal(act,int),distance:A.kmDown||null,elevDown:A.down||(+o.elevLoss||null),runs:A.runs||null,maxKmh:A.maxKmh||null,place:skiCfg().place.name,
       details:[A.runs? `${A.runs} ${A.runs===1?"discesa":"discese"}` : "", A.maxKmh? `max ${A.maxKmh} km/h` : "", A.pauseSec>=600? `soste ${hmTxt(A.pauseSec)}` : ""].filter(Boolean).join(" · ")});
     try{ if(iso===todayISO()&&AAP()) AAP().skiDone({day:iso}).catch(()=>{}); }catch{}
-    if(o.tr) try{ save("ski-"+w.id,{v:1,t0,tr:{t:o.tr.t,m:o.tr.m,a:o.tr.a,la:o.tr.la,lo:o.tr.lo}}); }catch{} }
+    if(o.tr) try{ save("ski-"+w.id,{v:1,t0,tr:{t:o.tr.t,m:o.tr.m,a:o.tr.a,la:o.tr.la,lo:o.tr.lo,h:o.tr.h}}); }catch{} }
   else Object.assign(w,{kcal:Math.round(+o.kcal)||Math.round(((WS_MET[sp]||5)-1)*wt*min/60),distance:sp==="gym"? null : km,pace: sp==="walk"&&km? paceOf(min,km) : null,steps:+o.steps||null});
   await aaDayDo(iso,d=>{ d.workouts=[...(d.workouts||[]),w]; return true; });
   hist.items=[...hist.items,{...w,date:iso}]; save("workoutHistory",hist); try{ await aaDedupe(); }catch{} renderAll();
