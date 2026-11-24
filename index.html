@@ -903,7 +903,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .ski-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 12px}
 .ski-st{background:var(--surface2);border-radius:14px;padding:10px 4px;text-align:center;display:flex;flex-direction:column;gap:2px}
 .ski-live{margin:4px 0 6px}.ski-live.on{background:var(--surface2);border-radius:16px;padding:12px}.ski-live-h{font-weight:700;margin:0 0 6px}
-.ski-del{margin-left:auto;padding:4px 8px;flex:none}.ski-det{margin:6px 0 12px}.ski-rec{margin:6px 0;padding:8px 12px;border-radius:12px;background:#FFF3D6;color:#7A4B00;font-weight:600;font-size:13px}.ski-nrow td{text-align:left!important;border-bottom:none!important;padding:8px 3px 0!important;font-size:12px;color:var(--muted,#777)}.ski-nrow span{display:inline-flex;align-items:center;gap:4px;margin-right:10px}.ski-pn{color:var(--text,#222);font-weight:600}.ski-pn i{width:9px;height:9px;border-radius:50%;display:inline-block}.ski-split{margin:10px 0;padding:10px 12px;border-radius:14px;background:var(--surface2,#f4f1ec)}.ski-split-h{margin:0 0 8px;font-weight:700;font-size:14px}.ski-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:8px}.ski-bar i{display:block;height:100%}.ski-split-r{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0}.ski-split-r i{width:10px;height:10px;border-radius:50%;flex:none}.ski-split-r b{margin-left:auto;font-weight:600}.ski-prow td{color:var(--muted,#888);font-style:italic;text-align:left!important}.ski-tab small{color:var(--muted,#888);font-size:11px;display:block}.ski-pmk{font-size:18px;line-height:24px;text-align:center;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0005}.ski-tab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.ski-tab th,.ski-tab td{padding:5px 3px;text-align:right;border-bottom:1px solid var(--line,#ddd)}.ski-tab th:first-child,.ski-tab td:first-child{text-align:left}
+.ski-del{margin-left:auto;padding:4px 8px;flex:none}.ski-det{margin:6px 0 12px}.ski-batt{margin:8px 0;padding:8px 12px;border-radius:12px;background:#FDE8E8;color:#8A1F1F;font-size:13px}.ski-cold{margin:10px 0;padding:10px 12px;border-radius:14px;background:#E8F1FB}.ski-cold>b{display:block;margin-bottom:6px}.ski-rec{margin:6px 0;padding:8px 12px;border-radius:12px;background:#FFF3D6;color:#7A4B00;font-weight:600;font-size:13px}.ski-nrow td{text-align:left!important;border-bottom:none!important;padding:8px 3px 0!important;font-size:12px;color:var(--muted,#777)}.ski-nrow span{display:inline-flex;align-items:center;gap:4px;margin-right:10px}.ski-pn{color:var(--text,#222);font-weight:600}.ski-pn i{width:9px;height:9px;border-radius:50%;display:inline-block}.ski-split{margin:10px 0;padding:10px 12px;border-radius:14px;background:var(--surface2,#f4f1ec)}.ski-split-h{margin:0 0 8px;font-weight:700;font-size:14px}.ski-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:8px}.ski-bar i{display:block;height:100%}.ski-split-r{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0}.ski-split-r i{width:10px;height:10px;border-radius:50%;flex:none}.ski-split-r b{margin-left:auto;font-weight:600}.ski-prow td{color:var(--muted,#888);font-style:italic;text-align:left!important}.ski-tab small{color:var(--muted,#888);font-size:11px;display:block}.ski-pmk{font-size:18px;line-height:24px;text-align:center;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0005}.ski-tab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.ski-tab th,.ski-tab td{padding:5px 3px;text-align:right;border-bottom:1px solid var(--line,#ddd)}.ski-tab th:first-child,.ski-tab td:first-child{text-align:left}
 .ski-st b{font-size:1.15rem}.ski-st span{font-size:.75rem;color:var(--muted)}
 .ski-list{margin-top:12px}.ski-ul{margin:6px 0 10px;padding-left:20px;font-size:.9rem;line-height:1.5}
 .str-ov{position:fixed;inset:0;z-index:60;background:var(--surface-solid,var(--surface));display:flex;align-items:center;justify-content:center;padding:20px}
@@ -2547,7 +2547,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.75 (sci: record personali e confronto tra le giornate)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.76 (sci: meteo in quota dove scii, neve fresca, consigli per freddo e batteria)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7712,7 +7712,7 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
   box.appendChild(c1);
   try{ skiRecCard(box).catch(e=>console.warn("record sci",e)); }catch{}
   // neve e meteo
-  const c2=el("section","card"); c2.appendChild(el("h2",null,`❄️ Neve e meteo a ${o.place.name}`)); const wx=el("div","ski-wx"); wx.textContent="Carico le previsioni…"; c2.appendChild(wx); box.appendChild(c2); skiWeather(o.place,wx);
+  const c2=el("section","card"); const h2w=el("h2",null,`❄️ Neve e meteo · ${o.place.name}`); c2.appendChild(h2w); const wx=el("div","ski-wx"); wx.textContent="Carico le previsioni…"; c2.appendChild(wx); box.appendChild(c2); skiWeather(o.place,wx,h2w).catch(e=>{ console.warn("meteo sci",e); wx.textContent="Previsioni non disponibili adesso."; });
   // preparazione
   const c3=el("section","card"); c3.appendChild(el("h2",null,"🏔️ Preparazione per la stagione"));
   const sl=el("label",null,"Prima uscita sugli sci (anche indicativa)"); const si=el("input"); si.type="date"; si.value=o.season||""; si.onchange=()=>{ o.season=si.value; csSave(); renderSci(); }; sl.appendChild(si); c3.appendChild(sl);
@@ -7917,6 +7917,8 @@ function skiLiveCard(c1){ const o=skiLiveGet(), box=el("div","ski-live");
   box.classList.add("on"); const nat=skiLiveNat;
   box.appendChild(el("p","ski-live-h",(o.pAt? "⏸ In pausa" : "🔴 Sto registrando")+` · ${o.type||"Sci"} dalle ${clockOf(o.t0)}`));
   const g=el("div","ski-grid"); [["Tempo",hmTxt(skiLiveSec(o))],["Km in tutto (con impianti)",nat&&nat.km? fmt(Math.round(nat.km*10)/10) : "–"]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,v),el("span",null,l)); g.appendChild(d); }); g.style.gridTemplateColumns="repeat(2,1fr)"; box.appendChild(g);
+  const bt=el("p","ski-batt"); bt.hidden=true; box.appendChild(bt);
+  try{ if(navigator.getBattery) navigator.getBattery().then(b=>{ if(b.charging||b.level>0.35) return; bt.hidden=false; bt.textContent=`🔋 Batteria al ${Math.round(b.level*100)}%: col freddo si scarica in fretta. Tieni il telefono in una tasca interna, attiva il risparmio energetico e, se puoi, collega una batteria esterna.`; }).catch(()=>{}); }catch{}
   box.appendChild(el("p","note", o.native? "Puoi spegnere lo schermo e mettere il telefono in tasca. Le soste lunghe (pranzo) le tolgo da solo; discese e dislivello li calcolo alla fine." : "Lascia aperta l'app: a fine giornata tocca «Fine»."));
   const row=el("div","two"); const pb=el("button","btn ghost",o.pAt? "▶ Riprendi" : "⏸ Pausa"); pb.type="button"; pb.onclick=skiLivePause; const eb=el("button","btn","■ Fine giornata"); eb.type="button"; eb.onclick=skiLiveEnd; row.append(pb,eb); box.appendChild(row);
   c1.appendChild(box);
@@ -8035,18 +8037,37 @@ async function saveWatchSport(o){ if(!(+o.seconds>60)) return false; const t0=+o
   toast(`⌚ ${w.name} salvata dall'orologio ✓`); return w.id; }
 function minsBetweenAny(a,b){ if(!a||!b) return 0; const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number); let d=(h2*60+m2)-(h1*60+m1); if(d<0) d+=1440; return d; }
 const WX_TXT={0:"☀️ sereno",1:"🌤️ poco nuvoloso",2:"⛅ nuvoloso",3:"☁️ coperto",45:"🌫️ nebbia",48:"🌫️ nebbia",51:"🌦️ pioviggine",53:"🌦️ pioviggine",55:"🌦️ pioviggine",61:"🌧️ pioggia",63:"🌧️ pioggia",65:"🌧️ pioggia forte",71:"🌨️ neve debole",73:"🌨️ neve",75:"❄️ neve forte",77:"🌨️ nevischio",80:"🌦️ rovesci",81:"🌧️ rovesci",82:"🌧️ rovesci forti",85:"🌨️ rovesci di neve",86:"❄️ rovesci di neve forti",95:"⛈️ temporale"};
-async function skiWeather(pl,box){ const key="hf:skiWx:"+pl.la+","+pl.lo; let d=null;
-  try{ const c0=JSON.parse(localStorage.getItem(key)||"null"); if(c0&&Date.now()-c0.at<3*3600e3) d=c0.d; }catch{}
-  if(!d){ try{ const r0=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pl.la}&longitude=${pl.lo}&elevation=2000&daily=weather_code,temperature_2m_max,temperature_2m_min,snowfall_sum,wind_speed_10m_max&hourly=snow_depth&forecast_days=5&timezone=Europe%2FRome`); d=await r0.json(); try{ localStorage.setItem(key,JSON.stringify({at:Date.now(),d})); }catch{} }
-    catch(e){ box.textContent="Previsioni non disponibili adesso (serve internet)."; return; } }
-  const D=d&&d.daily; if(!D||!D.time){ box.textContent="Previsioni non disponibili adesso."; return; }
-  box.innerHTML=""; const sd=d.hourly&&d.hourly.snow_depth? d.hourly.snow_depth.find(v=>v!=null) : null;
-  if(sd!=null) box.appendChild(el("p","note",`Neve al suolo a 2.000 m (stima del modello meteo): circa ${Math.round(sd*100)} cm.`));
-  D.time.forEach((t,i)=>{ const r0=el("div","pline"); const sn=+D.snowfall_sum[i]||0;
-    r0.append(el("span","ic",(WX_TXT[D.weather_code[i]]||"·").split(" ")[0]), el("span",null,`${i===0?"Oggi":new Date(t+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric"})}: ${(WX_TXT[D.weather_code[i]]||"").split(" ").slice(1).join(" ")}, ${Math.round(D.temperature_2m_min[i])}°/${Math.round(D.temperature_2m_max[i])}°`+(sn>=0.5? `, ❄️ ${Math.round(sn)} cm di neve fresca` : "")+(+D.wind_speed_10m_max[i]>=40? `, vento forte ${Math.round(D.wind_speed_10m_max[i])} km/h` : "")));
+/* posto del meteo: dove hai sciato negli ultimi 2 giorni (dal percorso), altrimenti la località del Coach */
+async function skiWxPlace(){ const o=skiCfg(), pl={...o.place,top:2800,base:1700};
+  const w=((hist&&hist.items)||[]).filter(x=>isSki(x)&&x.date>=romeISO(Date.now()-2*864e5)).sort((a,b)=>a.date<b.date?1:-1)[0];
+  if(w){ const doc=await store.getDoc("ski-"+w.id).catch(()=>null); const tr=doc&&doc.tr; if(tr&&tr.la){ const i=tr.la.findIndex(v=>+v); if(i>=0){ pl.la=+(tr.la[i]/1e5).toFixed(3); pl.lo=+(tr.lo[i]/1e5).toFixed(3); pl.name=w.place&&w.place!==o.place.name? w.place : "dove hai sciato";
+      const A=skiAnalyze(tr); if(A.altMax) pl.top=Math.round(A.altMax/100)*100; if(A.altMin) pl.base=Math.round(A.altMin/100)*100; } } }
+  return pl; }
+async function skiWeather(pl0,box,h2){ const pl=await skiWxPlace().catch(()=>({...pl0,top:2800,base:1700})); if(h2&&pl.name) h2.textContent=`❄️ Neve e meteo · ${pl.name}`;
+  const get=async(elev,extra)=>{ const key=`hf:skiWx2:${pl.la},${pl.lo},${elev},${extra?1:0}`; try{ const c0=JSON.parse(localStorage.getItem(key)||"null"); if(c0&&Date.now()-c0.at<3600e3) return c0.d; }catch{}
+    const u=`https://api.open-meteo.com/v1/forecast?latitude=${pl.la}&longitude=${pl.lo}&elevation=${elev}&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_gusts_10m,weather_code`+(extra? `&daily=weather_code,temperature_2m_max,temperature_2m_min,snowfall_sum,wind_speed_10m_max,wind_gusts_10m_max&hourly=snow_depth&past_days=3&forecast_days=5` : "")+`&timezone=Europe%2FRome`;
+    const d=await (await fetch(u)).json(); try{ localStorage.setItem(key,JSON.stringify({at:Date.now(),d})); }catch{} return d; };
+  let T=null, B=null; try{ [T,B]=await Promise.all([get(pl.top,true),get(pl.base,false)]); }catch(e){ box.textContent="Previsioni non disponibili adesso (serve internet)."; return; }
+  const D=T&&T.daily; if(!D||!D.time){ box.textContent="Previsioni non disponibili adesso."; return; }
+  box.innerHTML=""; const ct=T.current||{}, cb=(B&&B.current)||{}, n=x=>x==null? "–" : Math.round(x), today=todayISO(), ti=Math.max(0,D.time.indexOf(today));
+  const g=el("div","ski-grid"); g.style.gridTemplateColumns="repeat(2,1fr)";
+  [[`${n(ct.temperature_2m)}° (percepiti ${n(ct.apparent_temperature)}°)`,`Adesso in quota · ${pl.top.toLocaleString("it-IT")} m`],[`${n(cb.temperature_2m)}°`,`In basso · ${pl.base.toLocaleString("it-IT")} m`],[`${n(ct.wind_speed_10m)} km/h`,`Vento in quota (raffiche ${n(ct.wind_gusts_10m)})`],
+   [`${n((+D.snowfall_sum[ti-1]||0)+(+D.snowfall_sum[ti]||0))} / ${n(D.snowfall_sum.slice(Math.max(0,ti-3),ti+1).reduce((a,v)=>a+(+v||0),0))} cm`,"Neve fresca 24 h / 72 h"]].forEach(([v,l])=>{ const d=el("div","ski-st"); d.append(el("b",null,v),el("span",null,l)); g.appendChild(d); });
+  box.appendChild(g);
+  const sd=T.hourly&&T.hourly.snow_depth? T.hourly.snow_depth.filter(v=>v!=null).pop() : null; if(sd!=null) box.appendChild(el("p","note",`Neve al suolo a ${pl.top.toLocaleString("it-IT")} m (stima del modello meteo): circa ${Math.round(sd*100)} cm.`));
+  const tips=skiColdTips(ct); if(tips) box.appendChild(tips);
+  D.time.forEach((t,i)=>{ if(t<today) return; const r0=el("div","pline"); const sn=+D.snowfall_sum[i]||0, gu=+(D.wind_gusts_10m_max&&D.wind_gusts_10m_max[i])||0;
+    r0.append(el("span","ic",(WX_TXT[D.weather_code[i]]||"·").split(" ")[0]), el("span",null,`${t===today?"Oggi":new Date(t+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric"})}: ${(WX_TXT[D.weather_code[i]]||"").split(" ").slice(1).join(" ")}, ${Math.round(D.temperature_2m_min[i])}°/${Math.round(D.temperature_2m_max[i])}° in quota, vento fino a ${Math.round(+D.wind_speed_10m_max[i]||0)} km/h`+(gu>=60? ` (raffiche ${Math.round(gu)}: impianti alti a rischio chiusura)` : "")+(sn>=0.5? `, ❄️ ${Math.round(sn)} cm di neve fresca` : "")));
     box.appendChild(r0); });
-  box.appendChild(el("p","note","Previsioni Open-Meteo a 2.000 m di quota. Per gli impianti aperti guarda il sito della Via Lattea.")); }
-
+  box.appendChild(el("p","note","Previsioni Open-Meteo alle quote della tua ultima giornata. Per gli impianti aperti guarda il sito della località.")); }
+/* freddo e batteria: consigli quando in quota fa molto freddo o tira vento forte */
+function skiColdTips(ct){ const ap=+ct.apparent_temperature, gu=+ct.wind_gusts_10m||0; if(!(ap<=-10||gu>=50)) return null;
+  const b=el("div","ski-cold"); b.appendChild(el("b",null,ap<=-15? "🥶 Freddo intenso in quota" : ap<=-10? "🥶 Freddo in quota" : "💨 Vento forte in quota"));
+  [["📱","Telefono in una tasca interna, vicino al corpo: sotto zero la batteria cala di colpo e il telefono si può spegnere (anche al 30%). Se succede, scaldalo in tasca e si riaccende."],
+   ["🔋","Parti con la batteria carica, attiva il risparmio energetico e, se puoi, porta una batteria esterna."],
+   ["🧤","Copri viso, collo e mani (maschera, scaldacollo, sottoguanti). Con il vento la pelle si raffredda molto più in fretta."],
+   ["☕","Fermati al caldo ogni 1-2 ore e bevi qualcosa di caldo: col freddo si beve poco ma ci si disidrata lo stesso."]].forEach(([i,t])=>{ const r0=el("div","pline"); r0.append(el("span","ic",i),el("span",null,t)); b.appendChild(r0); });
+  return b; }
 /* ===================== STRETCHING: routine guidate con timer ===================== */
 const STRETCH={
  corsa:{t:"Dopo la corsa",ic:"🏃",ex:[["Polpacci al muro","Gamba dietro tesa, tallone a terra, spingi il muro",45,1],["Flessori dell'anca","Affondo basso, bacino in avanti, busto dritto",45,1],["Quadricipiti in piedi","Tallone al gluteo, ginocchia vicine",40,1],["Femorali seduto","Gamba tesa, schiena dritta, piegati dall'anca",45,1],["Glutei a figura 4","Sdraiato, caviglia sul ginocchio, tira la coscia verso il petto",45,1],["Adduttori a farfalla","Piante dei piedi unite, ginocchia verso terra",40,0]]},
