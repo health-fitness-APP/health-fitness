@@ -2549,7 +2549,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.89 (sci: contatto di sicurezza dalla rubrica)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.90 (sci: riquadro «Amici sulle piste» sempre visibile)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7763,7 +7763,7 @@ async function skgPull(){ const code=skgCode(); if(!code||!SY.client) return [];
 async function skgJoin(code){ code=String(code||"").toUpperCase().replace(/[^A-Z0-9]/g,""); if(code.length<4){ toast("Il codice ha almeno 4 caratteri"); return; }
   if(!SY.user){ toast("Per il gruppo serve l'accesso: Profilo → Sincronizzazione"); return; } skgSet(code); const ok=await skgPush(); toast(ok? "Sei nel gruppo "+code+" ✓" : "Entrato nel gruppo: la posizione arriva appena c'è il GPS"); renderSci(); }
 async function skgLeave(){ const code=skgCode(); skgSet(""); clearInterval(skgTmr); skgTmr=null; try{ if(SY.client&&SY.user) await SY.client.from("ski_pos").delete().eq("code",code).eq("uid",SY.user.id); }catch{} renderSci(); }
-function skgBox(box){ const code=skgCode(); const w=el("div","skg"); w.appendChild(el("p","ski-fr","👥 Amici sulla mappa (con HealthFit)")); box.appendChild(w);
+function skgBox(box){ const code=skgCode(); const w=el("div","skg"); w.appendChild(el("p","ski-fr","🗺️ Vederli sulla mappa (amici con HealthFit)")); box.appendChild(w);
   if(!SY.user){ w.appendChild(el("p","note","Serve l'accesso con l'account (Profilo → Sincronizzazione), anche per gli amici.")); return; }
   if(!code){ const r=el("div","two"); const b1=el("button","btn ghost","Crea un gruppo"); b1.type="button"; b1.onclick=()=>{ const c=Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x%32]).join(""); skgJoin(c).then(()=>{ const C=NAT(), t=`⛷️ Sciamo insieme: in HealthFit, pagina Sci, «Entra in un gruppo» con il codice ${c}`; try{ if(C&&C.Plugins&&C.Plugins.Share) C.Plugins.Share.share({text:t,dialogTitle:"Manda il codice agli amici"}); else if(navigator.share) navigator.share({text:t}); }catch{} }); };
     const b2=el("button","btn ghost","Entra in un gruppo"); b2.type="button"; b2.onclick=()=>{ const c=prompt("Codice del gruppo"); if(c) skgJoin(c); }; r.append(b1,b2); w.appendChild(r);
@@ -7863,6 +7863,9 @@ function renderSci(){ const box=$("sciBox"); if(!box) return; box.innerHTML=""; 
   if(S.its.length){ const lst=el("div","ski-list"); S.its.slice(0,12).forEach(w=>{ const r0=el("div","pline"); r0.append(el("span","ic","⛷️"), el("span",null,`${new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})} · ${w.name} · ${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min`+(w.distance? ` · ${fmt(+w.distance)} km` : "")+(w.elevDown? ` · ↓${(+w.elevDown).toLocaleString("it-IT")} m` : "")+(w.kcal? ` · ${Math.round(+w.kcal)} kcal` : "")+(w.details? ` · ${w.details}` : "")+(w.src==="phone"? " · 📱" : ""))); const xb=el("button","linkbtn ski-del","🗑"); xb.type="button"; xb.setAttribute("aria-label","Elimina questa giornata"); xb.onclick=e=>{ e.stopPropagation(); skiDel(w); }; r0.appendChild(xb); if(w.src==="phone"||w.src==="watch"){ r0.style.cursor="pointer"; r0.title="Mappa e velocità"; r0.onclick=()=>skiDetail(w,r0); } lst.appendChild(r0); }); c1.appendChild(lst); }
   else c1.appendChild(el("p","note","Nessuna giornata ancora. Puoi registrarla dal telefono qui sopra; se usi il Galaxy Watch arriva da sola da Samsung Health."));
   box.appendChild(c1);
+  { const cf=el("section","card"); cf.id="skiFrCard"; cf.appendChild(el("h2",null,"👥 Amici sulle piste"));
+    cf.appendChild(el("p","note","Manda a chi vuoi (WhatsApp, SMS…) dove sei o dove vi trovate: si apre la mappa con il punto."));
+    skiFriendsRow(cf); try{ skgBox(cf); }catch(e){ console.warn("gruppo",e); } box.appendChild(cf); }
   try{ skiRecCard(box).catch(e=>console.warn("record sci",e)); }catch{}
   try{ skiPlacesCard(box).catch(e=>console.warn("località sci",e)); }catch{}
   // neve e meteo
@@ -8125,8 +8128,7 @@ function skiLiveCard(c1){ const o=skiLiveGet(), box=el("div","ski-live");
   box.appendChild(el("p","note", o.native? "Puoi spegnere lo schermo e mettere il telefono in tasca. Le soste lunghe (pranzo) le tolgo da solo; discese e dislivello li calcolo alla fine." : "Lascia aperta l'app: a fine giornata tocca «Fine»."));
   const qr=el("div","chips"); [["💧 Ho bevuto",()=>skiWater(250)],["🍫 Spuntino",skiSnack]].forEach(([l,f])=>{ const b=el("button","chip",l); b.type="button"; b.onclick=f; qr.appendChild(b); }); box.appendChild(qr);
   box.appendChild(el("p","note","Ogni 75 minuti ti ricordo di bere o mangiare qualcosa con una notifica."));
-  box.appendChild(el("p","ski-fr","Con gli amici:")); skiFriendsRow(box);
-  try{ skgBox(box); }catch(e){ console.warn("gruppo",e); }
+  { const lk=el("button","linkbtn","👥 Amici: posizione e mappa più in basso, in «Amici sulle piste»"); lk.type="button"; lk.onclick=()=>{ const c=$("skiFrCard"); if(c) c.scrollIntoView({behavior:"smooth",block:"start"}); }; box.appendChild(lk); }
   const row=el("div","two"); const pb=el("button","btn ghost",o.pAt? "▶ Riprendi" : "⏸ Pausa"); pb.type="button"; pb.onclick=skiLivePause; const eb=el("button","btn","■ Fine giornata"); eb.type="button"; eb.onclick=skiLiveEnd; row.append(pb,eb); box.appendChild(row);
   c1.appendChild(box);
   if(!skiLiveTmr) skiLiveTmr=setInterval(async()=>{ const o2=skiLiveGet(); if(!o2){ clearInterval(skiLiveTmr); skiLiveTmr=null; return; }
