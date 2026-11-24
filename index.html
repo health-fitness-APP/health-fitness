@@ -2547,7 +2547,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.72 (sci: la giornata divisa in discese, impianti e code, soste)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.73 (sci: soste a metà pista non contate due volte)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7755,11 +7755,15 @@ function skiAnalyze(tr){ const R={runs:0,down:0,up:0,kmDown:0,maxKmh:0,pauseSec:
     else if(dir===1){ if(al[i]>al[ext]) ext=i; else if(al[ext]-al[i]>H){ segs.push([from,ext,1]); from=ext; dir=-1; ext=i; } }
     else { if(al[i]<al[ext]) ext=i; else if(al[i]-al[ext]>H){ segs.push([from,ext,-1]); from=ext; dir=1; ext=i; } } }
   segs.push([from,al.length-1,dir===-1? -1 : 1]);
-  R.list=[];
+  R.list=[]; const inPause=t=>R.pauses.some(z=>t>z.t0&&t<=z.t1);
   segs.forEach(([a,b,d])=>{ const dh=al[a]-al[b]; if(d===-1&&dh>=50){ R.runs++; R.down+=dh; const km=Math.max(0,Q[b].m-Q[a].m)/1000; R.kmDown+=km; let mx=0;
       let mov=0;   // tempo in movimento: i tratti sotto 6 km/h (fermo a metà pista, in coda) non contano nella media
-      for(let k=a+1;k<=b;k++){ const dt=Q[k].t-Q[k-1].t; if(dt<=0) continue; const v=(Q[k].m-Q[k-1].m)/dt*3.6; if(v>=6&&dt<=60) mov+=dt; if(dt>=4&&v<130&&v>mx) mx=v; } if(mx>R.maxKmh) R.maxKmh=mx;
-      const sec=Math.max(1,Q[b].t-Q[a].t); mov=Math.max(1,Math.min(sec,mov)); R.movSec=(R.movSec||0)+mov; R.list.push({t0:Q[a].t,t1:Q[b].t,down:Math.round(dh),km:Math.round(km*10)/10,sec,mov,stop:sec-mov,avg:Math.round(km/(mov/3600)),max:Math.round(mx)}); }
+      let pz=0;   // una sosta lunga dentro la discesa (rifugio a metà pista) resta sosta: non va contata due volte
+      for(let k=a+1;k<=b;k++){ const dt=Q[k].t-Q[k-1].t; if(dt<=0) continue; const v=(Q[k].m-Q[k-1].m)/dt*3.6; if(dt>=4&&v<130&&v>mx) mx=v;
+        if(inPause(Q[k].t)){ pz+=dt; continue; }
+        const q0=Q[Math.max(a,k-3)], q1=Q[Math.min(b,k+3)], vs=q1.t>q0.t? (q1.m-q0.m)/(q1.t-q0.t)*3.6 : 0;   // velocità su ~30 s: il GPS a volte salta un punto
+        if(vs>=4&&dt<=60) mov+=dt; } if(mx>R.maxKmh) R.maxKmh=mx;
+      const sec=Math.max(1,Q[b].t-Q[a].t); mov=Math.max(1,Math.min(sec-pz,mov)); R.movSec=(R.movSec||0)+mov; R.list.push({t0:Q[a].t,t1:Q[b].t,down:Math.round(dh),km:Math.round(km*10)/10,sec,mov,pz,stop:Math.max(0,sec-mov-pz),avg:Math.round(km/(mov/3600)),max:Math.round(mx)}); }
     else if(d===1&&-dh>0) R.up+=-dh; });
   R.down=Math.round(R.down/10)*10; R.up=Math.round(R.up/10)*10; R.kmDown=Math.round(R.kmDown*10)/10; R.maxKmh=Math.round(R.maxKmh); return R; }
 let skiLiveTmr=null, skiLiveNat=null;
