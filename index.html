@@ -903,7 +903,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .ski-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 12px}
 .ski-st{background:var(--surface2);border-radius:14px;padding:10px 4px;text-align:center;display:flex;flex-direction:column;gap:2px}
 .ski-live{margin:4px 0 6px}.ski-live.on{background:var(--surface2);border-radius:16px;padding:12px}.ski-live-h{font-weight:700;margin:0 0 6px}
-.ski-del{margin-left:auto;padding:4px 8px;flex:none}.ski-det{margin:6px 0 12px}.ski-prow td{color:var(--muted,#888);font-style:italic;text-align:left!important}.ski-tab small{color:var(--muted,#888);font-size:11px;display:block}.ski-pmk{font-size:18px;line-height:24px;text-align:center;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0005}.ski-tab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.ski-tab th,.ski-tab td{padding:5px 3px;text-align:right;border-bottom:1px solid var(--line,#ddd)}.ski-tab th:first-child,.ski-tab td:first-child{text-align:left}
+.ski-del{margin-left:auto;padding:4px 8px;flex:none}.ski-det{margin:6px 0 12px}.ski-split{margin:10px 0;padding:10px 12px;border-radius:14px;background:var(--surface2,#f4f1ec)}.ski-split-h{margin:0 0 8px;font-weight:700;font-size:14px}.ski-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:8px}.ski-bar i{display:block;height:100%}.ski-split-r{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0}.ski-split-r i{width:10px;height:10px;border-radius:50%;flex:none}.ski-split-r b{margin-left:auto;font-weight:600}.ski-prow td{color:var(--muted,#888);font-style:italic;text-align:left!important}.ski-tab small{color:var(--muted,#888);font-size:11px;display:block}.ski-pmk{font-size:18px;line-height:24px;text-align:center;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0005}.ski-tab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.ski-tab th,.ski-tab td{padding:5px 3px;text-align:right;border-bottom:1px solid var(--line,#ddd)}.ski-tab th:first-child,.ski-tab td:first-child{text-align:left}
 .ski-st b{font-size:1.15rem}.ski-st span{font-size:.75rem;color:var(--muted)}
 .ski-list{margin-top:12px}.ski-ul{margin:6px 0 10px;padding-left:20px;font-size:.9rem;line-height:1.5}
 .str-ov{position:fixed;inset:0;z-index:60;background:var(--surface-solid,var(--surface));display:flex;align-items:center;justify-content:center;padding:20px}
@@ -2547,7 +2547,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.71 (sci: kcal, soste segnate e media solo in movimento)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.72 (sci: la giornata divisa in discese, impianti e code, soste)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7828,8 +7828,15 @@ async function skiDetail(w,row){ const nx=row.nextElementSibling; if(nx&&nx.clas
   if(!A.list.length){ box.appendChild(el("p","note","Non trovo discese in questo percorso.")); return; }
   const avgAll=A.movSec? Math.round(A.kmDown/(A.movSec/3600)) : 0;
   const sum=el("div","ski-grid"); sum.style.gridTemplateColumns="repeat(3,1fr)"; sum.style.margin="10px 0 4px";
-  [["🔥 kcal",w.kcal? Math.round(+w.kcal).toLocaleString("it-IT") : "–"],["Sciando",hmTxt(A.movSec||0)],["Soste",A.pauseSec? hmTxt(A.pauseSec) : "–"],["Max",A.maxKmh+" km/h"],["Media discese",avgAll+" km/h"],["Discese",`${fmt(A.kmDown)} km`]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,String(v)),el("span",null,l)); sum.appendChild(d); });
+  [["🔥 kcal",w.kcal? Math.round(+w.kcal).toLocaleString("it-IT") : "–"],["In discesa",hmTxt(A.movSec||0)],["Soste",A.pauseSec? hmTxt(A.pauseSec) : "–"],["Max",A.maxKmh+" km/h"],["Media discese",avgAll+" km/h"],["Discese",`${fmt(A.kmDown)} km`]].forEach(([l,v])=>{ const d=el("div","ski-st"); d.append(el("b",null,String(v)),el("span",null,l)); sum.appendChild(d); });
   box.appendChild(sum);
+  // dove è andata la giornata: le quattro parti sommano a tutto il tempo registrato
+  { const tot=Math.max(1,(+tr.t[tr.t.length-1])-(+tr.t[0]||0)), stop=A.list.reduce((x,r)=>x+(r.stop||0),0), mv=A.movSec||0, ps=A.pauseSec||0, lift=Math.max(0,tot-mv-stop-ps);
+    const parts=[["Discese (in movimento)",mv,"#E5484D"],["Fermate brevi in pista",stop,"#E9A21E"],["Impianti e code",lift,"#9AA5B1"],["Soste lunghe",ps,"#8B5E3C"]].filter(x=>x[1]>=30);
+    const bx=el("div","ski-split"); bx.appendChild(el("p","ski-split-h",`La giornata: ${hmTxt(tot)} registrate`+(doc.t0? ` (dalle ${clockOf(doc.t0+(+tr.t[0]||0)*1000)} alle ${clockOf(doc.t0+(+tr.t[tr.t.length-1])*1000)})` : "")));
+    const bar=el("div","ski-bar"); parts.forEach(([l,v,c])=>{ const i=el("i"); i.style.background=c; i.style.width=(v/tot*100).toFixed(1)+"%"; bar.appendChild(i); }); bx.appendChild(bar);
+    parts.forEach(([l,v,c])=>{ const r0=el("div","ski-split-r"); const dot=el("i"); dot.style.background=c; r0.append(dot,el("span",null,l),el("b",null,`${hmTxt(v)} · ${Math.round(v/tot*100)}%`)); bx.appendChild(r0); });
+    box.appendChild(bx); }
   box.appendChild(el("p","note",`${fmt(A.kmAll)} km in tutto con gli impianti. Le soste lunghe (☕ sulla mappa) sono nella tabella; le fermate brevi a metà pista non contano nella media.`));
   const rows=[...A.list.map((r,k)=>({...r,k:k+1})),...A.pauses.map(z=>({...z,p:1}))].sort((x,y)=>x.t0-y.t0);
   const mmss=x=>`${Math.floor(x/60)}:${String(Math.round(x%60)).padStart(2,"0")}`;
