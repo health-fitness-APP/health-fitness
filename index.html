@@ -1742,7 +1742,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
     </section>
     <section class="card" id="shopCard">
       <div class="meal-head"><h2>🛒 Lista della spesa</h2><span class="note" id="shopCount" style="margin:0"></span></div>
-      <p class="sub">Dalla tua dieta: sommo i grammi dei prossimi giorni e tolgo quello che hai già in dispensa.</p>
+      <p class="sub">Dalla tua dieta: sommo i grammi dei giorni scelti, tolgo quello che hai già in dispensa (se in dispensa c'è scritta la quantità, compri solo quello che manca) e divido per reparto.</p>
       <div class="chips" id="shopDays"></div>
       <div id="shopList"></div>
       <div class="two" style="margin-top:10px"><button class="btn ghost" id="shopShare" type="button">📤 Condividi la lista</button><button class="btn ghost" id="shopClear" type="button">Togli le spunte</button></div>
@@ -2537,7 +2537,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
     </div>
     <div class="status" id="syncStatus" aria-live="polite"></div>
     <h3 style="margin:18px 0 6px;font-size:1rem">Backup dei dati</h3>
-    <p class="sub">Copia di sicurezza in un file. Utile anche con la sincronizzazione attiva: fai un backup ogni tanto: se cancelli i dati del browser o cambi telefono, lo reimporti.</p>
+    <p class="sub">Copia di sicurezza in un file, con i dati e le impostazioni (anche le chiavi AI e i dispositivi collegati). Se cancelli i dati, reinstalli l'app o cambi telefono, la reimporti e ritrovi tutto.</p>
     <div class="two">
       <button class="btn ghost" id="bkExport">Esporta backup</button>
       <button class="btn ghost" id="pdfGo" type="button" style="grid-column:1/-1">📄 Resoconto PDF per medico o nutrizionista</button>
@@ -2546,9 +2546,10 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <p class="note" id="bkAutoStatus" style="grid-column:1/-1;margin:4px 0 0"></p>
       <button class="btn ghost" id="bkAutoShare" type="button" hidden style="grid-column:1/-1">☁️ Salva una copia su Google Drive</button>
       <button class="btn ghost" id="bkImport">Importa backup</button>
+      <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.84 (sci: manda agli amici la tua posizione o un punto di ritrovo)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.85 (copia dei dati ogni giorno, giornata leggera col sonno, spesa per reparto, resoconto della domenica)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -5503,9 +5504,10 @@ function kgStep(name){ const n=(name||"").toLowerCase();
 const r25=v=>Math.round(v/0.5)*0.5;
 /* settimana di scarico: il consiglio dice lo stesso peso con cui si riempiono le serie (-10%, una serie in meno) */
 function progFor(x){ const r=progBase(x); try{
-  if(r&&r.kind!=="new"&&deloadOn(typeof state!=="undefined"&&state.date||todayISO())){ const h=exHistory(x.name,1)[0], top=h? Math.max(...h.sets.map(z=>+z.kg||0)) : 0;
+  const iso0=typeof state!=="undefined"&&state.date||todayISO(), dlw=deloadOn(iso0);
+  if(r&&r.kind!=="new"&&(dlw||lightOn(iso0))){ const h=exHistory(x.name,1)[0], top=h? Math.max(...h.sets.map(z=>+z.kg||0)) : 0;
     if(top>0&&!h.sets.some(z=>z.vest)&&!isBodyweight({name:x.name,equip:x.equip||exEquip(x)})){ const kg=r25(top*0.9);
-      return {kind:"down",kg,deload:true,next:r,text:`Settimana di scarico: oggi ${fmt(kg)} kg (-10% rispetto a ${fmt(top)} kg) e una serie in meno, senza arrivare al limite. Dalla settimana prossima: ${r.text.charAt(0).toLowerCase()+r.text.slice(1)}`}; } } }catch(e){}
+      return {kind:"down",kg,deload:true,next:r,text:`${dlw? "Settimana di scarico" : "Giornata leggera (sonno o stanchezza)"}: oggi ${fmt(kg)} kg (-10% rispetto a ${fmt(top)} kg) e una serie in meno, senza arrivare al limite. ${dlw? "Dalla settimana prossima" : "La prossima volta"}: ${r.text.charAt(0).toLowerCase()+r.text.slice(1)}`}; } } }catch(e){}
   return r; }
 function progBase(x){
   if(x.detail&&!x.sets) return null;
@@ -9374,11 +9376,12 @@ function stretchAsk(k,mins,head){ let ov=$("strOv"); if(!ov){ ov=el("div","str-o
 function openLogger(a,di){
   const d=a.pr.days[di]; if(d&&d.kind==="circuit"&&d.circuit) return openCircuit(a,di);
   if(logCtx&&logCtx.live&&logCtx.title!==(d.title||"Allenamento")&&!confirm("Hai già un allenamento in corso ("+logCtx.title+"). Lo sostituisco con questo?")){ go("sessione"); renderLogger(); return; }
+  if(!(logCtx&&logCtx.live&&logCtx.title===(d.title||"Allenamento"))&&!deloadOn(state.date)&&lightOn(state.date)) setTimeout(()=>toast("😴 Oggi giornata leggera (sonno o stanchezza): una serie in meno e carichi -10%",6000),400);
   if(!(logCtx&&logCtx.live&&logCtx.title===(d.title||"Allenamento"))){
     logCtx={live:true, kind:a.kind, title:d.title||"Allenamento", plannedMin:+d.minutes||60, startedAt:Date.now(), date:state.date, notes:"",
       exercises:(d.exercises||[]).map(x=>{ const last=lastFor(x.name);
         if(x.detail&&!x.sets) return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:x.rest||"",cardio:true,sets:[{text:last&&last.ex.sets[0]&&last.ex.sets[0].text||"",done:false}]};
-        const dl=deloadOn(state.date), n=Math.max(dl? 2 : 1,Math.min(10,(+x.sets||3)-(dl&&(+x.sets||3)>2? 1 : 0))), timed=/\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||""));
+        const dl=deloadOn(state.date)||lightOn(state.date), n=Math.max(dl? 2 : 1,Math.min(10,(+x.sets||3)-(dl&&(+x.sets||3)>2? 1 : 0))), timed=/\d\s*(s|sec|secondi|min|')\b|:\d/i.test(String(x.reps||""));
         const pg=progFor(x), rr=repRange(x.reps);
         const bw=isBodyweight({name:x.name,equip:x.equip||exEquip(x)}), lv0=bw? lastVest(x.name) : 0, lv= lv0&&pg&&pg.kind==='up'&&+pg.kg>lv0? +pg.kg : lv0;
         const cmb=exParts(x.name).length>0; if(cmb) return {name:x.name,equip:exEquip(x),muscles:exMuscles(x),target:exTarget(x),rest:restFor(x),rawReps:x.reps||"",cmb:true,bw:false,
@@ -9494,7 +9497,7 @@ function nextSet(){ if(logCtx.ss){ const E=logCtx.exercises;
 /* serie per serie: se hai fatto molte più ripetizioni del previsto la prossima serie sale di peso, se ne hai fatte troppo poche scende */
 function adaptNextSet(x,si){ if(x.cardio||x.cmb||x.timed||x.bw||!x.rr) return; const st=x.sets[si], kg=+String(st.kg).replace(",","."), reps=+st.reps; if(!(kg>0)||!(reps>0)) return;
   const nx=x.sets.find((z,i)=>i>si&&!z.done); if(!nx||(nx.kg!==""&&+nx.kg!==kg)) return; const [lo,hi]=x.rr, step=kgStep(x.name);
-  if(reps>=hi+2&&!deloadOn(logCtx&&logCtx.date)){ nx.kg=r25(kg+step); toast(`💪 ${reps} ripetizioni: prossima serie ${fmt(nx.kg)} kg`); }
+  if(reps>=hi+2&&!deloadOn(logCtx&&logCtx.date)&&!lightOn(logCtx&&logCtx.date)){ nx.kg=r25(kg+step); toast(`💪 ${reps} ripetizioni: prossima serie ${fmt(nx.kg)} kg`); }
   else if(reps<lo-1&&kg-step>0){ nx.kg=r25(kg-step); toast(`Solo ${reps} ripetizioni: prossima serie ${fmt(nx.kg)} kg`); } }
 function maxRest(a,b){ return restSecs(a.rest)>=restSecs(b&&b.rest)? a.rest : b.rest; }
 /* superserie: due esercizi di muscoli diversi alternati, 15 s per cambiare, poi il recupero */
@@ -10640,14 +10643,39 @@ function weekData(from){ const to=shiftDate(from,6), inR=d=>d>=from&&d<=to, H=(h
     const best=h=>Math.max(0,...(h.sets||[]).map(z=>e1rm(+z.kg||0,+z.reps||0))); const all=exHistory(x.name,8), cur=all.filter(h=>inR(h.date)), old=all.filter(h=>h.date<from);
     if(!cur.length||!old.length) return; const b1=Math.max(...cur.map(best)), b0=best(old[0]); if(!b1||!b0) return;
     if(b1>b0*1.01) ups.push(`${x.name} +${fmt(Math.round(b1-b0))} kg`); else if(b1<b0*0.97) downs.push(x.name); }));
+  // cibo e sonno della settimana (solo i giorni con il cibo segnato)
+  let logged=0, kc=0, kt=0, pr=0, sl=0, slN=0; const tg=state.profile? targets(state.profile) : null;
+  for(let k=0;k<7;k++){ const iso=shiftDate(from,k); if(iso>todayISO()) break; const dd=dayDoc(iso); if(!dd) continue;
+    if(dd.sleep&&+dd.sleep.h>2) { sl+=+dd.sleep.h; slN++; }
+    if(iso===todayISO()) continue;   // oggi non è finito
+    const items=Object.values(dd.meals||{}).flat(); const k0=items.reduce((a,b)=>a+(+b.kcal||0),0); if(k0<500||items.length<2) continue;
+    logged++; kc+=k0; pr+=items.reduce((a,b)=>a+(+b.p||0),0);
+    let t0=null; try{ const u=upDayFor(iso); if(u) t0=upDayTotals(u).kcal; }catch{} if(!t0&&tg) t0=tg.kcal+((dd.workouts||[]).reduce((a,w)=>a+(+w.kcal||0),0)); kt+=t0||0; }
   return {from,to,runs:runs.length,runKm:Math.round(runKm*10)/10,planRuns,planKm:Math.round(planKm*10)/10,gym:gym.length,planGym,other:other.length,
-    walkSteps:wSteps,walkKm:Math.round(wKm*10)/10,walkKcal:wKcal,steps,wNow,wPrev,ups,downs}; }
+    walkSteps:wSteps,walkKm:Math.round(wKm*10)/10,walkKcal:wKcal,steps,wNow,wPrev,ups,downs,
+    logged,avgK:logged? Math.round(kc/logged) : null,avgT:logged&&kt? Math.round(kt/logged) : null,avgP:logged? Math.round(pr/logged) : null,protT:tg&&tg.prot? Math.round(tg.prot) : null,
+    sleepAvg:slN? Math.round(sl/slN*10)/10 : null,sleepN:slN}; }
+/* «cosa migliorare»: consigli precisi calcolati dai numeri della settimana (ci sono anche senza AI) */
+function weekTips(D){ const T=[], g=goalOf(state.profile)||{}, gid=String(g.id||"");
+  if(D.planKm&&D.runKm<D.planKm*0.8) T.push(`Corsa: hai fatto ${Math.round(D.runKm/D.planKm*100)}% dei km previsti. Fissa adesso i giorni e l'ora delle corse della settimana: se manca tempo, meglio una corsa più corta che saltarla.`);
+  else if(!D.planKm&&D.planRuns&&D.runs<D.planRuns) T.push(`Corsa: ${D.runs} uscite su ${D.planRuns}. Questa settimana metti in calendario tutte le corse, anche corte.`);
+  if(D.planGym&&D.gym<D.planGym) T.push(`Palestra: ${D.gym} sedute su ${D.planGym}. Se una salta, recuperala il giorno dopo invece di perderla.`);
+  if(D.logged<5) T.push(`Cibo: segnato ${D.logged} ${D.logged===1?"giorno":"giorni"} su 7. Segnalo almeno 5 giorni, anche con le foto: così i consigli su calorie e peso diventano affidabili.`);
+  else if(D.avgK&&D.avgT){ const d=Math.round((D.avgK-D.avgT)/D.avgT*100);
+    if(d>10) T.push(`Calorie: in media ${D.avgK} kcal su ${D.avgT} (+${d}%). Taglia prima i fuori pasto e i condimenti (un cucchiaio d'olio sono 90 kcal), non le proteine.`);
+    else if(d<-12) T.push(`Calorie: in media ${D.avgK} kcal su ${D.avgT} (${d}%). Troppo poco ${/gain|massa|aument/i.test(gid)? "per crescere" : "per allenarti bene"}: aggiungi uno spuntino con carboidrati e proteine nei giorni di allenamento.`); }
+  if(D.avgP&&D.protT&&D.avgP<D.protT*0.85) T.push(`Proteine: in media ${D.avgP} g al giorno su ${D.protT}. Aggiungi ${D.protT-D.avgP>=30? "uno yogurt greco e 100 g di pollo, tonno o uova" : "uno yogurt greco o 100 g di pollo, tonno o uova"} ogni giorno.`);
+  if(D.sleepAvg!=null&&D.sleepN>=3&&D.sleepAvg<7) T.push(`Sonno: in media ${fmt(D.sleepAvg)} ore. Prova ad andare a letto 30 minuti prima: il sonno conta per i muscoli, la fame e il battito in corsa.`);
+  if(D.downs.length>=2) T.push(`Carichi in calo (${D.downs.slice(0,2).join(", ")}): se sei stanco valuta una settimana di scarico, altrimenti mangia un po' di più prima della palestra.`);
+  return T.slice(0,4); }
 function weekLines(D){ const L=[];
   L.push(["🏃",`Corsa: ${D.runs} ${D.runs===1?"uscita":"uscite"}, ${fmt(D.runKm)} km${D.planKm? ` su ${fmt(D.planKm)} previsti (${Math.round(D.runKm/D.planKm*100)}%)` : D.planRuns? ` su ${D.planRuns} corse previste` : ""}.`]);
   L.push(["🏋️",`Palestra: ${D.gym} ${D.gym===1?"seduta":"sedute"}${D.planGym? " su "+D.planGym+" previste" : ""}.`+(D.ups.length? " Carichi in salita: "+D.ups.slice(0,3).join(", ")+"." : "")+(D.downs.length? " In calo: "+D.downs.slice(0,2).join(", ")+"." : "")]);
   if(D.walkSteps) L.push(["🚶",`Camminate in più: circa ${fmt(D.walkKm)} km (${D.walkSteps.toLocaleString("it-IT")} passi), ${D.walkKcal} kcal già aggiunte alla dieta.`]);
   try{ const ya=yearAgo(D.from,D.to); if(ya) L.push(["📅",ya]); }catch(e){}
   if(D.wNow!=null) L.push(["⚖️",`Peso medio ${fmt(Math.round(D.wNow*10)/10)} kg`+(D.wPrev!=null? ` (${D.wNow-D.wPrev>=0?"+":""}${fmt(Math.round((D.wNow-D.wPrev)*10)/10)} kg rispetto alla settimana prima).` : ".")]);
+  if(D.logged) L.push(["🍽",`Cibo segnato ${D.logged} ${D.logged===1?"giorno":"giorni"}: in media ${D.avgK} kcal${D.avgT? " su "+D.avgT+" previste" : ""}, proteine ${D.avgP} g${D.protT? " su "+D.protT : ""}.`]);
+  if(D.sleepAvg!=null) L.push(["😴",`Sonno: in media ${fmt(D.sleepAvg)} ore (${D.sleepN} ${D.sleepN===1?"notte":"notti"}).`]);
   return L; }
 async function weekReview(D,force){ if(!sample) return; if(!force&&weekRev&&weekRev.from===D.from) return; const box=$("weekCoach"); if(box) box.textContent="Il coach sta guardando la settimana…";
   try{ const res=await sample([{role:"user",content:`Sei il coach di questa persona (forza, corsa e nutrizione). Fai il bilancio della settimana dal ${D.from} al ${D.to}, in italiano semplice, massimo 6 frasi: com'è andata (con i numeri), cosa va bene, cosa cambiare nella settimana ${D.to>=todayISO()? "che inizia domani" : "in corso"} in palestra, nella corsa e nella dieta (cose precise: ritmi, km, carichi, grammi). Diretto e concreto.
@@ -10655,6 +10683,7 @@ Profilo: ${profileSummary()}.
 ${csText()}
 ${memText()}
 Dati della settimana: ${weekLines(D).map(x=>x[1]).join(" ")}
+Cose da migliorare già viste dall'app (non ripeterle uguali, aggiungi il come): ${weekTips(D).join(" ")||"nessuna"}
 ${(()=>{ const t=runEvalText(0,D.from,D.to); return t? "Corse del piano, previsto → fatto:\n"+t : ""; })()}
 ${fatigueText()}
 ${raceWeekText()}
@@ -10664,8 +10693,8 @@ Recupero: ${recoveryText()}.`}],{cache:false,pro:true});
   renderWeekCard(); }
 /* ===== notifiche sul telefono (serve l'app del telefono con le notifiche, da apk-48 in poi) ===== */
 const LN=()=>{ const C=NAT(); return C&&C.Plugins&&C.Plugins.LocalNotifications||null; };
-const NOTIF_K=[["supp","💊 Integratori"],["water","💧 Bere"],["sleep","🌙 Ora di andare a letto"],["photo","📸 Foto del fisico e test di soglia"],["body","📏 Misure del corpo (ogni 2 settimane)"],["race","🏁 Gara"]];
-function notifPrefs(){ const d={supp:1,water:1,sleep:1,photo:1,race:1,body:1}; try{ return {...d,...JSON.parse(localStorage.getItem("hf:notif")||"{}")}; }catch{ return d; } }
+const NOTIF_K=[["week","📊 Resoconto della domenica"],["supp","💊 Integratori"],["water","💧 Bere"],["sleep","🌙 Ora di andare a letto"],["photo","📸 Foto del fisico e test di soglia"],["body","📏 Misure del corpo (ogni 2 settimane)"],["race","🏁 Gara"]];
+function notifPrefs(){ const d={week:1,supp:1,water:1,sleep:1,photo:1,race:1,body:1}; try{ return {...d,...JSON.parse(localStorage.getItem("hf:notif")||"{}")}; }catch{ return d; } }
 const hm2min=t=>{ const m=String(t||"").match(/(\d{1,2})[:.](\d{2})/); return m? +m[1]*60+ +m[2] : null; }, min2hm=m=>{ m=((Math.round(m)%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
 async function notifSchedule(){ const L=LN(); if(!L||localStorage.getItem("hf:notifOn")!=="1") return;
   try{ const pend=await L.getPending(); const ids=((pend&&pend.notifications)||[]).filter(n=>n.id>=5000&&n.id<6000).map(n=>({id:n.id})); if(ids.length) await L.cancel({notifications:ids}); }catch{}
@@ -10676,6 +10705,7 @@ async function notifSchedule(){ const L=LN(); if(!L||localStorage.getItem("hf:no
     if(P.water&&localStorage.getItem("hf:waterOff")!=="1"){ push(iso,"11:00","💧 Hai bevuto?","Un bicchiere d'acqua adesso: segnalo in HealthFit."); push(iso,"16:00","💧 Ricordati di bere",train? "Oggi ti alleni: arriva all'allenamento ben idratato." : "Un bicchiere adesso."); }
     if(P.sleep){ try{ const n=nightPlan(iso); push(iso,min2hm(hm2min(n.bed)-30),"🌙 Tra mezz'ora a letto",`A letto alle ${n.bed} per dormire ${String(n.hours).replace(".",",")} ore, sveglia ${n.wake}${n.why}.`); }catch{} }
     if(P.race){ try{ const g=race&&race.goal; if(g&&g.date){ const dd=Math.round((new Date(g.date+"T12:00:00")-new Date(iso+"T12:00:00"))/864e5); if(dd>=1&&dd<=3) push(iso,"09:00",`🏁 Gara tra ${dd} ${dd===1?"giorno":"giorni"}`, dd===1? "Oggi: carboidrati, poca fibra, prepara la borsa. Apri HealthFit per la lista." : "Apri HealthFit: c'è il programma dei giorni prima della gara."); } }catch{} } }
+  if(P.week){ try{ for(let i=0;i<8;i++){ const d=shiftDate(todayISO(),i); if(new Date(d+"T12:00:00").getDay()===0){ push(d,"18:30","📊 La tua settimana","Il resoconto è pronto: peso, calorie, allenamenti e cosa migliorare."); if(i>0) break; } } }catch{} }
   if(P.photo){ try{ const L0=(bphotos.list||[]).slice().sort((a,b)=>a.date<b.date?-1:1), last=L0[L0.length-1]; if(last&&last.date<=shiftDate(todayISO(),-27)) push(shiftDate(todayISO(),1),"09:30","📸 Foto del fisico","Sono passate 4 settimane: stessa luce e stessa posa dell'ultima volta."); }catch{}
     try{ const t=thrGet(); if(t&&t.date<=shiftDate(todayISO(),-42)){ const sat=(()=>{ for(let i=1;i<=7;i++){ const d=shiftDate(todayISO(),i); if(new Date(d+"T12:00:00").getDay()===6) return d; } })(); push(sat,"09:00","🧪 Test di soglia","Sono passate 6 settimane dall'ultimo test: se oggi sei riposato, fallo (Statistiche corsa)."); } }catch{} }
   if(P.body){ try{ const nx=mzNext(); if(nx){ const nowM=new Date().getHours()*60+new Date().getMinutes(); let d=nx<todayISO()? todayISO() : nx; if(d===todayISO()&&nowM>=hm2min(MZ_AT)) d=shiftDate(todayISO(),1);
@@ -11427,12 +11457,18 @@ function fatigueNow(){ const out={signs:[],level:0}; const today=todayISO();
       if(up>=7){ out.signs.push(`battito a riposo ${now} (di solito ${med}, +${up})`); out.level+=2; }
       else if(up>=5){ out.signs.push(`battito a riposo ${now} (di solito ${med}, +${up})`); out.level+=1; if(last.length>1&&last[1]-med>=5) out.level+=1; } } }catch{}
   try{ const sl=sleepRecent(3).filter(x=>x.d>=shiftDate(today,-2)); const bad=sl.filter(x=>+x.h<6);
-    if(sl.length>=2&&bad.length>=2){ out.signs.push(`sonno scarso (${sl.map(x=>fmt(Math.round(x.h*10)/10)+" h").join(", ")} le ultime notti)`); out.level+=1; }
-    else if(sl.length&&+sl[0].h<5){ out.signs.push(`stanotte solo ${fmt(Math.round(sl[0].h*10)/10)} h di sonno`); out.level+=1; } }catch{}
+    if(sl.length>=2&&bad.length>=2){ out.sleepBad=true; out.signs.push(`sonno scarso (${sl.map(x=>fmt(Math.round(x.h*10)/10)+" h").join(", ")} le ultime notti)`); out.level+=1; }
+    else if(sl.length&&+sl[0].h<5){ out.sleepBad=true; out.signs.push(`stanotte solo ${fmt(Math.round(sl[0].h*10)/10)} h di sonno`); out.level+=1; } }catch{}
   try{ const L=skiLegs(today); if(L.level>=2){ out.signs.push(L.streak>=2? `${L.streak} giornate di sci di fila` : `ieri giornata di sci pesante (${L.yd.toLocaleString("it-IT")} m in discesa)`); out.level+=L.level>=3? 2 : 1; } }catch{}
   try{ const r0=recoveryNow(); if(r0.score<40){ out.signs.push(`recupero basso (${r0.score}/100)`); out.level+=1; } }catch{}
   return out; }
-function fatigueText(){ const f=fatigueNow(); return f.signs.length? `SEGNALI DI FATICA OGGI (${f.level>=2? "forti" : "leggeri"}): ${f.signs.join("; ")}. Se oggi è previsto un allenamento duro, proponi una versione più leggera.` : ""; }
+function fatigueText(){ const f=fatigueNow(); return (f.signs.length? `SEGNALI DI FATICA OGGI (${f.level>=2? "forti" : "leggeri"}): ${f.signs.join("; ")}. Se oggi è previsto un allenamento duro, proponi una versione più leggera.` : "")+(lightOn()&&!deloadOn()? "\nOGGI GIORNATA LEGGERA ATTIVA (sonno o stanchezza): in palestra l'app toglie una serie e abbassa i carichi del 10%; la corsa va fatta facile e più corta (circa due terzi), senza ripetute." : ""); }
+/* giornata leggera: se il sonno (da Health Connect, dall'orologio o segnato a mano) e gli altri segnali dicono stanchezza forte, la palestra di oggi si alleggerisce da sola (-1 serie, -10%); si può togliere o mettere a mano */
+let _lightC={t:0,d:"",v:false};
+function lightAuto(){ const t=todayISO(); if(_lightC.d===t&&Date.now()-_lightC.t<60000) return _lightC.v; let v=false; try{ const f=fatigueNow(); v=!!f.sleepBad&&f.level>=2; }catch{} _lightC={t:Date.now(),d:t,v}; return v; }
+function lightOn(iso){ const t=todayISO(); if((iso||t)!==t) return false; let on="",no=""; try{ on=localStorage.getItem("hf:lightDay")||""; no=localStorage.getItem("hf:lightNo")||""; }catch{}
+  if(on===t) return true; if(no===t) return false; return lightAuto(); }
+function lightSet(v){ const t=todayISO(); try{ if(v){ localStorage.setItem("hf:lightDay",t); localStorage.removeItem("hf:lightNo"); } else { localStorage.setItem("hf:lightNo",t); localStorage.removeItem("hf:lightDay"); } }catch{} _lightC={t:0,d:"",v:false}; }
 /* il giorno dopo lo sci: recupero (cibo, acqua, stretching, gambe) */
 function renderSkiRecCard(){ const card=$("skiRecCard"); if(!card) return; const today=todayISO(), L=skiLegs(today); let seen=""; try{ seen=localStorage.getItem("hf:skiRecSeen")||""; }catch{}
   const show= state.date===today&&view==="diario"&&L.level>=1&&seen!==today; card.hidden=!show; if(!show) return;
@@ -11448,11 +11484,14 @@ function renderSkiRecCard(){ const card=$("skiRecCard"); if(!card) return; const
 function renderFatigueCard(){ const card=$("fatigueCard"); if(!card) return; const today=todayISO();
   let pl=null; try{ pl=dayPlanFor(new Date(today+"T12:00:00").getDay(),today); }catch{}
   const f=fatigueNow(); let seen=""; try{ seen=localStorage.getItem("hf:fatSeen")||""; }catch{}
-  const show= state.date===today&&view==="diario"&&pl&&pl.kind!=="rest"&&f.level>=2&&seen!==today; card.hidden=!show; if(!show) return;
+  const show= state.date===today&&view==="diario"&&pl&&pl.kind!=="rest"&&(f.level>=2||f.sleepBad||lightOn(today))&&seen!==today; card.hidden=!show; if(!show) return;
   card.innerHTML=""; const hd=el("div","meal-head"); hd.appendChild(el("h2",null,"🫀 Oggi il corpo è stanco"));
   const x=el("button","link","Chiudi"); x.type="button"; x.onclick=()=>{ try{ localStorage.setItem("hf:fatSeen",today); }catch{} card.hidden=true; }; hd.appendChild(x); card.appendChild(hd);
-  card.appendChild(el("p","sub","Ho visto: "+f.signs.join(", ")+"."));
-  card.appendChild(el("p","note",`Oggi è previsto: ${pl.label}. Con questi segnali conviene alleggerire: ${pl.kind==="run"? "corsa facile e più corta (circa due terzi), senza ripetute" : "stessi esercizi con 1-2 serie in meno e carichi un po' più bassi"}, oppure riposo.`));
+  if(f.signs.length) card.appendChild(el("p","sub","Ho visto: "+f.signs.join(", ")+"."));
+  const lt=lightOn(today), run=pl.kind==="run";
+  card.appendChild(el("p","note",`Oggi è previsto: ${pl.label}. ${lt? (run? "Giornata leggera: corri facile e più corto (circa due terzi), senza ripetute, oppure riposa." : "Giornata leggera: in palestra ti ho già tolto una serie per esercizio e abbassato i carichi del 10%. Non arrivare al limite.") : `Con questi segnali conviene alleggerire: ${run? "corsa facile e più corta (circa due terzi), senza ripetute" : "stessi esercizi con una serie in meno e carichi un po' più bassi"}, oppure riposo.`}`));
+  const lb=el("button","btn ghost", lt? "💪 Mi sento bene: allenamento normale" : "😴 Alleggerisci l'allenamento di oggi"); lb.type="button"; lb.style.marginTop="8px";
+  lb.onclick=()=>{ lightSet(!lt); toast(lt? "Ok, oggi allenamento normale" : run? "Ok: oggi corsa facile e più corta" : "Ok: oggi una serie in meno e carichi -10%"); renderFatigueCard(); }; card.appendChild(lb);
   if(sample){ const b=el("button","btn ghost","Chiedi al coach di alleggerire oggi"); b.type="button"; b.style.marginTop="8px";
     b.onclick=()=>{ try{ localStorage.setItem("hf:fatSeen",today); }catch{} go("allenamento"); setW("chat"); $("chatIn").value=`Oggi sono stanco (${f.signs.join(", ")}). Mi prepari una versione più leggera dell'allenamento di oggi, solo per oggi?`; }; card.appendChild(b); } }
 /* ===== carburante per la corsa del giorno: cosa mangiare prima e dopo ===== */
@@ -11508,6 +11547,8 @@ function renderWeekCard(){ const card=$("weekCard"); if(!card) return; const tod
   x.onclick=()=>{ try{ localStorage.setItem("hf:weekSeen",from); }catch{} card.hidden=true; }; hd.appendChild(x); card.appendChild(hd);
   card.appendChild(el("p","sub",`Da lunedì ${new Date(from+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"long"})} a domenica ${new Date(D.to+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"long"})}`));
   weekLines(D).forEach(([ic,t])=>{ const d=el("div","pline"); d.append(el("span","ic",ic), el("span",null,t)); card.appendChild(d); });
+  { const T=weekTips(D); const h=el("p","sub", T.length? "👉 Cosa migliorare" : "👍 Settimana in linea con il piano: continua così."); h.style.cssText="margin:10px 0 2px;font-weight:600"; card.appendChild(h);
+    T.forEach(t=>{ const d=el("div","pline"); d.append(el("span","ic","•"), el("span",null,t)); card.appendChild(d); }); }
   const cb=el("p","note"); cb.id="weekCoach"; cb.style.whiteSpace="pre-wrap"; cb.style.marginTop="10px";
   if(weekRev&&weekRev.from===from) cb.textContent="🧑‍🏫 "+weekRev.text; else if(sample){ cb.textContent="Il coach sta guardando la settimana…"; setTimeout(()=>weekReview(D,false),300); } else cb.textContent="";
   card.appendChild(cb);
@@ -11917,32 +11958,59 @@ function snapshot(){ panUndo=JSON.parse(JSON.stringify(pantry)); $("panUndo").hi
 function remainingText(){ const dt=dayTargets(); if(!dt) return "obiettivi non impostati"; const t=totals();
   return `oggi mancano ${r(dt.goal-t.kcal)} kcal, proteine ${r(dt.P-t.p)} g, carboidrati ${r(dt.C-t.c)} g, grassi ${r(dt.F-t.f)} g (negativo = già superato)`; }
 /* ===== lista della spesa dalla dieta dei prossimi giorni, meno quello che c'è in dispensa ===== */
-let shopN=(()=>{ try{ return +localStorage.getItem("hf:shopN")||7; }catch{ return 7; } })();
+let shopN=(()=>{ try{ const v=localStorage.getItem("hf:shopN"); return v==="next"? "next" : +v||7; }catch{ return 7; } })();
+/* quantità scritta in dispensa → grammi (500 g, 1,5 kg, 1 l, 750 ml, 2 x 125 g, 6 uova…); null se non si capisce */
+function shopG(q,name){ const t=String(q||"").toLowerCase().replace(",","."); if(!t) return null;
+  let m=t.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|g|gr|grammi|l|lt|litri?|ml|cl)\b/); let mul=1;
+  if(m){ mul=+m[1]; m=[m[0],m[2],m[3]]; } else m=t.match(/(\d+(?:\.\d+)?)\s*(kg|g|gr|grammi|l|lt|litri?|ml|cl)\b/);
+  if(m){ const v=+m[1]*mul, u=m[2]; return Math.round(u==="kg"||/^l/.test(u)? v*1000 : u==="cl"? v*10 : v); }
+  const n=t.match(/^(\d+(?:\.\d+)?)\s*(pz|pezzi|uova|uovo|fette|vasetti|vasetto|banane|mele|frutti)?\b/);
+  if(n&&!/confezion|pacc|scatol|barattol|bottigli/.test(t)){ try{ const R=portionOf({name,grams:100}); if(R&&R[4]&&R[3]) return Math.round(+n[1]*R[3]); }catch{} }
+  return null; }
+/* reparto del supermercato dal nome */
+function shopCat(name){ const n=srchNorm(name);
+  if(/surgel|congel/.test(n)) return "Surgelati";
+  if(/latte|yogurt|skyr|kefir|formagg|parmigian|grana|mozzarell|ricott|feta|fiocchi di latte|burro|uov|stracchin|scamorz|provol|emmental|philadelphia|panna/.test(n)) return "Latticini e uova";
+  if(/pollo|tacchino|manzo|vitell|maiale|bresaola|prosciutt|speck|salmone|tonno fresco|merluzz|orata|branzin|pesce|gamber|carne|bistecc|hamburger|macinat|fesa|petto|salsicc|affettat|sgombro fresco|platessa|seppi|calamar|polpo/.test(n)) return "Carne e pesce";
+  if(/pane|pasta|riso|farro|orzo|avena|fiocchi|cereal|muesli|gallett|fette biscottate|crackers|grissin|piadin|cous|quinoa|farina|pancarr|bulgur|gnocchi|tortill|soffiati|corn flakes/.test(n)) return "Pane, pasta e cereali";
+  if(/fagiol|ceci|lenticch|piselli|edamame|tonno|sgombro|legum|pelati|passata|polpa di pomodoro|mais|scatolet/.test(n)) return "Legumi e scatolame";
+  if(/mela|pera|banan|aranc|kiwi|frutt|frago|mirtill|uva|pesca|albicocc|ananas|limon|mandarin|insalat|lattug|rucol|spinac|zucchin|pomodor|carot|verdur|broccol|cavol|finocch|peperon|melanzan|cipoll|aglio|patat|zucca|funghi|cetriol|sedano|fagiolini|asparag|avocado|radicch|bietol/.test(n)) return "Frutta e verdura";
+  if(/olio|aceto|sale|spezie|miele|marmellat|confettur|zucchero|salsa|pesto|maionese|senape|ketchup|burro d.arachidi|crema|frutta secca|noci|mandorl|nocciol|anacard|pistacch|semi|cacao|caffe|te |tisan|dado|brodo|lievito/.test(n)) return "Condimenti e dispensa";
+  if(/cioccolat|biscott|barrett|snack|dolc|gelat|torta|merendin|patatine/.test(n)) return "Snack e dolci";
+  if(/acqua|succo|bevand|birra|vino|latte di|bibita|spremut/.test(n)) return "Bevande";
+  return "Altro"; }
 function shopMealsFor(iso){ try{ if(upActive()){ const d=upDayFor(iso); return (d&&d.meals)||[]; } }catch{}
   try{ const wd=new Date(iso+"T12:00:00").getDay(), d=state.diet&&state.diet.plan? planDays(state.diet.plan).find(x=>x.weekday===wd) : null; return (d&&d.meals)||[]; }catch{ return []; } }
-function shopBuild(n){ const today=todayISO(), map=[];
-  for(let i=0;i<n;i++){ const iso=shiftDate(today,i);
+function shopBuild(n){ const today=todayISO(), map=[]; let start=today;
+  if(n==="next"){ start=shiftDate(mondayOf(today),7); n=7; }
+  for(let i=0;i<n;i++){ const iso=shiftDate(start,i);
     shopMealsFor(iso).forEach(m=>(m.foods||[]).forEach(f=>{ const g=+f.grams||0; if(!f.name||!g) return; let it=map.find(x=>sameFood(x.name,f.name)); if(!it){ it={name:f.name,grams:0,times:0}; map.push(it); } it.grams+=g; it.times++; })); }
   const have=[], need=[];
-  map.forEach(it=>{ const p=(pantry.items||[]).find(x=>sameFood(x.name,it.name)||foodMatch(it.name.split(/[ (,]/)[0],x)); (p? have : need).push(p? {...it,qty:p.qty||""} : it); });
+  map.forEach(it=>{ const p=(pantry.items||[]).find(x=>sameFood(x.name,it.name)||foodMatch(it.name.split(/[ (,]/)[0],x)); it.cat=(p&&PCATS.includes(p.cat)&&p.cat!=="Altro"&&p.cat)||shopCat(it.name);
+    if(!p){ need.push(it); return; }
+    const hg=shopG(p.qty,it.name);   // in casa ce n'è, ma basta? se la quantità è scritta, compro solo quello che manca
+    if(hg!=null&&hg<it.grams*0.9){ need.push({...it,grams:it.grams-hg,tot:it.grams,qty:p.qty}); return; }
+    have.push({...it,qty:p.qty||""}); });
   const by=(a,b)=>a.name.localeCompare(b.name,"it"); return {need:need.sort(by),have:have.sort(by)}; }
-function shopQty(it){ const g=Math.round(it.grams), h=portionHint({name:it.name,grams:g}); return (g>=1000? fmt(Math.round(g/100)/10)+" kg" : g+" g")+h; }
+function shopQty(it){ const g=Math.round(it.grams), h=portionHint({name:it.name,grams:g}); return (g>=1000? fmt(Math.round(g/100)/10)+" kg" : g+" g")+h+(it.tot? ` (ne servono ${Math.round(it.tot)} g, in casa ${it.qty})` : ""); }
+function shopGroups(L){ const by={}; L.forEach(it=>{ (by[it.cat||"Altro"]=by[it.cat||"Altro"]||[]).push(it); }); return PCATS.filter(c=>by[c]).map(c=>[c,by[c]]); }
 function renderShop(){ const box=$("shopList"); if(!box) return; const dbox=$("shopDays"); dbox.innerHTML="";
-  [[3,"3 giorni"],[7,"7 giorni"]].forEach(([n,l])=>{ const b=el("button","chip"+(shopN===n?" on":""),l); b.type="button"; b.onclick=()=>{ shopN=n; try{ localStorage.setItem("hf:shopN",String(n)); }catch{} renderShop(); }; dbox.appendChild(b); });
+  [[3,"3 giorni"],[7,"7 giorni"],["next","Settimana prossima"]].forEach(([n,l])=>{ const b=el("button","chip"+(shopN===n?" on":""),l); b.type="button"; b.onclick=()=>{ shopN=n; try{ localStorage.setItem("hf:shopN",String(n)); }catch{} renderShop(); }; dbox.appendChild(b); });
   const hasDiet= upActive()||(state.diet&&state.diet.plan); box.innerHTML="";
   if(!hasDiet){ box.appendChild(el("p","empty","Prima prepara la dieta: la lista nasce dai pasti dei prossimi giorni.")); $("shopCount").textContent=""; return; }
   const L=shopBuild(shopN); let chk={}; try{ chk=JSON.parse(localStorage.getItem("hf:shopChk")||"{}"); }catch{}
   $("shopCount").textContent=L.need.length? L.need.length+" da comprare" : "";
-  const ul=el("ul","items");
-  L.need.forEach(it=>{ const li=el("li"), lab=el("label"); lab.style.cssText="display:flex;gap:10px;align-items:center;width:100%";
+  const ul=el("div");
+  shopGroups(L.need).forEach(([cat,items])=>{ const h=el("div","note",cat); h.style.cssText="margin:10px 0 2px;font-weight:600"; ul.appendChild(h); const u1=el("ul","items"); ul.appendChild(u1);
+  items.forEach(it=>{ const li=el("li"), lab=el("label"); lab.style.cssText="display:flex;gap:10px;align-items:center;width:100%";
     const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!chk[srchNorm(it.name)]; cb.onchange=()=>{ const k=srchNorm(it.name); if(cb.checked) chk[k]=1; else delete chk[k]; try{ localStorage.setItem("hf:shopChk",JSON.stringify(chk)); }catch{} tx.style.opacity=cb.checked?.45:1; };
-    const tx=el("div","t"); tx.append(el("div","a",it.name), el("div","b",shopQty(it))); tx.style.opacity=cb.checked?.45:1; lab.append(cb,tx); li.appendChild(lab); ul.appendChild(li); });
+    const tx=el("div","t"); tx.append(el("div","a",it.name), el("div","b",shopQty(it))); tx.style.opacity=cb.checked?.45:1; lab.append(cb,tx); li.appendChild(lab); u1.appendChild(li); }); });
   if(!L.need.length) box.appendChild(el("p","empty","Hai già tutto in dispensa per questi giorni 👍")); else box.appendChild(ul);
   if(L.have.length){ const d=el("details"); d.style.marginTop="8px"; d.appendChild(el("summary",null,`Già in dispensa (${L.have.length})`)); const u2=el("ul","items");
     L.have.forEach(it=>{ const li=el("li"), tx=el("div","t"); tx.append(el("div","a",it.name), el("div","b",`servono ${shopQty(it)} · in casa: ${it.qty||"sì"}`)); li.appendChild(tx); u2.appendChild(li); }); d.appendChild(u2); box.appendChild(d); } }
 $("shopClear").onclick=()=>{ try{ localStorage.removeItem("hf:shopChk"); }catch{} renderShop(); };
 $("shopShare").onclick=async()=>{ const L=shopBuild(shopN); if(!L.need.length){ toast("Non c'è niente da comprare"); return; }
-  const txt="🛒 Spesa per "+shopN+" giorni\n"+L.need.map(it=>"- "+it.name+": "+shopQty(it)).join("\n");
+  const txt="🛒 Spesa "+(shopN==="next"? "per la settimana prossima" : "per "+shopN+" giorni")+"\n"+shopGroups(L.need).map(([c,items])=>"\n"+c+"\n"+items.map(it=>"- "+it.name+": "+shopQty(it)).join("\n")).join("\n");
   try{ const C=window.Capacitor; if(C&&C.Plugins&&C.Plugins.Share){ await C.Plugins.Share.share({title:"Lista della spesa",text:txt,dialogTitle:"Condividi la lista"}); return; } }catch{}
   try{ if(navigator.share){ await navigator.share({title:"Lista della spesa",text:txt}); return; } }catch{}
   try{ await navigator.clipboard.writeText(txt); toast("Lista copiata: incollala dove vuoi"); }catch{ toast("Non riesco a condividere la lista"); } };
@@ -12387,23 +12455,40 @@ async function bodyRecover(manual){ const C=window.Capacitor, F=C&&C.Plugins&&C.
   const td=[...tapeDates].sort().map(mzShortDate).join(", ");
   actionToast(`Ho recuperato ${n} ${n===1?"valore":"valori"}${td? " (misure col metro del "+td+")" : ""} ${[add.length+filled? "dalle copie automatiche" : "", fromChat? "dalla chat del coach" : ""].filter(Boolean).join(" e ")}`,"Vedi",()=>{ try{ go("corpo"); openMzCmp(); }catch{} },12000);
   return n; }
-function backupJSON(){ const out={app:"health-fitness",version:1,date:new Date().toISOString(),data:{}};
-  try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith("diario:")) out.data[k]=localStorage.getItem(k); } }catch{}
+/* nella copia vanno i dati (diario:…) e anche le impostazioni dell'app (hf:…), tranne quelle che riguardano solo questo telefono */
+const BK_SKIP=/^hf:(bkAuto|bkAutoDir|bkAutoName|live|probe|hcDiag|hcRunDiag|backLog|modelsAt|deadModels|syncOwner|syncOwnerEmail|bodyRecov|bodyRecov2|updSkip|bkAsk)$/;
+function bkKeep(k){ return k.startsWith("diario:")||(k.startsWith("hf:")&&!BK_SKIP.test(k)); }
+function backupJSON(){ const out={app:"health-fitness",version:2,date:new Date().toISOString(),data:{}};
+  try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(bkKeep(k)) out.data[k]=localStorage.getItem(k); } }catch{}
   return out; }
-/* ogni 7 giorni una copia di tutti i dati nella memoria del telefono (Documenti/HealthFit, se non si può nella memoria dell'app); restano le ultime 4 */
+/* rimette una copia: dati e impostazioni, poi riavvia */
+async function bkRestore(j){ if(!j||j.app!=="health-fitness"||!j.data) throw new Error("copia non valida");
+  Object.entries(j.data).forEach(([k,v])=>{ if(typeof v!=="string"||!bkKeep(k)) return; localStorage.setItem(k,v); if(k.startsWith("diario:")) markDirty(k.slice(7)); });
+  if(SY.user) await pushDirty().catch(()=>{});
+  toast("Copia rimessa: riavvio…"); setTimeout(()=>location.reload(),800); }
+async function bkPhoneCopies(){ const C=window.Capacitor, F=C&&C.Plugins&&C.Plugins.Filesystem; if(!F||!(C.isNativePlatform&&C.isNativePlatform())) return [];
+  const out=[]; for(const dir of ["DOCUMENTS","DATA"]){ try{ const ls=await F.readdir({path:"HealthFit",directory:dir}); (ls.files||[]).map(x=>typeof x==="string"? x : x.name).filter(n=>/^healthfit-backup-\d{4}-\d\d-\d\d\.json$/.test(n)).forEach(n=>out.push({n,dir,d:n.match(/\d{4}-\d\d-\d\d/)[0]})); }catch{} }
+  return out.sort((a,b)=>a.d<b.d?1:-1); }
+/* ogni giorno una copia di tutti i dati e delle impostazioni nella memoria del telefono (Documenti/HealthFit, se non si può nella memoria dell'app); restano le ultime 7 */
 async function autoBackup(force){ const C=window.Capacitor, F=C&&C.Plugins&&C.Plugins.Filesystem; if(!F||!(C.isNativePlatform&&C.isNativePlatform())) return null;
   let last=""; try{ last=localStorage.getItem("hf:bkAuto")||""; }catch{}
-  if(!force&&last&&last>shiftDate(todayISO(),-7)) return null;
+  if(!force&&last&&last>=todayISO()) return null;
   const name=`healthfit-backup-${todayISO()}.json`, data=JSON.stringify(backupJSON()); let dir=null;
   for(const d of ["DOCUMENTS","DATA"]){ try{ await F.writeFile({path:"HealthFit/"+name,data,directory:d,encoding:"utf8",recursive:true}); dir=d; break; }catch(e){ console.warn("copia "+d,e); } }
   if(!dir) return null;
   try{ const ls=await F.readdir({path:"HealthFit",directory:dir}); const fs=(ls.files||[]).map(x=>typeof x==="string"? x : x.name).filter(n=>/^healthfit-backup-\d{4}-\d\d-\d\d\.json$/.test(n)).sort();
-    for(const n of fs.slice(0,Math.max(0,fs.length-4))) await F.deleteFile({path:"HealthFit/"+n,directory:dir}).catch(()=>{}); }catch{}
+    for(const n of fs.slice(0,Math.max(0,fs.length-7))) await F.deleteFile({path:"HealthFit/"+n,directory:dir}).catch(()=>{}); }catch{}
   try{ localStorage.setItem("hf:bkAuto",todayISO()); localStorage.setItem("hf:bkAutoDir",dir); localStorage.setItem("hf:bkAutoName",name); }catch{}
   try{ renderBkAuto(); }catch{} return {dir,name}; }
 function renderBkAuto(){ const s0=$("bkAutoStatus"); if(!s0) return; let d="", dir=""; try{ d=localStorage.getItem("hf:bkAuto")||""; dir=localStorage.getItem("hf:bkAutoDir")||""; }catch{}
   const C=window.Capacitor, nat=!!(C&&C.isNativePlatform&&C.isNativePlatform()); $("bkAutoShare").hidden=!nat||!d;
-  s0.textContent= !nat? "La copia automatica settimanale funziona nell'app del telefono." : d? `Copia automatica ogni settimana: ultima il ${dateLong(d)}${dir==="DOCUMENTS"? " (cartella Documenti/HealthFit del telefono)" : ""}. Restano le ultime 4.` : "Copia automatica ogni settimana: la prima si fa al prossimo avvio."; }
+  const rs=$("bkRestorePhone"); if(rs) rs.hidden=!nat;
+  const on=!!(typeof SY!=="undefined"&&SY.user), online= on? " I dati sono anche nel tuo account online: su un telefono nuovo basta entrare con la stessa email." : " Per non perderli se cambi o perdi il telefono, ogni tanto tocca «Salva una copia su Google Drive» (oppure crea l'account online qui sopra).";
+  s0.textContent= !nat? "La copia automatica di ogni giorno funziona nell'app del telefono." : (d? `Copia automatica ogni giorno (dati e impostazioni): ultima il ${dateLong(d)}${dir==="DOCUMENTS"? " (cartella Documenti/HealthFit del telefono)" : ""}. Restano le ultime 7.` : "Copia automatica ogni giorno: la prima si fa al prossimo avvio.")+online; }
+$("bkRestorePhone").onclick=async()=>{ const C=window.Capacitor, F=C&&C.Plugins&&C.Plugins.Filesystem; if(!F) return;
+  const L=await bkPhoneCopies(); if(!L.length){ toast("Sul telefono non trovo copie: usa «Importa backup» e scegli il file (anche da Google Drive)",8000); return; }
+  const c=L[0]; if(!confirm(`Rimetto la copia del ${dateLong(c.d)}? I dati di adesso vengono sostituiti da quelli della copia.`)) return;
+  try{ const r0=await F.readFile({path:"HealthFit/"+c.n,directory:c.dir,encoding:"utf8"}); await bkRestore(JSON.parse(r0.data)); }catch(e){ console.warn("ripristino",e); toast("Non riesco a leggere la copia"); } };
 $("bkAutoShare").onclick=async()=>{ const C=window.Capacitor, F=C&&C.Plugins&&C.Plugins.Filesystem; if(!F) return;
   try{ await autoBackup(true); const name=`healthfit-backup-${todayISO()}.json`, u=await F.writeFile({path:name,data:JSON.stringify(backupJSON()),directory:"CACHE",encoding:"utf8"});
     await C.Plugins.Share.share({title:"Copia di HealthFit",files:[u.uri],dialogTitle:"Salva la copia (es. su Google Drive)"}); }catch(e){ console.warn("condividi copia",e); } };
@@ -12494,8 +12579,8 @@ $("bRecover").onclick=async()=>{ const b=$("bRecover"); b.disabled=true; try{ aw
 $("bkImport").onclick=()=>$("bkFile").click();
 $("bkFile").onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
   try{ const j=JSON.parse(await f.text()); if(!j||j.app!=="health-fitness"||!j.data) throw 0;
-    Object.entries(j.data).forEach(([k,v])=>{ if(k.startsWith("diario:")){ localStorage.setItem(k,v); markDirty(k.slice(7)); } }); if(SY.user) await pushDirty().catch(()=>{});
-    toast("Backup importato: riavvio…"); setTimeout(()=>location.reload(),800);
+    const dt=String(j.date||"").slice(0,10); if(!confirm(`Rimetto la copia${/^\d{4}-\d\d-\d\d$/.test(dt)? " del "+dateLong(dt) : ""}? I dati di adesso vengono sostituiti da quelli della copia.`)){ $("bkFile").value=""; return; }
+    await bkRestore(j);
   }catch{ toast("File di backup non valido"); } $("bkFile").value=""; };
 
 /* ================= ASPETTO (tema e colori) ================= */
