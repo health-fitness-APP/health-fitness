@@ -2549,7 +2549,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.90 (sci: riquadro «Amici sulle piste» sempre visibile)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.91 (sci: nuovo skipass con la data di oggi già scritta)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7827,7 +7827,9 @@ function skiCostBox(c1,o,S){ const L=skpList(o); const box=el("details","ski-cos
       <label class="chk" data-r="std"><input type="checkbox" data-k="std"> Prezzo standard per le giornate senza biglietto segnato</label>
       <div class="two"><button type="button" class="btn ghost" data-a="x">Annulla</button><button type="button" class="btn" data-a="ok">Salva</button></div>`;
     const q=k=>f.querySelector(`[data-k="${k}"]`); ["type","price","place","from","to","bought","where"].forEach(k=>{ if(e[k]!=null) q(k).value=e[k]; }); q("std").checked=!!e.std;
-    const sync=()=>{ const t=q("type").value; f.querySelector('[data-l="from"]').textContent= t==="day"? "Giorno" : "Valido dal"; f.querySelector('[data-r="to"]').hidden= t==="day"; f.querySelector('[data-r="std"]').hidden= t!=="day"; }; q("type").onchange=sync; sync();
+    const sync=()=>{ const t=q("type").value; if(!e.id){ if(!q("from").value) q("from").value=todayISO(); if(!q("bought").value) q("bought").value=todayISO();   // nuovo skipass: date di oggi, poi le cambi
+        if(t==="multi"&&!q("to").value) q("to").value=shiftDate(q("from").value||todayISO(),2); if(t==="season"&&!q("to").value){ const y=+todayISO().slice(0,4)+(+todayISO().slice(5,7)>=9? 1 : 0); q("to").value=y+"-04-30"; } }
+      f.querySelector('[data-l="from"]').textContent= t==="day"? "Giorno" : "Valido dal"; f.querySelector('[data-r="to"]').hidden= t==="day"; f.querySelector('[data-r="std"]').hidden= t!=="day"; }; q("type").onchange=sync; sync();
     f.querySelector('[data-a="x"]').onclick=()=>{ skpEdit=null; renderSci(); };
     f.querySelector('[data-a="ok"]').onclick=()=>{ const t=q("type").value, pr=+String(q("price").value).replace(",",".")||0; if(!pr){ toast("Metti il prezzo"); return; }
       const n={id:e.id||uid(),type:t,price:pr,place:q("place").value.trim(),from:q("from").value,to:t==="day"? "" : q("to").value,bought:q("bought").value,where:q("where").value.trim(),std:t==="day"&&q("std").checked};
