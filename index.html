@@ -2557,7 +2557,11 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
+<<<<<<< Updated upstream
     <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.93 (elimina scorrendo a sinistra in tutte le liste, anche col mouse)</p>
+=======
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.93 (mappe: si vedono intere anche dentro i riquadri che si aprono, es. «Le tue località»)</p>
+>>>>>>> Stashed changes
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7003,10 +7007,18 @@ async function rdWeather(id,D){ if(!D||D.wx||(D.wxTry&&Date.now()-D.wxTry<6*3600
     const i=Math.max(0,H.time.findIndex(t=>+t.slice(11,13)===dt.getHours())); if(H.temperature_2m[i]==null) throw new Error("meteo");
     D.wx={t:H.temperature_2m[i],hum:H.relative_humidity_2m[i],wind:H.wind_speed_10m[i],dir:H.wind_direction_10m[i],code:H.weather_code[i]}; save("run-"+id,D); return true; }
   catch(e){ console.warn("meteo",e); save("run-"+id,D); return false; } }
-function rdLeaflet(){ if(window.L&&window.L.map) return Promise.resolve(window.L);
+function rdLeaflet(){ if(window.L&&window.L.map){ mapAutoFix(window.L); return Promise.resolve(window.L); }
   if(!rdLF) rdLF=new Promise((res,rej)=>{ const l=document.createElement("link"); l.rel="stylesheet"; l.href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(l);
-    loadScript("https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js").then(()=>res(window.L),e=>{ rdLF=null; rej(e); }); });
+    loadScript("https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js").then(()=>{ mapAutoFix(window.L); res(window.L); },e=>{ rdLF=null; rej(e); }); });
   return rdLF; }
+/* mappe dentro riquadri chiusi o non ancora disegnati: quando il riquadro si apre (o cambia misura) la mappa si ridimensiona e torna sulla vista scelta */
+function mapAutoFix(Lf){ if(!Lf||Lf.__hfFix) return; Lf.__hfFix=1; const mk=Lf.map;
+  Lf.map=function(div,o){ const m=mk.call(this,div,o); let last=null, w0=div.offsetWidth||0, moved=false;
+    ["fitBounds","setView"].forEach(fn=>{ const f=m[fn]; m[fn]=function(...a){ last=[f,a]; return f.apply(this,a); }; });
+    m.on("dragstart zoomstart",e=>{ if(e&&e.hard!==true&&w0>0) moved=true; });
+    if(window.ResizeObserver){ const ro=new ResizeObserver(()=>{ if(!div.isConnected){ ro.disconnect(); return; } const w=div.offsetWidth, h=div.offsetHeight; if(!w||!h){ w0=0; return; }
+        const was=w0; w0=w; try{ m.invalidateSize(false); if((!was||!moved)&&last) last[0].apply(m,last[1]); }catch{} }); ro.observe(div); }
+    return m; }; }
 function rdColors(P){ const pc=rdPaces(P), v=pc.filter(x=>x!=null).sort((a,b)=>a-b); if(!v.length) return P.map(()=>RD_PCOL[2]);
   const q=f=>v[Math.min(v.length-1,Math.floor(v.length*f))], th=[q(.2),q(.4),q(.6),q(.8)];
   return pc.map(x=> x==null? RD_PCOL[0] : RD_PCOL[4-(x<=th[0]?0:x<=th[1]?1:x<=th[2]?2:x<=th[3]?3:4)]); }
@@ -7742,7 +7754,7 @@ async function skiPlacesCard(box){ const c=el("section","card"); c.appendChild(e
     Lf.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",{maxZoom:15,attribution:"© OpenStreetMap, OpenTopoMap"}).addTo(map);
     G.forEach(g=>Lf.circleMarker([g.la,g.lo],{radius:7+Math.min(10,g.n*2),color:"#fff",weight:2,fillColor:"#E8692E",fillOpacity:.9}).bindPopup(`${esc(g.name)}: ${g.n} ${g.n===1?"giornata":"giornate"}`).addTo(map));
     if(G.length===1) map.setView([G[0].la,G[0].lo],10); else map.fitBounds(G.map(g=>[g.la,g.lo]),{padding:[30,30],maxZoom:10}); setTimeout(()=>map.invalidateSize(),200); }
-  catch{ mb.remove(); } }
+  catch(e){ console.warn("mappa località",e); mb.remove(); } }
 /* riepilogo della stagione da condividere (immagine 9:16) */
 async function skiSeasonShare(btn){ const lab=btn.textContent; btn.disabled=true; btn.textContent="Preparo l'immagine…";
   try{ const S=skiStats(), from=skiSeasonFrom(), y=+from.slice(0,4), R=await skiRecords(), Ss=R.S.filter(x=>x.date>=from), G=await skiPlaces(from).catch(()=>[]);
