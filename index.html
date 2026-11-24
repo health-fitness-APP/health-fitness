@@ -903,7 +903,7 @@ details.stfold[open]>summary .chev{transform:rotate(90deg)}
 .ski-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 12px}
 .ski-st{background:var(--surface2);border-radius:14px;padding:10px 4px;text-align:center;display:flex;flex-direction:column;gap:2px}
 .ski-live{margin:4px 0 6px}.ski-live.on{background:var(--surface2);border-radius:16px;padding:12px}.ski-live-h{font-weight:700;margin:0 0 6px}
-.ski-del{margin-left:auto;padding:4px 8px;flex:none}.ski-det{margin:6px 0 12px}.ski-split{margin:10px 0;padding:10px 12px;border-radius:14px;background:var(--surface2,#f4f1ec)}.ski-split-h{margin:0 0 8px;font-weight:700;font-size:14px}.ski-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:8px}.ski-bar i{display:block;height:100%}.ski-split-r{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0}.ski-split-r i{width:10px;height:10px;border-radius:50%;flex:none}.ski-split-r b{margin-left:auto;font-weight:600}.ski-prow td{color:var(--muted,#888);font-style:italic;text-align:left!important}.ski-tab small{color:var(--muted,#888);font-size:11px;display:block}.ski-pmk{font-size:18px;line-height:24px;text-align:center;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0005}.ski-tab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.ski-tab th,.ski-tab td{padding:5px 3px;text-align:right;border-bottom:1px solid var(--line,#ddd)}.ski-tab th:first-child,.ski-tab td:first-child{text-align:left}
+.ski-del{margin-left:auto;padding:4px 8px;flex:none}.ski-det{margin:6px 0 12px}.ski-nrow td{text-align:left!important;border-bottom:none!important;padding:8px 3px 0!important;font-size:12px;color:var(--muted,#777)}.ski-nrow span{display:inline-flex;align-items:center;gap:4px;margin-right:10px}.ski-pn{color:var(--text,#222);font-weight:600}.ski-pn i{width:9px;height:9px;border-radius:50%;display:inline-block}.ski-split{margin:10px 0;padding:10px 12px;border-radius:14px;background:var(--surface2,#f4f1ec)}.ski-split-h{margin:0 0 8px;font-weight:700;font-size:14px}.ski-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:8px}.ski-bar i{display:block;height:100%}.ski-split-r{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0}.ski-split-r i{width:10px;height:10px;border-radius:50%;flex:none}.ski-split-r b{margin-left:auto;font-weight:600}.ski-prow td{color:var(--muted,#888);font-style:italic;text-align:left!important}.ski-tab small{color:var(--muted,#888);font-size:11px;display:block}.ski-pmk{font-size:18px;line-height:24px;text-align:center;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0005}.ski-tab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.ski-tab th,.ski-tab td{padding:5px 3px;text-align:right;border-bottom:1px solid var(--line,#ddd)}.ski-tab th:first-child,.ski-tab td:first-child{text-align:left}
 .ski-st b{font-size:1.15rem}.ski-st span{font-size:.75rem;color:var(--muted)}
 .ski-list{margin-top:12px}.ski-ul{margin:6px 0 10px;padding-left:20px;font-size:.9rem;line-height:1.5}
 .str-ov{position:fixed;inset:0;z-index:60;background:var(--surface-solid,var(--surface));display:flex;align-items:center;justify-content:center;padding:20px}
@@ -2547,7 +2547,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.73 (sci: soste a metà pista non contate due volte)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.74 (sci: nomi di piste e impianti)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7763,7 +7763,7 @@ function skiAnalyze(tr){ const R={runs:0,down:0,up:0,kmDown:0,maxKmh:0,pauseSec:
         if(inPause(Q[k].t)){ pz+=dt; continue; }
         const q0=Q[Math.max(a,k-3)], q1=Q[Math.min(b,k+3)], vs=q1.t>q0.t? (q1.m-q0.m)/(q1.t-q0.t)*3.6 : 0;   // velocità su ~30 s: il GPS a volte salta un punto
         if(vs>=4&&dt<=60) mov+=dt; } if(mx>R.maxKmh) R.maxKmh=mx;
-      const sec=Math.max(1,Q[b].t-Q[a].t); mov=Math.max(1,Math.min(sec-pz,mov)); R.movSec=(R.movSec||0)+mov; R.list.push({t0:Q[a].t,t1:Q[b].t,down:Math.round(dh),km:Math.round(km*10)/10,sec,mov,pz,stop:Math.max(0,sec-mov-pz),avg:Math.round(km/(mov/3600)),max:Math.round(mx)}); }
+      const sec=Math.max(1,Q[b].t-Q[a].t); mov=Math.max(1,Math.min(sec-pz,mov)); R.movSec=(R.movSec||0)+mov; R.list.push({t0:Q[a].t,t1:Q[b].t,down:Math.round(dh),km:Math.round(km*10)/10,sec,mov,pz,stop:Math.max(0,sec-mov-pz),avg:Math.min(Math.round(mx),Math.round(km/(mov/3600))),max:Math.round(mx)}); }
     else if(d===1&&-dh>0) R.up+=-dh; });
   R.down=Math.round(R.down/10)*10; R.up=Math.round(R.up/10)*10; R.kmDown=Math.round(R.kmDown*10)/10; R.maxKmh=Math.round(R.maxKmh); return R; }
 let skiLiveTmr=null, skiLiveNat=null;
@@ -7808,6 +7808,31 @@ async function skiRefix(){ if(skiFixDone) return; skiFixDone=true; const lim=rom
 /* dettaglio di una giornata: mappa (discese colorate per velocità, impianti grigi) e tabella discesa per discesa */
 const SKI_VCOL=["#2F7FD8","#2E8B5F","#E9A21E","#E5484D"];
 const skiVc=v=>SKI_VCOL[v<25?0:v<40?1:v<55?2:3];
+const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* nomi di piste e impianti da OpenStreetMap (Overpass), calcolati una volta e tenuti nel percorso salvato */
+const SKI_DIFF={novice:["verde","#2E8B5F"],easy:["blu","#2F7FD8"],intermediate:["rossa","#E5484D"],advanced:["nera","#222"],expert:["nera","#222"],freeride:["fuoripista","#8B5E3C"],extreme:["nera","#222"]};
+const SKI_LIFT={cable_car:"Funivia",gondola:"Cabinovia",mixed_lift:"Cabinovia",chair_lift:"Seggiovia",drag_lift:"Skilift","t-bar":"Skilift","j-bar":"Skilift",platter:"Skilift",rope_tow:"Skilift",magic_carpet:"Tappeto",zip_line:""};
+async function skiOsm(id,doc,P,A){ if(doc.osm&&doc.osm.v===1) return doc.osm;
+  const G=P.filter(p=>p.la!=null); if(G.length<5||!A.list.length) return null;
+  const la=G.map(p=>p.la), lo=G.map(p=>p.lo), pad=.004, bb=[Math.min(...la)-pad,Math.min(...lo)-pad,Math.max(...la)+pad,Math.max(...lo)+pad].map(x=>x.toFixed(5)).join(",");
+  const q=`[out:json][timeout:25];(way["piste:type"="downhill"](${bb});relation["piste:type"="downhill"](${bb});way["aerialway"](${bb}););out tags geom;`;
+  let j=null; for(const u of ["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"]){ try{ const r=await fetch(u+"?data="+encodeURIComponent(q)); if(r.ok){ j=await r.json(); break; } }catch{} }
+  if(!j||!Array.isArray(j.elements)) return null;
+  const c0=Math.cos(la[0]*Math.PI/180), X=(a,b)=>[b*c0*111320,a*110540];
+  const relName={}; j.elements.filter(e=>e.type==="relation"&&e.members).forEach(r=>{ const nm=r.tags&&(r.tags["piste:name"]||r.tags.name||r.tags["piste:ref"]||r.tags.ref); if(nm) r.members.forEach(m=>{ if(m.type==="way") relName[m.ref]={nm,diff:r.tags["piste:difficulty"]}; }); });
+  const ways=j.elements.filter(e=>e.type==="way"&&Array.isArray(e.geometry)).map(e=>{ const t=e.tags||{}, lift=!!t.aerialway&&t.aerialway!=="station"&&t.aerialway!=="pylon"&&SKI_LIFT[t.aerialway]!=="";
+      const rn=relName[e.id]||{}, nm=lift? (t.name||t.ref||"") : (t["piste:name"]||t.name||rn.nm||t["piste:ref"]||t.ref||"");
+      return {lift,kind:lift? (SKI_LIFT[t.aerialway]||"Impianto") : "",nm:String(nm).trim(),diff:t["piste:difficulty"]||rn.diff||"",pts:e.geometry.map(g=>X(g.lat,g.lon))}; }).filter(w=>w.pts.length>1&&(w.lift||t0ok(w)));
+  function t0ok(w){ return true; }
+  const dist=(p,w)=>{ let b=1e9; for(let i=1;i<w.pts.length;i++){ const [ax,ay]=w.pts[i-1],[bx,by]=w.pts[i], dx=bx-ax, dy=by-ay, L=dx*dx+dy*dy, u=L? Math.max(0,Math.min(1,((p[0]-ax)*dx+(p[1]-ay)*dy)/L)) : 0, ex=ax+u*dx-p[0], ey=ay+u*dy-p[1], d=ex*ex+ey*ey; if(d<b) b=d; } return Math.sqrt(b); };
+  const vote=(pts,lift,maxD)=>{ const v={}, first={}; let n=0; pts.forEach((p,i)=>{ const xy=X(p.la,p.lo); let best=null, bd=maxD; ways.forEach(w=>{ if(w.lift!==lift||(!w.nm&&!lift)) return; const d=dist(xy,w); if(d<bd){ bd=d; best=w; } });
+      if(best){ const k=(best.kind? best.kind+" " : "")+(best.nm||""); v[k]=v[k]||{n:0,w:best}; v[k].n++; if(first[k]==null) first[k]=i; } n++; });
+    const top=Object.entries(v).filter(([k,o])=>o.n>=Math.max(3,n*.2)).sort((a,b)=>b[1].n-a[1].n).slice(0,2).sort((a,b)=>first[a[0]]-first[b[0]]);
+    return top.length? {name:top.map(([k])=>k.trim()).join(" → "),diff:top[0][1].w.diff,kind:top[0][1].w.kind} : null; };
+  const inP=t=>A.pauses.some(z=>t>z.t0&&t<=z.t1);
+  const runs=A.list.map(r=>{ const pts=G.filter((p,i)=>p.t>=r.t0&&p.t<=r.t1&&i%2===0); const o=vote(pts,false,45); return {t0:r.t0,name:o&&o.name||"",diff:o&&o.diff||""}; });
+  const lifts=A.list.map((r,k)=>{ const a=k? A.list[k-1].t1 : (G[0].t); const pts=G.filter((p,i)=>p.t>a&&p.t<r.t0&&!inP(p.t)&&i%2===0); const o=pts.length>=3? vote(pts,true,60) : null; return {t0:r.t0,name:o&&o.name||""}; });
+  doc.osm={v:1,runs,lifts}; try{ save("ski-"+id,doc); }catch{} return doc.osm; }
 async function skiDetail(w,row){ const nx=row.nextElementSibling; if(nx&&nx.classList.contains("ski-det")){ nx.remove(); return; }
   document.querySelectorAll(".ski-det").forEach(x=>x.remove());
   const box=el("div","ski-det"); row.after(box); box.appendChild(el("p","note","Carico il percorso…"));
@@ -7844,9 +7869,14 @@ async function skiDetail(w,row){ const nx=row.nextElementSibling; if(nx&&nx.clas
   box.appendChild(el("p","note",`${fmt(A.kmAll)} km in tutto con gli impianti. Le soste lunghe (☕ sulla mappa) sono nella tabella; le fermate brevi a metà pista non contano nella media.`));
   const rows=[...A.list.map((r,k)=>({...r,k:k+1})),...A.pauses.map(z=>({...z,p:1}))].sort((x,y)=>x.t0-y.t0);
   const mmss=x=>`${Math.floor(x/60)}:${String(Math.round(x%60)).padStart(2,"0")}`;
-  const tb=el("table","ski-tab"); tb.innerHTML=`<tr><th>#</th><th>Ora</th><th>↓ m</th><th>km</th><th>Tempo</th><th>Media</th><th>Max</th></tr>`+rows.map(r=> r.p? `<tr class="ski-prow"><td>☕</td><td>${doc.t0? clockOf(doc.t0+r.t0*1000) : "–"}</td><td colspan="5">Sosta ${hmTxt(r.t1-r.t0)}</td></tr>`
-    : `<tr><td>${r.k}</td><td>${doc.t0? clockOf(doc.t0+r.t0*1000) : "–"}</td><td>${r.down}</td><td>${fmt(r.km)}</td><td>${mmss(r.mov)}${r.stop>=60? `<small> +${Math.round(r.stop/60)}′ fermo</small>` : ""}</td><td>${r.avg}</td><td><b style="color:${skiVc(r.max)}">${r.max}</b></td></tr>`).join("");
-  box.appendChild(tb); box.appendChild(el("p","note","Tempo = in movimento sulla pista; velocità in km/h.")); }
+  const tb=el("table","ski-tab"); box.appendChild(tb); const nt=el("p","note","Tempo = in movimento sulla pista; velocità in km/h."); box.appendChild(nt);
+  const draw=osm=>{ tb.innerHTML=`<tr><th>#</th><th>Ora</th><th>↓ m</th><th>km</th><th>Tempo</th><th>Media</th><th>Max</th></tr>`+rows.map(r=>{ if(r.p) return `<tr class="ski-prow"><td>☕</td><td>${doc.t0? clockOf(doc.t0+r.t0*1000) : "–"}</td><td colspan="5">Sosta ${hmTxt(r.t1-r.t0)}</td></tr>`;
+      const rn=osm&&osm.runs[r.k-1], ln=osm&&osm.lifts[r.k-1], df=rn&&SKI_DIFF[rn.diff];
+      const nm=(ln&&ln.name? `<span class="ski-lift">🚡 ${esc(ln.name)}</span>` : "")+(rn&&rn.name? `<span class="ski-pn">${df? `<i style="background:${df[1]}"></i>` : ""}${esc(rn.name)}${df? ` · ${df[0]}` : ""}</span>` : "");
+      return (nm? `<tr class="ski-nrow"><td colspan="7">${nm}</td></tr>` : "")+`<tr><td>${r.k}</td><td>${doc.t0? clockOf(doc.t0+r.t0*1000) : "–"}</td><td>${r.down}</td><td>${fmt(r.km)}</td><td>${mmss(r.mov)}${r.stop>=60? `<small> +${Math.round(r.stop/60)}′ fermo</small>` : ""}</td><td>${r.avg}</td><td><b style="color:${skiVc(r.max)}">${r.max}</b></td></tr>`; }).join(""); };
+  draw(doc.osm&&doc.osm.v===1? doc.osm : null);
+  if(!(doc.osm&&doc.osm.v===1)){ nt.textContent="Cerco i nomi di piste e impianti… · Tempo = in movimento sulla pista; velocità in km/h.";
+    skiOsm(w.id,doc,P,A).then(o=>{ if(!box.isConnected) return; if(o) draw(o); nt.textContent=(o? "Nomi da OpenStreetMap. " : "Nomi di piste e impianti non disponibili (serve internet). ")+"Tempo = in movimento sulla pista; velocità in km/h."; }).catch(()=>{}); } }
 async function skiDel(w){ const d=new Date(w.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
   if(!confirm(`Elimino la giornata sugli sci di ${d} (${Math.floor((+w.minutes||0)/60)} h ${Math.round((+w.minutes||0)%60)} min)?`)) return;
   if(w.date===state.date){ state.day.workouts=(state.day.workouts||[]).filter(x=>x.id!==w.id); saveDay(); }
