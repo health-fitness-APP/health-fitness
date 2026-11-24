@@ -2548,7 +2548,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkImport">Importa backup</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.78 (sci: recupero il giorno dopo e stato delle gambe)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.79 (sci: promemoria per bere e mangiare durante la giornata)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -7779,6 +7779,20 @@ function skiAnalyze(tr){ const R={runs:0,down:0,up:0,kmDown:0,maxKmh:0,pauseSec:
     else if(d===1&&-dh>0) R.up+=-dh; });
   R.down=Math.round(R.down/10)*10; R.up=Math.round(R.up/10)*10; R.kmDown=Math.round(R.kmDown*10)/10; R.maxKmh=Math.round(R.maxKmh); return R; }
 let skiLiveTmr=null, skiLiveNat=null;
+/* durante la giornata di sci: promemoria per bere e mangiare (notifiche anche a telefono in tasca) e pulsanti collegati al Diario */
+const SKI_NID=6100;
+async function skiNotif(on){ const L=LN(); if(!L) return;
+  try{ const pend=await L.getPending(); const ids=((pend&&pend.notifications)||[]).filter(n=>n.id>=SKI_NID&&n.id<SKI_NID+20).map(n=>({id:n.id})); if(ids.length) await L.cancel({notifications:ids}); }catch{}
+  if(!on) return; try{ const pr=await L.requestPermissions(); if(pr&&pr.display&&pr.display!=="granted") return; }catch{}
+  const out=[], now=Date.now();
+  for(let k=1;k<=6;k++){ const at=new Date(now+k*75*60000), h=+romeNow().time.slice(0,2)+Math.floor(k*75/60), snack=k%2===0;
+    out.push({id:SKI_NID+k,title:snack? "🍫 Uno spuntino sugli sci" : "💧 Bevi qualcosa",body:snack? "Barretta, frutta secca o un panino piccolo: col freddo si consumano più energie. Segnalo in HealthFit." : "Un po' d'acqua o un tè caldo al prossimo impianto: col freddo non senti la sete ma ti disidrati.",schedule:{at,allowWhileIdle:true}}); }
+  try{ await L.schedule({notifications:out}); }catch(e){ console.warn("notifiche sci",e); } }
+async function skiWater(ml){ const t=todayISO(); if(state.date===t){ state.day.water=Math.max(0,(+state.day.water||0)+ml); saveDay(); try{ renderWaterCard(); }catch{} }
+  else await aaDayDo(t,d=>{ d.water=Math.max(0,(+d.water||0)+ml); return true; });
+  toast(`💧 +${ml} ml segnati nel Diario`); }
+function skiSnack(){ const t=todayISO(); if(state.date!==t) goDate(t); const ms=mealList(), h=+romeNow().time.slice(0,2);
+  const m=ms.find(x=>/spunt|merend/i.test(x.name)&&(h<12? /matt|1/i.test(x.id+x.name) : true))||ms.find(x=>/pranzo/i.test(x.name))||ms[0]; go("diario"); setTimeout(()=>openAdd(m),300); }
 async function skiLiveStart(type){ if(skiLiveGet()) return; const P=HRN();
   if(P){ let ver=1; try{ const v=await P.isAvailable(); ver=+(v&&v.version)||1; }catch{}
     if(ver<2&&!confirm("Con questa versione dell'app il telefono dice i chilometri ad alta voce. Per registrare in silenzio aggiorna l'app (Profilo → aggiornamento). Registro lo stesso?")) return;
@@ -7789,6 +7803,7 @@ async function skiLiveStart(type){ if(skiLiveGet()) return; const P=HRN();
     try{ const b=await P.batteryStatus(); if(b&&!b.unrestricted) actionToast("Perché registri tutto il giorno, togli il risparmio batteria a HealthFit","Togli",()=>P.requestBattery().catch(()=>{}),15000); }catch{} }
   else skiLiveSet({t0:Date.now(),type,native:false,pMs:0,pAt:0});
   try{ localStorage.setItem("hf:skiTab","1"); }catch{}
+  try{ skiNotif(true); }catch{}
   toast("⛷️ Giornata iniziata: metti il telefono in tasca"); renderSci(); skiRowSub(); }
 async function skiLivePause(){ const o=skiLiveGet(); if(!o) return; const P=o.native? HRN() : null;
   if(o.pAt){ o.pMs=(o.pMs||0)+Date.now()-o.pAt; o.pAt=0; if(P) P.resume().catch(()=>{}); } else { o.pAt=Date.now(); if(P) P.pause().catch(()=>{}); }
@@ -7801,6 +7816,7 @@ async function skiLiveEnd(){ const o=skiLiveGet(); if(!o) return; if(!confirm("F
   const iso=new Date(o.t0).toLocaleDateString("sv-SE",{timeZone:"Europe/Rome"}), wid=uid(), place=skiCfg().place.name;
   const det=[A.runs? `${A.runs} ${A.runs===1?"discesa":"discese"}` : "", A.maxKmh? `max ${A.maxKmh} km/h` : "", A.altMax? `quota max ${A.altMax.toLocaleString("it-IT")} m` : "", A.pauseSec>=600? `soste ${hmTxt(A.pauseSec)}` : "", A.kmAll>A.kmDown? `${fmt(A.kmAll)} km in tutto con gli impianti` : ""].filter(Boolean).join(" · ");
   const w={id:wid,name:o.type||"Sci alpino",minutes:min,intensity:int,kcal:skiKcal(min,int),start:clockOf(o.t0),end:clockOf(end),distance:A.kmDown||null,elevDown:A.down||null,details:det,place,src:"phone",runs:A.runs||null,maxKmh:A.maxKmh||null,kmAll:A.kmAll||null,fx:2};
+  try{ skiNotif(false); }catch{}
   skiLiveSet(null); clearInterval(skiLiveTmr); skiLiveTmr=null; skiLiveNat=null;
   await addWorkoutOn(iso,w); if(iso===state.date) toast("Giornata sugli sci registrata ✓");
   if(st&&st.tr&&Array.isArray(st.tr.t)&&st.tr.t.length>1) try{ save("ski-"+wid,{v:1,t0:o.t0,tr:{t:st.tr.t,m:st.tr.m,a:st.tr.a,la:st.tr.la,lo:st.tr.lo}}); }catch(e){ console.warn("percorso sci",e); }
@@ -7939,6 +7955,8 @@ function skiLiveCard(c1){ const o=skiLiveGet(), box=el("div","ski-live");
   const bt=el("p","ski-batt"); bt.hidden=true; box.appendChild(bt);
   try{ if(navigator.getBattery) navigator.getBattery().then(b=>{ if(b.charging||b.level>0.35) return; bt.hidden=false; bt.textContent=`🔋 Batteria al ${Math.round(b.level*100)}%: col freddo si scarica in fretta. Tieni il telefono in una tasca interna, attiva il risparmio energetico e, se puoi, collega una batteria esterna.`; }).catch(()=>{}); }catch{}
   box.appendChild(el("p","note", o.native? "Puoi spegnere lo schermo e mettere il telefono in tasca. Le soste lunghe (pranzo) le tolgo da solo; discese e dislivello li calcolo alla fine." : "Lascia aperta l'app: a fine giornata tocca «Fine»."));
+  const qr=el("div","chips"); [["💧 Ho bevuto",()=>skiWater(250)],["🍫 Spuntino",skiSnack]].forEach(([l,f])=>{ const b=el("button","chip",l); b.type="button"; b.onclick=f; qr.appendChild(b); }); box.appendChild(qr);
+  box.appendChild(el("p","note","Ogni 75 minuti ti ricordo di bere o mangiare qualcosa con una notifica."));
   const row=el("div","two"); const pb=el("button","btn ghost",o.pAt? "▶ Riprendi" : "⏸ Pausa"); pb.type="button"; pb.onclick=skiLivePause; const eb=el("button","btn","■ Fine giornata"); eb.type="button"; eb.onclick=skiLiveEnd; row.append(pb,eb); box.appendChild(row);
   c1.appendChild(box);
   if(!skiLiveTmr) skiLiveTmr=setInterval(async()=>{ const o2=skiLiveGet(); if(!o2){ clearInterval(skiLiveTmr); skiLiveTmr=null; return; }
