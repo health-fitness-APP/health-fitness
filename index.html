@@ -2557,7 +2557,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.95 (sport tolti dal Coach: spariscono anche le loro voci, rimettendoli tornano)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.96 (dati dell'orologio: il telefono li chiede da solo e l'avviso dice dove si ferma)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -8206,7 +8206,7 @@ async function aaPull(){ const P=AAP(); if(!P||aaBusy) return; aaBusy=true;
   try{ const r0=await P.pending(); if(r0&&r0.acts&&r0.acts.length) await aaImport(r0.acts); await aaDedupe(); await aaSteps();
     if(r0&&r0.open){ try{ localStorage.setItem("hf:skiTab","1"); }catch{} if(r0.open==="forgot") skiAddOpen=true; go("allenamento"); try{ csTabs(); }catch{} setW("sci"); window.scrollTo({top:0}); } }
   catch(e){ console.warn("auto pull",e); } finally{ aaBusy=false; } }
-function aaSetup(){ setTimeout(()=>skiRefix().catch(e=>console.warn("skiRefix",e)),1500); const a=$("aaAct"), k=$("aaSki"); if(!a) return; try{ pvLine(); }catch{} a.checked=aaOn("Act"); k.checked=aaOn("Ski"); aaNote(null);
+function aaSetup(){ setTimeout(()=>skiRefix().catch(e=>console.warn("skiRefix",e)),1500); const a=$("aaAct"), k=$("aaSki"); if(!a) return; try{ pvLine(); pvAsk(); }catch{} a.checked=aaOn("Act"); k.checked=aaOn("Ski"); aaNote(null);
   const ch=async(key,box)=>{ if(!AAP()){ box.checked=false; aaNote(null); return; } try{ localStorage.setItem("hf:aa"+key,box.checked?"1":"0"); }catch{} const r0=await aaConfig(true); if(r0&&box.checked&&((key==="Act"&&!r0.act)||(key==="Ski"&&!r0.ski))){ box.checked=false; try{ localStorage.setItem("hf:aa"+key,"0"); }catch{} aaNote(r0); } };
   a.onchange=()=>ch("Act",a); k.onchange=()=>ch("Ski",k);
   const ns=$("aaNoSh"); if(ns){ ns.checked=localStorage.getItem("hf:hcOff")==="1"; ns.onchange=()=>{ if(ns.checked&&!confirm("Da adesso HealthFit non legge più allenamenti, passi, sonno e battito da Samsung Health: restano quelli misurati da HealthFit (telefono e orologio). Continuo?")){ ns.checked=false; return; } try{ localStorage.setItem("hf:hcOff",ns.checked?"1":"0"); }catch{} toast(ns.checked? "Samsung Health non viene più letto" : "Samsung Health torna a essere letto"); }; }
@@ -8240,9 +8240,11 @@ async function pvAutoActs(iso,d,rhr){ const segs=pvDetect(d,rhr); if(!segs.lengt
       dd.workouts.push(item); hist.items=[...hist.items,{...item,date:iso}]; return true; });
     if(ok) n++; }
   if(n) save("workoutHistory",hist); return n; }
-async function passiveImport(o){ const days=o.days||{}, ks=Object.keys(days).sort(); if(!ks.length) return; let ch=false;
+async function passiveImport(o){ // prima segno che il pacchetto è arrivato (e lo stato dell'orologio), così l'avviso dice il vero anche se un giorno dà errore
+  try{ localStorage.setItem("hf:pvRx",JSON.stringify({at:o.at||Date.now(),rx:Date.now(),st:o.st||null})); }catch{}
+  const days=o.days||{}, ks=Object.keys(days).sort(); if(!ks.length){ pvLine(); return; } let ch=false;
   const Dm=(()=>{ try{ return JSON.parse(localStorage.getItem("hf:rhrDay")||"{}"); }catch{ return {}; } })();
-  for(let i=0;i<ks.length;i++){ const iso=ks[i], d=days[iso], hr=(d.hr||[]).map(Number);
+  for(let i=0;i<ks.length;i++){ try{ const iso=ks[i], d=days[iso], hr=(d.hr||[]).map(Number);
     // battito a riposo: media più bassa di 30 minuti tra mezzanotte e le 9
     let rhr=0; for(let k=0;k+5<108;k++){ const w=hr.slice(k,k+6).filter(v=>v>30); if(w.length>=4){ const m=w.reduce((x,y)=>x+y,0)/w.length; if(!rhr||m<rhr) rhr=m; } }
     if(rhr&&!Dm[iso]) Dm[iso]=Math.round(rhr);
@@ -8254,16 +8256,32 @@ async function passiveImport(o){ const days=o.days||{}, ks=Object.keys(days).sor
     if(await aaDayDo(iso,dd=>{ let c=false; const a=dd.activity||{};
         if(+d.steps>0&&a.src!=="health"&&+a.steps!==+d.steps){ dd.activity={...a,steps:+d.steps,src:"watch",via:"Orologio (HealthFit)",at:new Date().toISOString()}; c=true; }
         if(sl&&sl.h>=3&&sl.h<14&&!(dd.sleep&&dd.sleep.h&&dd.sleep.src!=="watch")&&!(dd.sleep&&dd.sleep.h===sl.h)){ dd.sleep={...(dd.sleep||{}),...sl,src:"watch"}; c=true; }
-        return c; })) ch=true; }
+        return c; })) ch=true; }catch(e){ console.warn("misure orologio "+ks[i],e); } }
   try{ const kk=Object.keys(Dm).sort(); while(kk.length>60) delete Dm[kk.shift()]; localStorage.setItem("hf:rhrDay",JSON.stringify(Dm)); }catch{}
   try{ localStorage.setItem("hf:pvAt",String(o.at||Date.now())); const t=romeISO(Date.now()), d=days[t]||{}, sl=(o.sleep||[]).filter(g=>romeISO(g[1])===t);
     localStorage.setItem("hf:pvLast",JSON.stringify({at:o.at||Date.now(),steps:+d.steps||0,rhr:Dm[t]||null,hrN:(d.hr||[]).filter(v=>v>0).length})); }catch{}
   pvLine(); if(ch) renderAll(); }
-function pvLine(){ const n=$("pvLine"); if(!n) return; let L=null; try{ L=JSON.parse(localStorage.getItem("hf:pvLast")||"null"); }catch{}
-  if(!L){ n.textContent="⌚ Dall'orologio: ancora nessun dato. Il primo arriva entro circa un'ora da quando attivi «Misure 24 ore»."; return; }
-  const when=romeISO(L.at)===romeISO(Date.now())? "oggi alle "+clockOf(L.at) : new Date(L.at).toLocaleDateString("it-IT",{day:"numeric",month:"short"})+" alle "+clockOf(L.at);
-  const old=Date.now()-L.at>3*3600e3;
-  n.textContent=`${old? "⚠️" : "✅"} Dall'orologio: ultimi dati ${when}`+(L.steps? ` · ${L.steps.toLocaleString("it-IT")} passi oggi` : "")+(L.hrN? ` · battito misurato ${Math.round(L.hrN*5/6)/10} ore` : "")+(L.rhr? ` · a riposo ${L.rhr} bpm` : "")+(old? ". Da più di 3 ore non arriva niente: apri HealthFit sull'orologio e controlla che «Misure 24 ore» sia ATTIVE." : ""); }
+function pvLine(){ const n=$("pvLine"); if(!n) return; let L=null, R=null, A=null; try{ L=JSON.parse(localStorage.getItem("hf:pvLast")||"null"); R=JSON.parse(localStorage.getItem("hf:pvRx")||"null"); A=JSON.parse(localStorage.getItem("hf:pvAsk")||"null"); }catch{}
+  const st=(R&&R.st)||null, H=3*3600e3, now=Date.now();
+  const whenOf=t=> romeISO(t)===romeISO(now)? "oggi alle "+clockOf(t) : new Date(t).toLocaleDateString("it-IT",{day:"numeric",month:"short"})+" alle "+clockOf(t);
+  // quando l'orologio ha misurato davvero l'ultima volta (dallo stato che manda), altrimenti quando ha mandato
+  const measured=(st&&+st.lastData)||(L&&L.at)||0, rx=(R&&R.rx)||(L&&L.at)||0;
+  let why="";
+  if(A&&A.at&&now-A.at<15*60e3&&A.nodes===0) why="Il telefono non vede l'orologio: controlla che il Bluetooth sia acceso e che l'orologio sia collegato nell'app Galaxy Wearable.";
+  else if(st&&st.on===false) why="Sull'orologio «Misure 24 ore» risultano spente: apri HealthFit sull'orologio e toccale per accenderle.";
+  else if(st&&st.perms===false) why="All'orologio mancano i permessi (Sensori e Attività fisica): apri HealthFit sull'orologio e tocca «Misure 24 ore».";
+  else if(st&&measured&&now-measured>H&&rx&&now-rx<H) why="L'orologio è collegato ma non riceve misure dal sensore"+(st.bg===false?": sull'orologio vai in Impostazioni → App → HealthFit → Autorizzazioni → Sensori e scegli «Consenti sempre».":". Sull'orologio controlla Impostazioni → App → HealthFit → Autorizzazioni → Sensori → «Consenti sempre», e che HealthFit non sia tra le app in sospensione (Impostazioni → Batteria). Poi apri HealthFit sull'orologio una volta.");
+  else if(st&&st.sendErr) why="L'orologio non riesce a mandare i dati al telefono ("+st.sendErr+"): apri HealthFit sull'orologio, poi questa pagina.";
+  if(!L&&!R){ n.textContent=why? "⚠️ "+why : "⌚ Dall'orologio: ancora nessun dato. Il primo arriva entro circa un'ora da quando attivi «Misure 24 ore»."; return; }
+  const old=!measured||now-measured>H||now-rx>H;
+  if(old&&!why) why=(WBR()&&WBR().askPassive)? "Da più di 3 ore non arriva niente: apri HealthFit sull'orologio, controlla che «Misure 24 ore» siano attive, poi torna su questa pagina." : "Da più di 3 ore non arriva niente: aggiorna l'app HealthFit del telefono e dell'orologio (Profilo → ⌚ Aggiorna orologio), poi apri HealthFit sull'orologio.";
+  n.textContent=`${old||why? "⚠️" : "✅"} Dall'orologio: ultime misure ${measured? whenOf(measured) : "—"}`+(L&&L.steps? ` · ${L.steps.toLocaleString("it-IT")} passi ${romeISO(L.at)===romeISO(now)?"oggi":"quel giorno"}` : "")+(L&&L.hrN? ` · battito misurato ${String(Math.round(L.hrN*5/6)/10).replace(".",",")} ore` : "")+(L&&L.rhr? ` · a riposo ${L.rhr} bpm` : "")+(why? ". "+why : ""); }
+// chiede all'orologio le misure adesso (e di riattivarle se Wear OS le ha perse): all'avvio, al rientro nell'app, aprendo Attività
+let pvAskAt=0;
+async function pvAsk(force){ const W=WBR(); if(!W||!W.askPassive) return; if(!force&&Date.now()-pvAskAt<5*60e3) return; pvAskAt=Date.now();
+  try{ const r0=await W.askPassive(); try{ localStorage.setItem("hf:pvAsk",JSON.stringify({at:Date.now(),nodes:+(r0&&r0.nodes)||0})); }catch{} }
+  catch(e){ try{ localStorage.setItem("hf:pvAsk",JSON.stringify({at:Date.now(),nodes:0,err:String(e&&e.message||e)})); }catch{} }
+  pvLine(); setTimeout(()=>{ watchPending().then(pvLine).catch(()=>{}); },15000); }
 /* ----- sci, bici, camminata e palestra registrati con HealthFit sull'orologio ----- */
 const WS_NAME={ski:"Sci alpino",bike:"Bici",walk:"Camminata",gym:"Palestra (orologio)"}, WS_MET={bike:7,walk:3.5,gym:5};
 async function saveWatchSport(o){ if(!(+o.seconds>60)) return false; const t0=+o.startedAt||Date.now(), iso=romeISO(t0), min=Math.round(+o.seconds/60), sp=o.sport;
@@ -13626,7 +13644,7 @@ async function loadAll(){
     $("hcConnect").onclick=hcConnect; $("hcPermsLink").onclick=hcConnect; $("hcSyncNow").onclick=()=>hcSync(true); $("hcSettings").onclick=()=>{ const H=HCP(); if(H&&H.openHealthConnectSettings) H.openHealthConnectSettings().catch(()=>{}); };
     if(localStorage.getItem("hf:hcLast")) setStatus("hcStatus","Ultima sincronizzazione: "+new Date(localStorage.getItem("hf:hcLast")).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}));
     setTimeout(()=>{ hcAutoFix().finally(()=>hcSync(false)); },3500);
-    try{ const W=WBR(); if(W){ W.addListener("watchResult",async o=>{ const id=await saveWatchResult(o); if(id){ renderAll(); if(runStretchOffer(id,o)) return; actionToast("⌚ Corsa salvata ✓ · stretching e recupero nel riepilogo","Apri",()=>openRunSummary(id)); } }); setTimeout(watchPending,2500); NAT().Plugins.App.addListener("resume",()=>watchPending()); } }catch(e){ console.warn("orologio",e); }
+    try{ const W=WBR(); if(W){ W.addListener("watchResult",async o=>{ const id=await saveWatchResult(o); if(id){ renderAll(); if(runStretchOffer(id,o)) return; actionToast("⌚ Corsa salvata ✓ · stretching e recupero nel riepilogo","Apri",()=>openRunSummary(id)); } }); setTimeout(watchPending,2500); setTimeout(()=>pvAsk(),4000); NAT().Plugins.App.addListener("resume",()=>{ watchPending(); pvAsk(); }); } }catch(e){ console.warn("orologio",e); }
     try{ NAT().Plugins.App.addListener("resume",()=>{ const l=+new Date(localStorage.getItem("hf:hcLast")||0); if(Date.now()-l>10*60000) hcSync(false); }); }catch{}
     setTimeout(()=>{ hrnRestore(); },900); setTimeout(()=>{ rdFix0711(); },3000);
     try{ NAT().Plugins.App.addListener("backButton",()=>{ if(view==="diario"&&!sheetStack.length) NAT().Plugins.App.minimizeApp(); else history.back(); }); }catch{}
