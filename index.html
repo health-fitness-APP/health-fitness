@@ -2557,7 +2557,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.97 (dati dell'orologio: il telefono li chiede da solo e l'avviso dice dove si ferma)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.98 (dati dell'orologio: il telefono li chiede da solo e l'avviso dice dove si ferma)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -8803,6 +8803,9 @@ const IT_EN=[[/panca piana|distension[ei] su panca|bench/,"bench press"],[/panca
 const EQ_IT=[[/manubr/,"d"],[/bilanciere ez|\bez\b/,"e"],[/bilanciere/,"b"],[/macchina|machine|smith/,"m"],[/cav[io]|pulley/,"c"],[/kettlebell/,"k"],[/elastic/,"n"],[/corpo libero/,"w"]];
 /* abbinamenti verificati nome italiano → esercizio del Free Exercise DB (il primo che corrisponde vince; per attrezzo: d manubri, b bilanciere, m macchina, s smith, c cavi, k kettlebell, w corpo libero, e EZ, n elastici, _ altrimenti; null = nessuna foto adatta) */
 const EXRULES=[
+ [/passi laterali|camminata laterale|lateral (band )?walk|monster walk|side.?step/,{_:"Monster_Walk"}],   // v4.98: non le alzate laterali delle spalle
+ [/affond\w* saltat|jump(ing)? lunge|split jump/,{_:"Split_Jump"}],
+ [/donkey kick|calci\w* dell.?asino/,{_:"Glute_Kickback"}],
  // v4.68: controllo generale degli abbinamenti (prima: australian → trazioni, flessioni laterali → alzate laterali, abduzioni con elastico → macchina)
  [/australian|rematore invers|inverted row/,{_:"Inverted_Row"}],
  [/flession\w* lateral\w* (del busto|con|col|al)|side bend|piegament\w* lateral\w* del busto/,{b:"Barbell_Side_Bend",c:"One-Arm_High-Pulley_Cable_Side_Bends",_:"Dumbbell_Side_Bend"}],
@@ -8942,6 +8945,15 @@ function exFig(name,x){ const n=String(name||"").toLowerCase().normalize("NFD").
   if(/^skip|\bskip\b|high knees|ginocchia alte/.test(n)) return /bass/.test(n)? "Skip basso" : "Skip alto";
   if(/calciat|butt.?kick/.test(n)) return "Calciata";
   if(/wall sit|sedia al muro|squat\w*( isometric\w*)? (al|contro il|a) muro|squat isometric|isometric squat/.test(n)) return "Squat al muro";
+  /* v4.98: esercizi a corpo libero che hanno una figura dell'app: mai la foto di un macchinario (Daniele: «Equilibrio su una gamba» mostrava la leg extension) */
+  const noEq=!EQ_RULE.some(([re,k])=>k!=="w"&&re.test(nx));
+  if(noEq&&/equilibri|balance|propriocet|propriocez|monopodal|stork|fenicottero/.test(n)&&!/tavolett|board|bosu|snatch|jerk|cuscin|disco/.test(n)) return "Equilibrio su una gamba";
+  if(noEq&&/passi laterali|camminata laterale|lateral (band )?walk|side.?step|monster walk/.test(n)) return "Passi laterali";
+  if(noEq&&/discesa dal (gradino|step|rialzo)|step.?down|eccentric\w* (dal|sul) gradino/.test(n)) return "Discesa dal gradino";
+  if(noEq&&/abduzion|abduct/.test(n)&&/in piedi|standing/.test(n)) return "Abduzioni in piedi";
+  if(noEq&&/affond\w*.*rotazion|lunge.*(twist|rotation)/.test(n)) return "Affondo con rotazione";
+  if(noEq&&/(affond\w*|lunge)\s*(indietro|inverso|posterior)|reverse lunge|rear lunge/.test(n)) return "Affondo indietro";
+  if(noEq&&/affondi alternati|alternating lunge|^affondi?( sul posto| frontali| in avanti)?$/.test(n.trim())) return "Affondi alternati";
   if(/calf|polpacc/.test(n)&&!/stretch|allungament/.test(n)){ const free=/corpo libero|a corpo|bodyweight|gradino|muro|scalino/.test(nx)||(x&&x.part&&!EQ_RULE.some(([re])=>re.test(nx))&&!/sedut|seated|pressa|leg press/.test(nx));
     if(free) return /una gamba|monopodal|single|singol/.test(n)? "Polpacci su una gamba" : "Polpacci in piedi"; }
   return null; }
@@ -9008,12 +9020,26 @@ function routineBox(k){ const R=STRETCH[k], w=el("div","rt-box"); if(!R) return 
   return w; }
 async function exdbFind(name,x){ const key="hf:exdb:"+exKey(name); if(exRoutine(name)) return {id:null,cands:null};
   let pick=null; try{ pick=localStorage.getItem("hf:exdbPick:"+exKey(name)); }catch{} if(pick) return {id:pick,cands:null};
-  const rule=exdbRule(name,x); if(rule!==undefined) return {id:rule,cands:null};   // abbinamento verificato: subito, senza IA
-  const saved=localStorage.getItem(key); if(saved) return {id:saved,cands:null};
+  const bw=exBodyOnly(name,x), okBw=id=>!bw||!id||!EXHEAVY.has((EXDB.find(z=>z[0]===id)||[])[1]);
+  const rule=exdbRule(name,x); if(rule!==undefined) return {id: okBw(rule)? rule : exBwAlt(rule,name),cands:null};   // abbinamento verificato: subito, senza IA
+  const saved=localStorage.getItem(key); if(saved&&okBw(saved)) return {id:saved,cands:null};
   let en=guessEn(name), eq=guessEq(name,x);
   if(sample){ try{ const r0=await sample.json(`Nome inglese standard (come nei database di esercizi) dell'esercizio "${String(name).replace(/"/g,"'")}"${x&&x.equip?" con "+x.equip:""}. Rispondi SOLO con JSON: {"en":"es. Close-Grip Dumbbell Bench Press","equipment":"barbell|dumbbell|machine|cable|body only|kettlebells|e-z curl bar|bands|other"}`,{modelTier:"quick",maxTokens:120});
       if(r0&&r0.en){ en=r0.en+" "+en; const m={barbell:"b",dumbbell:"d",machine:"m",cable:"c","body only":"w",kettlebells:"k","e-z curl bar":"e",bands:"n"}[String(r0.equipment||"").toLowerCase()]; if(m) eq=m; } }catch{} }
-  const cands=exdbCands(en,eq,6); if(cands.length) localStorage.setItem(key,cands[0][0]); return {id:cands[0]&&cands[0][0],cands}; }
+  let cands=exdbCands(en,eq,12); if(bw){ cands=cands.filter(c=>!EXHEAVY.has(c[1])); eq="w"; }
+  cands=cands.slice(0,6); if(cands.length) localStorage.setItem(key,cands[0][0]); else localStorage.removeItem(key); return {id:cands[0]&&cands[0][0],cands}; }
+/* v4.98: esercizio a corpo libero → mai la foto con bilanciere, manubri, kettlebell, macchina o cavi */
+const EXHEAVY=new Set(["b","d","k","m","c","e"]);
+function exBodyOnly(name,x){ const n=String(name||"").toLowerCase(), eq=String((x&&x.equip)||"").toLowerCase();
+  if(W_EQ.test(n)||/manubr|bilancier|kettlebell|macchin|machine|cav[io]\b|cable|pulley|smith|pressa/.test(n)) return false;
+  if(eq) return /corpo libero|bodyweight|a corpo|tappetin|nessun|a terra|sbarra|panca|gradino|step|muro|sedia/.test(eq)&&!W_EQ.test(eq);
+  return /corpo libero|bodyweight|a corpo/.test(n); }
+/* stessa cosa senza attrezzi, se il database ce l'ha; altrimenti nessuna foto (resta il video) */
+const EX_BW_ALT={Dumbbell_Lunges:"Bodyweight_Walking_Lunge",Barbell_Lunge:"Bodyweight_Walking_Lunge",Barbell_Walking_Lunge:"Bodyweight_Walking_Lunge",Dumbbell_Rear_Lunge:"Crossover_Reverse_Lunge",Elevated_Back_Lunge:"Crossover_Reverse_Lunge",
+  Dumbbell_Step_Ups:"Step-up_with_Knee_Raise",Barbell_Step_Ups:"Step-up_with_Knee_Raise",Split_Squat_with_Dumbbells:"Split_Squats","Smith_Single-Leg_Split_Squat":"Split_Squats",Barbell_Hip_Thrust:"Butt_Lift_Bridge",Barbell_Glute_Bridge:"Butt_Lift_Bridge",
+  Barbell_Squat:"Bodyweight_Squat",Goblet_Squat:"Bodyweight_Squat",Dumbbell_Squat:"Bodyweight_Squat"};
+function exBwAlt(id,name){ let a=EX_BW_ALT[id]; if(a&&/una gamba|single|monopodal/i.test(name)&&/Bridge/.test(a)) a="Single_Leg_Glute_Bridge";
+  return a&&EXDB.some(z=>z[0]===a)? a : null; }
 function exdbDemo(name,x){ const wrap=el("div","demo"); wrap.innerHTML=`<div class="demo-img"><p class="note">Cerco la dimostrazione…</p></div>`;
   const fg=exFig(name,x); let pk=null; try{ pk=localStorage.getItem("hf:exdbPick:"+exKey(name)); }catch{}
   if(fg&&STR_FIG[fg]&&!pk){ const box=wrap.querySelector(".demo-img"); box.classList.add("str-img"); box.innerHTML=figSVG(fg);
