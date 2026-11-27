@@ -2557,7 +2557,7 @@ body.simple .seg [data-w="corsa"],body.simple .seg [data-w="sci"],body.simple .s
       <button class="btn ghost" id="bkRestorePhone" type="button" hidden style="grid-column:1/-1">↩️ Rimetti l'ultima copia automatica</button>
     </div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.96 (dati dell'orologio: il telefono li chiede da solo e l'avviso dice dove si ferma)</p>
+    <p class="note" style="text-align:center;margin-top:16px" id="verLine">HealthFit · versione 4.97 (dati dell'orologio: il telefono li chiede da solo e l'avviso dice dove si ferma)</p>
     <button class="btn ghost" id="updBtn" type="button">🔄 Cerca aggiornamenti</button>
     <button class="btn ghost" id="updWatchBtn" type="button" hidden>⌚ Aggiorna orologio</button>
     <div class="status" id="updWatchStatus" aria-live="polite" style="text-align:center"></div>
@@ -3611,6 +3611,14 @@ function walkExtra(d){ d=d||state.day; const a=d&&d.activity, z={steps:0,km:0,kc
   const extra=Math.max(0,+a.steps-wSteps-base); if(extra<1000) return z;
   const f=+localStorage.getItem("hf:strideCal")||1, km=extra*h*0.415/100000*f;
   return {steps:Math.round(extra),km:Math.round(km*10)/10,kcal:Math.round(km*w*0.5/10)*10}; }
+/* v4.97: obiettivo calorico di un giorno qualsiasi, calcolato come nel Diario (base + allenamenti fatti o previsti + camminate in più + carico per domani).
+   Serve all'analisi e al coach: il piano salvato non va sommato, perché dopo i pasti mangiati la parte che manca viene spostata sui pasti successivi */
+function dayGoalFor(iso){ try{
+  const u=upDayFor(iso); if(u){ const t=upDayTotals(u); if(t.kcal>300) return Math.round(t.kcal); }
+  const tg=targets(state.profile); if(!tg) return null; const d=dayDoc(iso)||{};
+  let burn=(d.workouts||[]).reduce((a,w)=>a+(+w.kcal||0),0)+(+d.burned||0);
+  if(!burn&&iso>=todayISO()){ const ev=(d.event||{}).type||""; const dp=dayPlanFor(new Date(iso+"T12:00:00").getDay(),iso); if(ev!=="Riposo"&&dp&&!dp.ovr&&dp.kind!=="rest") burn=+dp.kcal||0; }
+  return Math.round(tg.kcal+burn+walkExtra(d).kcal+preloadFor(iso).kcal); }catch{ return null; } }
 function dayTargets(){
   const pb=plannedBurn(), wk=walkExtra(), burn=(workoutKcal()||(pb?pb.kcal:0))+wk.kcal;
   const d=upDayFor(state.date);
@@ -10000,8 +10008,8 @@ function dayDietText(iso,full){ const wd=new Date(iso+"T12:00:00").getDay(); let
   try{ if(upActive()){ const d=upDayFor(iso); meals=d&&d.meals; who="dieta del nutrizionista"; }
     else if(state.diet&&state.diet.plan){ const d=planDays(state.diet.plan).find(x=>x.weekday===wd); meals=d&&d.meals; who="dieta del coach"; } }catch{}
   if(!meals||!meals.length) return "";
-  const k=Math.round(sumMeals(meals).kcal);
-  return `${who} ~${k} kcal`+(full? ": "+meals.map(m=>(m.name||m.id)+" = "+(m.foods||[]).map(f=>f.name+" "+r(+f.grams||0)+"g").join(", ")).join("; ") : ""); }
+  const k=Math.round(sumMeals(meals).kcal), gk=upActive()? null : dayGoalFor(iso);
+  return (gk? `${who}, obiettivo calorico del giorno ~${gk} kcal (USA QUESTO numero, i pasti si adattano da soli)` : `${who} ~${k} kcal`)+(full? ": "+meals.map(m=>(m.name||m.id)+" = "+(m.foods||[]).map(f=>f.name+" "+r(+f.grams||0)+"g").join(", ")).join("; ") : ""); }
 function dayDoneText(iso){ const out=[];
   try{ const dd=dayDoc(iso); (dd&&dd.workouts||[]).forEach(w=>out.push(w.name+(w.minutes?" "+r(+w.minutes)+" min":"")+(w.distance?" "+w.distance+" km":""))); }catch{}
   try{ tlog.sessions.filter(x=>x.date===iso).forEach(x=>{ if(!out.some(o=>o.startsWith(x.title))) out.push(x.title+" (scheda registrata)"); }); }catch{}
@@ -10769,7 +10777,7 @@ async function refreshProgress(){
   const logged=days.filter(d=>d.items>=2);
   const last7=logged.filter(d=>d.date>shiftDate(todayISO(),-7)&&d.date!==todayISO());
   const avgK= last7.length? last7.reduce((a,d)=>a+d.kcal,0)/last7.length : null;
-  const avgT= last7.length&&tg? last7.reduce((a,d)=>a+(upDayFor(d.date)? upDayTotals(upDayFor(d.date)).kcal : tg.kcal+d.burn),0)/last7.length : null;
+  const avgT= last7.length&&tg? last7.reduce((a,d)=>a+(dayGoalFor(d.date)||tg.kcal+d.burn),0)/last7.length : null;
   const avgP= last7.length? last7.reduce((a,d)=>a+d.p,0)/last7.length : null;
   const avgM= last7.length&&tg? last7.reduce((a,d)=>a+tg.tdee+(+d.burn||0),0)/last7.length : null;   // mantenimento stimato di quei giorni (fabbisogno + allenamenti)
   const planned=trainOf(state.profile).sessions.reduce((a,s)=>a+s.days.length,0);
@@ -11787,10 +11795,10 @@ function renderProgress(){ try{ renderPhaseCard(); }catch(e){} try{ renderWeekCa
 }
 function progressDataText(){
   const pg=progress||{}, tg=targets(state.profile)||{};
-  const dl=(pg.days||[]).slice().reverse().map(d=>`${d.date}: ${d.items? r(d.kcal)+" kcal, P"+r(d.p)+" C"+r(d.c)+" G"+r(d.f) : "non registrato"}${d.burn? ", allenamento "+r(d.burn)+" kcal":""}`).join("\n");
+  const dl=(pg.days||[]).slice().reverse().map(d=>`${d.date}: ${d.items? r(d.kcal)+" kcal, P"+r(d.p)+" C"+r(d.c)+" G"+r(d.f) : "non registrato"}${d.burn? ", allenamento "+r(d.burn)+" kcal":""}${(()=>{ const g=dayGoalFor(d.date); return g? ", obiettivo del giorno "+g+" kcal (già comprensivo di allenamenti e camminate)" : ""; })()}`).join("\n");
   const ws=sortedEntries().filter(e=>e.date>=shiftDate(todayISO(),-56)).map(e=>e.date+": "+METRICS.filter(([k])=>e[k]!=null).map(([k,l,u])=>l+" "+e[k]+u).join(", ")).join("\n");
   const wk=hist.items.filter(w=>w.date>=shiftDate(todayISO(),-28)).map(w=>w.date+" "+w.name+" "+w.minutes+"min"+(w.distance?" "+w.distance+"km":"")+(w.pace?" "+w.pace+"/km":"")).join("; ");
-  return `Obiettivo calorico base: ${r(tg.kcal||0)} kcal (correzione attuale ${+state.profile.kcalAdjust||0} kcal), proteine ${r(tg.prot||0)} g.
+  return `Obiettivo calorico base: ${r(tg.kcal||0)} kcal (correzione attuale ${+state.profile.kcalAdjust||0} kcal), proteine ${r(tg.prot||0)} g. Nei giorni di allenamento l'obiettivo sale: per confrontare il mangiato usa SOLO l'"obiettivo del giorno" scritto accanto a ogni giorno, non sommare tu base e allenamenti e non usare il totale dei pasti del piano.
 Diario ultimi 14 giorni:\n${dl}
 Misurazioni ultime 8 settimane:\n${ws||"nessuna"}
 Allenamenti ultime 4 settimane: ${wk||"nessuno"}. Sessioni previste a settimana: ${pg.planned||"non indicate"}.
